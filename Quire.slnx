@@ -11,6 +11,7 @@
     <Project Path="tests/Quire.Protocol.Tests/Quire.Protocol.Tests.csproj" />
   </Folder>
   <Folder Name="/tests/fuzz/">
+    <Project Path="tests/fuzz/Quire.PdfWriter.Fuzz/Quire.PdfWriter.Fuzz.csproj" />
     <Project Path="tests/fuzz/Quire.Protocol.Fuzz/Quire.Protocol.Fuzz.csproj" />
   </Folder>
   <Folder Name="/tools/">
