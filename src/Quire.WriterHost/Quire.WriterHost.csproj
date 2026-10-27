@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <Description>Sandboxed host for Quire.PdfWriter. Receives handles only, never paths (ADR-0008).</Description>
+    <RuntimeIdentifier>$(QuireRuntimeIdentifier)</RuntimeIdentifier>
+    <SelfContained>true</SelfContained>
+    <InvariantGlobalization>true</InvariantGlobalization>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Quire.PdfWriter\Quire.PdfWriter.csproj" />
+    <ProjectReference Include="..\Quire.Protocol\Quire.Protocol.csproj" />
+  </ItemGroup>
+</Project>

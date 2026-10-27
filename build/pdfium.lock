@@ -1,0 +1,12 @@
+{
+  "comment": "PDFium pin (ADR-0002). Prebuilt until our own Chromium-stable build exists. Update only with an ADR-0001/0002 amendment.",
+  "source": "prebuilt",
+  "release": "chromium/8125",
+  "version": "158.0.8125.0",
+  "published": "2026-10-26",
+  "baseUrl": "https://github.com/bblanchon/pdfium-binaries/releases/download/chromium/8125",
+  "assets": {
+    "x64": { "file": "pdfium-win-x64.tgz", "sha256": "9a964261760cff52570aabf038ab346d3a5034dd8b30d0d5fe8861235d356b8b" },
+    "arm64": { "file": "pdfium-win-arm64.tgz", "sha256": "d394ba61991fb53f4d87f70988035f337d9e73f2bd2c3c1b966df8c43fcabb05" }
+  }
+}

@@ -1,0 +1,6 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <Description>Generates C# and C++ protocol code from src/Quire.Protocol/schema (ADR-0005).</Description>
+  </PropertyGroup>
+</Project>
