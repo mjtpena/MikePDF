@@ -1,2 +1,12 @@
 # Auto detect text files and perform LF normalization
 * text=auto
+
+# Binary formats: never line-ending convert (PDF xref offsets are byte-exact)
+*.pdf  binary
+*.png  binary
+*.jpg  binary
+*.pfx  binary
+*.dll  binary
+*.exe  binary
+*.tgz  binary
+*.zip  binary
