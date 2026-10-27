@@ -1,0 +1,17 @@
+# Build output
+bin/
+obj/
+*.user
+.vs/
+
+# Spike downloads and generated artefacts (re-created by scripts)
+spikes/_shared/pdfium/.cache/
+spikes/_shared/pdfium/pdfium-*/
+spikes/_shared/tools/
+spikes/**/out/
+corpus/files/
+spikes/_shared/corpus/pdfium-resources/
+**/.venv/
+**/node_modules/
+**/AppPackages/
+**/BundleArtifacts/

@@ -1,0 +1,64 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows10.0.26100.0</TargetFramework>
+    <TargetPlatformMinVersion>10.0.26100.0</TargetPlatformMinVersion>
+    <RootNamespace>HelloQuire</RootNamespace>
+    <AssemblyName>HelloQuire</AssemblyName>
+    <Platforms>x64;ARM64</Platforms>
+    <RuntimeIdentifiers>win-x64;win-arm64</RuntimeIdentifiers>
+    <UseWinUI>true</UseWinUI>
+    <EnableMsixTooling>true</EnableMsixTooling>
+    <!-- Packaging: None (default, for the startup bench) or MSIX (override with /p:WindowsPackageType=MSIX) -->
+    <WindowsPackageType Condition="'$(WindowsPackageType)' == ''">None</WindowsPackageType>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <DefineConstants>$(DefineConstants);DISABLE_XAML_GENERATED_MAIN</DefineConstants>
+    <!-- S6.1 versions pinned exactly -->
+    <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
+    <SatelliteResourceLanguages>en-US</SatelliteResourceLanguages>
+    <AppxOSMinVersionReplaceManifestVersion>false</AppxOSMinVersionReplaceManifestVersion>
+    <AppxOSMaxVersionTestedReplaceManifestVersion>false</AppxOSMaxVersionTestedReplaceManifestVersion>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.WindowsAppSDK" Version="2.5.1" />
+    <PackageReference Include="Microsoft.Graphics.Win2D" Version="1.4.0" />
+    <PackageReference Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.26100.7705" />
+  </ItemGroup>
+
+  <!-- S5.1 ink compile probe lives in spikes/S5 and is linked in -->
+  <ItemGroup>
+    <Compile Include="..\..\S5\InkProbe\InkProbe.cs" Link="InkProbe.cs" />
+  </ItemGroup>
+
+  <!-- PDFium prebuilt (chromium/8125) per architecture, as content next to the exe -->
+  <ItemGroup Condition="'$(RuntimeIdentifier)' == 'win-x64' or '$(Platform)' == 'x64'">
+    <Content Include="..\..\_shared\pdfium\pdfium-win-x64\bin\pdfium.dll" Link="pdfium.dll" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(RuntimeIdentifier)' == 'win-arm64' or '$(Platform)' == 'ARM64'">
+    <Content Include="..\..\_shared\pdfium\pdfium-win-arm64\bin\pdfium.dll" Link="pdfium.dll" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <!-- Stand-in engine (framework-dependent console exe) shipped inside the package/output under Engine\ -->
+  <ItemGroup Condition="'$(Platform)' == 'x64'">
+    <Content Include="..\out\engine\x64\*.*" Exclude="..\out\engine\x64\*.pdb" Link="Engine\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(Platform)' == 'ARM64'">
+    <Content Include="..\out\engine\arm64\*.*" Exclude="..\out\engine\arm64\*.pdb" Link="Engine\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="Assets\**" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <!-- SURPRISE (S6): the MSIX build tooling forces MaxVersionTested to the TFM's Windows SDK version (26100) and ignores
+       AppxOSMaxVersionTestedReplaceManifestVersion=false. Windows AI docs want >= 10.0.26226.0, so patch the generated layout manifest. -->
+  <Target Name="PatchMaxVersionTested" AfterTargets="Build" Condition="'$(WindowsPackageType)' == 'MSIX' and Exists('$(OutDir)AppxManifest.xml')">
+    <PropertyGroup>
+      <_Mf>$([System.IO.File]::ReadAllText('$(OutDir)AppxManifest.xml'))</_Mf>
+      <_Mf2>$(_Mf.Replace('MaxVersionTested="10.0.26100.0"','MaxVersionTested="10.0.26300.0"'))</_Mf2>
+    </PropertyGroup>
+    <WriteLinesToFile File="$(OutDir)AppxManifest.xml" Lines="$(_Mf2)" Overwrite="true" WriteOnlyWhenDifferent="true" Encoding="UTF-8" />
+  </Target>
+</Project>

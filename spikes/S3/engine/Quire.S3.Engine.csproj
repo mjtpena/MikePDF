@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <AssemblyName>quire-engine-stub</AssemblyName>
+    <RootNamespace>Quire.S3.Engine</RootNamespace>
+    <InvariantGlobalization>true</InvariantGlobalization>
+    <UseSystemResourceKeys>true</UseSystemResourceKeys>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\common\Quire.S3.Common.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- Read from the shared PDFium drop (read-only use); copied next to the engine so the container only needs access to one directory. -->
+    <None Include="..\..\_shared\pdfium\pdfium-win-x64\bin\pdfium.dll" Link="pdfium.dll" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>

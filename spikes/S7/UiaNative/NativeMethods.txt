@@ -1,0 +1,15 @@
+CoCreateInstance
+CoInitializeEx
+CUIAutomation8
+IUIAutomation
+IUIAutomationElement
+IUIAutomationTextPattern
+IUIAutomationTextPattern2
+IUIAutomationTextRange
+UIA_PATTERN_ID
+UIA_PROPERTY_ID
+SafeArrayGetLBound
+SafeArrayGetUBound
+SafeArrayAccessData
+SafeArrayUnaccessData
+SafeArrayDestroy

@@ -1,0 +1,1 @@
+{"name":"s4-pdfjs","private":true,"version":"0.0.0","type":"module","dependencies":{"@napi-rs/canvas":"^1.0.13","pdfjs-dist":"^6.4.299","pngjs":"^7.0.0"}}

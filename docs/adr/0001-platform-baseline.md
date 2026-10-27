@@ -120,3 +120,24 @@ Adopt the pins above for Milestone 0 and M1. Rows marked UNVERIFIED must not be 
 - [ ] S1.x: arm64 cross-build and the per-function API check
 - [ ] User: code-signing route (R-18)
 - [ ] Re-check the .NET 10.0.14 release date and the VS 18.11 default MSVC toolset
+
+## Amendment A1 (2026-10-28): spike evidence
+Results from the M0 spikes on DEV. DEV is an x64 Core Ultra 9 275HX with 64 GB and an RTX 5080, with a non-Copilot+ Intel NPU and Windows 11 26H2. Rows above are updated as follows:
+
+| Row | New status | Evidence |
+|---|---|---|
+| Win2D 1.4.0 on WinAppSDK 2.5.1 | **VERIFIED on x64** (packaged and unpackaged, JIT and AOT). arm64 builds (ARM64 PE) but has **not run** (needs R2) | [S6](../spikes/S6.md) |
+| Deployment mode | Native AOT **VERIFIED on x64** (zero IL warnings; needs `link.exe` and `vswhere.exe` on PATH). arm64 AOT **blocked** here (no ARM64 C++ libs). R2R builds on both architectures. **Keep R2R as the fallback**; choose the default after R1/R3 cold-start runs | S6 |
+| Startup (indicative only) | Warm p50 to first frame on loaded DEV: AOT about 430 ms, R2R about 550 ms, JIT 530–670 ms, packaged JIT 879 ms. **Not a budget verdict** (machine at 100% CPU, not R1) | S6 |
+| MSIX | `dotnet build` single-project MSIX works. Unsigned loose registration works in Developer Mode. **Tooling forces `MaxVersionTested=10.0.26100.0`; a post-build patch is needed** to declare 26300 | S6 |
+| Windows AI | `GetReadyState()` returns `NotSupportedOnCurrentSystem` (LanguageModel and TextRecognizer) on a non-Copilot+ NPU. Without the `systemAIModels` capability it returns `CapabilityMissing`. `Windows.Media.Ocr` OCR worked (22–35 ms per page) | S6 |
+| App Content Search | Types present. Without a LAF token: `UnauthorizedAccessException` (0x80070005), "Limited Access Feature is not available" | S6 |
+| Text pattern on a custom surface | `ITextProvider`/`ITextProvider2`/`ITextRangeProvider` exist in 2.5.1 and work from C# | [S7](../spikes/S7.md) |
+| PDFium prebuilt | All 65 checklist functions exported on x64 and arm64. Sizes 7.59 / 6.90 MB. Hardening: ASLR, high-entropy VA, DEP, CFG, /GS. CETCOMPAT x64 only. **No PDBs, unsigned** | [S1](../spikes/S1.md) |
+| `FPDF_LoadCustomDocument` | **4 GiB limit** (`m_FileLen` is 32-bit on Windows). Use `FPDF_LoadMemDocument64` over a mapped view (ADR-0005) | [S3](../spikes/S3.md) |
+| Local toolchain (DEV) | VS 2022 Build Tools, MSVC **14.44** x64 only (ADR pins 14.50 LTS), no clang-cl, Windows SDK **10.0.26100** only. PDFium's pinned `build/vs_toolchain.py` requires **SDK 10.0.28000.0**, so a from-source PDFium build is blocked here | S1, Opus check of `vs_toolchain.py` at the pinned build revision |
+| .NET on DEV | SDK 10.0.300 / runtime 10.0.8 vs pin 10.0.403 / 10.0.14. M1 adds a `global.json` that enforces the pin | S1, S6 |
+| COM interop | **Use source-generated COM** (`[GeneratedComInterface]`), not `[ComImport]`, for anything that must work under AOT | S6 |
+| Ink | WinUI 3 has no `InkCanvas`, and Win2D 1.4.0 has no `DrawInk`. Pen pressure, tilt, barrel, eraser, `GetIntermediatePoints` and `PointerPredictor` are available | [S5](../spikes/S5.md) |
+
+The OS-minimum deviation D1 is unchanged and still awaits the user's confirmation.
