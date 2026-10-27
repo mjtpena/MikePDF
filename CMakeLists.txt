@@ -17,6 +17,7 @@ option(QUIRE_BUILD_TESTS "Build native tests" ON)
 # Generated protocol code (tools/Quire.ProtocolGen) lands here.
 set(QUIRE_PROTOCOL_CPP_DIR "${CMAKE_SOURCE_DIR}/src/Quire.Protocol/generated/cpp")
 
+add_subdirectory(src/Quire.Protocol)
 add_subdirectory(src/Quire.Engine.Pdfium)
 add_subdirectory(src/Quire.Engine)
 

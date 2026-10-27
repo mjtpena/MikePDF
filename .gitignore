@@ -16,3 +16,4 @@ spikes/_shared/corpus/pdfium-resources/
 **/AppPackages/
 **/BundleArtifacts/
 build/out/
+TestResults/

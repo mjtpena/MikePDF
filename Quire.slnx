@@ -10,6 +10,9 @@
     <Project Path="tests/Quire.PdfWriter.Tests/Quire.PdfWriter.Tests.csproj" />
     <Project Path="tests/Quire.Protocol.Tests/Quire.Protocol.Tests.csproj" />
   </Folder>
+  <Folder Name="/tests/fuzz/">
+    <Project Path="tests/fuzz/Quire.Protocol.Fuzz/Quire.Protocol.Fuzz.csproj" />
+  </Folder>
   <Folder Name="/tools/">
     <Project Path="tools/Quire.ProtocolGen/Quire.ProtocolGen.csproj" />
   </Folder>

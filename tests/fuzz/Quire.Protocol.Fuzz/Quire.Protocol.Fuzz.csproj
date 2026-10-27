@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <Description>SharpFuzz harness for the Quire.Protocol decoders (see README.md).</Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="SharpFuzz" />
+    <ProjectReference Include="..\..\..\src\Quire.Protocol\Quire.Protocol.csproj" />
+  </ItemGroup>
+</Project>

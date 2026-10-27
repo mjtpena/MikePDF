@@ -10,3 +10,4 @@
 *.exe  binary
 *.tgz  binary
 *.zip  binary
+*.bin binary

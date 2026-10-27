@@ -1,5 +1,10 @@
 <Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <!-- The generator is referenced as a library, to run its stale-output check and read the schema model. -->
+    <ValidateExecutableReferencesMatchSelfContained>false</ValidateExecutableReferencesMatchSelfContained>
+  </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\src\Quire.Protocol\Quire.Protocol.csproj" />
+    <ProjectReference Include="..\..\tools\Quire.ProtocolGen\Quire.ProtocolGen.csproj" />
   </ItemGroup>
 </Project>

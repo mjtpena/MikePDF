@@ -40,6 +40,11 @@ function Find-CMake {
 
 $hostArch = if ([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture -eq 'Arm64') { 'arm64' } else { 'x64' }
 
+# The checked-in protocol code (C# and C++) must match the schema; the native build below compiles it too.
+if (-not ($SkipNative -and $SkipManaged)) {
+    Invoke-Step 'Protocol generator check' { dotnet run --project (Join-Path $root 'tools/Quire.ProtocolGen') -c $Configuration -- check }
+}
+
 if (-not $SkipNative) {
     $pdfium = & (Join-Path $root 'build/fetch-pdfium.ps1') -Arch $Arch | Select-Object -Last 1
     $cmake = Find-CMake

@@ -1,0 +1,188 @@
+{
+  "$comment": [
+    "Single source of truth for the Quire IPC protocol (ADR-0005). tools/Quire.ProtocolGen turns this into the C# and C++ codecs.",
+    "Wire format. A frame is a 4-byte little-endian body length followed by a MessagePack body of at most maxFrameBytes.",
+    "Request body:  [requestId:u64, documentId:u32, deadlineMs:u32, messageType:u16, payload:array]",
+    "Response body: [requestId:u64, status:u16, messageType:u16, payload:array|nil]  (payload is an array exactly when the status carries one)",
+    "A payload is a MessagePack array of exactly the declared fields, in key order. The key IS the array index, so keys are contiguous from 0.",
+    "Stability: a message id, a field key, a field type and an enum value are never reused or changed within a schemaVersion. Any layout change bumps schemaVersion; Hello and HelloReply keep their layout in every version so that the version check itself can always be decoded. On a mismatch the peer is killed, not accommodated.",
+    "Messages have no nesting: variable-size collections are parallel arrays tied together with sameLengthAs.",
+    "Every variable-size field has a limit and the generator rejects a schema in which any legal message cannot fit in one frame."
+  ],
+  "schemaVersion": 1,
+  "envelope": { "maxFrameBytes": 65536, "maxDeadlineMs": 86400000 },
+
+  "enums": [
+    {
+      "name": "Status",
+      "$comment": "Response status. Values with payload=true carry a reply payload, all others carry nil. Codes are master prompt 6.4. ProtocolError is also what a decoder reports for a malformed frame and InvalidArgument for a well-formed frame that breaks a schema limit.",
+      "values": [
+        { "name": "Ok", "value": 0, "payload": true },
+        { "name": "Cancelled", "value": 1 },
+        { "name": "InvalidArgument", "value": 2 },
+        { "name": "ProtocolError", "value": 3 },
+        { "name": "Unsupported", "value": 4 },
+        { "name": "PasswordRequired", "value": 5 },
+        { "name": "PasswordIncorrect", "value": 6 },
+        { "name": "UnsupportedEncryption", "value": 7 },
+        { "name": "Damaged", "value": 8 },
+        { "name": "PartiallyRendered", "value": 9, "payload": true },
+        { "name": "Timeout", "value": 10 },
+        { "name": "EngineCrashed", "value": 11 },
+        { "name": "PermissionDenied", "value": 12 }
+      ]
+    },
+    {
+      "name": "ProcessKind",
+      "values": [
+        { "name": "Broker", "value": 0 },
+        { "name": "Engine", "value": 1 },
+        { "name": "WriterHost", "value": 2 }
+      ]
+    }
+  ],
+
+  "messages": [
+    {
+      "id": 1, "name": "Hello", "documentId": "none",
+      "request": {
+        "type": "Hello",
+        "fields": [
+          { "key": 0, "name": "schemaVersion", "type": "u32", "min": 1, "max": 65535 },
+          { "key": 1, "name": "processKind", "type": "enum", "enum": "ProcessKind", "doc": "Kind of the sending process." },
+          { "key": 2, "name": "pid", "type": "u32" }
+        ]
+      },
+      "reply": {
+        "type": "HelloReply",
+        "fields": [
+          { "key": 0, "name": "schemaVersion", "type": "u32", "min": 1, "max": 65535 },
+          { "key": 1, "name": "pdfiumVersion", "type": "string", "maxBytes": 64, "doc": "Empty for hosts without PDFium." }
+        ]
+      }
+    },
+    {
+      "id": 2, "name": "Ping", "documentId": "none",
+      "request": { "type": "Ping", "fields": [ { "key": 0, "name": "nonce", "type": "u64" } ] },
+      "reply": { "type": "Pong", "fields": [ { "key": 0, "name": "nonce", "type": "u64" } ] }
+    },
+    {
+      "id": 3, "name": "Shutdown", "documentId": "none",
+      "request": { "type": "Shutdown", "fields": [] },
+      "reply": { "type": "ShutdownReply", "fields": [] }
+    },
+    {
+      "id": 16, "name": "OpenDocument", "documentId": "none",
+      "request": {
+        "type": "OpenDocument",
+        "fields": [
+          { "key": 0, "name": "handle", "type": "u64", "min": 1, "doc": "Value of the file handle duplicated into the engine." },
+          { "key": 1, "name": "password", "type": "string", "optional": true, "maxBytes": 1024 }
+        ]
+      },
+      "reply": {
+        "type": "OpenDocumentReply",
+        "fields": [
+          { "key": 0, "name": "documentId", "type": "u32", "min": 1 },
+          { "key": 1, "name": "pageCount", "type": "u32", "max": 10000000 }
+        ]
+      }
+    },
+    {
+      "id": 17, "name": "CloseDocument", "documentId": "required",
+      "request": { "type": "CloseDocument", "fields": [] },
+      "reply": { "type": "CloseDocumentReply", "fields": [] }
+    },
+    {
+      "id": 18, "name": "GetDocumentInfo", "documentId": "required",
+      "request": { "type": "GetDocumentInfo", "fields": [] },
+      "reply": {
+        "type": "GetDocumentInfoReply",
+        "fields": [
+          { "key": 0, "name": "pageCount", "type": "u32", "max": 10000000 },
+          { "key": 1, "name": "pdfVersion", "type": "u32", "max": 99, "doc": "Version times ten, as PDFium reports it (17 = PDF 1.7). 0 = unknown." },
+          { "key": 2, "name": "title", "type": "string", "maxBytes": 1024 },
+          { "key": 3, "name": "author", "type": "string", "maxBytes": 1024 },
+          { "key": 4, "name": "subject", "type": "string", "maxBytes": 1024 },
+          { "key": 5, "name": "keywords", "type": "string", "maxBytes": 1024 },
+          { "key": 6, "name": "creator", "type": "string", "maxBytes": 1024 },
+          { "key": 7, "name": "producer", "type": "string", "maxBytes": 1024 },
+          { "key": 8, "name": "permissions", "type": "u32", "doc": "PDF permission bits, as in the /P entry." },
+          { "key": 9, "name": "isTagged", "type": "bool" },
+          { "key": 10, "name": "hasXfa", "type": "bool" },
+          { "key": 11, "name": "hasJavaScript", "type": "bool" },
+          { "key": 12, "name": "signatureCount", "type": "u32", "max": 65535 }
+        ]
+      }
+    },
+    {
+      "id": 19, "name": "GetPageSizes", "documentId": "required",
+      "$comment": "count is capped at 5000 so that a full reply (5000 x (5+5+1) bytes) fits one 64 KiB frame; callers page through larger documents.",
+      "request": {
+        "type": "GetPageSizes",
+        "fields": [
+          { "key": 0, "name": "first", "type": "u32", "max": 9999999 },
+          { "key": 1, "name": "count", "type": "u32", "min": 1, "max": 5000 }
+        ]
+      },
+      "reply": {
+        "type": "GetPageSizesReply",
+        "fields": [
+          { "key": 0, "name": "widths", "type": "array", "of": "f32", "maxCount": 5000, "exclusiveMin": 0, "max": 14400, "doc": "Points." },
+          { "key": 1, "name": "heights", "type": "array", "of": "f32", "maxCount": 5000, "exclusiveMin": 0, "max": 14400, "sameLengthAs": "widths" },
+          { "key": 2, "name": "rotations", "type": "array", "of": "u16", "maxCount": 5000, "max": 3, "sameLengthAs": "widths", "doc": "Quarter turns clockwise." }
+        ]
+      }
+    },
+    {
+      "id": 32, "name": "RenderTile", "documentId": "required",
+      "request": {
+        "type": "RenderTile",
+        "fields": [
+          { "key": 0, "name": "page", "type": "u32", "max": 9999999 },
+          { "key": 1, "name": "scale", "type": "f32", "min": 0.01, "max": 64 },
+          { "key": 2, "name": "rotation", "type": "u16", "max": 3 },
+          { "key": 3, "name": "tileX", "type": "i32", "min": -16777216, "max": 16777216 },
+          { "key": 4, "name": "tileY", "type": "i32", "min": -16777216, "max": 16777216 },
+          { "key": 5, "name": "tileWidth", "type": "u32", "min": 1, "max": 1024 },
+          { "key": 6, "name": "tileHeight", "type": "u32", "min": 1, "max": 1024 },
+          { "key": 7, "name": "flags", "type": "u32", "max": 3, "doc": "Bit 0 annotations, bit 1 form fields." },
+          { "key": 8, "name": "slotIndex", "type": "u32", "max": 1023 },
+          { "key": 9, "name": "generation", "type": "u64" }
+        ]
+      },
+      "reply": {
+        "type": "RenderTileReply",
+        "fields": [
+          { "key": 0, "name": "slotIndex", "type": "u32", "max": 1023 },
+          { "key": 1, "name": "width", "type": "u32", "min": 1, "max": 1024 },
+          { "key": 2, "name": "height", "type": "u32", "min": 1, "max": 1024 },
+          { "key": 3, "name": "stride", "type": "u32", "min": 4, "max": 8192 },
+          { "key": 4, "name": "generation", "type": "u64" }
+        ]
+      }
+    },
+    {
+      "id": 33, "name": "CancelBefore", "documentId": "required",
+      "request": { "type": "CancelBefore", "fields": [ { "key": 0, "name": "generation", "type": "u64" } ] },
+      "reply": { "type": "CancelBeforeReply", "fields": [] }
+    },
+    {
+      "id": 1024, "name": "ValidateStructure", "documentId": "none",
+      "$comment": "Quire.WriterHost only. 256 issues of at most 192 message bytes fit one frame (512-byte messages would not).",
+      "request": {
+        "type": "ValidateStructure",
+        "fields": [ { "key": 0, "name": "handle", "type": "u64", "min": 1 } ]
+      },
+      "reply": {
+        "type": "ValidateStructureReply",
+        "fields": [
+          { "key": 0, "name": "ok", "type": "bool" },
+          { "key": 1, "name": "truncated", "type": "bool", "doc": "More issues were found than fit." },
+          { "key": 2, "name": "issueCodes", "type": "array", "of": "u32", "maxCount": 256, "max": 65535 },
+          { "key": 3, "name": "issueMessages", "type": "array", "of": "string", "maxCount": 256, "maxBytes": 192, "sameLengthAs": "issueCodes" }
+        ]
+      }
+    }
+  ]
+}
