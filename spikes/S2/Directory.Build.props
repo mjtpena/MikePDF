@@ -1,0 +1,13 @@
+<Project>
+  <PropertyGroup>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <LangVersion>latest</LangVersion>
+    <NuGetAudit>false</NuGetAudit>
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+    <!-- all build output under spikes/S2/out (gitignored) -->
+    <BaseIntermediateOutputPath>$(MSBuildThisFileDirectory)out\obj\$(MSBuildProjectName)\</BaseIntermediateOutputPath>
+    <BaseOutputPath>$(MSBuildThisFileDirectory)out\bin\$(MSBuildProjectName)\</BaseOutputPath>
+  </PropertyGroup>
+</Project>

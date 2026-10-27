@@ -1,0 +1,62 @@
+# S8 manual Acrobat checklist
+
+Acrobat was **not automated** (risk R-15, EULA open). Nothing below was measured. The "expected" column is the S8 author's prediction from
+Acrobat behaviour documented publicly; it exists only so the manual pass has something to compare against.
+
+How to run the pass (user action, not done by the spike):
+1. Open each file in Acrobat Reader / Acrobat DC on the VM-V machine; open the Signatures panel; expand each signature.
+2. First pass: do nothing to Acrobat's trust settings (expect identity UNKNOWN for every fixture).
+3. Second pass (optional): add `certs/root-rsa.cer`, `root-ecdsa.cer`, `root-rsa-expired.cer` as trusted certificates in a throw-away Acrobat profile / VM only, then repeat.
+4. Record: verdict icon, the one-line summary, "Signature Properties > Validity Summary", and whether "View signed version" differs.
+5. Fill the last column and flag any fixture where Acrobat shows a valid/green state for something Quire calls Invalid (critical) or the reverse.
+
+| File | Sig | Quire verdict | Expected Acrobat verdict (prediction) | Acrobat actual |
+|---|---|---|---|---|
+| `fixtures/valid-rsa-cades.pdf` | 0 | Valid | Signature valid (integrity). Signer identity shows UNKNOWN/untrusted unless the matching root-*.cer is added as a trusted certificate in Acrobat first. | not measured (manual pass pending) |
+| `fixtures/valid-ecdsa-cades.pdf` | 0 | Valid | Signature valid (integrity). Signer identity shows UNKNOWN/untrusted unless the matching root-*.cer is added as a trusted certificate in Acrobat first. | not measured (manual pass pending) |
+| `fixtures/valid-rsa-pkcs7.pdf` | 0 | Valid | Signature valid (integrity). Signer identity shows UNKNOWN/untrusted unless the matching root-*.cer is added as a trusted certificate in Acrobat first. | not measured (manual pass pending) |
+| `fixtures/valid-rsa-certified-p2.pdf` | 0 | Valid | Signature valid (integrity). Signer identity shows UNKNOWN/untrusted unless the matching root-*.cer is added as a trusted certificate in Acrobat first. | not measured (manual pass pending) |
+| `fixtures/valid-rsa-xrefstream.pdf` | 0 | Valid | Signature valid (integrity). Signer identity shows UNKNOWN/untrusted unless the matching root-*.cer is added as a trusted certificate in Acrobat first. | not measured (manual pass pending) |
+| `fixtures/untrusted-root.pdf` | 0 | Unknown | Signature validity UNKNOWN (identity not trusted); integrity should read as intact. | not measured (manual pass pending) |
+| `fixtures/tamper-content-byte.pdf` | 0 | Invalid | Signature invalid / "document has been altered or corrupted since the signature was applied" (or the signature panel shows a red cross). | not measured (manual pass pending) |
+| `fixtures/tamper-cms-byte.pdf` | 0 | Invalid | Signature invalid / "document has been altered or corrupted since the signature was applied" (or the signature panel shows a red cross). | not measured (manual pass pending) |
+| `fixtures/byterange-zeroed.pdf` | 0 | Invalid | Signature invalid / "document has been altered or corrupted since the signature was applied" (or the signature panel shows a red cross). | not measured (manual pass pending) |
+| `fixtures/unsigned-placeholder.pdf` | 0 | Invalid | Signature invalid / "document has been altered or corrupted since the signature was applied" (or the signature panel shows a red cross). | not measured (manual pass pending) |
+| `fixtures/trailing-garbage.pdf` | 0 | ValidWithWarnings | Signature integrity valid; Acrobat lists later changes ("document has been modified since this signature was applied"). Record the exact wording and whether it is shown as valid or as a warning. | not measured (manual pass pending) |
+| `fixtures/annot-after-sign-nomdp.pdf` | 0 | ValidWithWarnings | Signature integrity valid; Acrobat lists later changes ("document has been modified since this signature was applied"). Record the exact wording and whether it is shown as valid or as a warning. | not measured (manual pass pending) |
+| `fixtures/annot-after-sign-p3.pdf` | 0 | ValidWithWarnings | Signature integrity valid; Acrobat lists later changes ("document has been modified since this signature was applied"). Record the exact wording and whether it is shown as valid or as a warning. | not measured (manual pass pending) |
+| `fixtures/annot-after-sign-p2.pdf` | 0 | Invalid | Signature invalid / "document has been altered or corrupted since the signature was applied" (or the signature panel shows a red cross). | not measured (manual pass pending) |
+| `fixtures/formfill-after-sign-nomdp.pdf` | 0 | ValidWithWarnings | Signature integrity valid; Acrobat lists later changes ("document has been modified since this signature was applied"). Record the exact wording and whether it is shown as valid or as a warning. | not measured (manual pass pending) |
+| `fixtures/formfill-after-sign-p2.pdf` | 0 | ValidWithWarnings | Signature integrity valid; Acrobat lists later changes ("document has been modified since this signature was applied"). Record the exact wording and whether it is shown as valid or as a warning. | not measured (manual pass pending) |
+| `fixtures/formfill-after-sign-p1.pdf` | 0 | Invalid | Signature invalid / "document has been altered or corrupted since the signature was applied" (or the signature panel shows a red cross). | not measured (manual pass pending) |
+| `fixtures/content-change-after-sign.pdf` | 0 | Invalid | Signature invalid / "document has been altered or corrupted since the signature was applied" (or the signature panel shows a red cross). | not measured (manual pass pending) |
+| `fixtures/two-signatures.pdf` | 0 | Valid | Signature valid (integrity). Signer identity shows UNKNOWN/untrusted unless the matching root-*.cer is added as a trusted certificate in Acrobat first. | not measured (manual pass pending) |
+| `fixtures/two-signatures.pdf` | 1 | Valid | Signature valid (integrity). Signer identity shows UNKNOWN/untrusted unless the matching root-*.cer is added as a trusted certificate in Acrobat first. | not measured (manual pass pending) |
+| `fixtures/two-signatures-content-change.pdf` | 0 | Invalid | Signature invalid / "document has been altered or corrupted since the signature was applied" (or the signature panel shows a red cross). | not measured (manual pass pending) |
+| `fixtures/two-signatures-content-change.pdf` | 1 | Invalid | Signature invalid / "document has been altered or corrupted since the signature was applied" (or the signature panel shows a red cross). | not measured (manual pass pending) |
+| `fixtures/shadow-hide-ref-swap.pdf` | 0 | Invalid | Signature invalid / "document has been altered or corrupted since the signature was applied" (or the signature panel shows a red cross). | not measured (manual pass pending) |
+| `fixtures/shadow-replace-xobject.pdf` | 0 | Invalid | Signature invalid / "document has been altered or corrupted since the signature was applied" (or the signature panel shows a red cross). | not measured (manual pass pending) |
+| `fixtures/shadow-annot-overlay.pdf` | 0 | ValidWithWarnings | Valid with a "modified since signing" notice (annotation / signature-field additions are permitted changes). This is the residual overlay risk: record whether Acrobat visibly warns. | not measured (manual pass pending) |
+| `fixtures/sigfield-overlay.pdf` | 0 | ValidWithWarnings | Valid with a "modified since signing" notice (annotation / signature-field additions are permitted changes). This is the residual overlay risk: record whether Acrobat visibly warns. | not measured (manual pass pending) |
+| `fixtures/sneaky-catalog-openaction.pdf` | 0 | Invalid | Signature invalid / "document has been altered or corrupted since the signature was applied" (or the signature panel shows a red cross). | not measured (manual pass pending) |
+| `fixtures/sneaky-cropbox.pdf` | 0 | Invalid | Signature invalid / "document has been altered or corrupted since the signature was applied" (or the signature panel shows a red cross). | not measured (manual pass pending) |
+| `fixtures/sneaky-duplicate-keys.pdf` | 0 | Invalid | Signature invalid / "document has been altered or corrupted since the signature was applied" (or the signature panel shows a red cross). | not measured (manual pass pending) |
+| `fixtures/sneaky-sigwidget-moved.pdf` | 0 | Invalid | Signature invalid / "document has been altered or corrupted since the signature was applied" (or the signature panel shows a red cross). | not measured (manual pass pending) |
+| `fixtures/sneaky-font-swap.pdf` | 0 | Invalid | Signature invalid / "document has been altered or corrupted since the signature was applied" (or the signature panel shows a red cross). | not measured (manual pass pending) |
+| `fixtures/sneaky-contents-append.pdf` | 0 | Invalid | Signature invalid / "document has been altered or corrupted since the signature was applied" (or the signature panel shows a red cross). | not measured (manual pass pending) |
+| `fixtures/sigdict-duplicate-keys.pdf` | 0 | Invalid | Signature invalid / "document has been altered or corrupted since the signature was applied" (or the signature panel shows a red cross). | not measured (manual pass pending) |
+| `fixtures/isa-replace-pages.pdf` | 0 | Invalid | Signature invalid / "document has been altered or corrupted since the signature was applied" (or the signature panel shows a red cross). | not measured (manual pass pending) |
+| `fixtures/isa-new-root.pdf` | 0 | Invalid | Signature invalid / "document has been altered or corrupted since the signature was applied" (or the signature panel shows a red cross). | not measured (manual pass pending) |
+| `fixtures/isa-full-rewrite-no-prev.pdf` | 0 | Invalid | Signature invalid / "document has been altered or corrupted since the signature was applied" (or the signature panel shows a red cross). | not measured (manual pass pending) |
+| `fixtures/swa-gap-smuggle.pdf` | 0 | Invalid | Signature invalid / "document has been altered or corrupted since the signature was applied" (or the signature panel shows a red cross). | not measured (manual pass pending) |
+| `fixtures/swa-byterange-short.pdf` | 0 | Invalid | Signature invalid / "document has been altered or corrupted since the signature was applied" (or the signature panel shows a red cross). | not measured (manual pass pending) |
+| `fixtures/usf-attached-content.pdf` | 0 | Invalid | Signature invalid / "document has been altered or corrupted since the signature was applied" (or the signature panel shows a red cross). | not measured (manual pass pending) |
+| `fixtures/expired-cert-claimed-now.pdf` | 0 | Invalid | Signature invalid / "document has been altered or corrupted since the signature was applied" (or the signature panel shows a red cross). | not measured (manual pass pending) |
+| `fixtures/expired-cert-signed-in-past.pdf` | 0 | ValidWithWarnings | Signature integrity valid; Acrobat lists later changes ("document has been modified since this signature was applied"). Record the exact wording and whether it is shown as valid or as a warning. | not measured (manual pass pending) |
+| `fixtures/pyhanko-signed.pdf` | 0 | Valid | Signature valid (integrity). Signer identity shows UNKNOWN/untrusted unless the matching root-*.cer is added as a trusted certificate in Acrobat first. | not measured (manual pass pending) |
+| `fixtures/pyhanko-after-quire.pdf` | 0 | Valid | Signature valid (integrity). Signer identity shows UNKNOWN/untrusted unless the matching root-*.cer is added as a trusted certificate in Acrobat first. | not measured (manual pass pending) |
+| `fixtures/pyhanko-after-quire.pdf` | 1 | Valid | Signature valid (integrity). Signer identity shows UNKNOWN/untrusted unless the matching root-*.cer is added as a trusted certificate in Acrobat first. | not measured (manual pass pending) |
+| `fixtures/quire-after-pyhanko.pdf` | 0 | Valid | Signature valid (integrity). Signer identity shows UNKNOWN/untrusted unless the matching root-*.cer is added as a trusted certificate in Acrobat first. | not measured (manual pass pending) |
+| `fixtures/quire-after-pyhanko.pdf` | 1 | Valid | Signature valid (integrity). Signer identity shows UNKNOWN/untrusted unless the matching root-*.cer is added as a trusted certificate in Acrobat first. | not measured (manual pass pending) |
+
+Not in this table: `_base-unsigned*.pdf` (inputs), `cng-*.pdf` (CNG probe outputs, trust only their own throw-away certs).
