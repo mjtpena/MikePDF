@@ -212,6 +212,79 @@ public sealed class ShutdownReply : IReplyMessage
     }
 }
 
+/// <summary>The request payload of AttachSlotRing (message type 4).</summary>
+public sealed class AttachSlotRing : IRequestMessage
+{
+    /// <summary>Value of the section handle duplicated into the engine, with write access.</summary>
+    public ulong Handle { get; set; }
+    public uint SlotCount { get; set; }
+    /// <summary>Bytes per slot.</summary>
+    public uint SlotSize { get; set; }
+
+    public MessageType MessageType => MessageType.AttachSlotRing;
+
+    /// <summary>
+    /// The only decoder for this type. Reads exactly the declared fields, enforcing wire types and every limit as it goes;
+    /// there is no other decoder (see StrictReader).
+    /// </summary>
+    internal static AttachSlotRing Read(ref MessagePackReader reader)
+    {
+        StrictReader.ExpectArray(ref reader, 3);
+        var message = new AttachSlotRing();
+        message.Handle = StrictReader.ReadU64(ref reader, 1UL, ulong.MaxValue);
+        message.SlotCount = StrictReader.ReadU32(ref reader, 1u, 1024u);
+        message.SlotSize = StrictReader.ReadU32(ref reader, 4096u, 67108864u);
+        return message;
+    }
+
+    /// <summary>Writes the payload array. Does not validate; the codec validates before it writes.</summary>
+    public void Write(ref MessagePackWriter writer)
+    {
+        writer.WriteArrayHeader(3);
+        writer.Write(Handle);
+        writer.Write(SlotCount);
+        writer.Write(SlotSize);
+    }
+
+    /// <summary>Checks every schema limit. Returns null when the message is valid.</summary>
+    public ProtocolFailure? Validate()
+    {
+        if (Handle < 1UL) return ProtocolFailure.Invalid("AttachSlotRing.handle violates its limit");
+        if (SlotCount < 1u || SlotCount > 1024u) return ProtocolFailure.Invalid("AttachSlotRing.slotCount violates its limit");
+        if (SlotSize < 4096u || SlotSize > 67108864u) return ProtocolFailure.Invalid("AttachSlotRing.slotSize violates its limit");
+        return null;
+    }
+}
+
+/// <summary>The reply payload of AttachSlotRing (message type 4).</summary>
+public sealed class AttachSlotRingReply : IReplyMessage
+{
+    public MessageType MessageType => MessageType.AttachSlotRing;
+
+    /// <summary>
+    /// The only decoder for this type. Reads exactly the declared fields, enforcing wire types and every limit as it goes;
+    /// there is no other decoder (see StrictReader).
+    /// </summary>
+    internal static AttachSlotRingReply Read(ref MessagePackReader reader)
+    {
+        StrictReader.ExpectArray(ref reader, 0);
+        var message = new AttachSlotRingReply();
+        return message;
+    }
+
+    /// <summary>Writes the payload array. Does not validate; the codec validates before it writes.</summary>
+    public void Write(ref MessagePackWriter writer)
+    {
+        writer.WriteArrayHeader(0);
+    }
+
+    /// <summary>Checks every schema limit. Returns null when the message is valid.</summary>
+    public ProtocolFailure? Validate()
+    {
+        return null;
+    }
+}
+
 /// <summary>The request payload of OpenDocument (message type 16).</summary>
 public sealed class OpenDocument : IRequestMessage
 {

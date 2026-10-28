@@ -177,6 +177,9 @@
           "Quire.Protocol": "[1.0.0, )"
         }
       },
+      "quire.pdfwriter": {
+        "type": "Project"
+      },
       "quire.protocol": {
         "type": "Project",
         "dependencies": {

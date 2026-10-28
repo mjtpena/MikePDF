@@ -211,6 +211,81 @@ Result<ShutdownReply> ShutdownReply::decode(Reader& reader) {
     return {Status::Ok, std::move(m), ""};
 }
 
+Status AttachSlotRing::validate() const {
+    if (handle < 1ull) {
+        return Status::InvalidArgument;
+    }
+    if (slot_count < 1u || slot_count > 1024u) {
+        return Status::InvalidArgument;
+    }
+    if (slot_size < 4096u || slot_size > 67108864u) {
+        return Status::InvalidArgument;
+    }
+    return Status::Ok;
+}
+
+Status AttachSlotRing::encode(Writer& writer) const {
+    if (const Status valid = validate(); valid != Status::Ok) {
+        return valid;
+    }
+    writer.write_array_header(3);
+    writer.write_uint(handle);
+    writer.write_uint(slot_count);
+    writer.write_uint(slot_size);
+    return writer.status();
+}
+
+Result<AttachSlotRing> AttachSlotRing::decode(Reader& reader) {
+    AttachSlotRing m;
+    Status s = reader.expect_array(3);
+    if (s == Status::Ok) {
+        s = reader.read_u64(m.handle, 1ull, 18446744073709551615ull);
+    }
+    if (s == Status::Ok) {
+        s = reader.read_u32(m.slot_count, 1u, 1024u);
+    }
+    if (s == Status::Ok) {
+        s = reader.read_u32(m.slot_size, 4096u, 67108864u);
+    }
+    if (s == Status::Ok) {
+        s = m.validate();
+        if (s != Status::Ok) {
+            reader.fail(s, "message violates a schema limit");
+        }
+    }
+    if (s != Status::Ok) {
+        return {s, AttachSlotRing{}, reader.detail()};
+    }
+    return {Status::Ok, std::move(m), ""};
+}
+
+Status AttachSlotRingReply::validate() const {
+    return Status::Ok;
+}
+
+Status AttachSlotRingReply::encode(Writer& writer) const {
+    if (const Status valid = validate(); valid != Status::Ok) {
+        return valid;
+    }
+    writer.write_array_header(0);
+    return writer.status();
+}
+
+Result<AttachSlotRingReply> AttachSlotRingReply::decode(Reader& reader) {
+    AttachSlotRingReply m;
+    Status s = reader.expect_array(0);
+    if (s == Status::Ok) {
+        s = m.validate();
+        if (s != Status::Ok) {
+            reader.fail(s, "message violates a schema limit");
+        }
+    }
+    if (s != Status::Ok) {
+        return {s, AttachSlotRingReply{}, reader.detail()};
+    }
+    return {Status::Ok, std::move(m), ""};
+}
+
 Status OpenDocument::validate() const {
     if (handle < 1ull) {
         return Status::InvalidArgument;
@@ -987,6 +1062,8 @@ Result<RequestPayload> decode_request_payload(MessageType type, Reader& reader) 
             return lift<RequestPayload>(Ping::decode(reader));
         case MessageType::Shutdown:
             return lift<RequestPayload>(Shutdown::decode(reader));
+        case MessageType::AttachSlotRing:
+            return lift<RequestPayload>(AttachSlotRing::decode(reader));
         case MessageType::OpenDocument:
             return lift<RequestPayload>(OpenDocument::decode(reader));
         case MessageType::CloseDocument:
@@ -1013,6 +1090,8 @@ Result<ReplyPayload> decode_reply_payload(MessageType type, Reader& reader) {
             return lift<ReplyPayload>(Pong::decode(reader));
         case MessageType::Shutdown:
             return lift<ReplyPayload>(ShutdownReply::decode(reader));
+        case MessageType::AttachSlotRing:
+            return lift<ReplyPayload>(AttachSlotRingReply::decode(reader));
         case MessageType::OpenDocument:
             return lift<ReplyPayload>(OpenDocumentReply::decode(reader));
         case MessageType::CloseDocument:

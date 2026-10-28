@@ -8,7 +8,7 @@
 
 namespace quire::protocol {
 
-inline constexpr std::uint32_t kSchemaVersion = 1;
+inline constexpr std::uint32_t kSchemaVersion = 2;
 inline constexpr std::size_t kMaxFrameBytes = 65536;
 inline constexpr std::uint32_t kMaxDeadlineMs = 86400000;
 
@@ -82,6 +82,7 @@ enum class MessageType : std::uint16_t {
     Hello = 1,
     Ping = 2,
     Shutdown = 3,
+    AttachSlotRing = 4,
     OpenDocument = 16,
     CloseDocument = 17,
     GetDocumentInfo = 18,
@@ -96,6 +97,7 @@ enum class MessageType : std::uint16_t {
         case 1:
         case 2:
         case 3:
+        case 4:
         case 16:
         case 17:
         case 18:
@@ -121,6 +123,8 @@ enum class DocumentIdRule : std::uint8_t {
         case MessageType::Ping:
             return DocumentIdRule::None;
         case MessageType::Shutdown:
+            return DocumentIdRule::None;
+        case MessageType::AttachSlotRing:
             return DocumentIdRule::None;
         case MessageType::OpenDocument:
             return DocumentIdRule::None;

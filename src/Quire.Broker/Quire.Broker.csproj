@@ -9,4 +9,8 @@
     <PackageReference Include="Microsoft.Windows.CsWin32" PrivateAssets="all" />
     <ProjectReference Include="..\Quire.Protocol\Quire.Protocol.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <!-- The integration tests drive internals (the engine instance, the slot ring's child handle) that no product caller should touch. -->
+    <InternalsVisibleTo Include="Quire.Integration.Tests" />
+  </ItemGroup>
 </Project>

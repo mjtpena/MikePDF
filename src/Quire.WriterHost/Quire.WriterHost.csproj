@@ -1,10 +1,13 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <OutputType>Exe</OutputType>
+    <!-- WinExe: no console. The host is launched detached inside an AppContainer with no inherited handles, so there is no stdout either. -->
+    <OutputType>WinExe</OutputType>
     <Description>Sandboxed host for Quire.PdfWriter. Receives handles only, never paths (ADR-0008).</Description>
     <RuntimeIdentifier>$(QuireRuntimeIdentifier)</RuntimeIdentifier>
     <SelfContained>true</SelfContained>
     <InvariantGlobalization>true</InvariantGlobalization>
+    <!-- LibraryImport (source-generated P/Invoke) emits unsafe code. -->
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\Quire.PdfWriter\Quire.PdfWriter.csproj" />

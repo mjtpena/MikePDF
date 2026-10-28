@@ -24,4 +24,6 @@ Library::~Library() {
     g_initialised = false;
 }
 
+std::string_view library_version() noexcept { return QUIRE_PDFIUM_VERSION; }
+
 }  // namespace quire::pdfium

@@ -107,6 +107,39 @@ struct ShutdownReply {
     bool operator==(const ShutdownReply&) const = default;
 };
 
+/// Request payload of AttachSlotRing (message type 4).
+struct AttachSlotRing {
+    static constexpr MessageType kMessageType = MessageType::AttachSlotRing;
+    /// Value of the section handle duplicated into the engine, with write access.
+    std::uint64_t handle{};
+    std::uint32_t slot_count{};
+    /// Bytes per slot.
+    std::uint32_t slot_size{};
+
+    /// Checks every schema limit.
+    [[nodiscard]] Status validate() const;
+    /// Validates, then writes the payload array. Writes nothing if validation fails.
+    [[nodiscard]] Status encode(Writer& writer) const;
+    /// Reads and fully validates one payload. The value is default-constructed on failure.
+    [[nodiscard]] static Result<AttachSlotRing> decode(Reader& reader);
+
+    bool operator==(const AttachSlotRing&) const = default;
+};
+
+/// Reply payload of AttachSlotRing (message type 4).
+struct AttachSlotRingReply {
+    static constexpr MessageType kMessageType = MessageType::AttachSlotRing;
+
+    /// Checks every schema limit.
+    [[nodiscard]] Status validate() const;
+    /// Validates, then writes the payload array. Writes nothing if validation fails.
+    [[nodiscard]] Status encode(Writer& writer) const;
+    /// Reads and fully validates one payload. The value is default-constructed on failure.
+    [[nodiscard]] static Result<AttachSlotRingReply> decode(Reader& reader);
+
+    bool operator==(const AttachSlotRingReply&) const = default;
+};
+
 /// Request payload of OpenDocument (message type 16).
 struct OpenDocument {
     static constexpr MessageType kMessageType = MessageType::OpenDocument;
@@ -353,8 +386,8 @@ struct ValidateStructureReply {
     bool operator==(const ValidateStructureReply&) const = default;
 };
 
-using RequestPayload = std::variant<Hello, Ping, Shutdown, OpenDocument, CloseDocument, GetDocumentInfo, GetPageSizes, RenderTile, CancelBefore, ValidateStructure>;
-using ReplyPayload = std::variant<HelloReply, Pong, ShutdownReply, OpenDocumentReply, CloseDocumentReply, GetDocumentInfoReply, GetPageSizesReply, RenderTileReply, CancelBeforeReply, ValidateStructureReply>;
+using RequestPayload = std::variant<Hello, Ping, Shutdown, AttachSlotRing, OpenDocument, CloseDocument, GetDocumentInfo, GetPageSizes, RenderTile, CancelBefore, ValidateStructure>;
+using ReplyPayload = std::variant<HelloReply, Pong, ShutdownReply, AttachSlotRingReply, OpenDocumentReply, CloseDocumentReply, GetDocumentInfoReply, GetPageSizesReply, RenderTileReply, CancelBeforeReply, ValidateStructureReply>;
 
 /// Decode the payload of a request or reply of the given type. An unknown type is a ProtocolError.
 [[nodiscard]] Result<RequestPayload> decode_request_payload(MessageType type, Reader& reader);

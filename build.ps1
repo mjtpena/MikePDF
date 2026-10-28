@@ -65,6 +65,8 @@ if (-not $SkipManaged) {
     Invoke-Step 'dotnet restore' { dotnet restore $sln -p:QuireArch=$Arch }
     Invoke-Step 'dotnet build' { dotnet build $sln -c $Configuration -p:QuireArch=$Arch --no-restore }
     if ($Test -and $Arch -eq $hostArch) {
+        # The integration tests launch the real sandboxed engine built above.
+        $env:QUIRE_ENGINE_DIR = Join-Path $root "build/out/cmake-$Arch/bin/$Configuration"
         Invoke-Step 'dotnet test' { dotnet test --solution $sln -c $Configuration -p:QuireArch=$Arch --no-build }
     } elseif ($Test) {
         Write-Warning "Managed tests skipped: cannot run $Arch binaries on a $hostArch host"

@@ -155,6 +155,13 @@ std::vector<RequestSample> request_samples() {
     }
     v.push_back({"req_shutdown", 3, 0, 1000, Shutdown{}});
     {
+        AttachSlotRing m;
+        m.handle = 0x2F4;
+        m.slot_count = 8;
+        m.slot_size = 4194304;
+        v.push_back({"req_attach_slot_ring", 12, 0, 5000, m});
+    }
+    {
         OpenDocument m;
         m.handle = 0x1F4;
         m.password = "p" "\xC3\xA4" "ssw" "\xC3\xB6" "rd" "\xE2\x9C\x93";
@@ -261,6 +268,7 @@ std::vector<ResponseSample> response_samples() {
         v.push_back({"rsp_render_tile_partial", 9, Status::PartiallyRendered, MessageType::RenderTile, m});
     }
     v.push_back({"rsp_cancel_before", 10, Status::Ok, MessageType::CancelBefore, CancelBeforeReply{}});
+    v.push_back({"rsp_attach_slot_ring", 12, Status::Ok, MessageType::AttachSlotRing, AttachSlotRingReply{}});
     {
         ValidateStructureReply m;
         m.ok = false;
@@ -666,7 +674,7 @@ TEST(ProtocolRoundTrip, EveryStatusIsCarriedAsItsOwnValue) {
 
 TEST(ProtocolRoundTrip, TheSchemaConstantsAreWhatTheDocsSay) {
     EXPECT_EQ(kMaxFrameBytes, 65536u);
-    EXPECT_EQ(kSchemaVersion, 1u);
+    EXPECT_EQ(kSchemaVersion, 2u);
     EXPECT_EQ(kMaxDeadlineMs, 86400000u);
 }
 

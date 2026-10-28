@@ -1,0 +1,641 @@
+using Quire.Protocol;
+
+namespace Quire.Broker;
+
+public enum EngineFaultKind
+{
+    /// <summary>The pipe ended or failed: the engine died or closed it.</summary>
+    PipeClosed,
+
+    /// <summary>The engine sent something it must never send. The supervisor kills it.</summary>
+    ProtocolViolation,
+
+    WriteFailed,
+
+    /// <summary>The client was disposed by its owner.</summary>
+    Disposed,
+}
+
+public sealed record EngineFault(EngineFaultKind Kind, string Detail);
+
+public sealed record EngineClientOptions
+{
+    /// <summary>How long past a request's deadline the engine gets to answer before the request counts as overdue (a hung engine).</summary>
+    public TimeSpan OverdueGrace { get; init; } = TimeSpan.FromSeconds(2);
+
+    /// <summary>Requests in flight that wait for the engine thread. Kept below the engine's own queue limit, which ends the process.</summary>
+    public int MaxInFlightEngineRequests { get; init; } = 128;
+}
+
+/// <summary>
+/// The broker's side of one engine connection: request/response correlation by requestId, deadlines, cancellation, and
+/// validation of <b>every</b> response (A.9). The engine is untrusted. Anything it sends that does not fit a pending
+/// request exactly (an unknown or repeated requestId, a different messageType, a status that message never has, a value
+/// outside what was asked for) is a protocol violation: the client faults, every pending request ends with
+/// <c>EngineCrashed</c>, and the supervisor kills the process.
+/// </summary>
+public sealed class EngineClient : IAsyncDisposable
+{
+    private const int MaxTileSide = 1024;
+
+    private readonly Stream _pipe;
+    private readonly SlotRing? _ring;
+    private readonly EngineClientOptions _options;
+    private readonly object _gate = new();
+    private readonly Dictionary<ulong, Pending> _pending = [];
+    private readonly Dictionary<uint, uint> _documents = []; // engine document id -> page count
+    private readonly SemaphoreSlim _writeLock = new(1, 1);
+    private readonly SemaphoreSlim _inFlight;
+    private readonly CancellationTokenSource _stop = new();
+    private readonly Task _readLoop;
+    private EngineFault? _fault;
+    private long _nextRequestId;
+
+    /// <param name="pipe">The connected pipe to the peer.</param>
+    /// <param name="ring">The slot ring tiles are rendered into; null for a peer that has none (the WriterHost).</param>
+    /// <param name="options">Tuning.</param>
+    public EngineClient(Stream pipe, SlotRing? ring, EngineClientOptions? options = null)
+    {
+        ArgumentNullException.ThrowIfNull(pipe);
+        _pipe = pipe;
+        _ring = ring;
+        _options = options ?? new EngineClientOptions();
+        _inFlight = new SemaphoreSlim(_options.MaxInFlightEngineRequests, int.MaxValue);
+        _readLoop = Task.Run(ReadLoopAsync);
+    }
+
+    /// <summary>Raised once, from whichever thread noticed. Handlers must not block or throw.</summary>
+    public event Action<EngineFault>? Faulted;
+
+    /// <summary>Raised when a request was not answered within its deadline plus the grace period. The request has already ended with <c>Timeout</c>.</summary>
+    public event Action<MessageType>? RequestOverdue;
+
+    public EngineFault? Fault
+    {
+        get
+        {
+            lock (_gate)
+            {
+                return _fault;
+            }
+        }
+    }
+
+    public bool IsFaulted => Fault is not null;
+
+    // ---- typed calls ---------------------------------------------------------------------------
+
+    public Task<EngineResult<HelloReply>> HelloAsync(TimeSpan timeout, CancellationToken cancellationToken = default) =>
+        CallAsync<HelloReply>(
+            new Hello { SchemaVersion = ProtocolInfo.SchemaVersion, ProcessKind = ProcessKind.Broker, Pid = (uint)Environment.ProcessId },
+            0,
+            timeout,
+            timeout,
+            new Pending(),
+            cancellationToken);
+
+    public Task<EngineResult<Pong>> PingAsync(ulong nonce, TimeSpan timeout, CancellationToken cancellationToken = default) =>
+        CallAsync<Pong>(new Ping { Nonce = nonce }, 0, timeout, timeout, new Pending { PingNonce = nonce }, cancellationToken);
+
+    /// <summary>
+    /// Announces the slot ring (already duplicated into the peer, with write access) and its geometry. Sent once, right after Hello; the engine
+    /// refuses RenderTile until it is attached.
+    /// </summary>
+    public Task<EngineResult<AttachSlotRingReply>> AttachSlotRingAsync(ulong remoteSectionHandle, int slotCount, int slotSize, TimeSpan timeout, CancellationToken cancellationToken = default) =>
+        CallAsync<AttachSlotRingReply>(
+            new AttachSlotRing { Handle = remoteSectionHandle, SlotCount = (uint)slotCount, SlotSize = (uint)slotSize },
+            0,
+            timeout,
+            timeout,
+            new Pending(),
+            cancellationToken);
+
+    /// <summary>
+    /// WriterHost: validates the structure of the PDF behind a file handle that was duplicated into the host. The host maps it read-only, parses it
+    /// strictly and reports issues; the reply never carries file content beyond short messages.
+    /// </summary>
+    public Task<EngineResult<ValidateStructureReply>> ValidateStructureAsync(ulong remoteFileHandle, TimeSpan deadline, CancellationToken cancellationToken = default) =>
+        CallAsync<ValidateStructureReply>(new ValidateStructure { Handle = remoteFileHandle }, 0, deadline, WithGrace(deadline), new Pending { EngineQueue = true }, cancellationToken);
+
+    public Task<EngineResult<ShutdownReply>> ShutdownAsync(TimeSpan timeout, CancellationToken cancellationToken = default) =>
+        CallAsync<ShutdownReply>(new Shutdown(), 0, timeout, timeout, new Pending(), cancellationToken);
+
+    // remoteHandle: the file handle value as duplicated into the engine process.
+    public Task<EngineResult<OpenDocumentReply>> OpenDocumentAsync(ulong remoteHandle, string? password, TimeSpan deadline, CancellationToken cancellationToken = default) =>
+        CallAsync<OpenDocumentReply>(
+            new OpenDocument { Handle = remoteHandle, Password = password },
+            0,
+            deadline,
+            WithGrace(deadline),
+            new Pending { EngineQueue = true },
+            cancellationToken);
+
+    public Task<EngineResult<CloseDocumentReply>> CloseDocumentAsync(uint documentId, TimeSpan deadline, CancellationToken cancellationToken = default) =>
+        TryGetPageCount(documentId, out _)
+            ? CallAsync<CloseDocumentReply>(new CloseDocument(), documentId, deadline, WithGrace(deadline), new Pending { EngineQueue = true }, cancellationToken)
+            : Task.FromResult(EngineResult<CloseDocumentReply>.Fail(Status.InvalidArgument, "unknown document"));
+
+    public Task<EngineResult<GetDocumentInfoReply>> GetDocumentInfoAsync(uint documentId, TimeSpan deadline, CancellationToken cancellationToken = default) =>
+        TryGetPageCount(documentId, out _)
+            ? CallAsync<GetDocumentInfoReply>(new GetDocumentInfo(), documentId, deadline, WithGrace(deadline), new Pending { EngineQueue = true }, cancellationToken)
+            : Task.FromResult(EngineResult<GetDocumentInfoReply>.Fail(Status.InvalidArgument, "unknown document"));
+
+    public async Task<EngineResult<GetPageSizesReply>> GetPageSizesAsync(uint documentId, uint first, uint count, TimeSpan deadline, CancellationToken cancellationToken = default)
+    {
+        if (!TryGetPageCount(documentId, out var pageCount) || count == 0 || (ulong)first + count > pageCount)
+        {
+            return EngineResult<GetPageSizesReply>.Fail(Status.InvalidArgument, "unknown document or page range out of bounds");
+        }
+
+        var request = new GetPageSizes { First = first, Count = count };
+        return await CallAsync<GetPageSizesReply>(request, documentId, deadline, WithGrace(deadline), new Pending { EngineQueue = true, Sizes = request }, cancellationToken).ConfigureAwait(false);
+    }
+
+    public Task<EngineResult<CancelBeforeReply>> CancelBeforeAsync(uint documentId, ulong generation, TimeSpan timeout, CancellationToken cancellationToken = default) =>
+        CallAsync<CancelBeforeReply>(new CancelBefore { Generation = generation }, documentId, timeout, timeout, new Pending(), cancellationToken);
+
+    /// <summary>
+    /// Renders one tile into a slot of the ring. <paramref name="generation"/> is the caller's epoch: cancelling
+    /// <paramref name="cancellationToken"/> ends this call with <c>Cancelled</c> at once and sends <c>CancelBefore(generation + 1)</c>,
+    /// which cancels this and every older render of the document that has not finished.
+    /// </summary>
+    public async Task<EngineResult<TileLease>> RenderTileAsync(uint documentId, RenderTileArgs args, ulong generation, TimeSpan deadline, CancellationToken cancellationToken = default)
+    {
+        if (_ring is null)
+        {
+            return EngineResult<TileLease>.Fail(Status.InvalidArgument, "this peer has no slot ring");
+        }
+
+        if (!TryGetPageCount(documentId, out var pageCount) || args.Page >= pageCount)
+        {
+            return EngineResult<TileLease>.Fail(Status.InvalidArgument, "unknown document or page out of range");
+        }
+
+        if (args.TileWidth is < 1 or > MaxTileSide || args.TileHeight is < 1 or > MaxTileSide || (long)args.TileWidth * 4 * args.TileHeight > _ring.SlotSize)
+        {
+            return EngineResult<TileLease>.Fail(Status.InvalidArgument, "the tile does not fit a slot");
+        }
+
+        SlotLease lease;
+        try
+        {
+            lease = await _ring.RentAsync(cancellationToken).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException)
+        {
+            return EngineResult<TileLease>.Fail(Status.Cancelled);
+        }
+
+        var request = new RenderTile
+        {
+            Page = args.Page,
+            Scale = args.Scale,
+            Rotation = args.Rotation,
+            TileX = args.TileX,
+            TileY = args.TileY,
+            TileWidth = args.TileWidth,
+            TileHeight = args.TileHeight,
+            Flags = args.Flags,
+            SlotIndex = (uint)lease.Index,
+            Generation = generation,
+        };
+        var pending = new Pending { EngineQueue = true, Render = request, Slot = lease };
+        if (generation < ulong.MaxValue)
+        {
+            pending.OnCancel = () => _ = CancelBeforeAsync(documentId, generation + 1, TimeSpan.FromSeconds(2));
+        }
+
+        return await CallAsync<TileLease>(request, documentId, deadline, WithGrace(deadline), pending, cancellationToken).ConfigureAwait(false);
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        FaultWith(EngineFaultKind.Disposed, "The client was disposed.");
+        await _stop.CancelAsync().ConfigureAwait(false);
+        try
+        {
+            await _readLoop.ConfigureAwait(false);
+        }
+        catch (OperationCanceledException)
+        {
+        }
+
+        _stop.Dispose();
+    }
+
+    // ---- sending -------------------------------------------------------------------------------
+
+    private TimeSpan WithGrace(TimeSpan deadline) => deadline <= TimeSpan.Zero ? Timeout.InfiniteTimeSpan : deadline + _options.OverdueGrace;
+
+    private bool TryGetPageCount(uint documentId, out uint pageCount)
+    {
+        lock (_gate)
+        {
+            return _documents.TryGetValue(documentId, out pageCount);
+        }
+    }
+
+    private async Task<EngineResult<T>> CallAsync<T>(IRequestMessage payload, uint documentId, TimeSpan deadline, TimeSpan localTimeout, Pending pending, CancellationToken cancellationToken)
+        where T : class
+    {
+        var outcome = await SendAsync(payload, documentId, deadline, localTimeout, pending, cancellationToken).ConfigureAwait(false);
+        if (outcome.Tile is not null && typeof(T) == typeof(TileLease))
+        {
+            return new EngineResult<T>(outcome.Status, (T)(object)outcome.Tile, outcome.Detail);
+        }
+
+        // The dispatcher only delivers the reply type that belongs to the pending message type, so this cast cannot fail on engine input.
+        return new EngineResult<T>(outcome.Status, outcome.Reply as T, outcome.Detail);
+    }
+
+    private async Task<Outcome> SendAsync(IRequestMessage payload, uint documentId, TimeSpan deadline, TimeSpan localTimeout, Pending pending, CancellationToken cancellationToken)
+    {
+        if (cancellationToken.IsCancellationRequested)
+        {
+            pending.Slot?.Dispose();
+            return new Outcome(Status.Cancelled, null, null, null);
+        }
+
+        var inFlightTaken = false;
+        if (pending.EngineQueue)
+        {
+            try
+            {
+                await _inFlight.WaitAsync(cancellationToken).ConfigureAwait(false);
+                inFlightTaken = true;
+            }
+            catch (OperationCanceledException)
+            {
+                pending.Slot?.Dispose();
+                return new Outcome(Status.Cancelled, null, null, null);
+            }
+        }
+
+        pending.InFlightTaken = inFlightTaken;
+        pending.Type = payload.MessageType;
+        pending.DocumentId = documentId;
+        var requestId = (ulong)Interlocked.Increment(ref _nextRequestId);
+        pending.Id = requestId;
+
+        var frame = ProtocolCodec.EncodeRequestFrame(requestId, documentId, ToMilliseconds(deadline), payload);
+        if (!frame.IsOk)
+        {
+            ReleaseUnsent(pending);
+            return new Outcome(Status.InvalidArgument, null, null, frame.Failure.Detail);
+        }
+
+        lock (_gate)
+        {
+            if (_fault is not null)
+            {
+                ReleaseUnsent(pending);
+                return new Outcome(Status.EngineCrashed, null, null, _fault.Detail);
+            }
+
+            _pending.Add(requestId, pending);
+        }
+
+        if (localTimeout > TimeSpan.Zero && localTimeout != Timeout.InfiniteTimeSpan)
+        {
+            pending.Timer = new Timer(_ => Abandon(pending, Status.Timeout, "The engine did not answer in time.", overdue: true), null, localTimeout, Timeout.InfiniteTimeSpan);
+        }
+
+        pending.CancellationRegistration = cancellationToken.Register(() =>
+        {
+            if (Abandon(pending, Status.Cancelled, null, overdue: false))
+            {
+                pending.OnCancel?.Invoke();
+            }
+        });
+
+        if (pending.Completion.Task.IsCompleted)
+        {
+            // Answered, cancelled or faulted while the timer and registration were being set up: they have nothing left to watch.
+            pending.Timer?.Dispose();
+            pending.CancellationRegistration.Dispose();
+        }
+
+        try
+        {
+            await _writeLock.WaitAsync(_stop.Token).ConfigureAwait(false);
+            try
+            {
+                await _pipe.WriteAsync(frame.Value, _stop.Token).ConfigureAwait(false);
+                await _pipe.FlushAsync(_stop.Token).ConfigureAwait(false);
+            }
+            finally
+            {
+                _writeLock.Release();
+            }
+        }
+        catch (Exception e) when (e is IOException or ObjectDisposedException or OperationCanceledException or InvalidOperationException)
+        {
+            FaultWith(EngineFaultKind.WriteFailed, "Writing to the engine failed: " + e.Message);
+        }
+
+        return await pending.Completion.Task.ConfigureAwait(false);
+    }
+
+    private static uint ToMilliseconds(TimeSpan deadline)
+    {
+        if (deadline <= TimeSpan.Zero)
+        {
+            return 0; // no deadline
+        }
+
+        var ms = Math.Ceiling(deadline.TotalMilliseconds);
+        return ms >= ProtocolInfo.MaxDeadlineMs ? ProtocolInfo.MaxDeadlineMs : Math.Max(1u, (uint)ms);
+    }
+
+    /// <summary>Ends a pending request locally. The entry stays in the table until the engine answers, so its answer is still matched.</summary>
+    private bool Abandon(Pending pending, Status status, string? detail, bool overdue)
+    {
+        lock (_gate)
+        {
+            if (!_pending.ContainsKey(pending.Id) || pending.Abandoned)
+            {
+                return false;
+            }
+
+            pending.Abandoned = true;
+        }
+
+        pending.Completion.TrySetResult(new Outcome(status, null, null, detail));
+        if (overdue)
+        {
+            Notify(() => RequestOverdue?.Invoke(pending.Type));
+        }
+
+        return true;
+    }
+
+    private void ReleaseUnsent(Pending pending)
+    {
+        pending.Slot?.Dispose();
+        if (pending.InFlightTaken)
+        {
+            _inFlight.Release();
+        }
+    }
+
+    // ---- receiving -----------------------------------------------------------------------------
+
+    private async Task ReadLoopAsync()
+    {
+        var header = new byte[ProtocolCodec.FrameHeaderBytes];
+        try
+        {
+            while (true)
+            {
+                await _pipe.ReadExactlyAsync(header, _stop.Token).ConfigureAwait(false);
+                if (ProtocolCodec.ReadFrameLength(header, out var length) is { } badLength)
+                {
+                    Violation("bad frame length: " + badLength.Detail);
+                    return;
+                }
+
+                var body = new byte[length];
+                await _pipe.ReadExactlyAsync(body, _stop.Token).ConfigureAwait(false);
+                var decoded = ProtocolCodec.DecodeResponseBody(body);
+                if (!decoded.IsOk)
+                {
+                    Violation("malformed response: " + decoded.Failure.Detail);
+                    return;
+                }
+
+                if (!Dispatch(decoded.Value))
+                {
+                    return;
+                }
+            }
+        }
+        catch (Exception e) when (e is EndOfStreamException or IOException or ObjectDisposedException or OperationCanceledException or InvalidOperationException)
+        {
+            FaultWith(EngineFaultKind.PipeClosed, "The engine closed the pipe.");
+        }
+    }
+
+    private void Violation(string detail) => FaultWith(EngineFaultKind.ProtocolViolation, detail);
+
+    /// <summary>Returns false after a violation (the client has faulted).</summary>
+    private bool Dispatch(ResponseEnvelope response)
+    {
+        Pending? pending;
+        Outcome outcome = default;
+        string? violation = null;
+        lock (_gate)
+        {
+            if (!_pending.Remove(response.RequestId, out pending))
+            {
+                violation = "response for a requestId that is not pending (unknown or repeated)";
+            }
+            else if (response.MessageType != pending.Type)
+            {
+                violation = $"response messageType {response.MessageType} does not echo the request ({pending.Type})";
+            }
+            else if (!IsStatusAllowed(pending.Type, response.Status))
+            {
+                violation = $"status {response.Status} is not a valid answer to {pending.Type}";
+            }
+            else if ((response.Payload is null ? null : ValidateReply(pending, response.Payload)) is { } invalid)
+            {
+                violation = invalid;
+            }
+            else
+            {
+                outcome = BuildOutcome(pending, response);
+            }
+        }
+
+        if (violation is not null)
+        {
+            if (pending is not null)
+            {
+                pending.Timer?.Dispose();
+                pending.CancellationRegistration.Dispose();
+                pending.Slot?.Dispose();
+                pending.Completion.TrySetResult(new Outcome(Status.EngineCrashed, null, null, violation));
+            }
+
+            Violation(violation);
+            return false;
+        }
+
+        pending!.Timer?.Dispose();
+        pending.CancellationRegistration.Dispose();
+        if (pending.InFlightTaken)
+        {
+            _inFlight.Release();
+        }
+
+        if (!pending.Completion.TrySetResult(outcome))
+        {
+            // The caller gave up first (cancelled or timed out): hand the resources back.
+            outcome.Tile?.Dispose();
+            if (response.Payload is OpenDocumentReply abandoned)
+            {
+                _ = CloseDocumentAsync(abandoned.DocumentId, TimeSpan.FromSeconds(5));
+            }
+        }
+
+        pending.Slot?.Dispose();
+        return true;
+    }
+
+    private static bool IsStatusAllowed(MessageType type, Status status) => type switch
+    {
+        MessageType.Hello => status is Status.Ok or Status.Unsupported,
+        MessageType.Ping or MessageType.Shutdown => status is Status.Ok,
+        MessageType.CancelBefore or MessageType.CloseDocument or MessageType.AttachSlotRing => status is Status.Ok or Status.InvalidArgument,
+        MessageType.ValidateStructure => status is Status.Ok or Status.InvalidArgument or Status.Damaged or Status.Timeout or Status.PermissionDenied or Status.Unsupported,
+        MessageType.OpenDocument => status is Status.Ok or Status.InvalidArgument or Status.Unsupported or Status.PasswordRequired
+            or Status.PasswordIncorrect or Status.UnsupportedEncryption or Status.Damaged or Status.Timeout or Status.PermissionDenied,
+        MessageType.GetDocumentInfo or MessageType.GetPageSizes => status is Status.Ok or Status.InvalidArgument or Status.Damaged or Status.Timeout,
+        MessageType.RenderTile => status is Status.Ok or Status.PartiallyRendered or Status.Cancelled or Status.InvalidArgument
+            or Status.Unsupported or Status.Damaged or Status.Timeout,
+        _ => false, // EngineCrashed and ProtocolError are never the peer's to send
+    };
+
+    /// <summary>Semantic checks of a decoded reply against the request it answers (the schema limits were enforced by the decoder). Gate held.</summary>
+    private string? ValidateReply(Pending pending, IReplyMessage reply)
+    {
+        switch (reply)
+        {
+            case HelloReply hello:
+                return hello.SchemaVersion != ProtocolInfo.SchemaVersion ? "the engine speaks another schema version" : null;
+            case Pong pong:
+                return pong.Nonce != pending.PingNonce ? "pong nonce does not match the ping" : null;
+            case OpenDocumentReply opened:
+                return _documents.ContainsKey(opened.DocumentId) ? "the engine reused a document id" : null;
+            case GetDocumentInfoReply info:
+                return !_documents.TryGetValue(pending.DocumentId, out var count) || info.PageCount != count ? "the page count changed" : null;
+            case GetPageSizesReply sizes:
+                return pending.Sizes is { } asked && sizes.Widths.Length == asked.Count ? null : "wrong number of page sizes";
+            case RenderTileReply tile:
+                return ValidateTile(pending, tile);
+            default:
+                return null;
+        }
+    }
+
+    private string? ValidateTile(Pending pending, RenderTileReply tile)
+    {
+        if (_ring is null || pending.Render is not { } asked || pending.Slot is not { } slot)
+        {
+            return "tile reply without a render request";
+        }
+
+        if (tile.SlotIndex != asked.SlotIndex || tile.SlotIndex >= (uint)_ring.SlotCount || tile.SlotIndex != (uint)slot.Index)
+        {
+            return "tile reply names a slot that was not requested";
+        }
+
+        if (tile.Width != asked.TileWidth || tile.Height != asked.TileHeight)
+        {
+            return "tile dimensions differ from the request";
+        }
+
+        if ((ulong)tile.Stride < (ulong)tile.Width * 4)
+        {
+            return "tile stride is smaller than a row";
+        }
+
+        if ((ulong)tile.Stride * tile.Height > (ulong)_ring.SlotSize)
+        {
+            return "tile does not fit in its slot";
+        }
+
+        return tile.Generation != asked.Generation ? "tile generation differs from the request" : null;
+    }
+
+    /// <summary>Applies the effects of a validated reply and builds what the caller receives. Gate held.</summary>
+    private Outcome BuildOutcome(Pending pending, ResponseEnvelope response)
+    {
+        switch (response.Payload)
+        {
+            case OpenDocumentReply opened when response.Status == Status.Ok:
+                _documents[opened.DocumentId] = opened.PageCount;
+                break;
+            case CloseDocumentReply:
+                _documents.Remove(pending.DocumentId);
+                break;
+            case RenderTileReply tile:
+                var lease = pending.Slot!;
+                pending.Slot = null; // now the tile's
+                return new Outcome(response.Status, null, new TileLease(lease, (int)tile.Width, (int)tile.Height, (int)tile.Stride, tile.Generation, response.Status == Status.PartiallyRendered), null);
+            default:
+                break;
+        }
+
+        return new Outcome(response.Status, response.Payload, null, null);
+    }
+
+    // ---- faults --------------------------------------------------------------------------------
+
+    private void FaultWith(EngineFaultKind kind, string detail)
+    {
+        EngineFault fault;
+        List<Pending> doomed;
+        lock (_gate)
+        {
+            if (_fault is not null)
+            {
+                return;
+            }
+
+            fault = _fault = new EngineFault(kind, detail);
+            doomed = [.. _pending.Values];
+            _pending.Clear();
+        }
+
+        foreach (var pending in doomed)
+        {
+            pending.Timer?.Dispose();
+            pending.CancellationRegistration.Dispose();
+            pending.Slot?.Dispose();
+            pending.Completion.TrySetResult(new Outcome(Status.EngineCrashed, null, null, detail));
+        }
+
+        _inFlight.Release(1 << 20); // wake senders waiting for room; they will see the fault
+        _pipe.Dispose();
+        if (kind != EngineFaultKind.Disposed)
+        {
+            Notify(() => Faulted?.Invoke(fault));
+        }
+    }
+
+    private static void Notify(Action action)
+    {
+        try
+        {
+            action();
+        }
+        catch (Exception e) when (e is not OutOfMemoryException)
+        {
+            // Subscribers must not throw; a faulty one must not stop the client from finishing its clean-up.
+        }
+    }
+
+    // ---- bookkeeping ---------------------------------------------------------------------------
+
+    private readonly record struct Outcome(Status Status, IReplyMessage? Reply, TileLease? Tile, string? Detail);
+
+    private sealed class Pending
+    {
+        public ulong Id;
+        public MessageType Type;
+        public uint DocumentId;
+        public bool EngineQueue;
+        public bool InFlightTaken;
+        public bool Abandoned; // guarded by the client's gate
+        public ulong PingNonce;
+        public GetPageSizes? Sizes;
+        public RenderTile? Render;
+        public SlotLease? Slot;
+        public Action? OnCancel;
+        public Timer? Timer;
+        public CancellationTokenRegistration CancellationRegistration;
+
+        public TaskCompletionSource<Outcome> Completion { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+    }
+}

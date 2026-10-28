@@ -9,7 +9,7 @@
     "Messages have no nesting: variable-size collections are parallel arrays tied together with sameLengthAs.",
     "Every variable-size field has a limit and the generator rejects a schema in which any legal message cannot fit in one frame."
   ],
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "envelope": { "maxFrameBytes": 65536, "maxDeadlineMs": 86400000 },
 
   "enums": [
@@ -70,6 +70,19 @@
       "id": 3, "name": "Shutdown", "documentId": "none",
       "request": { "type": "Shutdown", "fields": [] },
       "reply": { "type": "ShutdownReply", "fields": [] }
+    },
+    {
+      "id": 4, "name": "AttachSlotRing", "documentId": "none",
+      "$comment": "Sent once, right after Hello, to an engine. The section handle is duplicated into the engine by the broker (no handle is ever inherited), so its value arrives here, not on the command line. RenderTile is refused until the ring is attached. slotCount and slotSize mirror SlotRing: at most 1024 slots (the slotIndex limit) of a multiple of 4096 bytes up to 64 MiB; the engine also checks that the section is at least slotCount x slotSize and that the total is at most 1 GiB.",
+      "request": {
+        "type": "AttachSlotRing",
+        "fields": [
+          { "key": 0, "name": "handle", "type": "u64", "min": 1, "doc": "Value of the section handle duplicated into the engine, with write access." },
+          { "key": 1, "name": "slotCount", "type": "u32", "min": 1, "max": 1024 },
+          { "key": 2, "name": "slotSize", "type": "u32", "min": 4096, "max": 67108864, "doc": "Bytes per slot." }
+        ]
+      },
+      "reply": { "type": "AttachSlotRingReply", "fields": [] }
     },
     {
       "id": 16, "name": "OpenDocument", "documentId": "none",

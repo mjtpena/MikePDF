@@ -1,6 +1,7 @@
 req_hello.bin request Ok
 req_ping.bin request Ok
 req_shutdown.bin request Ok
+req_attach_slot_ring.bin request Ok
 req_open_document.bin request Ok
 req_open_document_no_password.bin request Ok
 req_close_document.bin request Ok
@@ -12,6 +13,7 @@ req_validate_structure.bin request Ok
 rsp_hello.bin response Ok
 rsp_pong.bin response Ok
 rsp_shutdown.bin response Ok
+rsp_attach_slot_ring.bin response Ok
 rsp_open_document.bin response Ok
 rsp_close_document.bin response Ok
 rsp_get_document_info.bin response Ok
@@ -57,6 +59,12 @@ bad_req_tile_width_1025.bin request InvalidArgument
 bad_req_tile_x_out_of_range.bin request InvalidArgument
 bad_req_flags_unknown_bit.bin request InvalidArgument
 bad_req_handle_zero.bin request InvalidArgument
+bad_req_attach_slot_ring_handle_zero.bin request InvalidArgument
+bad_req_attach_slot_ring_no_slots.bin request InvalidArgument
+bad_req_attach_slot_ring_1025_slots.bin request InvalidArgument
+bad_req_attach_slot_ring_slot_below_a_page.bin request InvalidArgument
+bad_req_attach_slot_ring_slot_above_64_mib.bin request InvalidArgument
+bad_req_attach_slot_ring_with_a_document.bin request InvalidArgument
 bad_req_password_1025_bytes.bin request InvalidArgument
 bad_req_password_invalid_utf8.bin request ProtocolError
 bad_req_password_overlong_utf8.bin request ProtocolError

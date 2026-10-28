@@ -10,7 +10,7 @@ namespace Quire.Protocol;
 /// <summary>Constants taken from the schema.</summary>
 public static class ProtocolInfo
 {
-    public const uint SchemaVersion = 1u;
+    public const uint SchemaVersion = 2u;
     public const int MaxFrameBytes = 65536;
     public const uint MaxDeadlineMs = 86400000u;
 }
@@ -80,6 +80,7 @@ public enum MessageType : ushort
     Hello = 1,
     Ping = 2,
     Shutdown = 3,
+    AttachSlotRing = 4,
     OpenDocument = 16,
     CloseDocument = 17,
     GetDocumentInfo = 18,
@@ -102,7 +103,7 @@ public static class MessageTypeInfo
 {
     public static bool IsDefined(MessageType value) => value switch
     {
-        MessageType.Hello or MessageType.Ping or MessageType.Shutdown or MessageType.OpenDocument or MessageType.CloseDocument or MessageType.GetDocumentInfo or MessageType.GetPageSizes or MessageType.RenderTile or MessageType.CancelBefore or MessageType.ValidateStructure => true,
+        MessageType.Hello or MessageType.Ping or MessageType.Shutdown or MessageType.AttachSlotRing or MessageType.OpenDocument or MessageType.CloseDocument or MessageType.GetDocumentInfo or MessageType.GetPageSizes or MessageType.RenderTile or MessageType.CancelBefore or MessageType.ValidateStructure => true,
         _ => false,
     };
 
@@ -111,6 +112,7 @@ public static class MessageTypeInfo
         MessageType.Hello => DocumentIdRule.None,
         MessageType.Ping => DocumentIdRule.None,
         MessageType.Shutdown => DocumentIdRule.None,
+        MessageType.AttachSlotRing => DocumentIdRule.None,
         MessageType.OpenDocument => DocumentIdRule.None,
         MessageType.CloseDocument => DocumentIdRule.Required,
         MessageType.GetDocumentInfo => DocumentIdRule.Required,

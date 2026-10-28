@@ -15,6 +15,7 @@ internal static class ProtocolDispatch
         MessageType.Hello => Hello.Read(ref reader),
         MessageType.Ping => Ping.Read(ref reader),
         MessageType.Shutdown => Shutdown.Read(ref reader),
+        MessageType.AttachSlotRing => AttachSlotRing.Read(ref reader),
         MessageType.OpenDocument => OpenDocument.Read(ref reader),
         MessageType.CloseDocument => CloseDocument.Read(ref reader),
         MessageType.GetDocumentInfo => GetDocumentInfo.Read(ref reader),
@@ -36,6 +37,9 @@ internal static class ProtocolDispatch
                 m.Write(ref writer);
                 break;
             case Shutdown m:
+                m.Write(ref writer);
+                break;
+            case AttachSlotRing m:
                 m.Write(ref writer);
                 break;
             case OpenDocument m:
@@ -69,6 +73,7 @@ internal static class ProtocolDispatch
         MessageType.Hello => HelloReply.Read(ref reader),
         MessageType.Ping => Pong.Read(ref reader),
         MessageType.Shutdown => ShutdownReply.Read(ref reader),
+        MessageType.AttachSlotRing => AttachSlotRingReply.Read(ref reader),
         MessageType.OpenDocument => OpenDocumentReply.Read(ref reader),
         MessageType.CloseDocument => CloseDocumentReply.Read(ref reader),
         MessageType.GetDocumentInfo => GetDocumentInfoReply.Read(ref reader),
@@ -90,6 +95,9 @@ internal static class ProtocolDispatch
                 m.Write(ref writer);
                 break;
             case ShutdownReply m:
+                m.Write(ref writer);
+                break;
+            case AttachSlotRingReply m:
                 m.Write(ref writer);
                 break;
             case OpenDocumentReply m:

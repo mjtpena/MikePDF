@@ -14,6 +14,7 @@ public static class Samples
         new("req_hello", 1, 0, 5000, new Hello { SchemaVersion = ProtocolInfo.SchemaVersion, ProcessKind = ProcessKind.Broker, Pid = 4242 }),
         new("req_ping", 2, 0, 0, new Ping { Nonce = 0x1122334455667788UL }),
         new("req_shutdown", 3, 0, 1000, new Shutdown()),
+        new("req_attach_slot_ring", 12, 0, 5000, new AttachSlotRing { Handle = 0x2F4, SlotCount = 8, SlotSize = 4_194_304 }),
         new("req_open_document", 4, 0, 30000, new OpenDocument { Handle = 0x1F4, Password = "pässwörd✓" }),
         new("req_open_document_no_password", 5, 0, 30000, new OpenDocument { Handle = 0xFFFFFFFFFFFFFFFFUL, Password = null }),
         new("req_close_document", 6, 7, 1000, new CloseDocument()),
@@ -33,6 +34,7 @@ public static class Samples
         new("rsp_hello", 1, Status.Ok, MessageType.Hello, new HelloReply { SchemaVersion = ProtocolInfo.SchemaVersion, PdfiumVersion = "PDFium 8125.0.0.0" }),
         new("rsp_pong", 2, Status.Ok, MessageType.Ping, new Pong { Nonce = 0x1122334455667788UL }),
         new("rsp_shutdown", 3, Status.Ok, MessageType.Shutdown, new ShutdownReply()),
+        new("rsp_attach_slot_ring", 12, Status.Ok, MessageType.AttachSlotRing, new AttachSlotRingReply()),
         new("rsp_open_document", 4, Status.Ok, MessageType.OpenDocument, new OpenDocumentReply { DocumentId = 7, PageCount = 342 }),
         new("rsp_close_document", 6, Status.Ok, MessageType.CloseDocument, new CloseDocumentReply()),
         new("rsp_get_document_info", 7, Status.Ok, MessageType.GetDocumentInfo, new GetDocumentInfoReply

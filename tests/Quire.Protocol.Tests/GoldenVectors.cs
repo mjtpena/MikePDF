@@ -141,6 +141,12 @@ public static class GoldenVectors
         Req("tile_x_out_of_range", TileWith(3, 16777217), Invalid);
         Req("flags_unknown_bit", TileWith(7, 4u), Invalid);
         Req("handle_zero", RawFrame.Request(Items(0UL, null!), MessageType.OpenDocument), Invalid);
+        Req("attach_slot_ring_handle_zero", RawFrame.Request(Items(0UL, 8u, 4096u), MessageType.AttachSlotRing), Invalid);
+        Req("attach_slot_ring_no_slots", RawFrame.Request(Items(1UL, 0u, 4096u), MessageType.AttachSlotRing), Invalid);
+        Req("attach_slot_ring_1025_slots", RawFrame.Request(Items(1UL, 1025u, 4096u), MessageType.AttachSlotRing), Invalid);
+        Req("attach_slot_ring_slot_below_a_page", RawFrame.Request(Items(1UL, 8u, 4095u), MessageType.AttachSlotRing), Invalid);
+        Req("attach_slot_ring_slot_above_64_mib", RawFrame.Request(Items(1UL, 8u, 67108865u), MessageType.AttachSlotRing), Invalid);
+        Req("attach_slot_ring_with_a_document", RawFrame.Request(Items(1UL, 8u, 4096u), MessageType.AttachSlotRing, 12, 7), Invalid);
         Req("password_1025_bytes", RawFrame.Request(Items(1UL, new string('a', 1025)), MessageType.OpenDocument), Invalid);
         Req("password_invalid_utf8", RawFrame.Request(Items(1UL, RawString(0xFF, 0xFE)), MessageType.OpenDocument), Protocol);
         Req("password_overlong_utf8", RawFrame.Request(Items(1UL, RawString(0xC0, 0x80)), MessageType.OpenDocument), Protocol);
