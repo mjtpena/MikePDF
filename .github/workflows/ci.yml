@@ -3,7 +3,8 @@ name: CI
 on:
   pull_request:
   push:
-    branches: [main]
+    # main plus milestone branches (m0/..., m1/...), so work can be verified before a PR exists.
+    branches: [main, 'm[0-9]*/**']
 
 permissions:
   contents: read
