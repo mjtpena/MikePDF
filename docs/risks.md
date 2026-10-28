@@ -65,6 +65,10 @@ Likelihood and impact use Low / Medium / High / Critical. **Owner** is who drive
 | R-35 | Certificate revocation checks contact CAs even with downloads disabled. That's a privacy leak and makes offline validation impossible without `NoCheck` (S8) | Low | Medium | ADR-0012: `NoCheck` by default, plus an explicit "check revocation online" action with disclosure | Opus |
 | R-36 | Quire's own signature validator and the expected verdicts were written by the same author. The attack fixtures were built from background knowledge, not the published papers (S8) | Medium | High | M6: re-derive the attack fixtures from the PDF Insecurity papers, get an independent reviewer for expected verdicts, and run the Acrobat cross-check | Opus |
 
+| R-37 | A document password lives in a managed `string` in the broker (WP4). It can't be zeroed, and it may end up in crash dumps | Low | Medium | M2: carry passwords as pinned byte buffers, zero them after `OpenDocument`, exclude them from minidumps (§14) | Sonnet |
+| R-38 | `Quire.PdfWriter` uses 32-bit offsets and a 1 GiB input ceiling (WP3). Annotating larger files (§18 scenario 10 is 1.2 GB) is refused, failing closed without damage | Medium | Medium | M4: 64-bit offsets and windowed parsing over a mapped view. Measure on the 5,000-page fixture | Sonnet |
+| R-39 | Strict mode refuses some files PDFium opens (e.g. a missing `/Length`, ambiguous hybrid xref). An incremental save then falls back to Save As | Medium | Medium | M4: measure the refusal rate on the core corpus. Add narrowly scoped, verdict-neutral repairs only by ADR | Opus |
+
 ## Closed / resolved
 - R-10: resolved by ADR-0001 D1, pending the user's confirmation of the 24H2 minimum.
 

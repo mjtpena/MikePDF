@@ -66,3 +66,14 @@
 - Re-run the negative suite and mitigations from a **packaged MSIX** launcher on R1 and R2 (S3 open item). The suite becomes an integration test in M1.
 - Find the cause of the hardened-restart outliers in M1.
 - M1 gate: the headless `quire-render` CLI runs the smoke corpus through this exact sandbox profile.
+
+## Amendment A1 (2026-10-28): M1 implementation evidence
+- **No handle inheritance at all**, replacing the `HANDLE_LIST` approach in decision 2.
+  - Sandboxed processes are created `CREATE_SUSPENDED` with `bInheritHandles=FALSE`, joined to their job atomically through `JOB_LIST`.
+  - The broker `DuplicateHandle`s the slot section and documents into the child and announces them over the pipe (`AttachSlotRing`, `OpenDocument`). Only then is the process resumed.
+  - Reason: any other `CreateProcess(bInheritHandles=TRUE)` in the UI process, such as .NET `Process.Start` with redirected streams, could otherwise leak an inheritable section handle (Opus review R1 of WP4).
+  - Enforced by an integration test that scans the broker's handles.
+- **Diagnostics** go over a second named pipe with the same DACL and PID check, because there is no inherited stderr.
+- **`Quire.WriterHost` signature policy:** Microsoft-signed-only is applied at runtime **after a warm-up that loads every assembly the host needs**. Applied earlier, it fails: `Quire.PdfWriter.dll` gave `FileLoadException` 0x80070241, because our own assemblies are unsigned and CoreCLR maps them as images. Consequence: any code path that lazily loads an unsigned assembly after warm-up kills the host. That fails closed, and it's caught by tests. Revisit once our own assemblies are Authenticode-signed (release pipeline), when a creation-time policy that allows our signer may be possible.
+- **Engine environment** must include `LOCALAPPDATA`, `USERPROFILE` and `APPDATA`. Without them, `CreateProcess` fails with error 203.
+- The **watchdog defaults** (1 s ping, 5 s kill) are asserted by unit tests.
