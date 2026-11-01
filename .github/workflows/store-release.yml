@@ -14,18 +14,20 @@ on:
         description: 'Submit to the Store after the checks pass'
         type: boolean
         default: false
-  # Packaging changes are proved on the pull request; nothing is published from here.
+  # Packaging changes are proved on the pull request and on milestone branches; nothing is published from these.
   pull_request:
-    paths:
+    paths: &packaging
       - 'build/package.ps1'
       - 'build/generate-notices.ps1'
       - 'build/store/**'
-      - 'src/Quire.App/Package.appxmanifest'
-      - 'src/Quire.App/Quire.App.csproj'
+      - 'src/Quire.App/**'
       - 'src/Quire.Engine/**'
       - 'src/Quire.Broker/**'
       - 'Directory.Packages.props'
       - '.github/workflows/store-release.yml'
+  push:
+    branches: ['m[0-9]*/**']
+    paths: *packaging
 
 permissions:
   contents: read
