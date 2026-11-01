@@ -14,9 +14,12 @@ internal static partial class Pdfium
     private static bool _initialised;
 
     /// <summary>Why the differential tests cannot run, or null when PDFium is available.</summary>
-    public static string? UnavailableReason => DllPath is null
-        ? "pdfium.dll not found at build/out/pdfium/x64/bin (run build/fetch-pdfium.ps1); the PDFium differential tests are skipped"
+    // In CI a missing DLL is a failure, not a skip: the differential tests must never disappear silently.
+    public static string? UnavailableReason => DllPath is null && Environment.GetEnvironmentVariable("CI") != "true"
+        ? $"pdfium.dll not found at build/out/pdfium/{ProcessArch}/bin (run build/fetch-pdfium.ps1); the PDFium differential tests are skipped"
         : null;
+
+    private static string ProcessArch => RuntimeInformation.ProcessArchitecture == Architecture.Arm64 ? "arm64" : "x64";
 
     public sealed record Info(int PageCount, int Page0AnnotCount);
 
@@ -79,7 +82,7 @@ internal static partial class Pdfium
         {
             if (File.Exists(Path.Combine(dir.FullName, "Quire.slnx")))
             {
-                string candidate = Path.Combine(dir.FullName, "build", "out", "pdfium", "x64", "bin", "pdfium.dll");
+                string candidate = Path.Combine(dir.FullName, "build", "out", "pdfium", ProcessArch, "bin", "pdfium.dll");
                 return File.Exists(candidate) ? candidate : null;
             }
         }
