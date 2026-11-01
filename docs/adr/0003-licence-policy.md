@@ -1,18 +1,20 @@
 # ADR-0003: Quire licence and dependency licence policy
-- Status: Proposed. **Interim policy in force** until the user decides Quire's own licence
-- Date: 2026-10-27
+- Status: **Accepted: Apache-2.0** (user chose open source, 2026-11-02; Opus chose the permissive licence, option 2)
+- Date: 2026-10-27, amended 2026-11-02
 - Deciders: User (Quire's licence), Opus (dependency policy)
 
 ## Context
-Master prompt §16 makes Quire's own licence a decision that constrains every dependency. It isn't made yet (STATUS "Blocked", risk R-26). Spikes and M1 still need a rule for which packages and tools they may use, so this ADR sets an **interim policy** that stays valid whichever way the licence decision goes.
+Master prompt §16 makes Quire's own licence a decision that constrains every dependency. Spikes and M1 needed a rule for which packages and tools they could use before that decision was made, so this ADR first set an interim policy. The user has now decided Quire is open source.
 
 ## Options considered (Quire's own licence: user decision)
 1. **Proprietary.** Allows a commercial product with no source obligations. It excludes MuPDF, iText, Ghostscript and any GPL/AGPL linked code (§16).
 2. **Permissive open source (MIT / Apache-2.0).** Brings community contributions and transparency for a security-sensitive app. The same dependency exclusions as option 1 apply in practice, because we want downstream users to stay free to relicense.
 3. **Copyleft open source (GPL-3.0 / AGPL-3.0).** Would allow MuPDF (AGPL) without buying a licence. It locks Quire into copyleft and complicates enterprise and Store distribution.
 
-## Decision (interim, binding until the user decides)
-Treat Quire as **proprietary-compatible**. Under all three options this keeps every door open except adopting MuPDF.
+## Decision
+**Quire is open source under the Apache License 2.0.** Compared with MIT, it adds an explicit patent grant, which matters for a PDF application, and it's compatible with PDFium's BSD-3-Clause and Apache-2.0 terms and with Store distribution. Compared with copyleft, it keeps Quire usable in managed enterprise fleets and doesn't force the MuPDF route.
+
+The dependency policy below was written as the interim rule and stays in force unchanged.
 
 | Class | Examples | Shipped code | Build/test tools (not shipped, out of process) |
 |---|---|---|---|
@@ -29,12 +31,12 @@ Rules:
 - Note for notices: the pdfium-binaries repository is MIT, but its NuGet packages say Apache-2.0 (ADR-0001). Record both while we use the prebuilt.
 
 ## Consequences
-- MuPDF stays excluded unless the user chooses option 3 or buys a commercial licence from Artifex.
+- MuPDF stays excluded unless the licence changes to copyleft or a commercial licence is bought from Artifex.
 - pyHanko (MIT) and qpdf (Apache-2.0) are fine as test tools. Poppler `pdfsig` (GPL) would be allowed only as a non-distributed test executable.
 
 ## Verification
 - Licence-scan job green in M1 CI.
 - The notices file diff is reviewed on every PDFium bump.
 
-## Open
-- **User:** choose option 1, 2 or 3. Then this ADR becomes Accepted, and an amendment covers any differences, such as a CLA if open source.
+## Contributions
+Inbound equals outbound under Apache-2.0 section 5. No CLA. See `CONTRIBUTING.md`.

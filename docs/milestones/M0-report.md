@@ -64,7 +64,7 @@ Per §19.3 and A.10, a "Not measured" on a gate criterion means the gate does no
 | Risk | Owner | Mitigation |
 |---|---|---|
 | R-17 Reference hardware not available | User | Confirm or obtain R1, R2, R3, Surface and camera. Every performance gate depends on it |
-| R-18 Code-signing identity (individual in AU) | User | Decide: organisation + Artifact Signing, OV/EV on a cloud HSM, or Store-first |
+| R-18 Code-signing identity (individual, outside the US or Canada) | User | Decide: organisation + Artifact Signing, OV/EV on a cloud HSM, or Store-first |
 | R-32 JBIG2 MMR wide-page decode | Sonnet / Opus | Reproduce with real scans in M1, then report upstream |
 | R-27 Scope breadth vs gates | Opus | Hold gates. M2 vertical slice before broadening |
 | R-23 Single human reviewer | User / Opus | Small PRs. User review only on §13.3 security gates and milestone gates |

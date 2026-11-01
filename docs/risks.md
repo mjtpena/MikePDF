@@ -9,7 +9,7 @@ Likelihood and impact use Low / Medium / High / Critical. **Owner** is who drive
 ## Top five right now
 
 1. **R-17**: reference hardware is not confirmed. That blocks S2, S5 and the M2 performance gate.
-2. **R-18**: a code-signing identity may not be obtainable as an individual in Australia.
+2. **R-18**: a code-signing identity may not be obtainable as an individual outside the US or Canada, for direct (non-Store) distribution.
 3. **R-32**: prebuilt PDFium may garble wide JBIG2 scans.
 4. **R-27**: the scope is a multi-year programme, and breadth could crowd out depth.
 5. **R-23**: one human reviewer for a large amount of AI-written code.
@@ -40,7 +40,7 @@ Likelihood and impact use Low / Medium / High / Critical. **Owner** is who drive
 | R-15 | **Automating Acrobat Reader on a CI VM may break its EULA**, but the M4 fidelity gate and §0.3 depend on Acrobat | Medium | High | User/legal checks the EULA. Otherwise fall back to a manually run Acrobat pass per release (documented), with automation limited to pdf.js, PDFium, Edge and Chrome | User |
 | R-16 | MSIX thumbnail and preview handler registration (surrogate hosting, `prevhost.exe`) and spawning a sandboxed engine from Explorer's context, within 1–2 s timeouts | Medium | Medium | S6.5 manifest probe. A dedicated M3 spike if the probe shows complexity. An engine pool for shell extensions | Opus |
 | R-17 | **Reference hardware (R1, R2, R3, Surface + 240 fps camera) is not confirmed** | High | High | User confirms the inventory. Without it, S2 and S5 stay provisional and M2's gate can't pass (§19.3) | User |
-| R-18 | **Code-signing identity.** Artifact Signing Public Trust: individuals must be in the US or Canada. AU organisations are listed on one Microsoft page but not another. EV/OV certificates cost money and need HSM storage (§13.2) | High | High | User decides: register an organisation and apply to Artifact Signing (check the portal's country list), buy an OV/EV cert on a cloud HSM, or go Store-first (Store signs the package). Decide before M1 CI signing work | User |
+| R-18 | **Code-signing identity.** Artifact Signing Public Trust: individuals must be in the US or Canada. Organisations in more countries are listed on one Microsoft page but not another. EV/OV certificates cost money and need HSM storage (§13.2) | High | High | User decides: register an organisation and apply to Artifact Signing (check the portal's country list), buy an OV/EV cert on a cloud HSM, or go Store-first (Store signs the package). Decide before M1 CI signing work | User |
 | R-19 | GitHub-hosted private runners (2 vCPU / 8 GB) can't build PDFium from source in reasonable time, and perf numbers there are noisy | High | Medium | Self-hosted x64 build machine for PDFium and the fuzzing box. Hosted runners only for Quire code using a cached, hashed PDFium artifact | User (budget) / Sonnet |
 | R-20 | UI automation tooling is weak: WinAppDriver unmaintained, Appium's Windows driver proxies it, FlaUI last released Feb 2025 | **Medium** ↓ (2026-10-28) | Medium | ADR-0009 after S6.6. Prefer FlaUI (direct UIA3, no server) and isolate behind a page-object layer so the driver can be swapped | Opus |
 | R-21 | Windows AI coverage is fragmented: OCR NPU-only, `LanguageModel` LAF-gated until Jan 2027, GPU path Insider-only, not available in China | High | Medium | Feature-detect with `GetReadyState`. `Windows.Media.Ocr` and Foundry Local fallbacks. Request the LAF token early if Phi Silica testing is still needed before Jan 2027 | Opus / User (token request) |
