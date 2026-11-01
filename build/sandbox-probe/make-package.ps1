@@ -18,14 +18,14 @@ $outDir = Join-Path $root 'build/out/probe'
 if (Test-Path $stage) { Remove-Item -Recurse -Force $stage }
 New-Item -ItemType Directory -Force $stage, $outDir | Out-Null
 
-foreach ($f in 'Quire.Engine.exe', 'pdfium.dll', 'Quire.Engine.SandboxProbe.exe', 'rogue-copy.dll') {
+foreach ($f in 'Quire.Engine.exe', 'pdfium.dll', 'Quire.Engine.SandboxProbe.exe', 'rogue-copy.dll', 'rogue-marker.dll') {
     if (-not (Test-Path (Join-Path $bin $f))) { throw "$f missing in $bin. Run: ./build.ps1 -SkipManaged -Test -Arch $Arch" }
 }
 
 # Engine directory (the layout the product package will use) + the test-only probe beside it.
 $engine = Join-Path $stage 'Engine'
 New-Item -ItemType Directory $engine | Out-Null
-foreach ($f in 'Quire.Engine.exe', 'pdfium.dll', 'Quire.Engine.SandboxProbe.exe', 'rogue-copy.dll') { Copy-Item (Join-Path $bin $f) $engine }
+foreach ($f in 'Quire.Engine.exe', 'pdfium.dll', 'Quire.Engine.SandboxProbe.exe', 'rogue-copy.dll', 'rogue-marker.dll') { Copy-Item (Join-Path $bin $f) $engine }
 
 # Self-test executable (self-contained, so the runner needs no .NET).
 dotnet publish (Join-Path $root 'tests/Quire.PackageProbe/Quire.PackageProbe.csproj') -c Release -r "win-$Arch" --self-contained -p:QuireArch=$Arch -o (Join-Path $stage 'PackageProbe') | Out-Host

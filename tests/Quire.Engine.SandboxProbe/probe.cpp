@@ -39,6 +39,13 @@ void emit(const std::string& line) {
     WriteFile(g_out, text.data(), static_cast<DWORD>(text.size()), &written, nullptr);
 }
 
+}  // namespace
+
+// Called by rogue-marker.dll from its DllMain: the proof that the DLL's code ran. Nothing else calls it.
+extern "C" __declspec(dllexport) void quire_probe_emit(const char* line) { emit(line); }
+
+namespace {
+
 std::string narrow(std::wstring_view wide) {
     if (wide.empty()) {
         return {};
@@ -225,6 +232,20 @@ Outcome write_registry() {
     return {true, 0, "key created and removed"};
 }
 
+// Renames a directory and, if that worked, puts it back at once: can this process move things around inside a folder it cannot read?
+Outcome rename_and_back(const std::wstring& dir) {
+    std::wstring trimmed = dir;
+    while (!trimmed.empty() && (trimmed.back() == L'\\' || trimmed.back() == L'/')) {
+        trimmed.pop_back();
+    }
+    const std::wstring moved = trimmed + L".renamed-by-probe";
+    if (!MoveFileExW(trimmed.c_str(), moved.c_str(), 0)) {
+        return {false, GetLastError(), "rename directory"};
+    }
+    MoveFileExW(moved.c_str(), trimmed.c_str(), 0);
+    return {true, 0, "directory renamed and renamed back"};
+}
+
 Outcome load_dll(const std::wstring& path) {
     const HMODULE module = LoadLibraryExW(path.c_str(), nullptr, 0);
     if (module == nullptr) {
@@ -292,7 +313,7 @@ void report_mitigations(const char* phase) {
 }
 
 struct Options {
-    std::wstring documents, temp, repo_dir, repo_file, other_package_file, own_data_file, own_data_dir, unc, tcp_lan_address, parent_pid, rogue_dll, temp_dll, engine_dir;
+    std::wstring documents, temp, repo_dir, repo_file, other_package_file, own_data_file, own_data_dir, protected_file, rename_protected_dir, rename_engine_dir, rogue_only, unc, tcp_lan_address, parent_pid, rogue_dll, temp_dll, engine_dir;
     unsigned short tcp_loopback_port{};
     unsigned short tcp_lan_port{};
     DWORD parent{};
@@ -317,6 +338,10 @@ bool parse(Options& o) {
         else if (arg == L"--other-package-file") o.other_package_file = value;
         else if (arg == L"--own-data-file") o.own_data_file = value;
         else if (arg == L"--own-data-dir") o.own_data_dir = value;
+        else if (arg == L"--protected-file") o.protected_file = value;
+        else if (arg == L"--rename-protected-dir") o.rename_protected_dir = value;
+        else if (arg == L"--rename-engine-dir") o.rename_engine_dir = value;
+        else if (arg == L"--rogue-only") o.rogue_only = value;
         else if (arg == L"--unc") o.unc = value;
         else if (arg == L"--rogue-dll") o.rogue_dll = value;
         else if (arg == L"--temp-dll") o.temp_dll = value;
@@ -368,6 +393,14 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int) {
         report_mitigations("runtime");
     }
 
+    if (!o.rogue_only.empty()) {
+        // The unsigned-DLL row, alone in its own process: if the loader ends the process, the rows above are already on record, and the
+        // marker line (printed by the DLL's own code, through quire_probe_emit) shows whether that code ran.
+        run("dll.load.rogue-marker", "deny", load_dll(o.rogue_only));
+        emit("DONE");
+        return 0;
+    }
+
     run("fs.read.documents.open", "deny", open_directory(o.documents));
     run("fs.read.documents.enumerate", "deny", enumerate_directory(o.documents));
     run("fs.write.temp", "deny", write_file(o.temp, L"quire-probe-"));
@@ -386,6 +419,17 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int) {
     }
     // The engine must not be able to modify its own deployment directory (a tampered copy would be what the next launch runs).
     run("fs.write.engine-dir", "deny", write_file(o.engine_dir, L"quire-probe-"));
+    if (!o.rename_engine_dir.empty()) {
+        // The directory the engine runs from must not be movable by the engine (a replacement would be what the next launch runs).
+        run("fs.rename.engine-dir", "deny", rename_and_back(o.rename_engine_dir));
+    }
+    if (!o.protected_file.empty()) {
+        // A file the broker keeps to itself, in a protected directory with user and SYSTEM only.
+        run("fs.read.protected-private-file", "deny", read_file(o.protected_file));
+    }
+    if (!o.rename_protected_dir.empty()) {
+        run("fs.rename.protected-private-dir", "deny", rename_and_back(o.rename_protected_dir));
+    }
     run("fs.read.unc", "deny", open_unc(o.unc));
     run("net.tcp.connect-loopback", "deny", tcp_connect("127.0.0.1", o.tcp_loopback_port));
     if (!o.tcp_lan_address.empty()) {
@@ -397,7 +441,6 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int) {
     run("ui.clipboard.read", "deny", read_clipboard());
     run("reg.write.hkcu", "deny", write_registry());
     run("dll.load.unsigned-temp-copy", "deny", load_dll(o.temp_dll));
-    run("dll.load.unsigned-in-engine-dir", "deny", load_dll(o.rogue_dll));
 
     // Positive controls: the sandbox is useless if these fail too.
     run("ctl.read.engine-dir", "allow", read_file(o.engine_dir + L"\\Quire.Engine.exe"));

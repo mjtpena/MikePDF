@@ -5,16 +5,17 @@ using System.Net.NetworkInformation;
 using System.Net.Sockets;
 using System.Runtime.InteropServices;
 using System.Security.AccessControl;
+using System.Security.Principal;
 using System.Text;
 using Quire.Broker;
 
 namespace Quire.PackageProbe;
 
 /// <summary>
-/// Runs inside an installed package and tests three ways of launching the sandboxed engine:
-/// a = direct from the package directory (zero capabilities), b = direct, plus the packageContents capability,
-/// c = copied to the package's LocalState folder with an ACE for the AppContainer SID only.
-/// For each mode: launch, Hello/AttachSlotRing/OpenDocument/RenderTile, then the full negative-access probe.
+/// Runs inside an installed package and tests how the sandboxed engine can be launched from it:
+/// a = directly from the package directory, k = copied to a protected directory under LocalState (AppContainer SID read+execute only).
+/// Per mode: launch, Hello/AttachSlotRing/OpenDocument/RenderTile on a real PDF, the negative-access probe, and the unsigned-DLL load in
+/// its own sandboxed process (so that a process death there is recorded and every other row still runs).
 /// </summary>
 internal static class Program
 {
@@ -44,20 +45,21 @@ internal static class Program
     private static async Task<int> RunAsync(Dictionary<string, string> options)
     {
         Line("# Quire sandbox-in-package probe");
-        Line($"Run at {DateTime.UtcNow:O}, OS {Environment.OSVersion.Version}, arch {RuntimeInformation.ProcessArchitecture}");
+        Line($"Run at {DateTime.UtcNow:O}, OS {Environment.OSVersion.Version}, process architecture {RuntimeInformation.ProcessArchitecture}");
         Line();
 
-        // ---- identity ------------------------------------------------------------------------
+        // ---- identity and token ----------------------------------------------------------------
         var fullName = Identity.Call(Identity.GetCurrentPackageFullName);
         var familyName = Identity.Call(Identity.GetCurrentPackageFamilyName);
         var packagePath = Identity.Call(Identity.GetCurrentPackagePath);
         var underWindowsApps = packagePath is not null && packagePath.Contains("\\WindowsApps\\", StringComparison.OrdinalIgnoreCase);
-        Line("## Package identity (this process)");
+        var integrity = Native.IntegrityRid();
+        Line("## Package identity and token of this process (the broker)");
         Line($"- GetCurrentPackageFullName: `{fullName ?? "(none: NOT PACKAGED)"}`");
         Line($"- GetCurrentPackageFamilyName: `{familyName ?? "(none)"}`");
         Line($"- GetCurrentPackagePath: `{packagePath ?? "(none)"}`");
         Line($"- Under WindowsApps: **{underWindowsApps}**");
-        Line($"- Administrator role: {Native.IsAdministrator()}, user {Environment.UserName}");
+        Line($"- Integrity level (RID): **0x{integrity:X}** ({Native.IntegrityName(integrity)}); administrator role: {Native.IsAdministrator()}; user {Environment.UserName}");
         Line();
         if (packagePath is null)
         {
@@ -68,29 +70,34 @@ internal static class Program
         }
 
         // ---- ACLs ----------------------------------------------------------------------------
+        var localState = Identity.LocalStatePath();
         var acl = new StringBuilder();
-        foreach (var path in new[] { packagePath, Path.Combine(packagePath, "Engine"), Path.Combine(packagePath, "Engine", "Quire.Engine.exe"), Path.GetDirectoryName(packagePath)! })
+        foreach (var path in new[] { packagePath, Path.Combine(packagePath, "Engine"), Path.Combine(packagePath, "Engine", "Quire.Engine.exe"), Path.GetDirectoryName(packagePath)!, localState })
         {
             acl.AppendLine("=== icacls " + path);
             acl.AppendLine(RunTool("icacls.exe", "\"" + path + "\""));
-            try
-            {
-                FileSystemSecurity security = Directory.Exists(path) ? new DirectoryInfo(path).GetAccessControl() : new FileInfo(path).GetAccessControl();
-                acl.AppendLine("SDDL: " + security.GetSecurityDescriptorSddlForm(AccessControlSections.Access));
-            }
-            catch (Exception e)
-            {
-                acl.AppendLine("SDDL unavailable: " + e.Message);
-            }
-
-            acl.AppendLine();
         }
 
-        acl.AppendLine("=== icacls LocalState " + Identity.LocalStatePath());
-        acl.AppendLine(RunTool("icacls.exe", "\"" + Identity.LocalStatePath() + "\""));
+        // ---- the protected private directory (what the broker keeps to itself) -----------------------
+        var privateDir = Path.Combine(localState, "private-probe");
+        Directory.CreateDirectory(privateDir);
+        var security = new DirectorySecurity();
+        security.SetAccessRuleProtection(isProtected: true, preserveInheritance: false);
+        using (var me = WindowsIdentity.GetCurrent())
+        {
+            security.AddAccessRule(new FileSystemAccessRule(me.User!, FileSystemRights.FullControl, InheritanceFlags.ContainerInherit | InheritanceFlags.ObjectInherit, PropagationFlags.None, AccessControlType.Allow));
+        }
+
+        security.AddAccessRule(new FileSystemAccessRule(new SecurityIdentifier(WellKnownSidType.LocalSystemSid, null), FileSystemRights.FullControl, InheritanceFlags.ContainerInherit | InheritanceFlags.ObjectInherit, PropagationFlags.None, AccessControlType.Allow));
+        new DirectoryInfo(privateDir).SetAccessControl(security);
+        var protectedFile = Path.Combine(privateDir, "documents.json");
+        File.WriteAllText(protectedFile, "{ \"recent\": [\"C:\\\\private\\\\secret.pdf\"] }");
+        acl.AppendLine("=== icacls (protected private dir) " + privateDir);
+        acl.AppendLine(RunTool("icacls.exe", "\"" + privateDir + "\""));
         File.WriteAllText(Path.Combine(OutDir, "acl.txt"), acl.ToString());
-        Line("## ACL of the package directory (all paths in acl.txt)");
+        Line("## ACL of the package directory and LocalState (all paths in acl.txt)");
         Line("```\n" + RunTool("icacls.exe", "\"" + packagePath + "\"") + "\n```");
+        Line("Protected private directory:\n```\n" + RunTool("icacls.exe", "\"" + privateDir + "\"") + "\n```");
 
         // ---- inputs --------------------------------------------------------------------------
         var engineDir = Path.Combine(packagePath, "Engine");
@@ -98,108 +105,75 @@ internal static class Program
         var workspace = options.GetValueOrDefault("--workspace", OutDir);
         var otherPackageFile = options.GetValueOrDefault("--other-package-file", string.Empty);
         using var network = new NetworkFixture();
-        Line($"- Engine directory: `{engineDir}`; other-package file given to the probe: `{(otherPackageFile.Length == 0 ? "(none)" : otherPackageFile)}`");
-        Line();
-
-        var profile = AppContainerProfile.CreateOrOpen("Quire.PackageProbe", "Quire package probe", "Zero-capability AppContainer for the in-package sandbox probe");
+        var profile = AppContainerProfile.CreateOrOpen("Quire.PackageProbe", "Quire package probe", "AppContainer for the in-package sandbox probe");
         Line($"AppContainer profile `{profile.Name}` created by this call: {profile.CreatedByThisCall}; SID `{profile.Sid.Value}`");
         Line();
 
-        var ownData = Path.Combine(Identity.LocalStatePath(), "parent-private-data.txt");
-        File.WriteAllText(ownData, "private data of the Quire package; the sandbox must not read this");
-        var context = new ProbeContext(profile, fixtures, workspace, otherPackageFile, ownData, network);
+        var ownData = Path.Combine(localState, "parent-private-data.txt");
+        File.WriteAllText(ownData, "data of the Quire package, in a folder the package capability can write");
+        var context = new ProbeContext(profile, fixtures, workspace, otherPackageFile, ownData, protectedFile, privateDir, network);
 
-        // Unsandboxed control from the package directory: proves each negative check could succeed.
+        // Unsandboxed controls from the package directory: each check, and the unsigned-DLL marker, must be able to succeed.
         var control = await context.RunProbeControlAsync(Path.Combine(engineDir, "Quire.Engine.SandboxProbe.exe")).ConfigureAwait(false);
         File.WriteAllText(Path.Combine(OutDir, "probe-control.txt"), control.Raw);
+        var rogueControl = await context.RunRogueControlAsync(engineDir).ConfigureAwait(false);
+        File.WriteAllText(Path.Combine(OutDir, "rogue-control.txt"), rogueControl.Raw);
+        var markerControl = rogueControl.Raw.Contains("ROGUE-CODE-RAN", StringComparison.Ordinal);
         Line($"Control (unsandboxed) probe: finished={control.Done}, rows={control.Rows.Count}, deny-rows that were ALLOWED in the control={control.Rows.Count(r => r.Expect == "deny" && r.Outcome == "ALLOWED")}");
+        Line($"Control for the unsigned-DLL row: the DLL loaded and its code ran (marker seen) = **{markerControl}**");
         Line();
 
         var results = new List<ModeResult>();
-        var only = options.GetValueOrDefault("--modes", "a,c,g,k").Split(',');
+        var only = options.GetValueOrDefault("--modes", "a,k").Split(',');
 
         if (only.Contains("a"))
         {
-            results.Add(await context.RunModeAsync("a", "direct from the package directory, zero capabilities", engineDir, new SandboxPolicy(), 0, control).ConfigureAwait(false));
+            results.Add(await context.RunModeAsync("a", "direct from the package directory", engineDir, Path.Combine(packagePath, "Fixtures"), new SandboxPolicy(), control, markerControl).ConfigureAwait(false));
             WriteMode(results[^1]);
         }
 
-        if (only.Contains("b"))
+        if (only.Contains("k"))
         {
-            var policy = new SandboxPolicy { NamedCapabilities = ["packageContents"] };
-            results.Add(await context.RunModeAsync("b", "direct from the package directory, only the packageContents capability", engineDir, policy, 1, control).ConfigureAwait(false));
-            WriteMode(results[^1]);
-        }
-
-        if (only.Contains("e"))
-        {
-            results.Add(await context.RunModeAsync("e", "direct from the package directory, child breaks away from the package", engineDir, new SandboxPolicy { BreakawayFromPackage = true }, 0, control).ConfigureAwait(false));
-            WriteMode(results[^1]);
-        }
-
-        var copyTargets = new (string Mode, string Title, string Base, bool Breakaway)[]
-        {
-            ("c", "copied to LocalState, AppContainer SID read+execute only", Identity.LocalStatePath(), false),
-            ("g", "copied to ProgramData\\Quire-probe, AppContainer SID read+execute only", Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "Quire-probe"), false),
-            ("h", "copied to LOCALAPPDATA\\Quire-probe (MSIX may redirect this), AppContainer SID read+execute only", Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Quire-probe"), false),
-            ("d", "copied to LocalState, child breaks away from the package", Identity.LocalStatePath(), true),
-            ("k", "copied to LocalState, PROTECTED DACL (user full, AppContainer SID read+execute only)", Identity.LocalStatePath(), false),
-            ("i", "copied to ProgramData\\Quire-probe, free-standing (non-child) AppContainer SID", Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "Quire-probe"), false),
-            ("j", "direct from the package directory, free-standing (non-child) AppContainer SID", engineDir, false),
-        };
-        foreach (var target in copyTargets)
-        {
-            if (!only.Contains(target.Mode))
-            {
-                continue;
-            }
-
-            var modeName = target.Mode;
-            var modeProfile = modeName is "i" or "j" ? AppContainerProfile.Unregistered("Quire.PackageProbe.Free") : profile;
-            if (modeName == "j")
-            {
-                results.Add(await context.RunModeAsync(modeName, target.Title, engineDir, new SandboxPolicy(), 0, control, modeProfile).ConfigureAwait(false));
-                WriteMode(results[^1]);
-                continue;
-            }
-
-            var copy = Path.Combine(target.Base, "engine-copy-" + Guid.NewGuid().ToString("N")[..8]);
+            var copy = Path.Combine(localState, "engine-copy-" + Guid.NewGuid().ToString("N")[..8]);
+            var twinDirectory = string.Empty;
             try
             {
                 Directory.CreateDirectory(copy);
-                if (modeName == "k")
-                {
-                    EngineDeployment.EnsureReadOnlyDeployment(copy, modeProfile.Sid);
-                }
-                else
-                {
-                    EngineDeployment.EnsureAppContainerAccess(copy, modeProfile); // before the copy, so the files inherit it
-                }
+                EngineDeployment.EnsureReadOnlyDeployment(copy, profile.Sid);
                 foreach (var file in Directory.GetFiles(engineDir))
                 {
                     File.Copy(file, Path.Combine(copy, Path.GetFileName(file)));
                 }
 
-                Line($"Copy-out target (mode {modeName}): `{copy}`");
-                File.WriteAllText(Path.Combine(OutDir, "acl-copy-" + modeName + ".txt"), RunTool("icacls.exe", "\"" + copy + "\""));
-                if (modeName == "h")
+                // A second, identical deployment that nothing runs from, so that "can the engine move its deployment directory" is a question about
+                // access and not about the running executable locking its own folder.
+                var twin = copy + "-twin";
+                Directory.CreateDirectory(twin);
+                EngineDeployment.EnsureReadOnlyDeployment(twin, profile.Sid);
+                foreach (var file in Directory.GetFiles(engineDir))
                 {
-                    var physical = Path.GetFullPath(Path.Combine(Identity.LocalStatePath(), "..", "LocalCache", "Local", "Quire-probe"));
-                    Line($"- where MSIX redirection put it: `{physical}` exists={Directory.Exists(physical)}");
+                    File.Copy(file, Path.Combine(twin, Path.GetFileName(file)));
                 }
 
-                results.Add(await context.RunModeAsync(modeName, target.Title, copy, new SandboxPolicy { BreakawayFromPackage = target.Breakaway }, 0, control, modeProfile).ConfigureAwait(false));
+                twinDirectory = twin;
+                Line($"Copy-out target (mode k): `{copy}` (twin for the rename row: `{twin}`)");
+                File.WriteAllText(Path.Combine(OutDir, "acl-copy-k.txt"), RunTool("icacls.exe", "\"" + copy + "\""));
+                results.Add(await context.RunModeAsync("k", "copied to LocalState, protected DACL", copy, twinDirectory, new SandboxPolicy(), control, markerControl).ConfigureAwait(false));
             }
             catch (Exception e)
             {
-                results.Add(ModeResult.Failed(modeName, "copy-out harness error: " + e));
+                results.Add(ModeResult.Failed("k", "copy-out harness error: " + e));
             }
             finally
             {
                 try
                 {
-                    EngineDeployment.RevokeAppContainerAccess(copy, modeProfile.Sid);
+                    EngineDeployment.RevokeAppContainerAccess(copy, profile.Sid);
                     Directory.Delete(copy, recursive: true);
+                    if (twinDirectory.Length > 0 && Directory.Exists(twinDirectory))
+                    {
+                        Directory.Delete(twinDirectory, recursive: true);
+                    }
                 }
                 catch (Exception e)
                 {
@@ -212,11 +186,19 @@ internal static class Program
 
         // ---- summary -------------------------------------------------------------------------
         Line("## Summary");
-        Line("| mode | engine launched | real tile rendered | original negative suite all denied | other-package read denied | own package data read+write denied | engine dir not writable by the engine | token capabilities | notes |");
-        Line("|---|---|---|---|---|---|---|---|---|");
+        Line($"Broker integrity level 0x{integrity:X} ({Native.IntegrityName(integrity)}), arch {RuntimeInformation.ProcessArchitecture}, OS {Environment.OSVersion.Version}.");
+        Line();
+        Line("| mode | launched | tile rendered | rows run / all denied except the known package-data rows | other package denied | engine dir write denied | engine dir rename denied | protected private file read denied | protected private dir rename denied | unsigned DLL: denied, code did not run | package capability in the child's token |");
+        Line("|---|---|---|---|---|---|---|---|---|---|---|");
         foreach (var r in results)
         {
-            Line($"| {r.Mode} ({r.Title}) | {r.Launched} | {r.Rendered} | {r.OriginalSuiteDenied} | {r.OtherPackageDenied} | {r.OwnDataDenied} | {r.EngineDirReadOnly} | {r.Capabilities} | {Short(r.Summary)} |");
+            Line($"| {r.Mode} ({r.Title}) | {r.Launched} | {r.Rendered} | {r.RowsRun} / {r.OriginalSuiteDenied} | {r.OtherPackageDenied} | {r.EngineDirWriteDenied} | {r.EngineDirRenameDenied} | {r.ProtectedFileReadDenied} | {r.ProtectedDirRenameDenied} | {r.RogueDllDenied} | {r.Capabilities} |");
+        }
+
+        Line();
+        foreach (var r in results.Where(r => r.Problems.Count > 0))
+        {
+            Line($"- mode {r.Mode} problems: {string.Join("; ", r.Problems.Take(8))}");
         }
 
         Line();
@@ -251,15 +233,14 @@ internal static class Program
         }
     }
 
-    private static string Short(string text) => (text.Length > 300 ? text[..300] : text).Replace("\n", " ").Replace("\t", " ").Replace("|", "/");
-
     private static void WriteMode(ModeResult r)
     {
         Line($"### Mode {r.Mode}: {r.Title}");
         Line($"- engine launched: **{r.Launched}** {r.LaunchDetail}");
         Line($"- Hello/AttachSlotRing/OpenDocument/RenderTile with a real PDF: **{r.Rendered}** {r.RenderDetail}");
-        Line($"- negative probe: finished={r.ProbeRan}, original suite all denied=**{r.OriginalSuiteDenied}**, other-package denied={r.OtherPackageDenied}, own-package-data denied={r.OwnDataDenied}; token capabilities: {r.Capabilities}{(r.CapabilityNote.Length > 0 ? " **(differs from the request: " + r.CapabilityNote + ")**" : string.Empty)}");
-        foreach (var d in r.ProbeProblems)
+        Line($"- main probe: finished={r.ProbeRan}, rows run={r.RowsRun}; token capabilities: {r.Capabilities}");
+        Line($"- unsigned DLL in its own process: {r.RogueDetail}");
+        foreach (var d in r.Problems)
         {
             Line("  - " + d);
         }
@@ -302,23 +283,27 @@ internal sealed class ModeResult
 
     public bool ProbeRan { get; set; }
 
-    public bool AllDenied { get; set; }
-
-    public string Capabilities { get; set; } = string.Empty;
-
-    public string CapabilityNote { get; set; } = string.Empty;
-
-    public List<string> ProbeProblems { get; } = [];
+    public int RowsRun { get; set; }
 
     public bool OriginalSuiteDenied { get; set; }
 
     public bool OtherPackageDenied { get; set; }
 
-    public bool OwnDataDenied { get; set; }
+    public bool EngineDirWriteDenied { get; set; }
 
-    public bool EngineDirReadOnly { get; set; }
+    public bool EngineDirRenameDenied { get; set; }
 
-    public string Summary => string.Join("; ", ProbeProblems.Take(3));
+    public bool ProtectedFileReadDenied { get; set; }
+
+    public bool ProtectedDirRenameDenied { get; set; }
+
+    public bool RogueDllDenied { get; set; }
+
+    public string RogueDetail { get; set; } = string.Empty;
+
+    public string Capabilities { get; set; } = string.Empty;
+
+    public List<string> Problems { get; } = [];
 
     public static ModeResult Failed(string mode, string detail) => new() { Mode = mode, Title = detail, LaunchDetail = detail };
 }
@@ -363,8 +348,11 @@ internal sealed class NetworkFixture : IDisposable
     public void Dispose() => _listener.Stop();
 }
 
-internal sealed class ProbeContext(AppContainerProfile defaultProfile, string fixtures, string workspace, string otherPackageFile, string ownDataFile, NetworkFixture network)
+internal sealed class ProbeContext(AppContainerProfile profile, string fixtures, string workspace, string otherPackageFile, string ownDataFile, string protectedFile, string protectedDir, NetworkFixture network)
 {
+    private static readonly string[] KnownPackageDataRows = ["fs.read.parent-package-data", "fs.write.parent-package-data"];
+    private static readonly string[] SeparatelyReported = ["fs.read.other-package-file", "fs.write.engine-dir", "fs.rename.engine-dir", "fs.read.protected-private-file", "fs.rename.protected-private-dir"];
+
     private string _scratch = string.Empty;
 
     private string Scratch
@@ -387,17 +375,7 @@ internal sealed class ProbeContext(AppContainerProfile defaultProfile, string fi
         try
         {
             File.Copy(Path.Combine(Path.GetDirectoryName(probeExe)!, "rogue-copy.dll"), temp);
-            var start = new ProcessStartInfo(probeExe, Arguments(Path.GetDirectoryName(probeExe)!, temp, control: true))
-            {
-                UseShellExecute = false,
-                CreateNoWindow = true,
-                RedirectStandardOutput = true,
-                WorkingDirectory = Path.GetDirectoryName(probeExe)!,
-            };
-            using var process = Process.Start(start)!;
-            var output = await process.StandardOutput.ReadToEndAsync().ConfigureAwait(false);
-            await process.WaitForExitAsync().WaitAsync(TimeSpan.FromSeconds(90)).ConfigureAwait(false);
-            return Parse(output, (uint)process.ExitCode);
+            return await RunUnsandboxedAsync(probeExe, Arguments(Path.GetDirectoryName(probeExe)!, temp, control: true, Path.Combine(Path.GetDirectoryName(Path.GetDirectoryName(probeExe)!)!, "Fixtures"))).ConfigureAwait(false);
         }
         catch (Exception e)
         {
@@ -409,9 +387,37 @@ internal sealed class ProbeContext(AppContainerProfile defaultProfile, string fi
         }
     }
 
-    public async Task<ModeResult> RunModeAsync(string mode, string title, string engineDir, SandboxPolicy policy, int expectedCapabilities, ProbeReport control, AppContainerProfile? profileOverride = null)
+    /// <summary>Loads the marker DLL in an ordinary process: its code must run and say so, or the sandboxed "it did not run" proves nothing.</summary>
+    public async Task<ProbeReport> RunRogueControlAsync(string engineDir)
     {
-        var profile = profileOverride ?? defaultProfile;
+        var probe = Path.Combine(engineDir, "Quire.Engine.SandboxProbe.exe");
+        try
+        {
+            return await RunUnsandboxedAsync(probe, $"--rogue-only \"{Path.Combine(engineDir, "rogue-marker.dll")}\" --control").ConfigureAwait(false);
+        }
+        catch (Exception e)
+        {
+            return new ProbeReport([], [], false, "rogue control failed: " + e, 0);
+        }
+    }
+
+    private static async Task<ProbeReport> RunUnsandboxedAsync(string exe, string arguments)
+    {
+        var start = new ProcessStartInfo(exe, arguments)
+        {
+            UseShellExecute = false,
+            CreateNoWindow = true,
+            RedirectStandardOutput = true,
+            WorkingDirectory = Path.GetDirectoryName(exe)!,
+        };
+        using var process = Process.Start(start)!;
+        var output = await process.StandardOutput.ReadToEndAsync().ConfigureAwait(false);
+        await process.WaitForExitAsync().WaitAsync(TimeSpan.FromSeconds(90)).ConfigureAwait(false);
+        return Parse(output, (uint)process.ExitCode);
+    }
+
+    public async Task<ModeResult> RunModeAsync(string mode, string title, string engineDir, string renameTarget, SandboxPolicy policy, ProbeReport control, bool markerControl)
+    {
         var result = new ModeResult { Mode = mode, Title = title };
         var enginePath = Path.Combine(engineDir, "Quire.Engine.exe");
 
@@ -470,35 +476,79 @@ internal sealed class ProbeContext(AppContainerProfile defaultProfile, string fi
             await supervisor.DisposeAsync().ConfigureAwait(false);
         }
 
-        // ---- negative probe in the same profile and policy ---------------------------------------
+        // ---- the main negative probe, same profile and policy ------------------------------------
         var probePath = Path.Combine(engineDir, "Quire.Engine.SandboxProbe.exe");
         var temp = Path.Combine(Path.GetTempPath(), "quire-probe-" + Guid.NewGuid().ToString("N")[..8] + ".dll");
         try
         {
             File.Copy(Path.Combine(engineDir, "rogue-copy.dll"), temp);
             var launcher = new SandboxedProcessLauncher(profile, policy);
-            using var process = launcher.Launch(new SandboxLaunchRequest(probePath, Arguments(engineDir, temp, control: false)));
+            using var process = launcher.Launch(new SandboxLaunchRequest(probePath, Arguments(engineDir, temp, control: false, renameTarget)));
             var exited = await process.WaitForExitAsync(TimeSpan.FromSeconds(90)).ConfigureAwait(false);
             var report = Parse(process.LogText, process.ExitCode);
             File.WriteAllText(Path.Combine(Program.OutDir, $"probe-mode-{mode}.txt"), report.Raw);
             result.ProbeRan = report.Done;
             if (!exited || !report.Done)
             {
-                result.ProbeProblems.Add($"the probe did NOT finish (exit 0x{process.ExitCode:X}); last row printed: {report.Rows.LastOrDefault()?.Name}");
+                result.Problems.Add($"the main probe did NOT finish (exit 0x{process.ExitCode:X}); last row: {report.Rows.LastOrDefault()?.Name}");
             }
 
-            Assess(result, report, control, expectedCapabilities);
+            Assess(result, report, control);
         }
         catch (Exception e)
         {
-            result.ProbeProblems.Add("probe launch failed: " + e.GetType().Name + ": " + e.Message + (e is SandboxLaunchException s ? $" (Win32 {s.Win32Error})" : string.Empty));
+            result.Problems.Add("probe launch failed: " + e.GetType().Name + ": " + e.Message + (e is SandboxLaunchException s ? $" (Win32 {s.Win32Error})" : string.Empty));
         }
         finally
         {
             File.Delete(temp);
         }
 
+        // ---- the unsigned DLL, alone in its own sandboxed process ----------------------------------
+        await RunRogueAsync(result, engineDir, policy, markerControl).ConfigureAwait(false);
         return result;
+    }
+
+    private async Task RunRogueAsync(ModeResult result, string engineDir, SandboxPolicy policy, bool markerControl)
+    {
+        var probePath = Path.Combine(engineDir, "Quire.Engine.SandboxProbe.exe");
+        var dll = Path.Combine(engineDir, "rogue-marker.dll");
+        var started = DateTime.UtcNow;
+        try
+        {
+            var launcher = new SandboxedProcessLauncher(profile, policy);
+            using var process = launcher.Launch(new SandboxLaunchRequest(probePath, $"--rogue-only \"{dll}\""));
+            var exited = await process.WaitForExitAsync(TimeSpan.FromSeconds(60)).ConfigureAwait(false);
+            var log = process.LogText;
+            var exitCode = process.ExitCode;
+            File.WriteAllText(Path.Combine(Program.OutDir, $"rogue-mode-{result.Mode}.txt"), $"exit 0x{exitCode:X} exited={exited}\n{log}");
+            var codeRan = log.Contains("ROGUE-CODE-RAN", StringComparison.Ordinal);
+            var row = Parse(log, exitCode).Rows.FirstOrDefault(r => r.Name == "dll.load.rogue-marker");
+            var rowDenied = row is { Outcome: "DENIED" };
+            var died = exited && row is null;
+            var events = CodeIntegrityEvents(started, Path.GetFileName(dll));
+            File.WriteAllText(Path.Combine(Program.OutDir, $"rogue-events-{result.Mode}.txt"), events);
+            result.RogueDllDenied = markerControl && !codeRan && (rowDenied || died);
+            result.RogueDetail = $"row={(row is null ? "(none: the process ended first)" : row.Outcome + " Win32 " + row.Win32)}, process exited={exited} exit code 0x{exitCode:X}, DLL code ran (marker)={codeRan}, marker mechanism proven by the control={markerControl}, Code Integrity events naming the DLL: {(events.Contains("Event ID: 3033", StringComparison.Ordinal) || events.Contains("Event ID: 3077", StringComparison.Ordinal) || events.Contains("Event ID: 3034", StringComparison.Ordinal) ? "yes (see rogue-events-" + result.Mode + ".txt)" : "none read")}";
+            if (!result.RogueDllDenied)
+            {
+                result.Problems.Add("the unsigned DLL was not shown to be blocked: " + result.RogueDetail);
+            }
+        }
+        catch (Exception e)
+        {
+            result.RogueDetail = "launch failed: " + e.Message;
+            result.Problems.Add("rogue-DLL process: " + e.Message);
+        }
+    }
+
+    private static string CodeIntegrityEvents(DateTime since, string dllName)
+    {
+        // wevtutil is part of Windows; reading this log needs an administrator (the hosted runner is one; a medium-integrity run says so instead).
+        var text = Program.RunTool("wevtutil.exe", "qe Microsoft-Windows-CodeIntegrity/Operational /rd:true /c:40 /f:text");
+        var lines = text.Split("Event[", StringSplitOptions.RemoveEmptyEntries).Where(e => e.Contains(dllName, StringComparison.OrdinalIgnoreCase)).Select(e => "Event[" + e.Trim()).ToList();
+        _ = since;
+        return lines.Count == 0 ? (text.Contains("Access is denied", StringComparison.OrdinalIgnoreCase) ? "(the Code Integrity log is not readable at this integrity level)" : string.Empty) : string.Join("\n", lines);
     }
 
     private static int CountNonWhite(TileLease lease)
@@ -518,64 +568,61 @@ internal sealed class ProbeContext(AppContainerProfile defaultProfile, string fi
 
     private static uint Pixel(TileLease lease, int x, int y) => BitConverter.ToUInt32(lease.Pixels.Slice((y * lease.Stride) + (x * 4), 4));
 
-    private static void Assess(ModeResult result, ProbeReport report, ProbeReport control, int expectedCapabilities)
+    private static void Assess(ModeResult result, ProbeReport report, ProbeReport control)
     {
         bool Is(string key, string value) => report.Info.TryGetValue(key, out var v) && v == value;
         if (!Is("isAppContainer", "1"))
         {
-            result.ProbeProblems.Add("not an AppContainer: " + report.Info.GetValueOrDefault("isAppContainer"));
-        }
-
-        result.Capabilities = $"{report.Info.GetValueOrDefault("capabilityCount")} [{report.Info.GetValueOrDefault("capabilitySids")}]";
-        if (!Is("capabilityCount", expectedCapabilities.ToString(CultureInfo.InvariantCulture)))
-        {
-            result.CapabilityNote = $"token capabilities {result.Capabilities}, requested {expectedCapabilities}";
+            result.Problems.Add("not an AppContainer: " + report.Info.GetValueOrDefault("isAppContainer"));
         }
 
         if (!Is("integrityRid", "0x1000"))
         {
-            result.ProbeProblems.Add("integrity " + report.Info.GetValueOrDefault("integrityRid"));
+            result.Problems.Add("integrity " + report.Info.GetValueOrDefault("integrityRid"));
         }
 
         if (!Is("runtimeSignaturePolicy", "ok"))
         {
-            result.ProbeProblems.Add("runtime signature policy " + report.Info.GetValueOrDefault("runtimeSignaturePolicy"));
+            result.Problems.Add("runtime signature policy " + report.Info.GetValueOrDefault("runtimeSignaturePolicy"));
         }
 
-        var denyRows = report.Rows.Where(r => r.Expect == "deny").ToList();
-        foreach (var row in denyRows.Where(r => r.Outcome != "DENIED"))
+        result.Capabilities = $"{report.Info.GetValueOrDefault("capabilityCount")} [{report.Info.GetValueOrDefault("capabilitySids")}]";
+        result.RowsRun = report.Rows.Count;
+
+        // Everything except the package-data rows and the separately reported rows must be as expected.
+        var main = report.Rows.Where(r => !KnownPackageDataRows.Contains(r.Name) && !SeparatelyReported.Contains(r.Name)).ToList();
+        foreach (var row in main.Where(r => r.Expect == "deny" && r.Outcome != "DENIED"))
         {
-            result.ProbeProblems.Add($"{row.Name} was {row.Outcome} (Win32 {row.Win32}): {row.Detail}");
+            result.Problems.Add($"{row.Name} was {row.Outcome} (Win32 {row.Win32}): {row.Detail}");
         }
 
-        foreach (var row in report.Rows.Where(r => r.Expect == "allow" && r.Outcome != "ALLOWED"))
+        foreach (var row in main.Where(r => r.Expect == "allow" && r.Outcome != "ALLOWED"))
         {
-            result.ProbeProblems.Add($"positive control {row.Name} failed (Win32 {row.Win32}): {row.Detail}");
+            result.Problems.Add($"positive control {row.Name} failed (Win32 {row.Win32}): {row.Detail}");
         }
 
-        // A denial only means something if the same check succeeds unsandboxed.
-        var notDiscriminating = new HashSet<string> { "fs.read.unc", "ui.clipboard.read" };
+        var notDiscriminating = new HashSet<string> { "fs.read.unc", "ui.clipboard.read", "fs.rename.engine-dir" };
         foreach (var row in control.Rows.Where(r => r.Expect == "deny" && !notDiscriminating.Contains(r.Name) && r.Outcome != "ALLOWED"))
         {
-            result.ProbeProblems.Add($"control: {row.Name} was {row.Outcome} outside the sandbox, so its denial proves nothing");
+            result.Problems.Add($"control: {row.Name} was {row.Outcome} outside the sandbox, so its denial proves nothing");
         }
 
-        if (denyRows.Count < 14)
+        if (main.Count(r => r.Expect == "deny") < 14)
         {
-            result.ProbeProblems.Add($"only {denyRows.Count} deny rows ran");
+            result.Problems.Add($"only {main.Count(r => r.Expect == "deny")} deny rows ran");
         }
 
-        string[] extra = ["fs.read.other-package-file", "fs.read.parent-package-data", "fs.write.parent-package-data", "fs.write.engine-dir"];
-        result.OriginalSuiteDenied = report.Done && denyRows.Where(r => !extra.Contains(r.Name)).All(r => r.Outcome == "DENIED") && denyRows.Count(r => !extra.Contains(r.Name)) >= 14;
-        result.OtherPackageDenied = report.Rows.Where(r => r.Name == "fs.read.other-package-file").All(r => r.Outcome == "DENIED");
-        result.EngineDirReadOnly = report.Rows.Where(r => r.Name == "fs.write.engine-dir").All(r => r.Outcome == "DENIED");
-        result.OwnDataDenied = report.Rows.Where(r => r.Name.EndsWith("parent-package-data", StringComparison.Ordinal)).All(r => r.Outcome == "DENIED");
-        result.AllDenied = result.ProbeProblems.Count == 0;
+        result.OriginalSuiteDenied = report.Done && result.Problems.Count == 0;
+
+        bool Denied(string name) => report.Rows.Where(r => r.Name == name).Any() && report.Rows.Where(r => r.Name == name).All(r => r.Outcome == "DENIED");
+        result.OtherPackageDenied = Denied("fs.read.other-package-file") || report.Rows.All(r => r.Name != "fs.read.other-package-file");
+        result.EngineDirWriteDenied = Denied("fs.write.engine-dir");
+        result.EngineDirRenameDenied = Denied("fs.rename.engine-dir");
+        result.ProtectedFileReadDenied = Denied("fs.read.protected-private-file");
+        result.ProtectedDirRenameDenied = Denied("fs.rename.protected-private-dir");
     }
 
-    private static string Trim(string text) => text.Length > 600 ? text[..600] : text;
-
-    private string Arguments(string engineDir, string tempDll, bool control)
+    private string Arguments(string engineDir, string tempDll, bool control, string renameTarget)
     {
         static string Quote(string value) => "\"" + value + "\"";
         var parts = new List<string>
@@ -588,15 +635,18 @@ internal sealed class ProbeContext(AppContainerProfile defaultProfile, string fi
             "--tcp-loopback", network.Port.ToString(CultureInfo.InvariantCulture),
             "--parent", Environment.ProcessId.ToString(CultureInfo.InvariantCulture),
             "--temp-dll", Quote(tempDll),
-            "--rogue-dll", Quote(Path.Combine(engineDir, "rogue-copy.dll")),
             "--engine-dir", Quote(engineDir),
+            "--own-data-file", Quote(ownDataFile),
+            "--own-data-dir", Quote(Path.GetDirectoryName(ownDataFile)!),
+            "--protected-file", Quote(protectedFile),
+            "--rename-protected-dir", Quote(protectedDir),
+            "--rename-engine-dir", Quote(renameTarget),
         };
         if (otherPackageFile.Length > 0)
         {
             parts.AddRange(["--other-package-file", Quote(otherPackageFile)]);
         }
 
-        parts.AddRange(["--own-data-file", Quote(ownDataFile), "--own-data-dir", Quote(Path.GetDirectoryName(ownDataFile)!)]);
         if (network.LanEndpoint is { } lan)
         {
             parts.AddRange(["--tcp-lan", lan]);
@@ -640,11 +690,72 @@ internal sealed class ProbeContext(AppContainerProfile defaultProfile, string fi
 
 internal static class Native
 {
+    [DllImport("advapi32.dll", SetLastError = true)]
+    private static extern bool OpenProcessToken(IntPtr process, uint access, out IntPtr token);
+
+    [DllImport("advapi32.dll", SetLastError = true)]
+    private static extern bool GetTokenInformation(IntPtr token, int infoClass, IntPtr info, int length, out int returned);
+
+    [DllImport("kernel32.dll")]
+    private static extern IntPtr GetCurrentProcess();
+
+    [DllImport("kernel32.dll")]
+    private static extern bool CloseHandle(IntPtr handle);
+
+    [DllImport("advapi32.dll")]
+    private static extern IntPtr GetSidSubAuthority(IntPtr sid, uint index);
+
+    [DllImport("advapi32.dll")]
+    private static extern IntPtr GetSidSubAuthorityCount(IntPtr sid);
+
     public static bool IsAdministrator()
     {
-        using var identity = System.Security.Principal.WindowsIdentity.GetCurrent();
-        return new System.Security.Principal.WindowsPrincipal(identity).IsInRole(System.Security.Principal.WindowsBuiltInRole.Administrator);
+        using var identity = WindowsIdentity.GetCurrent();
+        return new WindowsPrincipal(identity).IsInRole(WindowsBuiltInRole.Administrator);
     }
+
+    /// <summary>The integrity level RID of this process's token (0x2000 medium, 0x3000 high).</summary>
+    public static int IntegrityRid()
+    {
+        if (!OpenProcessToken(GetCurrentProcess(), 0x8, out var token))
+        {
+            return -1;
+        }
+
+        try
+        {
+            GetTokenInformation(token, 25, IntPtr.Zero, 0, out var needed); // TokenIntegrityLevel
+            var buffer = Marshal.AllocHGlobal(needed);
+            try
+            {
+                if (!GetTokenInformation(token, 25, buffer, needed, out _))
+                {
+                    return -1;
+                }
+
+                var sid = Marshal.ReadIntPtr(buffer);
+                var count = Marshal.ReadByte(GetSidSubAuthorityCount(sid));
+                return Marshal.ReadInt32(GetSidSubAuthority(sid, (uint)(count - 1)));
+            }
+            finally
+            {
+                Marshal.FreeHGlobal(buffer);
+            }
+        }
+        finally
+        {
+            CloseHandle(token);
+        }
+    }
+
+    public static string IntegrityName(int rid) => rid switch
+    {
+        0x1000 => "low",
+        0x2000 => "medium",
+        0x3000 => "high",
+        0x4000 => "system",
+        _ => "unknown",
+    };
 }
 
 internal static class Identity
