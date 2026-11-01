@@ -1,0 +1,178 @@
+name: Store release
+
+# Builds the .msixupload for the Microsoft Store (docs/store/README.md), proves the package installs and renders a page on both architectures,
+# and runs the Windows App Certification Kit. The first Store submission is always manual; "publish" only sends updates to an app that is
+# already live, and only when the repository variable STORE_PUBLISH_ENABLED is 'true'.
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Package version, MAJOR.MINOR.BUILD.0 (the first part is not 0)'
+        required: true
+        default: '1.0.0.0'
+      publish:
+        description: 'Submit to the Store after the checks pass'
+        type: boolean
+        default: false
+  # Packaging changes are proved on the pull request; nothing is published from here.
+  pull_request:
+    paths:
+      - 'build/package.ps1'
+      - 'build/generate-notices.ps1'
+      - 'build/store/**'
+      - 'src/Quire.App/Package.appxmanifest'
+      - 'src/Quire.App/Quire.App.csproj'
+      - 'src/Quire.Engine/**'
+      - 'src/Quire.Broker/**'
+      - 'Directory.Packages.props'
+      - '.github/workflows/store-release.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: store-release-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  CI: 'true'
+  DOTNET_NOLOGO: 'true'
+  DOTNET_CLI_TELEMETRY_OPTOUT: 'true'
+  VERSION: ${{ inputs.version || '1.0.0.0' }}
+
+jobs:
+  package:
+    name: package-${{ matrix.arch }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: x64
+            runner: windows-2025-vs2026
+          - arch: arm64
+            runner: windows-11-vs2026-arm
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          dotnet-version: '10.0.4xx'
+      - name: Build the release package
+        shell: pwsh
+        run: ./build/package.ps1 -Arch ${{ matrix.arch }} -Version $env:VERSION
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: package-${{ matrix.arch }}
+          path: |
+            build/out/package/*.msix
+            build/out/package/*.appxsym
+          if-no-files-found: error
+
+  install-test:
+    name: install-test-${{ matrix.arch }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: x64
+            runner: windows-2025-vs2026
+          - arch: arm64
+            runner: windows-11-vs2026-arm
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          dotnet-version: '10.0.4xx'
+      - name: Build the test package (adds the self-test)
+        shell: pwsh
+        run: ./build/package.ps1 -Arch ${{ matrix.arch }} -Version $env:VERSION -TestBuild
+      - name: Install it under WindowsApps and render a page
+        shell: powershell
+        run: |
+          ./build/store/install-test.ps1 -Mode SelfTest -Arch ${{ matrix.arch }} `
+            -Msix "build/out/package/Quire_$($env:VERSION)_${{ matrix.arch }}_TEST.msix" `
+            -OutDir "$env:RUNNER_TEMP/install-test" -Pdf "$env:GITHUB_WORKSPACE/tests/Quire.Integration.Tests/Fixtures/rectangles.pdf"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with:
+          name: install-test-${{ matrix.arch }}
+          path: ${{ runner.temp }}/install-test/**
+          if-no-files-found: warn
+
+  bundle:
+    needs: package
+    runs-on: windows-2025-vs2026
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: package-*
+          path: build/out/package
+          merge-multiple: true
+      - name: Bundle x64 and ARM64
+        shell: pwsh
+        run: ./build/package.ps1 -Bundle -Version $env:VERSION
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: store-upload
+          path: build/out/package/*.msixupload
+          if-no-files-found: error
+
+  wack:
+    needs: package
+    runs-on: windows-2025-vs2026
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          dotnet-version: '10.0.4xx'
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: package-x64
+          path: build/out/package
+      - name: Restore (for the Windows App SDK framework package)
+        shell: pwsh
+        run: dotnet restore src/Quire.App/Quire.App.csproj -p:QuireArch=x64 --locked-mode
+      - name: Windows App Certification Kit
+        shell: powershell
+        run: |
+          ./build/store/install-test.ps1 -Mode Wack -Arch x64 `
+            -Msix "build/out/package/Quire_$($env:VERSION)_x64.msix" -OutDir "$env:RUNNER_TEMP/wack"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with:
+          name: wack-report
+          path: ${{ runner.temp }}/wack/**
+          if-no-files-found: warn
+
+  publish:
+    # An update to an app that is already live. Never runs for a pull request, and is off until the repository opts in.
+    if: github.event_name == 'workflow_dispatch' && inputs.publish && vars.STORE_PUBLISH_ENABLED == 'true'
+    needs: [bundle, install-test, wack]
+    runs-on: windows-2025-vs2026
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Refuse placeholder identity
+        shell: pwsh
+        run: |
+          $identity = Get-Content build/store/identity.json -Raw | ConvertFrom-Json
+          if ($identity.Name -eq 'Quire.Placeholder' -or $identity.Publisher -like 'CN=00000000-*') { throw 'build/store/identity.json still holds placeholder values.' }
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: store-upload
+          path: upload
+      - uses: microsoft/microsoft-store-apppublisher@cc9910a8d59f2eb55cbb83df0a3800cf3b5300e0 # v1.4
+      - name: Submit to the Store
+        shell: pwsh
+        env:
+          STORE_TENANT_ID: ${{ secrets.STORE_TENANT_ID }}
+          STORE_SELLER_ID: ${{ secrets.STORE_SELLER_ID }}
+          STORE_CLIENT_ID: ${{ secrets.STORE_CLIENT_ID }}
+          STORE_CLIENT_SECRET: ${{ secrets.STORE_CLIENT_SECRET }}
+          STORE_PRODUCT_ID: ${{ secrets.STORE_PRODUCT_ID }}
+        run: |
+          msstore reconfigure --tenantId $env:STORE_TENANT_ID --sellerId $env:STORE_SELLER_ID --clientId $env:STORE_CLIENT_ID --clientSecret $env:STORE_CLIENT_SECRET
+          if ($LASTEXITCODE -ne 0) { throw 'msstore reconfigure failed' }
+          msstore publish (Get-ChildItem upload/*.msixupload | Select-Object -First 1).FullName -id $env:STORE_PRODUCT_ID
+          if ($LASTEXITCODE -ne 0) { throw 'msstore publish failed' }

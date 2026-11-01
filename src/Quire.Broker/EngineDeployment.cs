@@ -7,9 +7,10 @@ namespace Quire.Broker;
 /// File-system access for the sandbox. An AppContainer can read nothing it was not granted, and it must be able to read and
 /// execute the engine's own files.
 /// <para>
-/// <b>Unpackaged development and test runs only.</b> A packaged build gets this for free from the package directory ACLs
-/// (the AppContainer of the package family can read its own package); calling this on an installed package directory would
-/// be both unnecessary and a change to a location Quire does not own.
+/// <b>Never call this on a package install directory.</b> That location cannot be changed and does not need it: measurements on a real install
+/// (docs/spikes/package-sandbox.md) show that the AppContainer child of a <i>packaged</i> broker can already read and execute the engine from its
+/// package directory (it carries the package's own capability), so a packaged build launches the engine in place. This method is for unpackaged
+/// development and test runs, where there is no package to give the child that access.
 /// </para>
 /// </summary>
 public static class EngineDeployment

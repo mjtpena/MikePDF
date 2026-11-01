@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    FlaUI UI smoke tests (ADR-0009). They need an interactive desktop and an installed (or loosely registered) Quire package, so they run from
+    build/run-ui-tests.ps1, not from build.ps1 -Test: without QUIRE_UI_TESTS=1 every test here is skipped.
+  -->
+  <PropertyGroup>
+    <!-- The page objects are the only code that knows FlaUI (ADR-0009). Test code may skip ConfigureAwait and use underscores. -->
+    <NoWarn>$(NoWarn);xUnit1051</NoWarn>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="FlaUI.UIA3" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- Fixtures shared with the integration tests (PDFium test PDFs, BSD-3-Clause). -->
+    <Content Include="..\Quire.Integration.Tests\Fixtures\*.pdf" Link="Fixtures\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>

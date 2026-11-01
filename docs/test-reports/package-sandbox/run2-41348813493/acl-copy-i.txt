@@ -1,0 +1,8 @@
+C:\ProgramData\Quire-probe\engine-copy-93c84f72 S-1-15-2-507898604-2974705209-3967863300-793784690-3034674975-1418285771-3478436122:(OI)(CI)(RX)
+                                                NT AUTHORITY\SYSTEM:(I)(OI)(CI)(F)
+                                                BUILTIN\Administrators:(I)(OI)(CI)(F)
+                                                CREATOR OWNER:(I)(OI)(CI)(IO)(F)
+                                                BUILTIN\Users:(I)(OI)(CI)(RX)
+                                                BUILTIN\Users:(I)(CI)(WD,AD,WEA,WA)
+
+Successfully processed 1 files; Failed processing 0 files

@@ -1,0 +1,89 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    Quire.App: the WinUI 3 reader. UI and broker only: it never parses PDF bytes and never loads PDFium (master prompt 5.1). Everything about a
+    document goes through Quire.Broker to the sandboxed Quire.Engine.exe.
+    No telemetry and no network calls (master prompt 14); PrivacyTests (tests/Quire.Core.Tests) fail if any networking or telemetry API shows up in this project's code or in the manifest.
+  -->
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <AssemblyName>Quire</AssemblyName>
+    <RootNamespace>Quire.App</RootNamespace>
+    <UseWinUI>true</UseWinUI>
+    <EnableMsixTooling>true</EnableMsixTooling>
+    <WindowsPackageType>MSIX</WindowsPackageType>
+    <RuntimeIdentifier>$(QuireRuntimeIdentifier)</RuntimeIdentifier>
+    <PlatformTarget>$(QuireArch)</PlatformTarget>
+    <TargetPlatformMinVersion>10.0.26100.0</TargetPlatformMinVersion>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>Assets\app.ico</ApplicationIcon>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <!-- Our own Main (single-instance redirection must run before any XAML). -->
+    <DefineConstants>$(DefineConstants);DISABLE_XAML_GENERATED_MAIN</DefineConstants>
+    <!-- Test builds only (build/package.ps1 -TestBuild): a command-line self-test of the installed package. Never in a release package. -->
+    <DefineConstants Condition="'$(QuireSelfTest)' == 'true'">$(DefineConstants);QUIRE_SELFTEST</DefineConstants>
+    <SatelliteResourceLanguages>en-US</SatelliteResourceLanguages>
+    <!-- The MSIX tooling forces MaxVersionTested to the SDK's version; PatchMaxVersionTested below sets it (S6 finding). -->
+    <AppxOSMinVersionReplaceManifestVersion>false</AppxOSMinVersionReplaceManifestVersion>
+    <AppxOSMaxVersionTestedReplaceManifestVersion>false</AppxOSMaxVersionTestedReplaceManifestVersion>
+    <!--
+      ReadyToRun (set by build/package.ps1) now; Native AOT later. AOT needs: source-generated COM instead of [ComImport] (S6), no reflection-based
+      JSON (already source-generated), x:Bind instead of {Binding}, the arm64 linker (VS C++ ARM64 tools), and a re-run of S6 on the shipped XAML.
+    -->
+    <NoWarn>$(NoWarn);CA1812;CA1515</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.WindowsAppSDK" />
+    <PackageReference Include="Microsoft.Graphics.Win2D" />
+    <PackageReference Include="Microsoft.Windows.SDK.BuildTools" />
+    <ProjectReference Include="..\Quire.Core\Quire.Core.csproj" />
+    <ProjectReference Include="..\Quire.Broker\Quire.Broker.csproj" />
+    <ProjectReference Include="..\Quire.Protocol\Quire.Protocol.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="Assets\**\*.png" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="Assets\app.ico" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Quire.UI.Tests" />
+  </ItemGroup>
+
+  <!--
+    The engine rides along beside the app, in Engine\ (Quire.Engine.exe + pdfium.dll), taken from the CMake output when it exists, and runs in place
+    from there (ADR-0004 A2). build/package.ps1 builds it first. Without it the app starts and reports that the engine is missing.
+  -->
+  <PropertyGroup>
+    <QuireEngineDir Condition="'$(QuireEngineDir)' == ''">$(MSBuildThisFileDirectory)..\..\build\out\cmake-$(QuireArch)\bin\Release\</QuireEngineDir>
+  </PropertyGroup>
+  <ItemGroup Condition="Exists('$(QuireEngineDir)Quire.Engine.exe')">
+    <Content Include="$(QuireEngineDir)Quire.Engine.exe" Link="Engine\Quire.Engine.exe" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="$(QuireEngineDir)pdfium.dll" Link="Engine\pdfium.dll" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <!--
+    Package size (master prompt 11: 60 MB per architecture). Quire uses none of the Windows AI, ML or Search APIs, but the Windows App SDK
+    metapackage binplaces ONNX Runtime and DirectML (about 38 MB) and their projections next to the app. They are left out of what is published.
+    The Windows SDK projection (Microsoft.Windows.SDK.NET.dll, 25 MB of IL) is not ReadyToRun-compiled: that would more than double it, and Quire
+    calls only a handful of Windows APIs at startup.
+  -->
+  <ItemGroup>
+    <PublishReadyToRunExclude Include="Microsoft.Windows.SDK.NET.dll" />
+  </ItemGroup>
+  <Target Name="LeaveOutUnusedWindowsAppSdkParts" AfterTargets="ComputeResolvedFilesToPublishList">
+    <ItemGroup>
+      <_Unused Include="@(ResolvedFileToPublish)" Condition="'%(Filename)%(Extension)' == 'onnxruntime.dll' Or '%(Filename)%(Extension)' == 'DirectML.dll' Or '%(Filename)%(Extension)' == 'Microsoft.ML.OnnxRuntime.dll' Or '%(Filename)%(Extension)' == 'Microsoft.Windows.AI.MachineLearning.dll' Or $([System.String]::new('%(Filename)').StartsWith('Microsoft.Windows.AI.'))" />
+      <ResolvedFileToPublish Remove="@(_Unused)" />
+    </ItemGroup>
+  </Target>
+
+  <!-- S6: the tooling forces MaxVersionTested to the TFM's SDK version (26100). ADR-0001 wants 26300. -->
+  <Target Name="PatchMaxVersionTested" AfterTargets="Build" Condition="'$(WindowsPackageType)' == 'MSIX' and Exists('$(OutDir)AppxManifest.xml')">
+    <PropertyGroup>
+      <_Mf>$([System.IO.File]::ReadAllText('$(OutDir)AppxManifest.xml'))</_Mf>
+      <_Mf2>$(_Mf.Replace('MaxVersionTested="10.0.26100.0"','MaxVersionTested="10.0.26300.0"'))</_Mf2>
+    </PropertyGroup>
+    <WriteLinesToFile File="$(OutDir)AppxManifest.xml" Lines="$(_Mf2)" Overwrite="true" WriteOnlyWhenDifferent="true" Encoding="UTF-8" />
+  </Target>
+</Project>

@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- en-US UI text (master prompt 10.4). Keys with a dot are x:Uid properties; the others are read by code through Strings.Get. -->
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <data name="AppName" xml:space="preserve"><value>Quire</value></data>
+  <data name="Window_Title" xml:space="preserve"><value>{0} - Quire</value></data>
+  <data name="PageIndicator_None" xml:space="preserve"><value>No page</value></data>
+  <data name="PageIndicator_Text" xml:space="preserve"><value>{0} / {1}</value></data>
+  <data name="PageIndicator_Automation" xml:space="preserve"><value>Page {0} of {1}. Opens Go to page.</value></data>
+  <data name="Zoom_None" xml:space="preserve"><value>Zoom</value></data>
+  <data name="Zoom_Automation" xml:space="preserve"><value>Zoom {0} percent. Opens zoom options.</value></data>
+  <data name="Recent_Automation" xml:space="preserve"><value>{0}, in {1}</value></data>
+  <data name="Surface_NotRotated" xml:space="preserve"><value>Not rotated</value></data>
+  <data name="Surface_Rotated" xml:space="preserve"><value>Rotated {0} degrees</value></data>
+  <data name="Drop_Caption" xml:space="preserve"><value>Open in Quire</value></data>
+  <data name="Dialog_Cancel" xml:space="preserve"><value>Cancel</value></data>
+  <data name="Dialog_Close" xml:space="preserve"><value>Close</value></data>
+  <data name="Banner_EngineRestarting_Title" xml:space="preserve"><value>Restarting the viewer</value></data>
+  <data name="Banner_EngineRestarting_Message" xml:space="preserve"><value>The part of Quire that draws pages stopped. It is starting again, and your place in the document is kept.</value></data>
+  <data name="Banner_EngineRestored_Title" xml:space="preserve"><value>Back to normal</value></data>
+  <data name="Banner_EngineRestored_Message" xml:space="preserve"><value>The viewer restarted. You are where you were.</value></data>
+  <data name="Banner_EngineFailed_Title" xml:space="preserve"><value>The viewer keeps stopping</value></data>
+  <data name="Banner_EngineFailed_Message" xml:space="preserve"><value>Quire could not keep the viewer running for this file. You can try opening it again.</value></data>
+  <data name="Banner_Reopen" xml:space="preserve"><value>Open again</value></data>
+  <data name="Banner_PartialPage_Title" xml:space="preserve"><value>Part of a page is missing</value></data>
+  <data name="Banner_PartialPage_Message" xml:space="preserve"><value>Some content on page {0} could not be drawn.</value></data>
+  <data name="Password_Title" xml:space="preserve"><value>Password needed</value></data>
+  <data name="Password_Prompt" xml:space="preserve"><value>{0} is protected. Enter its password to open it.</value></data>
+  <data name="Password_Wrong" xml:space="preserve"><value>That password isn't right. You can try {0} more times.</value></data>
+  <data name="Password_Open" xml:space="preserve"><value>Open</value></data>
+  <data name="Password_Box_Name" xml:space="preserve"><value>Password</value></data>
+  <data name="GoTo_Title" xml:space="preserve"><value>Go to page</value></data>
+  <data name="GoTo_Go" xml:space="preserve"><value>Go</value></data>
+  <data name="GoTo_Box_Name" xml:space="preserve"><value>Page number, from 1 to {0}</value></data>
+  <data name="Error_Title" xml:space="preserve"><value>This file could not be opened</value></data>
+  <data name="Error_PasswordRequired" xml:space="preserve"><value>{0} is protected by a password.</value></data>
+  <data name="Error_PasswordIncorrect" xml:space="preserve"><value>That password isn't right.</value></data>
+  <data name="Error_PasswordTooMany" xml:space="preserve"><value>{0} was not opened because the password was wrong too many times.</value></data>
+  <data name="Error_UnsupportedEncryption" xml:space="preserve"><value>{0} uses a kind of protection that Quire doesn't support yet, so it can't be opened here.</value></data>
+  <data name="Error_Damaged" xml:space="preserve"><value>{0} looks damaged, and Quire couldn't read it.</value></data>
+  <data name="Error_Timeout" xml:space="preserve"><value>Quire took too long to draw part of a page. Try again.</value></data>
+  <data name="Error_EngineCrashed" xml:space="preserve"><value>Quire's viewer stopped unexpectedly. Try opening {0} again.</value></data>
+  <data name="Error_PermissionDenied" xml:space="preserve"><value>Quire couldn't read {0}. It may be open in another program, or you may not have permission to read it.</value></data>
+  <data name="Error_FileNotFound" xml:space="preserve"><value>{0} can't be found. It may have been moved or deleted.</value></data>
+  <data name="Error_FileInUse" xml:space="preserve"><value>{0} is being used by another program. Close it there and try again.</value></data>
+  <data name="Error_Unsupported" xml:space="preserve"><value>Quire can't open {0}.</value></data>
+  <data name="Error_SandboxUnavailable" xml:space="preserve"><value>Quire couldn't start its protected viewer, so it did not open {0}. Nothing was read.</value></data>
+  <data name="Error_Unknown" xml:space="preserve"><value>Something went wrong while opening {0}.</value></data>
+  <data name="OpenButton.Label" xml:space="preserve"><value>Open</value></data>
+  <data name="OpenButton.ToolTipService.ToolTip" xml:space="preserve"><value>Open a PDF (Ctrl+O)</value></data>
+  <data name="ZoomOutButton.Label" xml:space="preserve"><value>Zoom out</value></data>
+  <data name="ZoomOutButton.ToolTipService.ToolTip" xml:space="preserve"><value>Zoom out (Ctrl+-)</value></data>
+  <data name="ZoomInButton.Label" xml:space="preserve"><value>Zoom in</value></data>
+  <data name="ZoomInButton.ToolTipService.ToolTip" xml:space="preserve"><value>Zoom in (Ctrl+=)</value></data>
+  <data name="ZoomButton.Label" xml:space="preserve"><value>Zoom</value></data>
+  <data name="ZoomButton.ToolTipService.ToolTip" xml:space="preserve"><value>Zoom options</value></data>
+  <data name="ZoomFitWidth.Text" xml:space="preserve"><value>Fit width</value></data>
+  <data name="ZoomFitPage.Text" xml:space="preserve"><value>Fit page</value></data>
+  <data name="FitWidthButton.Label" xml:space="preserve"><value>Fit width</value></data>
+  <data name="FitWidthButton.ToolTipService.ToolTip" xml:space="preserve"><value>Fit to width (Ctrl+2)</value></data>
+  <data name="FitPageButton.Label" xml:space="preserve"><value>Fit page</value></data>
+  <data name="FitPageButton.ToolTipService.ToolTip" xml:space="preserve"><value>Fit whole page (Ctrl+1)</value></data>
+  <data name="RotateLeftButton.Label" xml:space="preserve"><value>Rotate left</value></data>
+  <data name="RotateLeftButton.ToolTipService.ToolTip" xml:space="preserve"><value>Rotate the view left (Ctrl+Shift+-). The file is not changed.</value></data>
+  <data name="RotateRightButton.Label" xml:space="preserve"><value>Rotate right</value></data>
+  <data name="RotateRightButton.ToolTipService.ToolTip" xml:space="preserve"><value>Rotate the view right (Ctrl+Shift+=). The file is not changed.</value></data>
+  <data name="PageIndicator.ToolTipService.ToolTip" xml:space="preserve"><value>Go to page (Ctrl+G)</value></data>
+  <data name="PageSurface.AutomationProperties.Name" xml:space="preserve"><value>Document pages</value></data>
+  <data name="Busy.AutomationProperties.Name" xml:space="preserve"><value>Opening</value></data>
+  <data name="EmptyTitle.Text" xml:space="preserve"><value>Open a PDF</value></data>
+  <data name="EmptyHint.Text" xml:space="preserve"><value>Drop a PDF on this window, press Ctrl+O, or choose one of your recent files.</value></data>
+  <data name="EmptyOpenButton.Content" xml:space="preserve"><value>Open a PDF</value></data>
+  <data name="RecentHeading.Text" xml:space="preserve"><value>Recent</value></data>
+  <data name="NoRecent.Text" xml:space="preserve"><value>Files you open will be listed here. The list stays on this device.</value></data>
+  <data name="RecentList.AutomationProperties.Name" xml:space="preserve"><value>Recent files</value></data>
+</root>

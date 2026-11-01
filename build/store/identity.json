@@ -1,0 +1,7 @@
+{
+  "_comment": "PLACEHOLDER VALUES. Replace Name, Publisher and PublisherDisplayName with the exact values from Partner Center > Product management > Product identity (case-sensitive) after reserving the app name, and set DisplayName to the reserved name. build/package.ps1 reads this file; nothing else changes. See docs/store/README.md.",
+  "Name": "Quire.Placeholder",
+  "Publisher": "CN=00000000-0000-0000-0000-000000000000",
+  "PublisherDisplayName": "Quire contributors (placeholder)",
+  "DisplayName": "Quire"
+}
