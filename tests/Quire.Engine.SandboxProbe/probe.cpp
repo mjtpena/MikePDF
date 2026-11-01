@@ -384,6 +384,8 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int) {
     if (!o.own_data_dir.empty()) {
         run("fs.write.parent-package-data", "deny", write_file(o.own_data_dir, L"quire-probe-"));
     }
+    // The engine must not be able to modify its own deployment directory (a tampered copy would be what the next launch runs).
+    run("fs.write.engine-dir", "deny", write_file(o.engine_dir, L"quire-probe-"));
     run("fs.read.unc", "deny", open_unc(o.unc));
     run("net.tcp.connect-loopback", "deny", tcp_connect("127.0.0.1", o.tcp_loopback_port));
     if (!o.tcp_lan_address.empty()) {

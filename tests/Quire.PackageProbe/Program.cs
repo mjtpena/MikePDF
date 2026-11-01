@@ -116,7 +116,7 @@ internal static class Program
         Line();
 
         var results = new List<ModeResult>();
-        var only = options.GetValueOrDefault("--modes", "a,b,c,g,h,i,j").Split(',');
+        var only = options.GetValueOrDefault("--modes", "a,c,g,k").Split(',');
 
         if (only.Contains("a"))
         {
@@ -143,6 +143,7 @@ internal static class Program
             ("g", "copied to ProgramData\\Quire-probe, AppContainer SID read+execute only", Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "Quire-probe"), false),
             ("h", "copied to LOCALAPPDATA\\Quire-probe (MSIX may redirect this), AppContainer SID read+execute only", Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Quire-probe"), false),
             ("d", "copied to LocalState, child breaks away from the package", Identity.LocalStatePath(), true),
+            ("k", "copied to LocalState, PROTECTED DACL (user full, AppContainer SID read+execute only)", Identity.LocalStatePath(), false),
             ("i", "copied to ProgramData\\Quire-probe, free-standing (non-child) AppContainer SID", Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "Quire-probe"), false),
             ("j", "direct from the package directory, free-standing (non-child) AppContainer SID", engineDir, false),
         };
@@ -166,7 +167,14 @@ internal static class Program
             try
             {
                 Directory.CreateDirectory(copy);
-                EngineDeployment.EnsureAppContainerAccess(copy, modeProfile); // before the copy, so the files inherit it
+                if (modeName == "k")
+                {
+                    EngineDeployment.EnsureReadOnlyDeployment(copy, modeProfile.Sid);
+                }
+                else
+                {
+                    EngineDeployment.EnsureAppContainerAccess(copy, modeProfile); // before the copy, so the files inherit it
+                }
                 foreach (var file in Directory.GetFiles(engineDir))
                 {
                     File.Copy(file, Path.Combine(copy, Path.GetFileName(file)));
@@ -204,11 +212,11 @@ internal static class Program
 
         // ---- summary -------------------------------------------------------------------------
         Line("## Summary");
-        Line("| mode | engine launched | real tile rendered | original negative suite all denied | other-package read denied | own package data read+write denied | token capabilities | notes |");
-        Line("|---|---|---|---|---|---|---|---|");
+        Line("| mode | engine launched | real tile rendered | original negative suite all denied | other-package read denied | own package data read+write denied | engine dir not writable by the engine | token capabilities | notes |");
+        Line("|---|---|---|---|---|---|---|---|---|");
         foreach (var r in results)
         {
-            Line($"| {r.Mode} ({r.Title}) | {r.Launched} | {r.Rendered} | {r.OriginalSuiteDenied} | {r.OtherPackageDenied} | {r.OwnDataDenied} | {r.Capabilities} | {Short(r.Summary)} |");
+            Line($"| {r.Mode} ({r.Title}) | {r.Launched} | {r.Rendered} | {r.OriginalSuiteDenied} | {r.OtherPackageDenied} | {r.OwnDataDenied} | {r.EngineDirReadOnly} | {r.Capabilities} | {Short(r.Summary)} |");
         }
 
         Line();
@@ -307,6 +315,8 @@ internal sealed class ModeResult
     public bool OtherPackageDenied { get; set; }
 
     public bool OwnDataDenied { get; set; }
+
+    public bool EngineDirReadOnly { get; set; }
 
     public string Summary => string.Join("; ", ProbeProblems.Take(3));
 
@@ -555,9 +565,10 @@ internal sealed class ProbeContext(AppContainerProfile defaultProfile, string fi
             result.ProbeProblems.Add($"only {denyRows.Count} deny rows ran");
         }
 
-        string[] extra = ["fs.read.other-package-file", "fs.read.parent-package-data", "fs.write.parent-package-data"];
+        string[] extra = ["fs.read.other-package-file", "fs.read.parent-package-data", "fs.write.parent-package-data", "fs.write.engine-dir"];
         result.OriginalSuiteDenied = report.Done && denyRows.Where(r => !extra.Contains(r.Name)).All(r => r.Outcome == "DENIED") && denyRows.Count(r => !extra.Contains(r.Name)) >= 14;
         result.OtherPackageDenied = report.Rows.Where(r => r.Name == "fs.read.other-package-file").All(r => r.Outcome == "DENIED");
+        result.EngineDirReadOnly = report.Rows.Where(r => r.Name == "fs.write.engine-dir").All(r => r.Outcome == "DENIED");
         result.OwnDataDenied = report.Rows.Where(r => r.Name.EndsWith("parent-package-data", StringComparison.Ordinal)).All(r => r.Outcome == "DENIED");
         result.AllDenied = result.ProbeProblems.Count == 0;
     }
