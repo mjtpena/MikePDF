@@ -53,6 +53,18 @@ Log "running $alias"
 & $alias --out $OutDir --workspace $Workspace --other-package-file $other 2>&1 | ForEach-Object { Log "$_" }
 Log "probe exit code: $LASTEXITCODE"
 
+# Code Integrity and application events from the run, in case a probe process was killed.
+foreach ($logName in 'Microsoft-Windows-CodeIntegrity/Operational', 'Application') {
+    try {
+        Get-WinEvent -LogName $logName -MaxEvents 60 -ErrorAction Stop |
+            Select-Object TimeCreated, Id, ProviderName, Message | Format-List | Out-String -Width 220 |
+            Set-Content -Path (Join-Path $OutDir ('events-' + ($logName -replace '[/\\]', '_') + '.txt'))
+    } catch { Log "could not read $logName : $($_.Exception.Message)" }
+}
+$phys = Join-Path $env:LOCALAPPDATA 'Quire-probe'
+Log "real LOCALAPPDATA\Quire-probe seen from the runner shell: exists=$(Test-Path $phys)"
+Log "real ProgramData\Quire-probe seen from the runner shell: exists=$(Test-Path (Join-Path $env:ProgramData 'Quire-probe'))"
+
 $results = Join-Path $OutDir 'results.md'
 if (Test-Path $results) {
     if ($env:GITHUB_STEP_SUMMARY) { Get-Content $results -Raw | Add-Content -Path $env:GITHUB_STEP_SUMMARY }

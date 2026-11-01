@@ -59,6 +59,25 @@ public sealed partial class AppContainerProfile
         }
     }
 
+    /// <summary>
+    /// EXPERIMENT (sandbox-probe branch): an AppContainer SID that is not registered as a profile and is not scoped under the calling package.
+    /// A packaged caller's <c>CreateAppContainerProfile</c> makes a child container of its package, which automatically carries the
+    /// package's own capability (and so can read and write the package's private data). A free-standing SID has no such parent.
+    /// The SID is S-1-15-2 plus seven sub-authorities taken from SHA-256 of the lower-cased name.
+    /// </summary>
+    public static AppContainerProfile Unregistered(string name)
+    {
+        ValidateName(name);
+        var hash = System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.Unicode.GetBytes(name.ToLowerInvariant()));
+        var parts = new List<string>();
+        for (var i = 0; i < 7; i++)
+        {
+            parts.Add(BitConverter.ToUInt32(hash, i * 4).ToString(System.Globalization.CultureInfo.InvariantCulture));
+        }
+
+        return new AppContainerProfile(name, new SecurityIdentifier("S-1-15-2-" + string.Join('-', parts)), createdByThisCall: false);
+    }
+
     /// <summary>Deletes the profile (and its folder under %LOCALAPPDATA%\Packages). A profile that does not exist is not an error.</summary>
     public static void Delete(string name)
     {

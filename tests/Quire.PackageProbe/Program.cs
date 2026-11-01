@@ -116,7 +116,7 @@ internal static class Program
         Line();
 
         var results = new List<ModeResult>();
-        var only = options.GetValueOrDefault("--modes", "a,b,c,d,e").Split(',');
+        var only = options.GetValueOrDefault("--modes", "a,b,c,g,h,i,j").Split(',');
 
         if (only.Contains("a"))
         {
@@ -137,27 +137,50 @@ internal static class Program
             WriteMode(results[^1]);
         }
 
-        foreach (var breakaway in new[] { false, true })
+        var copyTargets = new (string Mode, string Title, string Base, bool Breakaway)[]
         {
-            var modeName = breakaway ? "d" : "c";
-            if (!only.Contains(modeName))
+            ("c", "copied to LocalState, AppContainer SID read+execute only", Identity.LocalStatePath(), false),
+            ("g", "copied to ProgramData\\Quire-probe, AppContainer SID read+execute only", Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "Quire-probe"), false),
+            ("h", "copied to LOCALAPPDATA\\Quire-probe (MSIX may redirect this), AppContainer SID read+execute only", Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Quire-probe"), false),
+            ("d", "copied to LocalState, child breaks away from the package", Identity.LocalStatePath(), true),
+            ("i", "copied to ProgramData\\Quire-probe, free-standing (non-child) AppContainer SID", Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "Quire-probe"), false),
+            ("j", "direct from the package directory, free-standing (non-child) AppContainer SID", engineDir, false),
+        };
+        foreach (var target in copyTargets)
+        {
+            if (!only.Contains(target.Mode))
             {
                 continue;
             }
 
-            var copy = Path.Combine(Identity.LocalStatePath(), "engine-copy-" + Guid.NewGuid().ToString("N")[..8]);
+            var modeName = target.Mode;
+            var modeProfile = modeName is "i" or "j" ? AppContainerProfile.Unregistered("Quire.PackageProbe.Free") : profile;
+            if (modeName == "j")
+            {
+                results.Add(await context.RunModeAsync(modeName, target.Title, engineDir, new SandboxPolicy(), 0, control, modeProfile).ConfigureAwait(false));
+                WriteMode(results[^1]);
+                continue;
+            }
+
+            var copy = Path.Combine(target.Base, "engine-copy-" + Guid.NewGuid().ToString("N")[..8]);
             try
             {
                 Directory.CreateDirectory(copy);
-                EngineDeployment.EnsureAppContainerAccess(copy, profile); // before the copy, so the files inherit it
+                EngineDeployment.EnsureAppContainerAccess(copy, modeProfile); // before the copy, so the files inherit it
                 foreach (var file in Directory.GetFiles(engineDir))
                 {
                     File.Copy(file, Path.Combine(copy, Path.GetFileName(file)));
                 }
 
-                Line($"Copy-out target: `{copy}`");
+                Line($"Copy-out target (mode {modeName}): `{copy}`");
                 File.WriteAllText(Path.Combine(OutDir, "acl-copy-" + modeName + ".txt"), RunTool("icacls.exe", "\"" + copy + "\""));
-                results.Add(await context.RunModeAsync(modeName, breakaway ? "copied to LocalState, child breaks away from the package" : "copied to LocalState, AppContainer SID read+execute only", copy, new SandboxPolicy { BreakawayFromPackage = breakaway }, 0, control).ConfigureAwait(false));
+                if (modeName == "h")
+                {
+                    var physical = Path.GetFullPath(Path.Combine(Identity.LocalStatePath(), "..", "LocalCache", "Local", "Quire-probe"));
+                    Line($"- where MSIX redirection put it: `{physical}` exists={Directory.Exists(physical)}");
+                }
+
+                results.Add(await context.RunModeAsync(modeName, target.Title, copy, new SandboxPolicy { BreakawayFromPackage = target.Breakaway }, 0, control, modeProfile).ConfigureAwait(false));
             }
             catch (Exception e)
             {
@@ -167,7 +190,7 @@ internal static class Program
             {
                 try
                 {
-                    EngineDeployment.RevokeAppContainerAccess(copy, profile.Sid);
+                    EngineDeployment.RevokeAppContainerAccess(copy, modeProfile.Sid);
                     Directory.Delete(copy, recursive: true);
                 }
                 catch (Exception e)
@@ -181,11 +204,11 @@ internal static class Program
 
         // ---- summary -------------------------------------------------------------------------
         Line("## Summary");
-        Line("| mode | engine launched | real tile rendered | all probes denied | token capabilities | notes |");
-        Line("|---|---|---|---|---|---|");
+        Line("| mode | engine launched | real tile rendered | original negative suite all denied | other-package read denied | own package data read+write denied | token capabilities | notes |");
+        Line("|---|---|---|---|---|---|---|---|");
         foreach (var r in results)
         {
-            Line($"| {r.Mode} ({r.Title}) | {r.Launched} | {r.Rendered} | {r.AllDenied} | {r.Capabilities} | {r.Summary} |");
+            Line($"| {r.Mode} ({r.Title}) | {r.Launched} | {r.Rendered} | {r.OriginalSuiteDenied} | {r.OtherPackageDenied} | {r.OwnDataDenied} | {r.Capabilities} | {Short(r.Summary)} |");
         }
 
         Line();
@@ -220,12 +243,14 @@ internal static class Program
         }
     }
 
+    private static string Short(string text) => (text.Length > 300 ? text[..300] : text).Replace("\n", " ").Replace("\t", " ").Replace("|", "/");
+
     private static void WriteMode(ModeResult r)
     {
         Line($"### Mode {r.Mode}: {r.Title}");
         Line($"- engine launched: **{r.Launched}** {r.LaunchDetail}");
         Line($"- Hello/AttachSlotRing/OpenDocument/RenderTile with a real PDF: **{r.Rendered}** {r.RenderDetail}");
-        Line($"- negative probe: ran={r.ProbeRan}, **all denied={r.AllDenied}**; token capabilities: {r.Capabilities}{(r.CapabilityNote.Length > 0 ? " **(differs from the request: " + r.CapabilityNote + ")**" : string.Empty)}");
+        Line($"- negative probe: finished={r.ProbeRan}, original suite all denied=**{r.OriginalSuiteDenied}**, other-package denied={r.OtherPackageDenied}, own-package-data denied={r.OwnDataDenied}; token capabilities: {r.Capabilities}{(r.CapabilityNote.Length > 0 ? " **(differs from the request: " + r.CapabilityNote + ")**" : string.Empty)}");
         foreach (var d in r.ProbeProblems)
         {
             Line("  - " + d);
@@ -277,6 +302,12 @@ internal sealed class ModeResult
 
     public List<string> ProbeProblems { get; } = [];
 
+    public bool OriginalSuiteDenied { get; set; }
+
+    public bool OtherPackageDenied { get; set; }
+
+    public bool OwnDataDenied { get; set; }
+
     public string Summary => string.Join("; ", ProbeProblems.Take(3));
 
     public static ModeResult Failed(string mode, string detail) => new() { Mode = mode, Title = detail, LaunchDetail = detail };
@@ -322,7 +353,7 @@ internal sealed class NetworkFixture : IDisposable
     public void Dispose() => _listener.Stop();
 }
 
-internal sealed class ProbeContext(AppContainerProfile profile, string fixtures, string workspace, string otherPackageFile, string ownDataFile, NetworkFixture network)
+internal sealed class ProbeContext(AppContainerProfile defaultProfile, string fixtures, string workspace, string otherPackageFile, string ownDataFile, NetworkFixture network)
 {
     private string _scratch = string.Empty;
 
@@ -368,8 +399,9 @@ internal sealed class ProbeContext(AppContainerProfile profile, string fixtures,
         }
     }
 
-    public async Task<ModeResult> RunModeAsync(string mode, string title, string engineDir, SandboxPolicy policy, int expectedCapabilities, ProbeReport control)
+    public async Task<ModeResult> RunModeAsync(string mode, string title, string engineDir, SandboxPolicy policy, int expectedCapabilities, ProbeReport control, AppContainerProfile? profileOverride = null)
     {
+        var profile = profileOverride ?? defaultProfile;
         var result = new ModeResult { Mode = mode, Title = title };
         var enginePath = Path.Combine(engineDir, "Quire.Engine.exe");
 
@@ -442,12 +474,10 @@ internal sealed class ProbeContext(AppContainerProfile profile, string fixtures,
             result.ProbeRan = report.Done;
             if (!exited || !report.Done)
             {
-                result.ProbeProblems.Add($"the probe did not finish (exit 0x{process.ExitCode:X}): {Trim(report.Raw)}");
+                result.ProbeProblems.Add($"the probe did NOT finish (exit 0x{process.ExitCode:X}); last row printed: {report.Rows.LastOrDefault()?.Name}");
             }
-            else
-            {
-                Assess(result, report, control, expectedCapabilities);
-            }
+
+            Assess(result, report, control, expectedCapabilities);
         }
         catch (Exception e)
         {
@@ -525,6 +555,10 @@ internal sealed class ProbeContext(AppContainerProfile profile, string fixtures,
             result.ProbeProblems.Add($"only {denyRows.Count} deny rows ran");
         }
 
+        string[] extra = ["fs.read.other-package-file", "fs.read.parent-package-data", "fs.write.parent-package-data"];
+        result.OriginalSuiteDenied = report.Done && denyRows.Where(r => !extra.Contains(r.Name)).All(r => r.Outcome == "DENIED") && denyRows.Count(r => !extra.Contains(r.Name)) >= 14;
+        result.OtherPackageDenied = report.Rows.Where(r => r.Name == "fs.read.other-package-file").All(r => r.Outcome == "DENIED");
+        result.OwnDataDenied = report.Rows.Where(r => r.Name.EndsWith("parent-package-data", StringComparison.Ordinal)).All(r => r.Outcome == "DENIED");
         result.AllDenied = result.ProbeProblems.Count == 0;
     }
 
