@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    TEST ONLY. Runs inside a real installed MSIX (with package identity) and answers one question: can the sandboxed engine (ADR-0004)
+    run from the package directory under WindowsApps? Never part of a release package; build/package.ps1 refuses a release package
+    that contains it. Published by the package-sandbox-probe workflow only.
+  -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <RuntimeIdentifier>$(QuireRuntimeIdentifier)</RuntimeIdentifier>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <IsPackable>false</IsPackable>
+    <NoWarn>$(NoWarn);CA1031;CA1305;CA1307;CA1303;CA1822;CA2007;CA1861;CA1848;CA1869;CA1859;CA2201;CA5392;CA1310;CA1304;CA1311;CA1838</NoWarn>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Quire.Broker\Quire.Broker.csproj" />
+    <ProjectReference Include="..\..\src\Quire.Protocol\Quire.Protocol.csproj" />
+  </ItemGroup>
+</Project>

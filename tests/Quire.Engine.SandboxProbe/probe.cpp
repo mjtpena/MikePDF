@@ -12,6 +12,7 @@
 #include <WinSock2.h>
 #include <WS2tcpip.h>
 #include <Windows.h>
+#include <sddl.h>
 
 #include <cstdio>
 #include <cstring>
@@ -253,6 +254,17 @@ void report_process() {
     }
     if (GetTokenInformation(token, static_cast<TOKEN_INFORMATION_CLASS>(30) /* TokenCapabilities */, buffer, sizeof(buffer), &returned)) {
         info("capabilityCount", std::to_string(*reinterpret_cast<DWORD*>(buffer)));
+        // The capability SIDs themselves (TOKEN_GROUPS layout), so a non-zero count can be identified.
+        const auto* groups = reinterpret_cast<const TOKEN_GROUPS*>(buffer);
+        std::string list;
+        for (DWORD i = 0; i < groups->GroupCount; ++i) {
+            LPSTR text = nullptr;
+            if (ConvertSidToStringSidA(groups->Groups[i].Sid, &text)) {
+                list += (list.empty() ? "" : ",") + std::string(text);
+                LocalFree(text);
+            }
+        }
+        info("capabilitySids", list);
     }
     if (GetTokenInformation(token, TokenPrivileges, buffer, sizeof(buffer), &returned)) {
         info("privilegeCount", std::to_string(*reinterpret_cast<DWORD*>(buffer)));
@@ -280,7 +292,7 @@ void report_mitigations(const char* phase) {
 }
 
 struct Options {
-    std::wstring documents, temp, repo_dir, repo_file, unc, tcp_lan_address, parent_pid, rogue_dll, temp_dll, engine_dir;
+    std::wstring documents, temp, repo_dir, repo_file, other_package_file, own_data_file, own_data_dir, unc, tcp_lan_address, parent_pid, rogue_dll, temp_dll, engine_dir;
     unsigned short tcp_loopback_port{};
     unsigned short tcp_lan_port{};
     DWORD parent{};
@@ -302,6 +314,9 @@ bool parse(Options& o) {
         else if (arg == L"--temp") o.temp = value;
         else if (arg == L"--repo-dir") o.repo_dir = value;
         else if (arg == L"--repo-file") o.repo_file = value;
+        else if (arg == L"--other-package-file") o.other_package_file = value;
+        else if (arg == L"--own-data-file") o.own_data_file = value;
+        else if (arg == L"--own-data-dir") o.own_data_dir = value;
         else if (arg == L"--unc") o.unc = value;
         else if (arg == L"--rogue-dll") o.rogue_dll = value;
         else if (arg == L"--temp-dll") o.temp_dll = value;
@@ -358,6 +373,17 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int) {
     run("fs.write.temp", "deny", write_file(o.temp, L"quire-probe-"));
     run("fs.write.repo-dir", "deny", write_file(o.repo_dir, L"quire-probe-"));
     run("fs.read.repo-file", "deny", read_file(o.repo_file));
+    if (!o.other_package_file.empty()) {
+        // A file inside another installed package (optional): a sandboxed process must not be able to read other apps' files.
+        run("fs.read.other-package-file", "deny", read_file(o.other_package_file));
+    }
+    if (!o.own_data_file.empty()) {
+        // A file in the parent package's own data folder (optional): the sandbox must not read the app's private data either.
+        run("fs.read.parent-package-data", "deny", read_file(o.own_data_file));
+    }
+    if (!o.own_data_dir.empty()) {
+        run("fs.write.parent-package-data", "deny", write_file(o.own_data_dir, L"quire-probe-"));
+    }
     run("fs.read.unc", "deny", open_unc(o.unc));
     run("net.tcp.connect-loopback", "deny", tcp_connect("127.0.0.1", o.tcp_loopback_port));
     if (!o.tcp_lan_address.empty()) {

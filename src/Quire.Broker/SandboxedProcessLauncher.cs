@@ -95,29 +95,37 @@ public sealed class SandboxedProcessLauncher
             mitigations[0] = _policy.CreationMitigations1;
             mitigations[1] = SandboxPolicy.CreationMitigations2;
             var childPolicy = PInvoke.PROCESS_CREATION_CHILD_PROCESS_RESTRICTED;
+            var desktopPolicy = PInvoke.PROCESS_CREATION_DESKTOP_APP_BREAKAWAY_OVERRIDE;
+            var attributeCount = _policy.BreakawayFromPackage ? 5u : 4u;
 
+            var capabilityBuffers = DeriveCapabilities(_policy.NamedCapabilities, out var capabilityAttributes);
             PROCESS_INFORMATION processInfo;
+            fixed (SID_AND_ATTRIBUTES* capabilityPointer = capabilityAttributes)
             fixed (byte* sidPointer = _profile.SidBytes)
             fixed (char* commandLinePointer = commandLine + "\0")
             fixed (char* environmentPointer = environment)
             fixed (char* workingDirectory = Path.GetDirectoryName(exe) + "\0")
             {
-                var capabilities = new SECURITY_CAPABILITIES { AppContainerSid = new PSID(sidPointer), Capabilities = null, CapabilityCount = 0 };
+                var capabilities = new SECURITY_CAPABILITIES { AppContainerSid = new PSID(sidPointer), Capabilities = capabilityAttributes.Length == 0 ? null : capabilityPointer, CapabilityCount = (uint)capabilityAttributes.Length };
 
                 // Four attributes: AppContainer, mitigations, child-process policy, job. No handle list: nothing is inherited.
                 nuint size = 0;
-                PInvoke.InitializeProcThreadAttributeList(default, 4, 0, &size);
+                PInvoke.InitializeProcThreadAttributeList(default, attributeCount, 0, &size);
                 var attributeMemory = NativeMemory.AllocZeroed(size);
                 var attributes = new LPPROC_THREAD_ATTRIBUTE_LIST(attributeMemory);
                 try
                 {
-                    Win32.ThrowIfFalse(PInvoke.InitializeProcThreadAttributeList(attributes, 4, 0, &size), "InitializeProcThreadAttributeList");
+                    Win32.ThrowIfFalse(PInvoke.InitializeProcThreadAttributeList(attributes, attributeCount, 0, &size), "InitializeProcThreadAttributeList");
                     try
                     {
                         Update(attributes, PInvoke.PROC_THREAD_ATTRIBUTE_SECURITY_CAPABILITIES, &capabilities, (nuint)sizeof(SECURITY_CAPABILITIES), "SECURITY_CAPABILITIES");
                         Update(attributes, PInvoke.PROC_THREAD_ATTRIBUTE_MITIGATION_POLICY, mitigations, 2 * sizeof(ulong), "MITIGATION_POLICY");
                         Update(attributes, PInvoke.PROC_THREAD_ATTRIBUTE_CHILD_PROCESS_POLICY, &childPolicy, sizeof(uint), "CHILD_PROCESS_POLICY");
                         Update(attributes, PInvoke.PROC_THREAD_ATTRIBUTE_JOB_LIST, &jobHandle, (nuint)sizeof(nint), "JOB_LIST");
+                        if (_policy.BreakawayFromPackage)
+                        {
+                            Update(attributes, PInvoke.PROC_THREAD_ATTRIBUTE_DESKTOP_APP_POLICY, &desktopPolicy, sizeof(uint), "DESKTOP_APP_POLICY");
+                        }
 
                         var startup = default(STARTUPINFOEXW);
                         startup.StartupInfo.cb = (uint)sizeof(STARTUPINFOEXW);
@@ -147,6 +155,7 @@ public sealed class SandboxedProcessLauncher
                 }
             }
 
+            FreeCapabilities(capabilityBuffers);
             return new SandboxedProcess(new OwnedHandle(processInfo.hProcess), new OwnedHandle(processInfo.hThread), processInfo.dwProcessId, job, logServer);
         }
         catch
@@ -154,6 +163,43 @@ public sealed class SandboxedProcessLauncher
             logServer?.Dispose();
             job.Dispose();
             throw;
+        }
+    }
+
+    private static unsafe List<nint> DeriveCapabilities(IReadOnlyList<string> names, out SID_AND_ATTRIBUTES[] attributes)
+    {
+        var buffers = new List<nint>();
+        var list = new List<SID_AND_ATTRIBUTES>();
+        foreach (var name in names)
+        {
+            PSID* groupSids;
+            PSID* capabilitySids;
+            uint groupCount;
+            uint capabilityCount;
+            Win32.ThrowIfFalse(PInvoke.DeriveCapabilitySidsFromName(name, out groupSids, out groupCount, out capabilitySids, out capabilityCount), "DeriveCapabilitySidsFromName(" + name + ")");
+            buffers.Add((nint)groupSids);
+            buffers.Add((nint)capabilitySids);
+            for (var i = 0; i < groupCount; i++)
+            {
+                buffers.Add((nint)groupSids[i].Value);
+            }
+
+            for (var i = 0; i < capabilityCount; i++)
+            {
+                buffers.Add((nint)capabilitySids[i].Value);
+                list.Add(new SID_AND_ATTRIBUTES { Sid = capabilitySids[i], Attributes = 4 }); // SE_GROUP_ENABLED
+            }
+        }
+
+        attributes = [.. list];
+        return buffers;
+    }
+
+    private static void FreeCapabilities(List<nint> buffers)
+    {
+        foreach (var buffer in buffers)
+        {
+            PInvoke.LocalFree(new Windows.Win32.Foundation.HLOCAL(buffer));
         }
     }
 

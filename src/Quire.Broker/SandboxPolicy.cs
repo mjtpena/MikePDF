@@ -18,6 +18,18 @@ public sealed record SandboxPolicy
     /// </summary>
     public bool ProhibitDynamicCode { get; init; } = true;
 
+    /// <summary>
+    /// EXPERIMENT (sandbox-probe branch): named capabilities added to the container, such as <c>packageContents</c>. Empty by default, which is
+    /// the zero-capability profile of ADR-0004. Remove if the packaged-install test does not need it.
+    /// </summary>
+    public IReadOnlyList<string> NamedCapabilities { get; init; } = [];
+
+    /// <summary>
+    /// EXPERIMENT (sandbox-probe branch): when the broker is a packaged desktop app, start the child outside the package
+    /// (PROCESS_CREATION_DESKTOP_APP_BREAKAWAY_OVERRIDE), so it does not inherit the package identity and its package capability.
+    /// </summary>
+    public bool BreakawayFromPackage { get; init; }
+
     public static SandboxPolicy Default { get; } = new();
 
     // PROCESS_CREATION_MITIGATION_POLICY_* flags, the first of the two DWORD64 values.

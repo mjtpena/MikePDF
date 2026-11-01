@@ -7,6 +7,7 @@
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/Quire.Integration.Tests/Quire.Integration.Tests.csproj" />
+    <Project Path="tests/Quire.PackageProbe/Quire.PackageProbe.csproj" />
     <Project Path="tests/Quire.PdfWriter.Tests/Quire.PdfWriter.Tests.csproj" />
     <Project Path="tests/Quire.Protocol.Tests/Quire.Protocol.Tests.csproj" />
   </Folder>
