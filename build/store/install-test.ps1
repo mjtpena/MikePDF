@@ -54,7 +54,7 @@ if (-not (Test-Path $framework)) { throw "Windows App SDK framework package not 
 
 if ($Mode -eq 'Wack') {
     # The kit installs and removes the package itself; it needs the framework and the trust, and no prior install.
-    Add-AppxPackage -Path $framework -ErrorAction SilentlyContinue
+    Add-AppxPackage -Path $framework -ForceApplicationShutdown -ErrorAction Stop
     $appcert = "${env:ProgramFiles(x86)}\Windows Kits\10\App Certification Kit\appcert.exe"
     if (-not (Test-Path $appcert)) { throw 'The Windows App Certification Kit is not installed on this runner.' }
     $report = Join-Path $OutDir 'wack-report.xml'
@@ -65,13 +65,16 @@ if ($Mode -eq 'Wack') {
     if (-not (Test-Path $report)) { throw 'appcert wrote no report.' }
     $xml = [xml](Get-Content $report -Raw)
     Write-Host "Overall result: $($xml.REPORT.OVERALL_RESULT)"
-    $failed = @($xml.SelectNodes('//TEST[RESULT="FAIL"]'))
-    foreach ($t in $failed) { Write-Host "FAIL: $($t.NAME)" }
-    if ($failed.Count -gt 0) { exit 1 }
+    # "Blocked executables" is optional, and Quire must fail it: the broker has to start the engine, and .NET's own files reference CreateProcess.
+    # Every other failure stops the release, optional or not.
+    $failed = @($xml.SelectNodes('//TEST[RESULT="FAIL"]') | Where-Object { $_.NAME -ne 'Blocked executables' })
+    foreach ($t in $xml.SelectNodes('//TEST[RESULT="FAIL"]')) { Write-Host "FAIL: $($t.NAME) (optional: $($t.OPTIONAL))" }
+    if ($failed.Count -gt 0 -or $xml.REPORT.OVERALL_RESULT -ne 'PASS') { exit 1 }
     exit $exit
 }
 
-Add-AppxPackage -Path $signed -DependencyPath $framework -ErrorAction Stop
+# Updating the framework can need other apps on the runner closed (the ARM64 image runs Widgets on it). The guard above keeps this to throwaway runners.
+Add-AppxPackage -Path $signed -DependencyPath $framework -ForceApplicationShutdown -ErrorAction Stop
 $installed = Get-AppxPackage -Name $packageName
 Write-Host ("installed: {0} at {1}, signature {2}" -f $installed.PackageFullName, $installed.InstallLocation, $installed.SignatureKind)
 if ($installed.InstallLocation -notlike '*\WindowsApps\*') { throw 'The package is not installed under WindowsApps.' }

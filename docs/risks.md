@@ -68,13 +68,19 @@ Likelihood and impact use Low / Medium / High / Critical. **Owner** is who drive
 | R-37 | A document password lives in a managed `string` in the broker (WP4). It can't be zeroed, and it may end up in crash dumps | Low | Medium | M2: carry passwords as pinned byte buffers, zero them after `OpenDocument`, exclude them from minidumps (§14) | Sonnet |
 | R-38 | `Quire.PdfWriter` uses 32-bit offsets and a 1 GiB input ceiling (WP3). Annotating larger files (§18 scenario 10 is 1.2 GB) is refused, failing closed without damage | Medium | Medium | M4: 64-bit offsets and windowed parsing over a mapped view. Measure on the 5,000-page fixture | Sonnet |
 | R-39 | Strict mode refuses some files PDFium opens (e.g. a missing `/Length`, ambiguous hybrid xref). An incremental save then falls back to Save As | Medium | Medium | M4: measure the refusal rate on the core corpus. Add narrowly scoped, verdict-neutral repairs only by ADR | Opus |
+| R-40 | In a package, the engine's token carries the package's own capability, so a compromised engine can read and write the package's data folders outside `LocalState\private` (ADR-0004 A2). A file written there by mistake would be exposed | Low | Medium | Only `LocalState\private`, with a protected DACL, holds broker data. The install test runs the sandbox probe before each release. Revisit if a way to drop the capability appears | Opus |
+| R-41 | The package sandbox has only been run as an administrator at high integrity on hosted runners. Two medium-integrity attempts didn't start the packaged probe, and the Store-signed package hasn't been run at all | Medium | High | Access rows depend on the user and AppContainer SIDs, so no difference is expected, but that's an inference. Before going public: install from the private Store listing as a standard user, on x64 and ARM64, and run the Narrator script and a document open | User |
+| R-42 | Launching the engine in place relies on the package directory's ACE for the package's capability SID. Microsoft doesn't document this for a custom AppContainer, so a Windows update could change it | Low | High | It fails closed: documents don't open, and the sandbox isn't weakened. The install test catches it on the runner images before a release. Copy-out is the measured fallback (`docs/spikes/package-sandbox.md`) | Opus |
+| R-43 | Smart App Control and App Control policies haven't been tested against the Store-signed package. `Quire.Engine.exe` and `pdfium.dll` carry no Authenticode signature of their own. No official statement was found on how Smart App Control treats files covered only by a Store package signature | Medium | High | Include a machine with Smart App Control on in the private-audience test. If it blocks the engine, sign both binaries, which reopens R-18 for those files | User |
 
 ## Closed / resolved
 - R-10: resolved by ADR-0001 D1, pending the user's confirmation of the 24H2 minimum.
+- R-18 (first release): resolved for the Store route by ADR-0015, because the Store signs the package. It reopens if R-43 needs Authenticode signatures, or for any direct-download build.
+- R-26: closed. Apache-2.0 chosen, repository public (ADR-0003).
 
 ## Review notes (2026-10-28)
 - R-01 down: Win2D 1.4.0 works on 2.5.1 (x64, S6, S2). arm64 still unrun.
 - R-02 down: PDFium's GDI font path works inside the AppContainer, pixel-identical (S3). A broker provider is also proven.
-- R-14 down: zero-capability AppContainer launch, handle list, pipe DACL and Job all work from an unpackaged launcher (S3). A packaged-launcher rerun is still open.
+- R-14 down: zero-capability AppContainer launch, handle list, pipe DACL and Job all work from an unpackaged launcher (S3). The packaged rerun is done on real installs (x64 and ARM64): see ADR-0004 A2, R-40, R-41 and R-42.
 - R-20 down: FlaUI drives WinUI 3 on 2.5.1 under JIT, AOT and MSIX (S6). ADR-0009 accepted.
 - Top five unchanged in order except that R-01 drops out; R-32 (JBIG2) takes its place.

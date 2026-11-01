@@ -5,7 +5,7 @@ A Windows-native PDF reader built on WinUI 3 and PDFium, designed so that a mali
 > **Status: early development.** The foundations exist and are tested, but this is not yet a finished product. See [docs/STATUS.md](docs/STATUS.md) for what works, what's been measured, and what hasn't.
 
 ## Why another PDF reader
-- **Sandboxed by design.** PDF parsing never happens in the app's UI process. PDFium runs in a separate process inside a zero-capability AppContainer: no files beyond the document it was handed, no network, no child processes. A crash there is contained and recovered from.
+- **Sandboxed by design.** PDF parsing never happens in the app's UI process. PDFium runs in a separate process inside an AppContainer that requests no capabilities: no user files beyond the document it was handed, no network, no child processes. A crash there is contained and recovered from. In an installed package, Windows also gives it the package's own identity, so anything the app must keep from it lives in a directory it can't open ([ADR-0004](docs/adr/0004-process-model-and-sandbox.md), amendment A2).
 - **Native.** WinUI 3, Fluent design, pen and touch, and accessibility through UI Automation.
 - **Honest saves.** Quire writes its own annotation objects and appearance streams, so other viewers see what you saw, and saves are atomic.
 - **Private by default.** No telemetry without opt-in, and no account.
@@ -22,6 +22,7 @@ Quire.App (UI + broker, medium integrity)  never parses PDF bytes
 | Path | What it is |
 |---|---|
 | `src/Quire.App` | WinUI 3 application |
+| `src/Quire.Core` | View, layout and tile logic with no UI dependency |
 | `src/Quire.Broker` | Sandbox launcher, pipe server, response validation, watchdog |
 | `src/Quire.Engine`, `src/Quire.Engine.Pdfium` | Sandboxed C++ engine host and the PDFium wrapper |
 | `src/Quire.Protocol` | IPC schema and generated C#/C++ codecs |
@@ -39,6 +40,14 @@ You need Windows 11, the .NET 10 SDK, and Visual Studio or Build Tools with the 
 ```
 
 PDFium is downloaded on first build and verified against the SHA-256 in [build/pdfium.lock](build/pdfium.lock).
+
+The app only runs as a package, because the sandbox relies on package identity. With Developer Mode on, this builds and registers a local copy without a certificate or elevation:
+
+```powershell
+./build/package.ps1 -Arch x64 -RegisterLocal
+```
+
+Remove it with `./build/package.ps1 -Arch x64 -Unregister`. UI tests run with `./build/run-ui-tests.ps1`. Publishing is covered in [docs/store/README.md](docs/store/README.md).
 
 ## Contributing and security
 See [CONTRIBUTING.md](CONTRIBUTING.md). Please report vulnerabilities privately, as described in [SECURITY.md](SECURITY.md).

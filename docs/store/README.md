@@ -39,7 +39,12 @@ Run **Actions > Store release > Run workflow** with the version (first release `
 7. Submit. Certification can take a few days, and a restricted capability can add time.
 
 ### 5. Test from the Store, then decide
-Install from the private listing on a clean machine, ideally on ARM64 too, because ARM64 has only been tested in CI so far. Going public is a separate decision.
+Install from the private listing **as a standard (non-administrator) user**, on a clean machine, and open a PDF. CI has only run the package as an administrator, with a test certificate. Also test:
+- **ARM64**, which has only run on CI runners so far.
+- **A machine with Smart App Control on.** The engine has no signature of its own, and nothing official confirms that the Store's package signature is enough ([R-43](../risks.md)). If documents won't open there, don't go public.
+- **Narrator**, using `spikes/S7/narrator-script.md`, before you tick "accessible" in the listing.
+
+Going public is a separate decision.
 
 ### 6. Optional: automate updates (You)
 The first submission must be manual. After that, CI can publish updates:

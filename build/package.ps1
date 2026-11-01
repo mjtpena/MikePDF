@@ -166,7 +166,9 @@ if (-not $SkipPublish) {
     if (Test-Path $publish) { Remove-Item -Recurse -Force $publish }
     $publishArgs = @(
         'publish', (Join-Path $root 'src/Quire.App/Quire.App.csproj'), '-c', 'Release', '-r', "win-$Arch", '--self-contained', 'true',
-        '-p:PublishReadyToRun=true', "-p:QuireArch=$Arch", "-p:Version=$Version", '-o', $publish, '-nologo', '-v', 'q')
+        '-p:PublishReadyToRun=true', "-p:QuireArch=$Arch", "-p:Version=$Version", '-o', $publish, '-nologo', '-v', 'q',
+        # resources.pri must carry the package's name, not the development manifest's (the certification kit's "App resources" test).
+        "-p:ProjectPriIndexName=$($identity.Name)")
     if ($TestBuild) { $publishArgs += '-p:QuireSelfTest=true' }
     dotnet @publishArgs
     if ($LASTEXITCODE -ne 0) { throw 'dotnet publish failed' }

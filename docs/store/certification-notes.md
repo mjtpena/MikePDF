@@ -28,7 +28,7 @@ Quire is a utility that displays documents the user opens. Answer based on the a
 If a question doesn't fit, answer for what the app does and don't guess. The rating is issued by IARC at submission.
 
 ## Windows App Certification Kit
-Run it before each submission. CI uploads the report as the `wack-report` artifact. Locally it needs an elevated prompt:
+Run it before each submission. CI uploads the report as the `wack-report` artifact, and fails on anything except the optional **Blocked executables** test. Quire is expected to fail that one: the broker has to start the engine with `CreateProcess`, and .NET's own files reference process-launch APIs too. Locally it needs an elevated prompt:
 
 ```powershell
 & "C:\Program Files (x86)\Windows Kits\10\App Certification Kit\appcert.exe" reset
