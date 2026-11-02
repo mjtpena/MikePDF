@@ -561,6 +561,9 @@
   <data name="About_Title" xml:space="preserve"><value>About MikePDF</value></data>
   <data name="About_Version" xml:space="preserve"><value>Version {0}, {1}</value></data>
   <data name="About_Engine" xml:space="preserve"><value>PDF engine: PDFium, in a separate protected process</value></data>
+  <data name="About_Pdfium" xml:space="preserve"><value>PDFium version {0}</value></data>
+  <data name="About_Pdfium_Loading" xml:space="preserve"><value>PDFium version: reading it from the engine</value></data>
+  <data name="About_Pdfium_Unavailable" xml:space="preserve"><value>PDFium version: not available</value></data>
   <data name="About_NoTracking" xml:space="preserve"><value>No telemetry. No account. Nothing leaves this device.</value></data>
   <data name="About_Managed_Header" xml:space="preserve"><value>Managed by your organisation</value></data>
   <data name="About_Policy_Line" xml:space="preserve"><value>{0}: {1}. {2}</value></data>
@@ -643,4 +646,59 @@
   <data name="Settings_On" xml:space="preserve"><value>On</value></data>
   <data name="Settings_Off" xml:space="preserve"><value>Off</value></data>
   <data name="Settings_Row_Locked" xml:space="preserve"><value>{0}: {1}. Locked. Managed by your organisation.</value></data>
+  <!-- Page view modes (docs/features/page-view-modes.md): single, two pages, two pages with cover; continuous or one at a time; presentation. -->
+  <data name="Cmd_view_layoutSingle_Name" xml:space="preserve"><value>Single page</value></data>
+  <data name="Cmd_view_layoutSingle_Keywords" xml:space="preserve"><value>one page layout</value></data>
+  <data name="Cmd_view_layoutTwo_Name" xml:space="preserve"><value>Two pages</value></data>
+  <data name="Cmd_view_layoutTwo_Keywords" xml:space="preserve"><value>facing spread book side by side layout</value></data>
+  <data name="Cmd_view_layoutTwoCover_Name" xml:space="preserve"><value>Two pages with cover</value></data>
+  <data name="Cmd_view_layoutTwoCover_Keywords" xml:space="preserve"><value>facing book spread cover title layout</value></data>
+  <data name="Cmd_view_continuous_Name" xml:space="preserve"><value>Continuous scrolling</value></data>
+  <data name="Cmd_view_continuous_Keywords" xml:space="preserve"><value>scroll paged one page at a time turn pages</value></data>
+  <data name="Cmd_view_coverPage_Name" xml:space="preserve"><value>Show the first page alone, as a cover</value></data>
+  <data name="Cmd_view_coverPage_Label" xml:space="preserve"><value>First page alone</value></data>
+  <data name="Cmd_view_coverPage_Keywords" xml:space="preserve"><value>cover title page book two pages</value></data>
+  <data name="Cmd_view_directionAuto_Name" xml:space="preserve"><value>Reading direction: automatic</value></data>
+  <data name="Cmd_view_directionLtr_Name" xml:space="preserve"><value>Reading direction: left to right</value></data>
+  <data name="Cmd_view_directionLtr_Keywords" xml:space="preserve"><value>ltr binding</value></data>
+  <data name="Cmd_view_directionRtl_Name" xml:space="preserve"><value>Reading direction: right to left</value></data>
+  <data name="Cmd_view_directionRtl_Keywords" xml:space="preserve"><value>rtl binding arabic hebrew manga</value></data>
+  <data name="Cmd_view_presentation_Name" xml:space="preserve"><value>Presentation</value></data>
+  <data name="Cmd_view_presentation_Keywords" xml:space="preserve"><value>slideshow slides present full screen projector</value></data>
+  <data name="Cmd_present_next_Name" xml:space="preserve"><value>Next page in the presentation</value></data>
+  <data name="Cmd_present_previous_Name" xml:space="preserve"><value>Previous page in the presentation</value></data>
+  <data name="Cmd_present_black_Name" xml:space="preserve"><value>Black screen</value></data>
+  <data name="Cmd_present_white_Name" xml:space="preserve"><value>White screen</value></data>
+  <data name="Reason_NotFacing" xml:space="preserve"><value>Choose two pages first</value></data>
+  <data name="Reason_NotPresenting" xml:space="preserve"><value>Only while presenting</value></data>
+  <data name="ViewButton.Label" xml:space="preserve"><value>View</value></data>
+  <data name="DirectionMenu.Text" xml:space="preserve"><value>Reading direction</value></data>
+  <data name="ViewButton.ToolTipService.ToolTip" xml:space="preserve"><value>Page layout: single page, two pages or two pages with cover, continuous or one at a time</value></data>
+  <data name="View_Single" xml:space="preserve"><value>Single page</value></data>
+  <data name="View_Facing" xml:space="preserve"><value>Two pages</value></data>
+  <data name="View_FacingCover" xml:space="preserve"><value>Two pages with cover</value></data>
+  <data name="View_Continuous" xml:space="preserve"><value>Continuous scrolling</value></data>
+  <data name="View_Flow_Continuous" xml:space="preserve"><value>continuous</value></data>
+  <data name="View_Flow_Paged" xml:space="preserve"><value>one page at a time</value></data>
+  <data name="View_Layout_Description" xml:space="preserve"><value>{0}, {1}</value></data>
+  <data name="View_Surface_Status" xml:space="preserve"><value>Layout: {0}</value></data>
+  <data name="View_Announce_Mode" xml:space="preserve"><value>{0}. {1}</value></data>
+  <data name="View_Announce_Pages_One" xml:space="preserve"><value>Page {0} of {1}</value></data>
+  <data name="View_Announce_Pages_Two" xml:space="preserve"><value>Pages {0} and {1} of {2}</value></data>
+  <data name="PageIndicator_Spread" xml:space="preserve"><value>{0}-{1} / {2}</value></data>
+  <data name="PageIndicator_SpreadAutomation" xml:space="preserve"><value>Pages {0} and {1} of {2}. Opens Go to page.</value></data>
+  <data name="Present_Enter_Announce" xml:space="preserve"><value>Presentation mode. Page {0} of {1}. Press Escape to exit.</value></data>
+  <data name="Present_Turn_Announce" xml:space="preserve"><value>Page {0} of {1}</value></data>
+  <data name="Present_Exit_Announce" xml:space="preserve"><value>Presentation ended. Page {0} of {1}.</value></data>
+  <data name="Present_Hint" xml:space="preserve"><value>Press Esc to exit</value></data>
+  <data name="Present_Black_Announce" xml:space="preserve"><value>Screen black</value></data>
+  <data name="Present_White_Announce" xml:space="preserve"><value>Screen white</value></data>
+  <data name="Present_Restored_Announce" xml:space="preserve"><value>Screen restored</value></data>
+  <data name="Present_GoTo" xml:space="preserve"><value>Go to page {0}</value></data>
+  <data name="Present_Page" xml:space="preserve"><value>{0} / {1}</value></data>
+  <data name="Present_Exit" xml:space="preserve"><value>Exit</value></data>
+  <data name="Present_Exit_Name" xml:space="preserve"><value>Exit presentation</value></data>
+  <data name="Present_Surface_Name" xml:space="preserve"><value>Presentation, page {0} of {1}</value></data>
+  <data name="Present_Hint_Name" xml:space="preserve"><value>Presentation controls</value></data>
+  <data name="Present_Refused_Snapped" xml:space="preserve"><value>Presentation needs the whole screen</value></data>
 </root>

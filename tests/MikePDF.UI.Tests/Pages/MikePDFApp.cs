@@ -314,25 +314,26 @@ public sealed class MikePDFApp : IDisposable
 
     public string ZoomName => Find("ZoomButton")?.Name ?? string.Empty;
 
-    /// <summary>1-based current page read from the indicator's accessible name ("Page 3 of 12. ..."), or 0.</summary>
-    public int CurrentPage
+    private static readonly System.Text.RegularExpressions.Regex IndicatorPattern = new(@"Pages? (\d+)(?: and (\d+))? of (\d+)", System.Text.RegularExpressions.RegexOptions.CultureInvariant);
+
+    /// <summary>The pages the indicator names, 1-based and the total ("Page 3 of 12" is (3, 3, 12); "Pages 4 and 5 of 40" is (4, 5, 40)); (0, 0, 0) when it names none.</summary>
+    public (int First, int Last, int Total) PagesInView()
     {
-        get
+        var match = IndicatorPattern.Match(PageIndicatorName);
+        if (!match.Success)
         {
-            var name = PageIndicatorName;
-            var match = System.Text.RegularExpressions.Regex.Match(name, @"Page (\d+) of (\d+)");
-            return match.Success ? int.Parse(match.Groups[1].Value, System.Globalization.CultureInfo.InvariantCulture) : 0;
+            return (0, 0, 0);
         }
+
+        var first = int.Parse(match.Groups[1].Value, System.Globalization.CultureInfo.InvariantCulture);
+        var last = match.Groups[2].Success ? int.Parse(match.Groups[2].Value, System.Globalization.CultureInfo.InvariantCulture) : first;
+        return (first, last, int.Parse(match.Groups[3].Value, System.Globalization.CultureInfo.InvariantCulture));
     }
 
-    public int PageCount
-    {
-        get
-        {
-            var match = System.Text.RegularExpressions.Regex.Match(PageIndicatorName, @"Page (\d+) of (\d+)");
-            return match.Success ? int.Parse(match.Groups[2].Value, System.Globalization.CultureInfo.InvariantCulture) : 0;
-        }
-    }
+    /// <summary>1-based current page (the first of a spread) read from the indicator's accessible name ("Page 3 of 12. ..."), or 0.</summary>
+    public int CurrentPage => PagesInView().First;
+
+    public int PageCount => PagesInView().Total;
 
     public int ZoomPercent
     {
@@ -506,9 +507,12 @@ public sealed class MikePDFApp : IDisposable
     [System.Runtime.InteropServices.DllImport("user32.dll")]
     private static extern bool SetWindowPos(IntPtr hwnd, IntPtr after, int x, int y, int cx, int cy, uint flags);
 
-    private FlaUI.Core.Patterns.ITextPattern PageText => Require("PageSurface").Patterns.Text.Pattern;
+    // The page surface is named PresentationSurface while a presentation runs.
+    private AutomationElement TextSurface => Find("PageSurface") ?? Require("PresentationSurface");
 
-    public bool PageTextSupported => Require("PageSurface").Patterns.Text.IsSupported;
+    private FlaUI.Core.Patterns.ITextPattern PageText => TextSurface.Patterns.Text.Pattern;
+
+    public bool PageTextSupported => TextSurface.Patterns.Text.IsSupported;
 
     /// <summary>All the text the page surface offers to a screen reader: the text of the pages in view.</summary>
     public string AccessibleText => PageText.DocumentRange.GetText(-1);

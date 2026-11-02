@@ -91,6 +91,18 @@ public static class ZoomMath
     public static double FitWidth(double viewportWidthPx, double pageWidthPt, double dpiScale, double marginPx) =>
         Clamp(Math.Max(1, viewportWidthPx - (2 * marginPx)) / (pageWidthPt * DipPerPoint * dpiScale));
 
+    /// <summary>The zoom at which a spread of <paramref name="spreadWidthPt"/> (both pages, and the blank half of a lone page) and a gutter of <paramref name="gutterPx"/> fills the viewport width less the margins.</summary>
+    public static double FitSpreadWidth(double viewportWidthPx, double spreadWidthPt, double gutterPx, double dpiScale, double marginPx) =>
+        Clamp(Math.Max(1, viewportWidthPx - (2 * marginPx) - gutterPx) / (spreadWidthPt * DipPerPoint * dpiScale));
+
+    /// <summary>The zoom at which the whole spread is visible.</summary>
+    public static double FitSpreadPage(double viewportWidthPx, double viewportHeightPx, SizeD spread, double gutterPx, double dpiScale, double marginPx)
+    {
+        var width = FitSpreadWidth(viewportWidthPx, spread.Width, gutterPx, dpiScale, marginPx);
+        var height = Clamp(Math.Max(1, viewportHeightPx - (2 * marginPx)) / (spread.Height * DipPerPoint * dpiScale));
+        return Math.Min(width, height);
+    }
+
     /// <summary>The zoom at which the whole page is visible.</summary>
     public static double FitPage(double viewportWidthPx, double viewportHeightPx, SizeD page, double dpiScale, double marginPx)
     {

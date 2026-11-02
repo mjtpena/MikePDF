@@ -470,6 +470,11 @@ public sealed partial class MainWindow
 
     private void DeactivateEntry(TabEntry entry)
     {
+        if (_presenting)
+        {
+            ExitPresentation(); // another tab, or the tab closing: a talk belongs to the document it started on
+        }
+
         entry.ShownLease?.Dispose();
         entry.ShownLease = null;
         if (entry.Session is { } session)
@@ -1291,6 +1296,11 @@ public sealed partial class MainWindow
     // The shown tab's session is going away (Reload): the page surface and the panes let go of it first.
     private void DeactivateEntryView()
     {
+        if (_presenting)
+        {
+            ExitPresentation();
+        }
+
         DetachSidebar();
         _findTimer?.Stop();
         FindBar.Visibility = Visibility.Collapsed;

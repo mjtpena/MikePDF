@@ -38,7 +38,7 @@ public sealed class AppWiringTests
         var code = File.ReadAllText(Path.Combine(AppDirectory, "MainWindow.Commands.cs"));
         var names = Regex.Matches(xaml, @"<(AppBarButton|AppBarToggleButton|MenuFlyoutItem|RadioMenuFlyoutItem)\s+x:Name=""(\w+)""").Select(m => m.Groups[2].Value)
             .Concat(Regex.Matches(xaml, @"<Button\s+x:Name=""(\w+)""").Select(m => m.Groups[1].Value))
-            .Where(n => n is not ("PageColourButton" or "BannerAction")) // a menu's parent has no action of its own; the banner's one button is handled in the code behind
+            .Where(n => n is not ("PageColourButton" or "ViewButton" or "BannerAction")) // a menu's parent has no action of its own; the banner's one button is handled in the code behind
             .ToList();
         Assert.Contains("OpenButton", names);
         Assert.Contains("ZoomActualSizeItem", names);

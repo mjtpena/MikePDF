@@ -51,6 +51,19 @@ public sealed class CommandsSettingsJourneyTests : IDisposable
 
     // ---- the dispatcher with real focus -----------------------------------------------------------------------------------------------------------
 
+    private static string SelectedInBox(MikePDFApp app)
+    {
+        try
+        {
+            var box = app.Require("FindBox");
+            return box.Patterns.Text.IsSupported && box.Patterns.Text.Pattern.GetSelection() is { Length: > 0 } ranges ? ranges[0].GetText(-1) : string.Empty;
+        }
+        catch (System.Runtime.InteropServices.COMException)
+        {
+            return string.Empty;
+        }
+    }
+
     [UiFact]
     public void CMD05_AReaderShortcutDoesNotRunWhileATextBoxHasFocusAndCtrlCCopiesTheBoxText()
     {
@@ -62,9 +75,18 @@ public sealed class CommandsSettingsJourneyTests : IDisposable
         app.Type("abc");
         app.WaitFor("the text typed", () => app.Require("FindBox").Patterns.Value.Pattern.Value.Value == "abc");
 
-        MikePDFApp.ClearClipboard();
-        app.PressWithControl(VirtualKeyShort.KEY_A);
-        app.PressWithControl(VirtualKeyShort.KEY_C);
+        // The race this used to have: the keys were sent once and only the reading was patient. Under load a Ctrl+C that arrives before Ctrl+A has taken effect (or is lost) copies
+        // nothing, and no amount of waiting for the clipboard helps. So each step now waits for its own effect (the whole text selected), and the whole copy is repeated a few times.
+        var copied = false;
+        for (var attempt = 1; attempt <= 3 && !copied; attempt++)
+        {
+            MikePDFApp.ClearClipboard();
+            app.PressWithControl(VirtualKeyShort.KEY_A);
+            FlaUI.Core.Tools.Retry.WhileFalse(() => SelectedInBox(app) == "abc", TimeSpan.FromSeconds(4), TimeSpan.FromMilliseconds(100));
+            app.PressWithControl(VirtualKeyShort.KEY_C);
+            copied = FlaUI.Core.Tools.Retry.WhileFalse(() => MikePDFApp.ClipboardText() == "abc", TimeSpan.FromSeconds(6), TimeSpan.FromMilliseconds(150)).Success;
+        }
+
         app.WaitFor("the box's text on the clipboard, not the page's", () => MikePDFApp.ClipboardText() == "abc");
 
         // Zoom is a reader shortcut: typing in a box keeps its keys.

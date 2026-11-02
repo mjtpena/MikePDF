@@ -21,6 +21,8 @@ public static class CommandCatalog
 
     private static CommandAvailability Always(CommandContext c) => Ok;
 
+    private static CommandAvailability NeedsPresenting(CommandContext c) => c.Presentation ? Ok : Fail(Reasons.NotPresenting);
+
     private static CommandAvailability NeedsTwoTabs(CommandContext c) => c.TabCount >= 2 ? Ok : Fail(Reasons.OneTab);
 
     private static Func<CommandContext, CommandAvailability> NeedsTab(int number) => c => c.TabCount >= number ? Ok : Fail(Reasons.NoSuchTab);
@@ -96,14 +98,14 @@ public static class CommandCatalog
             Define("nav.back", nav, global, "", ["Alt+Left"], c => !c.HasDocument ? Fail(Reasons.NoDocument) : c.CanGoBack ? Ok : Fail(Reasons.NoBackHistory)),
             Define("nav.forward", nav, global, "", ["Alt+Right"], c => !c.HasDocument ? Fail(Reasons.NoDocument) : c.CanGoForward ? Ok : Fail(Reasons.NoForwardHistory)),
             Define("nav.goToPage", nav, reader, "", ["Ctrl+G"], NeedsDocument, dialog: true, keywords: true),
-            Define("nav.nextPage", nav, reader, "", ["Right"], NeedsDocument, repeatable: true),
-            Define("nav.previousPage", nav, reader, "", ["Left"], NeedsDocument, repeatable: true),
-            Define("nav.firstPage", nav, reader, "", ["Home"], NeedsDocument),
-            Define("nav.lastPage", nav, reader, "", ["End"], NeedsDocument),
-            Define("nav.scrollScreenDown", nav, reader, "", ["PageDown", "Space"], NeedsDocument, repeatable: true),
-            Define("nav.scrollScreenUp", nav, reader, "", ["PageUp", "Shift+Space"], NeedsDocument, repeatable: true),
-            Define("nav.scrollDown", nav, reader, "", ["Down"], NeedsDocument, repeatable: true),
-            Define("nav.scrollUp", nav, reader, "", ["Up"], NeedsDocument, repeatable: true),
+            Define("nav.nextPage", nav, reader, "", ["Right"], NeedsDocument, repeatable: true, inPresentation: true),
+            Define("nav.previousPage", nav, reader, "", ["Left"], NeedsDocument, repeatable: true, inPresentation: true),
+            Define("nav.firstPage", nav, reader, "", ["Home"], NeedsDocument, inPresentation: true),
+            Define("nav.lastPage", nav, reader, "", ["End"], NeedsDocument, inPresentation: true),
+            Define("nav.scrollScreenDown", nav, reader, "", ["PageDown", "Space"], NeedsDocument, repeatable: true, inPresentation: true),
+            Define("nav.scrollScreenUp", nav, reader, "", ["PageUp", "Shift+Space"], NeedsDocument, repeatable: true, inPresentation: true),
+            Define("nav.scrollDown", nav, reader, "", ["Down"], NeedsDocument, repeatable: true, inPresentation: true),
+            Define("nav.scrollUp", nav, reader, "", ["Up"], NeedsDocument, repeatable: true, inPresentation: true),
 
             // ---- view
             Define("view.zoomIn", view, reader, "", ["Ctrl+Plus", "Ctrl+Add"], NeedsDocument, repeatable: true, keywords: true),
@@ -116,6 +118,19 @@ public static class CommandCatalog
             Define("view.rotateRight", view, reader, "", ["Ctrl+Shift+Plus"], NeedsDocument, keywords: true),
             Define("view.rotateLeft", view, reader, "", ["Ctrl+Shift+Minus"], NeedsDocument, keywords: true),
             Define("view.readingMode", view, global, "", ["F11"], Always, keywords: true, inPresentation: true),
+            Define("view.layoutSingle", view, reader, "", ["Ctrl+4"], NeedsDocument, keywords: true),
+            Define("view.layoutTwo", view, reader, "", ["Ctrl+5"], NeedsDocument, keywords: true),
+            Define("view.layoutTwoCover", view, reader, "", ["Ctrl+6"], NeedsDocument, keywords: true),
+            Define("view.continuous", view, reader, "", ["Ctrl+7"], NeedsDocument, keywords: true),
+            Define("view.coverPage", view, reader, "", [], c => !c.HasDocument ? Fail(Reasons.NoDocument) : c.ViewMode.IsFacing ? Ok : Fail(Reasons.NotFacing), keywords: true),
+            Define("view.directionAuto", view, reader, "", [], NeedsDocument),
+            Define("view.directionLtr", view, reader, "", [], NeedsDocument, keywords: true),
+            Define("view.directionRtl", view, reader, "", [], NeedsDocument, keywords: true),
+            Define("view.presentation", view, global, "", ["Ctrl+L"], c => !c.HasDocument ? Fail(Reasons.NoDocument) : c.ModalOpen ? Fail(Reasons.Busy) : Ok, keywords: true, inPresentation: true),
+            Define("present.next", view, CommandScope.Presentation, "", ["Enter", "N"], NeedsPresenting),
+            Define("present.previous", view, CommandScope.Presentation, "", ["Backspace", "P"], NeedsPresenting),
+            Define("present.black", view, CommandScope.Presentation, "", ["B", "Period"], NeedsPresenting),
+            Define("present.white", view, CommandScope.Presentation, "", ["W", "Comma"], NeedsPresenting),
             Define("view.pageColors", view, reader, "", ["Ctrl+Shift+I"], Always, keywords: true),
             Define("view.pageColorsNormal", view, reader, "", [], Always),
             Define("view.pageColorsDark", view, reader, "", [], Always, keywords: true),
