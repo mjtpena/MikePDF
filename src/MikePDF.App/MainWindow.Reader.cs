@@ -104,7 +104,6 @@ public sealed partial class MainWindow
 
     private void OnPhysicalSizeClick(object sender, RoutedEventArgs e) => _session?.PhysicalSize(RawMonitorDpi());
 
-    private void OnPhysicalSizeAccelerator(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args) => Run(args, () => _session?.PhysicalSize(RawMonitorDpi()));
 
     // ---- page colour -----------------------------------------------------------------------------------------------------------------
 
@@ -144,12 +143,22 @@ public sealed partial class MainWindow
     // Esc leaves full screen, unless the find bar is open: that Esc is the find bar's, and the next one is ours.
     private void OnRootPreviewKeyDown(object sender, KeyRoutedEventArgs e)
     {
+        // Ctrl+Shift+0 is actual size. It is not an accelerator: Ctrl+0 is one, and the framework gives a key with more modifiers to the one with fewer.
+        if (e.Key is VirtualKey.Number0 or VirtualKey.NumberPad0 && IsKeyDown(VirtualKey.Control) && IsKeyDown(VirtualKey.Shift) && !IsKeyDown(VirtualKey.Menu))
+        {
+            e.Handled = true;
+            _session?.PhysicalSize(RawMonitorDpi());
+            return;
+        }
+
         if (e.Key == VirtualKey.Escape && _fullScreen && !FindOpen)
         {
             e.Handled = true;
             SetFullScreen(false);
         }
     }
+
+    private static bool IsKeyDown(VirtualKey key) => InputKeyboardSource.GetKeyStateForCurrentThread(key).HasFlag(Windows.UI.Core.CoreVirtualKeyStates.Down);
 
     private void SetFullScreen(bool on)
     {

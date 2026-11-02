@@ -17,8 +17,6 @@
             <KeyboardAccelerator Key="D" Modifiers="Control" Invoked="OnPropertiesAccelerator" />
             <KeyboardAccelerator Key="Left" Modifiers="Menu" Invoked="OnBackAccelerator" />
             <KeyboardAccelerator Key="Right" Modifiers="Menu" Invoked="OnForwardAccelerator" />
-            <KeyboardAccelerator Key="Number0" Modifiers="Control,Shift" Invoked="OnPhysicalSizeAccelerator" />
-            <KeyboardAccelerator Key="NumberPad0" Modifiers="Control,Shift" Invoked="OnPhysicalSizeAccelerator" />
             <KeyboardAccelerator Key="Number0" Modifiers="Control" Invoked="OnActualSizeAccelerator" />
             <KeyboardAccelerator Key="NumberPad0" Modifiers="Control" Invoked="OnActualSizeAccelerator" />
             <KeyboardAccelerator Key="Number1" Modifiers="Control" Invoked="OnFitPageAccelerator" />

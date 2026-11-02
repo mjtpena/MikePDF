@@ -99,7 +99,7 @@ public sealed partial class ReaderGapsJourneyTests : IDisposable
         app.WaitFor("Back enabled", () => Enabled(app, "BackButton"));
         Assert.False(Enabled(app, "ForwardButton"));
 
-        var chapter = article.ChapterPages.Single(c => c.Title == "Paper, Ink and Time");
+        var chapter = article.ChapterPages[0]; // "Why Margins Matter": three more pages follow it
         app.ClickAt(MikePDFApp.CenterOf(Box(app, chapter.Title))); // a link in the contents: another jump, from page 2
         app.WaitFor($"page {chapter.Page}", () => app.CurrentPage == chapter.Page, TimeSpan.FromSeconds(20));
 
@@ -197,7 +197,7 @@ public sealed partial class ReaderGapsJourneyTests : IDisposable
 
         app.WaitFor("the fifth match", () => app.FindStatus.StartsWith("5 of", StringComparison.Ordinal));
         app.Press(VirtualKeyShort.ESCAPE);
-        app.WaitFor("the find bar closed", () => app.Find("FindBar") is null);
+        app.WaitFor("the find bar closed", () => app.Find("FindBox") is null);
         Back(app);
         app.WaitFor("back where the search began", () => app.CurrentPage == 1);
         app.WaitFor("and nothing more to go back to", () => !Enabled(app, "BackButton"));
@@ -240,7 +240,6 @@ public sealed partial class ReaderGapsJourneyTests : IDisposable
         MikePDFApp.ClickItem(MikePDFApp.WaitForItem(tree, "Alpha place", ControlType.TreeItem));
         app.WaitFor("the bookmark by name", () => app.CurrentPage == NamedDestinationPdf.AlphaPage);
         GoTo(app, 1);
-        app.Click("BookmarksTab");
         MikePDFApp.ClickItem(MikePDFApp.WaitForItem(app.Require("OutlineTree"), "Beta place", ControlType.TreeItem));
         app.WaitFor("the bookmark by action", () => app.CurrentPage == NamedDestinationPdf.BetaPage);
         GoTo(app, 1);
@@ -322,17 +321,21 @@ public sealed partial class ReaderGapsJourneyTests : IDisposable
         // What Windows reports for the monitor's own density; outside a believable range it is not trusted and the answer is 100%.
         var expected = raw is >= 72 and <= 400 ? (int)Math.Round(raw / (96.0 * scale) * 100) : 100;
 
-        app.Chord(VirtualKeyShort.CONTROL, VirtualKeyShort.SHIFT, VirtualKeyShort.KEY_0);
-        app.WaitFor($"the physical size ({expected}% for {raw} ppi at {scale * 100:0}% scale)", () => app.ZoomPercent == expected);
-
-        // Through the menu as well.
+        // Through the menu.
         app.PressWithControl(VirtualKeyShort.OEM_PLUS);
-        app.WaitFor("zoomed away from it", () => app.ZoomPercent != expected);
+        app.WaitFor("zoomed away from 100%", () => app.ZoomPercent != 100);
         app.Click("ZoomButton");
         var item = app.Require("ZoomActualSize");
         Assert.Equal("Actual size", item.Name);
         app.Click("ZoomActualSize");
-        app.WaitFor("the menu's actual size", () => app.ZoomPercent == expected);
+        app.WaitFor($"the menu's actual size ({expected}% for {raw} ppi at {scale * 100:0}% scale)", () => app.ZoomPercent == expected);
+
+        // And by the key.
+        app.PressWithControl(VirtualKeyShort.KEY_0);
+        app.WaitFor("100% again", () => app.ZoomPercent == 100);
+        app.FocusPages();
+        app.Chord(VirtualKeyShort.CONTROL, VirtualKeyShort.SHIFT, VirtualKeyShort.KEY_0);
+        app.WaitFor("the physical size by Ctrl+Shift+0", () => app.ZoomPercent == expected);
     }
 
     // ---- 4. find options ---------------------------------------------------------------------------------------------------------------------
@@ -378,9 +381,10 @@ public sealed partial class ReaderGapsJourneyTests : IDisposable
         app.WaitFor($"{pattern} matches of the pattern", () => app.FindStatus == $"1 of {pattern}", TimeSpan.FromSeconds(30));
         Assert.True(pattern > article.SearchWordCountWhole);
 
-        SetFindText(app, @"mar[a-z]+\s+of");
-        var phrase = article.CountMatches(@"mar[a-z]+\s+of", ignoreCase: true);
-        app.WaitFor("a pattern that spans a space", () => CountAfter(app.FindStatus) == phrase.ToString(CultureInfo.InvariantCulture), TimeSpan.FromSeconds(30));
+        SetFindText(app, @"the\s+margin");
+        var phrase = article.CountMatches(@"the\s+margin", ignoreCase: true);
+        Assert.True(phrase > 0);
+        app.WaitFor("a pattern that spans whitespace", () => CountAfter(app.FindStatus) == phrase.ToString(CultureInfo.InvariantCulture), TimeSpan.FromSeconds(30));
 
         // Match case still applies to a pattern.
         SetFindText(app, "MARGIN");
@@ -413,7 +417,7 @@ public sealed partial class ReaderGapsJourneyTests : IDisposable
         SetFindText(app, "(a+)+$");
         app.WaitFor("an answer to the hostile pattern", () => app.FindStatus != string.Empty && !app.FindStatus.StartsWith("Searching", StringComparison.Ordinal), TimeSpan.FromSeconds(60));
         app.Press(VirtualKeyShort.ESCAPE);
-        app.WaitFor("the bar closed", () => app.Find("FindBar") is null);
+        app.WaitFor("the bar closed", () => app.Find("FindBox") is null);
         app.FocusPages();
         app.Press(VirtualKeyShort.END);
         app.WaitFor("the window still answers", () => app.CurrentPage == app.PageCount);
@@ -428,11 +432,11 @@ public sealed partial class ReaderGapsJourneyTests : IDisposable
         var total = article.SearchWordCount;
         app.WaitFor("a first match", () => app.FindStatus == $"1 of {total}", TimeSpan.FromSeconds(30));
         app.Press(VirtualKeyShort.ESCAPE);
-        app.WaitFor("the bar closed", () => app.Find("FindBar") is null);
+        app.WaitFor("the bar closed", () => app.Find("FindBox") is null);
 
         // Closed: F3 opens it and goes to the first match.
         app.Press(VirtualKeyShort.F3);
-        app.WaitFor("the bar open again", () => app.Find("FindBar") is not null);
+        app.WaitFor("the bar open again", () => app.Find("FindBox") is not null);
         app.WaitFor("at the first match", () => app.FindStatus == $"1 of {total}", TimeSpan.FromSeconds(30));
 
         // With the keyboard on the pages: F3 is next, Shift+F3 is previous.
@@ -584,12 +588,13 @@ public sealed partial class ReaderGapsJourneyTests : IDisposable
         app.Capture("properties-dialog");
 
         // Close dismisses it, and so does Esc.
-        app.Window.FindFirstDescendant(cf => cf.ByName("Close"))!.AsButton().Invoke();
-        app.WaitFor("the dialog closed", () => app.Find("PropertiesDialog") is null);
+        app.Require("PropertiesDialog").FindFirstDescendant(cf => cf.ByName("Close"))!.AsButton().Invoke();
+        // While a dialog is open the window behind it is out of reach of UI Automation: the toolbar being found again means the dialog is gone.
+        app.WaitFor("the dialog closed", () => app.Find("Prop_Title") is null && app.Find("PropertiesButton") is not null);
         app.Click("PropertiesButton");
         app.Require("PropertiesDialog");
         app.Press(VirtualKeyShort.ESCAPE);
-        app.WaitFor("the dialog closed with Esc", () => app.Find("PropertiesDialog") is null);
+        app.WaitFor("the dialog closed with Esc", () => app.Find("Prop_Title") is null && app.Find("PropertiesButton") is not null);
         Assert.True(app.Require("PageSurface").Properties.HasKeyboardFocus.ValueOrDefault);
     }
 
@@ -660,7 +665,7 @@ public sealed partial class ReaderGapsJourneyTests : IDisposable
         app.PressWithControl(VirtualKeyShort.KEY_F);
         app.Require("FindBox");
         app.Press(VirtualKeyShort.ESCAPE);
-        app.WaitFor("the find bar closed", () => app.Find("FindBar") is null);
+        app.WaitFor("the find bar closed", () => app.Find("FindBox") is null);
         Assert.False(app.Exists("OpenButton"));
         app.Press(VirtualKeyShort.ESCAPE);
         app.WaitFor("the chrome back", () => app.Exists("OpenButton") && app.Exists("ZoomButton"));
