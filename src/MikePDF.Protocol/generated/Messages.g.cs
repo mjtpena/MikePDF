@@ -125,6 +125,8 @@ public sealed class Ping : IRequestMessage
 public sealed class Pong : IReplyMessage
 {
     public ulong Nonce { get; set; }
+    /// <summary>Units of work the peer's work thread has done so far: it counts up, wraps at 2^64, and is compared for change only. 0 and a constant mean nothing happened; hosts that do all their work on the I/O thread report 0.</summary>
+    public ulong Progress { get; set; }
 
     public MessageType MessageType => MessageType.Ping;
 
@@ -134,17 +136,19 @@ public sealed class Pong : IReplyMessage
     /// </summary>
     internal static Pong Read(ref MessagePackReader reader)
     {
-        StrictReader.ExpectArray(ref reader, 1);
+        StrictReader.ExpectArray(ref reader, 2);
         var message = new Pong();
         message.Nonce = StrictReader.ReadU64(ref reader, 0UL, ulong.MaxValue);
+        message.Progress = StrictReader.ReadU64(ref reader, 0UL, ulong.MaxValue);
         return message;
     }
 
     /// <summary>Writes the payload array. Does not validate; the codec validates before it writes.</summary>
     public void Write(ref MessagePackWriter writer)
     {
-        writer.WriteArrayHeader(1);
+        writer.WriteArrayHeader(2);
         writer.Write(Nonce);
+        writer.Write(Progress);
     }
 
     /// <summary>Checks every schema limit. Returns null when the message is valid.</summary>
@@ -1778,6 +1782,124 @@ public sealed class GetDocumentDetailsReply : IReplyMessage
     }
 }
 
+/// <summary>The request payload of GetViewerPreferences (message type 28).</summary>
+public sealed class GetViewerPreferences : IRequestMessage
+{
+    public MessageType MessageType => MessageType.GetViewerPreferences;
+
+    /// <summary>
+    /// The only decoder for this type. Reads exactly the declared fields, enforcing wire types and every limit as it goes;
+    /// there is no other decoder (see StrictReader).
+    /// </summary>
+    internal static GetViewerPreferences Read(ref MessagePackReader reader)
+    {
+        StrictReader.ExpectArray(ref reader, 0);
+        var message = new GetViewerPreferences();
+        return message;
+    }
+
+    /// <summary>Writes the payload array. Does not validate; the codec validates before it writes.</summary>
+    public void Write(ref MessagePackWriter writer)
+    {
+        writer.WriteArrayHeader(0);
+    }
+
+    /// <summary>Checks every schema limit. Returns null when the message is valid.</summary>
+    public ProtocolFailure? Validate()
+    {
+        return null;
+    }
+}
+
+/// <summary>The reply payload of GetViewerPreferences (message type 28).</summary>
+public sealed class GetViewerPreferencesReply : IReplyMessage
+{
+    public ushort Direction { get; set; }
+    public ushort PrintScaling { get; set; }
+    public ushort NumCopies { get; set; }
+    public ushort Duplex { get; set; }
+    public uint[] RangeFirsts { get; set; } = [];
+    public uint[] RangeLasts { get; set; } = [];
+
+    public MessageType MessageType => MessageType.GetViewerPreferences;
+
+    /// <summary>
+    /// The only decoder for this type. Reads exactly the declared fields, enforcing wire types and every limit as it goes;
+    /// there is no other decoder (see StrictReader).
+    /// </summary>
+    internal static GetViewerPreferencesReply Read(ref MessagePackReader reader)
+    {
+        StrictReader.ExpectArray(ref reader, 6);
+        var message = new GetViewerPreferencesReply();
+        message.Direction = StrictReader.ReadU16(ref reader, 0, 2);
+        message.PrintScaling = StrictReader.ReadU16(ref reader, 0, 2);
+        message.NumCopies = StrictReader.ReadU16(ref reader, 0, 99);
+        message.Duplex = StrictReader.ReadU16(ref reader, 0, 3);
+        var rangeFirstsCount = StrictReader.ReadArrayHeader(ref reader, 64);
+        var rangeFirsts = new uint[rangeFirstsCount];
+        for (var i = 0; i < rangeFirsts.Length; i++)
+        {
+            rangeFirsts[i] = StrictReader.ReadU32(ref reader, 0u, 9999999u);
+        }
+
+        message.RangeFirsts = rangeFirsts;
+        var rangeLastsCount = StrictReader.ReadArrayHeader(ref reader, 64);
+        var rangeLasts = new uint[rangeLastsCount];
+        for (var i = 0; i < rangeLasts.Length; i++)
+        {
+            rangeLasts[i] = StrictReader.ReadU32(ref reader, 0u, 9999999u);
+        }
+
+        message.RangeLasts = rangeLasts;
+        return message;
+    }
+
+    /// <summary>Writes the payload array. Does not validate; the codec validates before it writes.</summary>
+    public void Write(ref MessagePackWriter writer)
+    {
+        writer.WriteArrayHeader(6);
+        writer.Write(Direction);
+        writer.Write(PrintScaling);
+        writer.Write(NumCopies);
+        writer.Write(Duplex);
+        writer.WriteArrayHeader(RangeFirsts.Length);
+        foreach (var v in RangeFirsts)
+        {
+            writer.Write(v);
+        }
+
+        writer.WriteArrayHeader(RangeLasts.Length);
+        foreach (var v in RangeLasts)
+        {
+            writer.Write(v);
+        }
+
+    }
+
+    /// <summary>Checks every schema limit. Returns null when the message is valid.</summary>
+    public ProtocolFailure? Validate()
+    {
+        if (Direction > 2) return ProtocolFailure.Invalid("GetViewerPreferencesReply.direction violates its limit");
+        if (PrintScaling > 2) return ProtocolFailure.Invalid("GetViewerPreferencesReply.printScaling violates its limit");
+        if (NumCopies > 99) return ProtocolFailure.Invalid("GetViewerPreferencesReply.numCopies violates its limit");
+        if (Duplex > 3) return ProtocolFailure.Invalid("GetViewerPreferencesReply.duplex violates its limit");
+        if (RangeFirsts is null || RangeFirsts.Length > 64) return ProtocolFailure.Invalid("GetViewerPreferencesReply.rangeFirsts is null or has more than 64 elements");
+        for (var i = 0; i < RangeFirsts.Length; i++)
+        {
+            if (RangeFirsts[i] > 9999999u) return ProtocolFailure.Invalid("GetViewerPreferencesReply.rangeFirsts[" + i + "] violates its limit");
+        }
+
+        if (RangeLasts is null || RangeLasts.Length > 64) return ProtocolFailure.Invalid("GetViewerPreferencesReply.rangeLasts is null or has more than 64 elements");
+        for (var i = 0; i < RangeLasts.Length; i++)
+        {
+            if (RangeLasts[i] > 9999999u) return ProtocolFailure.Invalid("GetViewerPreferencesReply.rangeLasts[" + i + "] violates its limit");
+        }
+
+        if (RangeLasts.Length != RangeFirsts.Length) return ProtocolFailure.Invalid("GetViewerPreferencesReply.rangeLasts must have as many elements as rangeFirsts");
+        return null;
+    }
+}
+
 /// <summary>The request payload of RenderTile (message type 32).</summary>
 public sealed class RenderTile : IRequestMessage
 {
@@ -1959,6 +2081,125 @@ public sealed class CancelBeforeReply : IReplyMessage
     }
 }
 
+/// <summary>The request payload of RenderBand (message type 34).</summary>
+public sealed class RenderBand : IRequestMessage
+{
+    public uint Page { get; set; }
+    public uint Dpi { get; set; }
+    public ushort Rotation { get; set; }
+    public uint PageWidthPx { get; set; }
+    public uint PageHeightPx { get; set; }
+    public uint BandTop { get; set; }
+    public uint BandHeight { get; set; }
+    /// <summary>Bit 0 annotations, bit 1 form fields, bit 2 printing mode.</summary>
+    public uint Flags { get; set; }
+    public uint SlotIndex { get; set; }
+    public ulong Generation { get; set; }
+
+    public MessageType MessageType => MessageType.RenderBand;
+
+    /// <summary>
+    /// The only decoder for this type. Reads exactly the declared fields, enforcing wire types and every limit as it goes;
+    /// there is no other decoder (see StrictReader).
+    /// </summary>
+    internal static RenderBand Read(ref MessagePackReader reader)
+    {
+        StrictReader.ExpectArray(ref reader, 10);
+        var message = new RenderBand();
+        message.Page = StrictReader.ReadU32(ref reader, 0u, 9999999u);
+        message.Dpi = StrictReader.ReadU32(ref reader, 72u, 1200u);
+        message.Rotation = StrictReader.ReadU16(ref reader, 0, 3);
+        message.PageWidthPx = StrictReader.ReadU32(ref reader, 1u, 65536u);
+        message.PageHeightPx = StrictReader.ReadU32(ref reader, 1u, 65536u);
+        message.BandTop = StrictReader.ReadU32(ref reader, 0u, 65535u);
+        message.BandHeight = StrictReader.ReadU32(ref reader, 1u, 16384u);
+        message.Flags = StrictReader.ReadU32(ref reader, 0u, 7u);
+        message.SlotIndex = StrictReader.ReadU32(ref reader, 0u, 1023u);
+        message.Generation = StrictReader.ReadU64(ref reader, 0UL, ulong.MaxValue);
+        return message;
+    }
+
+    /// <summary>Writes the payload array. Does not validate; the codec validates before it writes.</summary>
+    public void Write(ref MessagePackWriter writer)
+    {
+        writer.WriteArrayHeader(10);
+        writer.Write(Page);
+        writer.Write(Dpi);
+        writer.Write(Rotation);
+        writer.Write(PageWidthPx);
+        writer.Write(PageHeightPx);
+        writer.Write(BandTop);
+        writer.Write(BandHeight);
+        writer.Write(Flags);
+        writer.Write(SlotIndex);
+        writer.Write(Generation);
+    }
+
+    /// <summary>Checks every schema limit. Returns null when the message is valid.</summary>
+    public ProtocolFailure? Validate()
+    {
+        if (Page > 9999999u) return ProtocolFailure.Invalid("RenderBand.page violates its limit");
+        if (Dpi < 72u || Dpi > 1200u) return ProtocolFailure.Invalid("RenderBand.dpi violates its limit");
+        if (Rotation > 3) return ProtocolFailure.Invalid("RenderBand.rotation violates its limit");
+        if (PageWidthPx < 1u || PageWidthPx > 65536u) return ProtocolFailure.Invalid("RenderBand.pageWidthPx violates its limit");
+        if (PageHeightPx < 1u || PageHeightPx > 65536u) return ProtocolFailure.Invalid("RenderBand.pageHeightPx violates its limit");
+        if (BandTop > 65535u) return ProtocolFailure.Invalid("RenderBand.bandTop violates its limit");
+        if (BandHeight < 1u || BandHeight > 16384u) return ProtocolFailure.Invalid("RenderBand.bandHeight violates its limit");
+        if (Flags > 7u) return ProtocolFailure.Invalid("RenderBand.flags violates its limit");
+        if (SlotIndex > 1023u) return ProtocolFailure.Invalid("RenderBand.slotIndex violates its limit");
+        return null;
+    }
+}
+
+/// <summary>The reply payload of RenderBand (message type 34).</summary>
+public sealed class RenderBandReply : IReplyMessage
+{
+    public uint SlotIndex { get; set; }
+    public uint Width { get; set; }
+    public uint Height { get; set; }
+    public uint Stride { get; set; }
+    public ulong Generation { get; set; }
+
+    public MessageType MessageType => MessageType.RenderBand;
+
+    /// <summary>
+    /// The only decoder for this type. Reads exactly the declared fields, enforcing wire types and every limit as it goes;
+    /// there is no other decoder (see StrictReader).
+    /// </summary>
+    internal static RenderBandReply Read(ref MessagePackReader reader)
+    {
+        StrictReader.ExpectArray(ref reader, 5);
+        var message = new RenderBandReply();
+        message.SlotIndex = StrictReader.ReadU32(ref reader, 0u, 1023u);
+        message.Width = StrictReader.ReadU32(ref reader, 1u, 65536u);
+        message.Height = StrictReader.ReadU32(ref reader, 1u, 16384u);
+        message.Stride = StrictReader.ReadU32(ref reader, 4u, 262144u);
+        message.Generation = StrictReader.ReadU64(ref reader, 0UL, ulong.MaxValue);
+        return message;
+    }
+
+    /// <summary>Writes the payload array. Does not validate; the codec validates before it writes.</summary>
+    public void Write(ref MessagePackWriter writer)
+    {
+        writer.WriteArrayHeader(5);
+        writer.Write(SlotIndex);
+        writer.Write(Width);
+        writer.Write(Height);
+        writer.Write(Stride);
+        writer.Write(Generation);
+    }
+
+    /// <summary>Checks every schema limit. Returns null when the message is valid.</summary>
+    public ProtocolFailure? Validate()
+    {
+        if (SlotIndex > 1023u) return ProtocolFailure.Invalid("RenderBandReply.slotIndex violates its limit");
+        if (Width < 1u || Width > 65536u) return ProtocolFailure.Invalid("RenderBandReply.width violates its limit");
+        if (Height < 1u || Height > 16384u) return ProtocolFailure.Invalid("RenderBandReply.height violates its limit");
+        if (Stride < 4u || Stride > 262144u) return ProtocolFailure.Invalid("RenderBandReply.stride violates its limit");
+        return null;
+    }
+}
+
 /// <summary>The request payload of ValidateStructure (message type 1024).</summary>
 public sealed class ValidateStructure : IRequestMessage
 {
@@ -2069,6 +2310,252 @@ public sealed class ValidateStructureReply : IReplyMessage
         }
 
         if (IssueMessages.Length != IssueCodes.Length) return ProtocolFailure.Invalid("ValidateStructureReply.issueMessages must have as many elements as issueCodes");
+        return null;
+    }
+}
+
+/// <summary>The request payload of ShellOpen (message type 2048).</summary>
+public sealed class ShellOpen : IRequestMessage
+{
+    /// <summary>A section handle valid in the handler (the sender), read access.</summary>
+    public ulong Section { get; set; }
+    /// <summary>The file size, at most 32 MiB.</summary>
+    public uint Bytes { get; set; }
+
+    public MessageType MessageType => MessageType.ShellOpen;
+
+    /// <summary>
+    /// The only decoder for this type. Reads exactly the declared fields, enforcing wire types and every limit as it goes;
+    /// there is no other decoder (see StrictReader).
+    /// </summary>
+    internal static ShellOpen Read(ref MessagePackReader reader)
+    {
+        StrictReader.ExpectArray(ref reader, 2);
+        var message = new ShellOpen();
+        message.Section = StrictReader.ReadU64(ref reader, 1UL, ulong.MaxValue);
+        message.Bytes = StrictReader.ReadU32(ref reader, 1u, 33554432u);
+        return message;
+    }
+
+    /// <summary>Writes the payload array. Does not validate; the codec validates before it writes.</summary>
+    public void Write(ref MessagePackWriter writer)
+    {
+        writer.WriteArrayHeader(2);
+        writer.Write(Section);
+        writer.Write(Bytes);
+    }
+
+    /// <summary>Checks every schema limit. Returns null when the message is valid.</summary>
+    public ProtocolFailure? Validate()
+    {
+        if (Section < 1UL) return ProtocolFailure.Invalid("ShellOpen.section violates its limit");
+        if (Bytes < 1u || Bytes > 33554432u) return ProtocolFailure.Invalid("ShellOpen.bytes violates its limit");
+        return null;
+    }
+}
+
+/// <summary>The reply payload of ShellOpen (message type 2048).</summary>
+public sealed class ShellOpenReply : IReplyMessage
+{
+    /// <summary>The session: the envelope documentId of ShellRenderPage and ShellClose.</summary>
+    public uint DocumentId { get; set; }
+    public uint PageCount { get; set; }
+    /// <summary>Points.</summary>
+    public float FirstWidth { get; set; }
+    /// <summary>Points.</summary>
+    public float FirstHeight { get; set; }
+
+    public MessageType MessageType => MessageType.ShellOpen;
+
+    /// <summary>
+    /// The only decoder for this type. Reads exactly the declared fields, enforcing wire types and every limit as it goes;
+    /// there is no other decoder (see StrictReader).
+    /// </summary>
+    internal static ShellOpenReply Read(ref MessagePackReader reader)
+    {
+        StrictReader.ExpectArray(ref reader, 4);
+        var message = new ShellOpenReply();
+        message.DocumentId = StrictReader.ReadU32(ref reader, 1u, uint.MaxValue);
+        message.PageCount = StrictReader.ReadU32(ref reader, 0u, 10000000u);
+        message.FirstWidth = StrictReader.ReadF32(ref reader, 0.0f, 14400.0f, true);
+        message.FirstHeight = StrictReader.ReadF32(ref reader, 0.0f, 14400.0f, true);
+        return message;
+    }
+
+    /// <summary>Writes the payload array. Does not validate; the codec validates before it writes.</summary>
+    public void Write(ref MessagePackWriter writer)
+    {
+        writer.WriteArrayHeader(4);
+        writer.Write(DocumentId);
+        writer.Write(PageCount);
+        writer.Write(FirstWidth);
+        writer.Write(FirstHeight);
+    }
+
+    /// <summary>Checks every schema limit. Returns null when the message is valid.</summary>
+    public ProtocolFailure? Validate()
+    {
+        if (DocumentId < 1u) return ProtocolFailure.Invalid("ShellOpenReply.documentId violates its limit");
+        if (PageCount > 10000000u) return ProtocolFailure.Invalid("ShellOpenReply.pageCount violates its limit");
+        if (!float.IsFinite(FirstWidth) || FirstWidth <= 0.0f || FirstWidth > 14400.0f) return ProtocolFailure.Invalid("ShellOpenReply.firstWidth violates its limit");
+        if (!float.IsFinite(FirstHeight) || FirstHeight <= 0.0f || FirstHeight > 14400.0f) return ProtocolFailure.Invalid("ShellOpenReply.firstHeight violates its limit");
+        return null;
+    }
+}
+
+/// <summary>The request payload of ShellRenderPage (message type 2049).</summary>
+public sealed class ShellRenderPage : IRequestMessage
+{
+    public uint Page { get; set; }
+    public uint MaxWidth { get; set; }
+    public uint MaxHeight { get; set; }
+    /// <summary>Bit 0 annotations.</summary>
+    public uint Flags { get; set; }
+    /// <summary>A section handle valid in the handler (the sender), write access.</summary>
+    public ulong Pixels { get; set; }
+    public uint PixelBytes { get; set; }
+
+    public MessageType MessageType => MessageType.ShellRenderPage;
+
+    /// <summary>
+    /// The only decoder for this type. Reads exactly the declared fields, enforcing wire types and every limit as it goes;
+    /// there is no other decoder (see StrictReader).
+    /// </summary>
+    internal static ShellRenderPage Read(ref MessagePackReader reader)
+    {
+        StrictReader.ExpectArray(ref reader, 6);
+        var message = new ShellRenderPage();
+        message.Page = StrictReader.ReadU32(ref reader, 0u, 9999999u);
+        message.MaxWidth = StrictReader.ReadU32(ref reader, 16u, 1024u);
+        message.MaxHeight = StrictReader.ReadU32(ref reader, 16u, 1024u);
+        message.Flags = StrictReader.ReadU32(ref reader, 0u, 1u);
+        message.Pixels = StrictReader.ReadU64(ref reader, 1UL, ulong.MaxValue);
+        message.PixelBytes = StrictReader.ReadU32(ref reader, 4u, 4194304u);
+        return message;
+    }
+
+    /// <summary>Writes the payload array. Does not validate; the codec validates before it writes.</summary>
+    public void Write(ref MessagePackWriter writer)
+    {
+        writer.WriteArrayHeader(6);
+        writer.Write(Page);
+        writer.Write(MaxWidth);
+        writer.Write(MaxHeight);
+        writer.Write(Flags);
+        writer.Write(Pixels);
+        writer.Write(PixelBytes);
+    }
+
+    /// <summary>Checks every schema limit. Returns null when the message is valid.</summary>
+    public ProtocolFailure? Validate()
+    {
+        if (Page > 9999999u) return ProtocolFailure.Invalid("ShellRenderPage.page violates its limit");
+        if (MaxWidth < 16u || MaxWidth > 1024u) return ProtocolFailure.Invalid("ShellRenderPage.maxWidth violates its limit");
+        if (MaxHeight < 16u || MaxHeight > 1024u) return ProtocolFailure.Invalid("ShellRenderPage.maxHeight violates its limit");
+        if (Flags > 1u) return ProtocolFailure.Invalid("ShellRenderPage.flags violates its limit");
+        if (Pixels < 1UL) return ProtocolFailure.Invalid("ShellRenderPage.pixels violates its limit");
+        if (PixelBytes < 4u || PixelBytes > 4194304u) return ProtocolFailure.Invalid("ShellRenderPage.pixelBytes violates its limit");
+        return null;
+    }
+}
+
+/// <summary>The reply payload of ShellRenderPage (message type 2049).</summary>
+public sealed class ShellRenderPageReply : IReplyMessage
+{
+    public uint Width { get; set; }
+    public uint Height { get; set; }
+    /// <summary>Equal to 4 x width.</summary>
+    public uint Stride { get; set; }
+
+    public MessageType MessageType => MessageType.ShellRenderPage;
+
+    /// <summary>
+    /// The only decoder for this type. Reads exactly the declared fields, enforcing wire types and every limit as it goes;
+    /// there is no other decoder (see StrictReader).
+    /// </summary>
+    internal static ShellRenderPageReply Read(ref MessagePackReader reader)
+    {
+        StrictReader.ExpectArray(ref reader, 3);
+        var message = new ShellRenderPageReply();
+        message.Width = StrictReader.ReadU32(ref reader, 1u, 1024u);
+        message.Height = StrictReader.ReadU32(ref reader, 1u, 1024u);
+        message.Stride = StrictReader.ReadU32(ref reader, 4u, 4096u);
+        return message;
+    }
+
+    /// <summary>Writes the payload array. Does not validate; the codec validates before it writes.</summary>
+    public void Write(ref MessagePackWriter writer)
+    {
+        writer.WriteArrayHeader(3);
+        writer.Write(Width);
+        writer.Write(Height);
+        writer.Write(Stride);
+    }
+
+    /// <summary>Checks every schema limit. Returns null when the message is valid.</summary>
+    public ProtocolFailure? Validate()
+    {
+        if (Width < 1u || Width > 1024u) return ProtocolFailure.Invalid("ShellRenderPageReply.width violates its limit");
+        if (Height < 1u || Height > 1024u) return ProtocolFailure.Invalid("ShellRenderPageReply.height violates its limit");
+        if (Stride < 4u || Stride > 4096u) return ProtocolFailure.Invalid("ShellRenderPageReply.stride violates its limit");
+        return null;
+    }
+}
+
+/// <summary>The request payload of ShellClose (message type 2050).</summary>
+public sealed class ShellClose : IRequestMessage
+{
+    public MessageType MessageType => MessageType.ShellClose;
+
+    /// <summary>
+    /// The only decoder for this type. Reads exactly the declared fields, enforcing wire types and every limit as it goes;
+    /// there is no other decoder (see StrictReader).
+    /// </summary>
+    internal static ShellClose Read(ref MessagePackReader reader)
+    {
+        StrictReader.ExpectArray(ref reader, 0);
+        var message = new ShellClose();
+        return message;
+    }
+
+    /// <summary>Writes the payload array. Does not validate; the codec validates before it writes.</summary>
+    public void Write(ref MessagePackWriter writer)
+    {
+        writer.WriteArrayHeader(0);
+    }
+
+    /// <summary>Checks every schema limit. Returns null when the message is valid.</summary>
+    public ProtocolFailure? Validate()
+    {
+        return null;
+    }
+}
+
+/// <summary>The reply payload of ShellClose (message type 2050).</summary>
+public sealed class ShellCloseReply : IReplyMessage
+{
+    public MessageType MessageType => MessageType.ShellClose;
+
+    /// <summary>
+    /// The only decoder for this type. Reads exactly the declared fields, enforcing wire types and every limit as it goes;
+    /// there is no other decoder (see StrictReader).
+    /// </summary>
+    internal static ShellCloseReply Read(ref MessagePackReader reader)
+    {
+        StrictReader.ExpectArray(ref reader, 0);
+        var message = new ShellCloseReply();
+        return message;
+    }
+
+    /// <summary>Writes the payload array. Does not validate; the codec validates before it writes.</summary>
+    public void Write(ref MessagePackWriter writer)
+    {
+        writer.WriteArrayHeader(0);
+    }
+
+    /// <summary>Checks every schema limit. Returns null when the message is valid.</summary>
+    public ProtocolFailure? Validate()
+    {
         return null;
     }
 }

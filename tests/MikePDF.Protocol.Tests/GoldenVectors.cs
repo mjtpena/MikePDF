@@ -151,7 +151,7 @@ public static class GoldenVectors
         Req("password_invalid_utf8", RawFrame.Request(Items(1UL, RawString(0xFF, 0xFE)), MessageType.OpenDocument), Protocol);
         Req("password_overlong_utf8", RawFrame.Request(Items(1UL, RawString(0xC0, 0x80)), MessageType.OpenDocument), Protocol);
         Req("password_with_nul", RawFrame.Request(Items(1UL, "a\0b"), MessageType.OpenDocument), Invalid);
-        Req("hello_undefined_process_kind", RawFrame.Request(Items(1u, (ushort)3, 1u), MessageType.Hello), Invalid);
+        Req("hello_undefined_process_kind", RawFrame.Request(Items(1u, (ushort)4, 1u), MessageType.Hello), Invalid); // 3 is the shell handler since schema 5
         Req("hello_schema_version_zero", RawFrame.Request(Items(0u, (ushort)0, 1u), MessageType.Hello), Invalid);
         Req("page_sizes_count_zero", RawFrame.Request(Items(0u, 0u), MessageType.GetPageSizes, 8, 7), Invalid);
         Req("page_sizes_count_5001", RawFrame.Request(Items(0u, 5001u), MessageType.GetPageSizes, 8, 7), Invalid);
@@ -378,6 +378,91 @@ public static class GoldenVectors
                 w.Write(true); w.Write(0u);
             },
             MessageType.GetDocumentDetails), Protocol);
+
+        // Schema 5. Requests are hand-made with the real writer, which does not validate; "none" messages carry no document, the others document 7.
+        static byte[] NoDoc(object message, MessageType type) => RawFrame.Request(RawFrame.Serialized(message), type, 9, 0, 1000);
+        static RenderBand Band(Action<RenderBand> edit)
+        {
+            var band = new RenderBand { Page = 0, Dpi = 150, Rotation = 0, PageWidthPx = 1275, PageHeightPx = 1650, BandTop = 0, BandHeight = 256, Flags = 5, SlotIndex = 1, Generation = 1 };
+            edit(band);
+            return band;
+        }
+
+        // The shell session (ADR-0018): ShellOpen carries no document, the rest carry the session's documentId (3 here).
+        static ShellRenderPage Shell(Action<ShellRenderPage> edit)
+        {
+            var render = new ShellRenderPage { Page = 0, MaxWidth = 256, MaxHeight = 256, Flags = 0, Pixels = 1, PixelBytes = 262144 };
+            edit(render);
+            return render;
+        }
+
+        static byte[] InSession(object message, MessageType type, uint documentId = 3) => RawFrame.Request(RawFrame.Serialized(message), type, 9, documentId, 1000);
+
+        Req("viewer_preferences_without_a_document", RawFrame.Request(Items(), MessageType.GetViewerPreferences, 21, 0), Invalid);
+        Req("viewer_preferences_with_a_field", RawFrame.Request(Items(1u), MessageType.GetViewerPreferences, 21, 7), Protocol);
+        Req("render_band_without_a_document", RawFrame.Request(RawFrame.Serialized(Band(_ => { })), MessageType.RenderBand, 22, 0), Invalid);
+        Req("render_band_dpi_71", Doc(Band(b => b.Dpi = 71), MessageType.RenderBand), Invalid);
+        Req("render_band_dpi_1201", Doc(Band(b => b.Dpi = 1201), MessageType.RenderBand), Invalid);
+        Req("render_band_rotation_four", Doc(Band(b => b.Rotation = 4), MessageType.RenderBand), Invalid);
+        Req("render_band_page_width_zero", Doc(Band(b => b.PageWidthPx = 0), MessageType.RenderBand), Invalid);
+        Req("render_band_page_width_65537", Doc(Band(b => b.PageWidthPx = 65537), MessageType.RenderBand), Invalid);
+        Req("render_band_page_height_zero", Doc(Band(b => b.PageHeightPx = 0), MessageType.RenderBand), Invalid);
+        Req("render_band_page_height_65537", Doc(Band(b => b.PageHeightPx = 65537), MessageType.RenderBand), Invalid);
+        Req("render_band_top_65536", Doc(Band(b => b.BandTop = 65536), MessageType.RenderBand), Invalid);
+        Req("render_band_height_zero", Doc(Band(b => b.BandHeight = 0), MessageType.RenderBand), Invalid);
+        Req("render_band_height_16385", Doc(Band(b => b.BandHeight = 16385), MessageType.RenderBand), Invalid);
+        Req("render_band_reserved_flag_bit", Doc(Band(b => b.Flags = 8), MessageType.RenderBand), Invalid);
+        Req("render_band_slot_1024", Doc(Band(b => b.SlotIndex = 1024), MessageType.RenderBand), Invalid);
+        Req("render_band_page_10000000", Doc(Band(b => b.Page = 10000000), MessageType.RenderBand), Invalid);
+        Req("render_band_dpi_is_a_float", RawFrame.Request(Items(0u, 150.5f, (ushort)0, 1275u, 1650u, 0u, 256u, 5u, 1u, 1UL), MessageType.RenderBand, 22, 7), Protocol);
+
+        Req("shell_open_without_a_section", NoDoc(new ShellOpen { Section = 0, Bytes = 1 }, MessageType.ShellOpen), Invalid);
+        Req("shell_open_zero_bytes", NoDoc(new ShellOpen { Section = 1, Bytes = 0 }, MessageType.ShellOpen), Invalid);
+        Req("shell_open_bytes_above_32_mib", NoDoc(new ShellOpen { Section = 1, Bytes = 33_554_433 }, MessageType.ShellOpen), Invalid);
+        Req("shell_open_with_a_document", RawFrame.Request(RawFrame.Serialized(new ShellOpen { Section = 1, Bytes = 1 }), MessageType.ShellOpen, 9, 7), Invalid);
+        Req("shell_open_with_a_password", RawFrame.Request(Items(1UL, 1u, "secret"), MessageType.ShellOpen, 9, 0), Protocol); // a shell never prompts: there is no such field
+        Req("shell_render_page_without_a_session", RawFrame.Request(RawFrame.Serialized(Shell(_ => { })), MessageType.ShellRenderPage, 9, 0), Invalid);
+        Req("shell_render_page_width_15", InSession(Shell(r => r.MaxWidth = 15), MessageType.ShellRenderPage), Invalid);
+        Req("shell_render_page_width_1025", InSession(Shell(r => r.MaxWidth = 1025), MessageType.ShellRenderPage), Invalid);
+        Req("shell_render_page_height_15", InSession(Shell(r => r.MaxHeight = 15), MessageType.ShellRenderPage), Invalid);
+        Req("shell_render_page_height_1025", InSession(Shell(r => r.MaxHeight = 1025), MessageType.ShellRenderPage), Invalid);
+        Req("shell_render_page_flags_2", InSession(Shell(r => r.Flags = 2), MessageType.ShellRenderPage), Invalid);
+        Req("shell_render_page_pixels_zero", InSession(Shell(r => r.Pixels = 0), MessageType.ShellRenderPage), Invalid);
+        Req("shell_render_page_pixel_bytes_3", InSession(Shell(r => r.PixelBytes = 3), MessageType.ShellRenderPage), Invalid);
+        Req("shell_render_page_pixel_bytes_4_mib_plus_1", InSession(Shell(r => r.PixelBytes = 4_194_305), MessageType.ShellRenderPage), Invalid);
+        Req("shell_render_page_page_10000000", InSession(Shell(r => r.Page = 10000000), MessageType.ShellRenderPage), Invalid);
+        Req("shell_close_without_a_session", NoDoc(new ShellClose(), MessageType.ShellClose), Invalid);
+        Req("shell_close_with_a_field", RawFrame.Request(Items(1u), MessageType.ShellClose, 9, 3), Protocol);
+
+
+        Rsp("pong_without_progress", RawFrame.Response(Items(1UL), MessageType.Ping), Protocol); // the schema 4 layout
+        Rsp("pong_progress_is_a_float", RawFrame.Response(Items(1UL, 1.5f), MessageType.Ping), Protocol);
+        Rsp("pong_progress_is_negative", RawFrame.Response(Items(1UL, -1), MessageType.Ping), Protocol);
+        Rsp("viewer_preferences_direction_3", Reply(new GetViewerPreferencesReply { Direction = 3, RangeFirsts = [], RangeLasts = [] }, MessageType.GetViewerPreferences), Invalid);
+        Rsp("viewer_preferences_print_scaling_3", Reply(new GetViewerPreferencesReply { PrintScaling = 3, RangeFirsts = [], RangeLasts = [] }, MessageType.GetViewerPreferences), Invalid);
+        Rsp("viewer_preferences_copies_100", Reply(new GetViewerPreferencesReply { NumCopies = 100, RangeFirsts = [], RangeLasts = [] }, MessageType.GetViewerPreferences), Invalid);
+        Rsp("viewer_preferences_duplex_4", Reply(new GetViewerPreferencesReply { Duplex = 4, RangeFirsts = [], RangeLasts = [] }, MessageType.GetViewerPreferences), Invalid);
+        Rsp("viewer_preferences_65_ranges", Reply(new GetViewerPreferencesReply { RangeFirsts = new uint[65], RangeLasts = new uint[65] }, MessageType.GetViewerPreferences), Invalid);
+        Rsp("viewer_preferences_range_page_10000000", Reply(new GetViewerPreferencesReply { RangeFirsts = [0], RangeLasts = [10000000] }, MessageType.GetViewerPreferences), Invalid);
+        Rsp("viewer_preferences_ranges_differ_in_length", Reply(new GetViewerPreferencesReply { RangeFirsts = [0, 1], RangeLasts = [2] }, MessageType.GetViewerPreferences), Invalid);
+        Rsp("render_band_reply_width_zero", Reply(new RenderBandReply { SlotIndex = 0, Width = 0, Height = 1, Stride = 4, Generation = 0 }, MessageType.RenderBand), Invalid);
+        Rsp("render_band_reply_width_65537", Reply(new RenderBandReply { SlotIndex = 0, Width = 65537, Height = 1, Stride = 4, Generation = 0 }, MessageType.RenderBand), Invalid);
+        Rsp("render_band_reply_height_16385", Reply(new RenderBandReply { SlotIndex = 0, Width = 1, Height = 16385, Stride = 4, Generation = 0 }, MessageType.RenderBand), Invalid);
+        Rsp("render_band_reply_stride_3", Reply(new RenderBandReply { SlotIndex = 0, Width = 1, Height = 1, Stride = 3, Generation = 0 }, MessageType.RenderBand), Invalid);
+        Rsp("render_band_reply_stride_262145", Reply(new RenderBandReply { SlotIndex = 0, Width = 1, Height = 1, Stride = 262145, Generation = 0 }, MessageType.RenderBand), Invalid);
+        Rsp("render_band_reply_slot_1024", Reply(new RenderBandReply { SlotIndex = 1024, Width = 1, Height = 1, Stride = 4, Generation = 0 }, MessageType.RenderBand), Invalid);
+        Rsp("shell_open_reply_document_zero", Reply(new ShellOpenReply { DocumentId = 0, PageCount = 1, FirstWidth = 612f, FirstHeight = 792f }, MessageType.ShellOpen), Invalid);
+        Rsp("shell_open_reply_pages_10000001", Reply(new ShellOpenReply { DocumentId = 1, PageCount = 10000001, FirstWidth = 612f, FirstHeight = 792f }, MessageType.ShellOpen), Invalid);
+        Rsp("shell_open_reply_width_zero", Reply(new ShellOpenReply { DocumentId = 1, PageCount = 1, FirstWidth = 0f, FirstHeight = 792f }, MessageType.ShellOpen), Invalid);
+        Rsp("shell_open_reply_height_14401", Reply(new ShellOpenReply { DocumentId = 1, PageCount = 1, FirstWidth = 612f, FirstHeight = 14401f }, MessageType.ShellOpen), Invalid);
+        Rsp("shell_open_reply_width_infinite", RawFrame.Response(Items(1u, 1u, RawInf, 792f), MessageType.ShellOpen), Invalid);
+        Rsp("shell_open_reply_width_nan", RawFrame.Response(Items(1u, 1u, RawNan, 792f), MessageType.ShellOpen), Invalid);
+        Rsp("shell_render_page_reply_width_1025", Reply(new ShellRenderPageReply { Width = 1025, Height = 1, Stride = 4 }, MessageType.ShellRenderPage), Invalid);
+        Rsp("shell_render_page_reply_height_zero", Reply(new ShellRenderPageReply { Width = 1, Height = 0, Stride = 4 }, MessageType.ShellRenderPage), Invalid);
+        Rsp("shell_render_page_reply_height_1025", Reply(new ShellRenderPageReply { Width = 1, Height = 1025, Stride = 4 }, MessageType.ShellRenderPage), Invalid);
+        Rsp("shell_render_page_reply_stride_3", Reply(new ShellRenderPageReply { Width = 1, Height = 1, Stride = 3 }, MessageType.ShellRenderPage), Invalid);
+        Rsp("shell_render_page_reply_stride_4097", Reply(new ShellRenderPageReply { Width = 1, Height = 1, Stride = 4097 }, MessageType.ShellRenderPage), Invalid);
+        Rsp("shell_close_reply_with_a_field", RawFrame.Response(Items(1u), MessageType.ShellClose), Protocol);
 
         return v;
     }

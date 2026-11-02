@@ -40,8 +40,8 @@ internal sealed class RenderOptions
         Limits and locations
           --tile-deadline-ms <n>  Per tile (default 30000).      --open-deadline-ms <n>  Opening a document (default 30000).
           --file-timeout-s <n>    Whole file, including the reference (default 300).
-          --hang-grace-ms <n>     How long past its deadline a request may go unanswered before the watchdog kills the engine as hung (default 2000).
-                                  PDFium looks at its deadline only every so often (about every 100 drawing operations), so a very heavy page can overshoot it.
+          --hang-grace-ms <n>     How long past its deadline a request may go unanswered before the engine is checked for progress (default 2000). An engine is killed as hung
+                                  only if it then makes no progress for 10 s or holds the request 90 s longer; a heavy page that overshoots its deadline while PDFium keeps drawing is left alone.
           --retries <n>           Render a page again this many times if the engine died under it (default 1).
           --engine-dir <dir>      Folder with MikePDF.Engine.exe and pdfium.dll (default $MIKEPDF_ENGINE_DIR, then build/out/cmake-<arch>/bin/Release).
           --pdfium-dir <dir>      Folder with pdfium.dll for the reference (default build/out/pdfium/<arch>/bin).

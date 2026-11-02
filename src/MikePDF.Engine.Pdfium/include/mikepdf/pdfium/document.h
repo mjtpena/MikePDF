@@ -24,6 +24,21 @@ using InterruptCheck = std::function<RenderInterrupt()>;
 
 inline constexpr std::uint32_t kRenderAnnotations = 1;
 inline constexpr std::uint32_t kRenderFormFields = 2;
+/// RenderBand only: PDFium's printing mode (no screen-only annotations, no LCD text).
+inline constexpr std::uint32_t kRenderPrinting = 4;
+
+/// One horizontal band of a page laid out at `page_width_px` x `page_height_px` device pixels (after the rotation), for printing.
+struct BandRequest {
+    std::uint32_t page{};
+    /// Quarter turns clockwise, on top of the page's own /Rotate.
+    std::uint16_t rotation{};
+    std::uint32_t page_width_px{};
+    std::uint32_t page_height_px{};
+    /// The band is the rows band_top to band_top + band_height of the laid-out page.
+    std::uint32_t band_top{};
+    std::uint32_t band_height{};
+    std::uint32_t flags{};
+};
 
 struct TileRequest {
     std::uint32_t page{};
@@ -66,6 +81,16 @@ public:
     /// InvalidArgument (page, size or buffer out of range) or Damaged (the page cannot be loaded).
     [[nodiscard]] protocol::Status render_tile(const TileRequest& request, std::span<std::uint8_t> destination,
                                                std::uint32_t stride, const InterruptCheck& interrupt);
+
+    /// Renders one band of a page for printing as BGRA over opaque white into `destination` (rows `stride` = 4 x page_width_px bytes apart).
+    /// The statuses are render_tile's. InvalidArgument also for a band outside the page or one that does not fit `destination`.
+    [[nodiscard]] protocol::Status render_band(const BandRequest& request, std::span<std::uint8_t> destination, std::uint32_t stride,
+                                               const InterruptCheck& interrupt);
+
+    // ---- schema 5 --------------------------------------------------------------------------------------------
+
+    /// /ViewerPreferences as GetViewerPreferencesReply describes it: every value clamped to its range, anything the file gets wrong read as absent.
+    [[nodiscard]] protocol::Result<protocol::GetViewerPreferencesReply> viewer_preferences();
 
     // ---- reading services (WP-S2) ----------------------------------------------------------------------------
     // Everything below returns data the broker treats as untrusted, and every result obeys the schema limits (the caller encodes it

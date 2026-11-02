@@ -27,9 +27,14 @@ internal static class ProtocolDispatch
         MessageType.GetPageText => GetPageText.Read(ref reader),
         MessageType.SearchPage => SearchPage.Read(ref reader),
         MessageType.GetDocumentDetails => GetDocumentDetails.Read(ref reader),
+        MessageType.GetViewerPreferences => GetViewerPreferences.Read(ref reader),
         MessageType.RenderTile => RenderTile.Read(ref reader),
         MessageType.CancelBefore => CancelBefore.Read(ref reader),
+        MessageType.RenderBand => RenderBand.Read(ref reader),
         MessageType.ValidateStructure => ValidateStructure.Read(ref reader),
+        MessageType.ShellOpen => ShellOpen.Read(ref reader),
+        MessageType.ShellRenderPage => ShellRenderPage.Read(ref reader),
+        MessageType.ShellClose => ShellClose.Read(ref reader),
         _ => throw new ArgumentOutOfRangeException(nameof(type)),
     };
 
@@ -82,13 +87,28 @@ internal static class ProtocolDispatch
             case GetDocumentDetails m:
                 m.Write(ref writer);
                 break;
+            case GetViewerPreferences m:
+                m.Write(ref writer);
+                break;
             case RenderTile m:
                 m.Write(ref writer);
                 break;
             case CancelBefore m:
                 m.Write(ref writer);
                 break;
+            case RenderBand m:
+                m.Write(ref writer);
+                break;
             case ValidateStructure m:
+                m.Write(ref writer);
+                break;
+            case ShellOpen m:
+                m.Write(ref writer);
+                break;
+            case ShellRenderPage m:
+                m.Write(ref writer);
+                break;
+            case ShellClose m:
                 m.Write(ref writer);
                 break;
             default:
@@ -113,9 +133,14 @@ internal static class ProtocolDispatch
         MessageType.GetPageText => GetPageTextReply.Read(ref reader),
         MessageType.SearchPage => SearchPageReply.Read(ref reader),
         MessageType.GetDocumentDetails => GetDocumentDetailsReply.Read(ref reader),
+        MessageType.GetViewerPreferences => GetViewerPreferencesReply.Read(ref reader),
         MessageType.RenderTile => RenderTileReply.Read(ref reader),
         MessageType.CancelBefore => CancelBeforeReply.Read(ref reader),
+        MessageType.RenderBand => RenderBandReply.Read(ref reader),
         MessageType.ValidateStructure => ValidateStructureReply.Read(ref reader),
+        MessageType.ShellOpen => ShellOpenReply.Read(ref reader),
+        MessageType.ShellRenderPage => ShellRenderPageReply.Read(ref reader),
+        MessageType.ShellClose => ShellCloseReply.Read(ref reader),
         _ => throw new ArgumentOutOfRangeException(nameof(type)),
     };
 
@@ -168,13 +193,28 @@ internal static class ProtocolDispatch
             case GetDocumentDetailsReply m:
                 m.Write(ref writer);
                 break;
+            case GetViewerPreferencesReply m:
+                m.Write(ref writer);
+                break;
             case RenderTileReply m:
                 m.Write(ref writer);
                 break;
             case CancelBeforeReply m:
                 m.Write(ref writer);
                 break;
+            case RenderBandReply m:
+                m.Write(ref writer);
+                break;
             case ValidateStructureReply m:
+                m.Write(ref writer);
+                break;
+            case ShellOpenReply m:
+                m.Write(ref writer);
+                break;
+            case ShellRenderPageReply m:
+                m.Write(ref writer);
+                break;
+            case ShellCloseReply m:
                 m.Write(ref writer);
                 break;
             default:

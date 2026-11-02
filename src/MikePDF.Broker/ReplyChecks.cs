@@ -66,6 +66,24 @@ internal static class ReplyChecks
         return reply.FontsComplete && reply.FontPagesScanned != pageCount ? "the engine says it walked every page but names another number" : null;
     }
 
+    /// <summary>
+    /// The print page ranges of GetViewerPreferences: the schema has bounded the counts and the values and made the arrays the same length; what is left is that
+    /// every range is ordered and lies inside the document (the engine drops the ones that do not). Returns the problem, or null.
+    /// </summary>
+    public static string? CheckPreferences(GetViewerPreferencesReply reply, uint pageCount)
+    {
+        ArgumentNullException.ThrowIfNull(reply);
+        for (var i = 0; i < reply.RangeFirsts.Length; i++)
+        {
+            if (reply.RangeFirsts[i] > reply.RangeLasts[i] || reply.RangeLasts[i] >= pageCount)
+            {
+                return "a print page range is reversed or names a page the document does not have";
+            }
+        }
+
+        return null;
+    }
+
     /// <summary>Matches arrive in order, never overlapping the end of the text. Returns the problem, or null.</summary>
     public static string? CheckMatches(uint[] starts, uint[] lengths)
     {

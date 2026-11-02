@@ -22,7 +22,7 @@ public sealed class SuiteTests(HarnessFixture fixture)
         return (exit, output.ToString(), error.ToString());
     }
 
-    private string[] Common(string directory) => ["--profile", "quick", "--out", directory, "--docs-dir", fixture.DocumentsDirectory, "--appcontainer", "MikePDF.PerfTests.Cli", "--runner-id", "test-runner"];
+    private string[] Common(string directory) => ["--profile", "quick", "--out", directory, "--docs-dir", fixture.DocumentsDirectory, "--appcontainer", HarnessFixture.CliProfileName, "--runner-id", "test-runner"];
 
     private static string NewDirectory() => Path.Combine(Path.GetTempPath(), "mikepdf-perf-suite-" + Guid.NewGuid().ToString("N")[..8]);
 

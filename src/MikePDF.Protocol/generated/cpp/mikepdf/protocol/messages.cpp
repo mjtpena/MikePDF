@@ -134,16 +134,20 @@ Status Pong::encode(Writer& writer) const {
     if (const Status valid = validate(); valid != Status::Ok) {
         return valid;
     }
-    writer.write_array_header(1);
+    writer.write_array_header(2);
     writer.write_uint(nonce);
+    writer.write_uint(progress);
     return writer.status();
 }
 
 Result<Pong> Pong::decode(Reader& reader) {
     Pong m;
-    Status s = reader.expect_array(1);
+    Status s = reader.expect_array(2);
     if (s == Status::Ok) {
         s = reader.read_u64(m.nonce, 0ull, 18446744073709551615ull);
+    }
+    if (s == Status::Ok) {
+        s = reader.read_u64(m.progress, 0ull, 18446744073709551615ull);
     }
     if (s == Status::Ok) {
         s = m.validate();
@@ -2031,6 +2035,143 @@ Result<GetDocumentDetailsReply> GetDocumentDetailsReply::decode(Reader& reader) 
     return {Status::Ok, std::move(m), ""};
 }
 
+Status GetViewerPreferences::validate() const {
+    return Status::Ok;
+}
+
+Status GetViewerPreferences::encode(Writer& writer) const {
+    if (const Status valid = validate(); valid != Status::Ok) {
+        return valid;
+    }
+    writer.write_array_header(0);
+    return writer.status();
+}
+
+Result<GetViewerPreferences> GetViewerPreferences::decode(Reader& reader) {
+    GetViewerPreferences m;
+    Status s = reader.expect_array(0);
+    if (s == Status::Ok) {
+        s = m.validate();
+        if (s != Status::Ok) {
+            reader.fail(s, "message violates a schema limit");
+        }
+    }
+    if (s != Status::Ok) {
+        return {s, GetViewerPreferences{}, reader.detail()};
+    }
+    return {Status::Ok, std::move(m), ""};
+}
+
+Status GetViewerPreferencesReply::validate() const {
+    if (direction > 2) {
+        return Status::InvalidArgument;
+    }
+    if (print_scaling > 2) {
+        return Status::InvalidArgument;
+    }
+    if (num_copies > 99) {
+        return Status::InvalidArgument;
+    }
+    if (duplex > 3) {
+        return Status::InvalidArgument;
+    }
+    if (range_firsts.size() > 64u) {
+        return Status::InvalidArgument;
+    }
+    for (const auto& v : range_firsts) {
+        if (v > 9999999u) {
+            return Status::InvalidArgument;
+        }
+    }
+    if (range_lasts.size() > 64u) {
+        return Status::InvalidArgument;
+    }
+    for (const auto& v : range_lasts) {
+        if (v > 9999999u) {
+            return Status::InvalidArgument;
+        }
+    }
+    if (range_lasts.size() != range_firsts.size()) {
+        return Status::InvalidArgument;
+    }
+    return Status::Ok;
+}
+
+Status GetViewerPreferencesReply::encode(Writer& writer) const {
+    if (const Status valid = validate(); valid != Status::Ok) {
+        return valid;
+    }
+    writer.write_array_header(6);
+    writer.write_uint(direction);
+    writer.write_uint(print_scaling);
+    writer.write_uint(num_copies);
+    writer.write_uint(duplex);
+    writer.write_array_header(range_firsts.size());
+    for (const auto& v : range_firsts) {
+        writer.write_uint(v);
+    }
+    writer.write_array_header(range_lasts.size());
+    for (const auto& v : range_lasts) {
+        writer.write_uint(v);
+    }
+    return writer.status();
+}
+
+Result<GetViewerPreferencesReply> GetViewerPreferencesReply::decode(Reader& reader) {
+    GetViewerPreferencesReply m;
+    Status s = reader.expect_array(6);
+    if (s == Status::Ok) {
+        s = reader.read_u16(m.direction, 0, 2);
+    }
+    if (s == Status::Ok) {
+        s = reader.read_u16(m.print_scaling, 0, 2);
+    }
+    if (s == Status::Ok) {
+        s = reader.read_u16(m.num_copies, 0, 99);
+    }
+    if (s == Status::Ok) {
+        s = reader.read_u16(m.duplex, 0, 3);
+    }
+    if (s == Status::Ok) {
+        std::size_t count = 0;
+        s = reader.read_array_header(count, 64);
+        if (s == Status::Ok) {
+            m.range_firsts.reserve(count);
+            for (std::size_t i = 0; i < count && s == Status::Ok; ++i) {
+                std::uint32_t v{};
+                s = reader.read_u32(v, 0u, 9999999u);
+                if (s == Status::Ok) {
+                    m.range_firsts.push_back(std::move(v));
+                }
+            }
+        }
+    }
+    if (s == Status::Ok) {
+        std::size_t count = 0;
+        s = reader.read_array_header(count, 64);
+        if (s == Status::Ok) {
+            m.range_lasts.reserve(count);
+            for (std::size_t i = 0; i < count && s == Status::Ok; ++i) {
+                std::uint32_t v{};
+                s = reader.read_u32(v, 0u, 9999999u);
+                if (s == Status::Ok) {
+                    m.range_lasts.push_back(std::move(v));
+                }
+            }
+        }
+    }
+    if (s == Status::Ok) {
+        s = m.validate();
+        if (s != Status::Ok) {
+            reader.fail(s, "message violates a schema limit");
+        }
+    }
+    if (s != Status::Ok) {
+        return {s, GetViewerPreferencesReply{}, reader.detail()};
+    }
+    return {Status::Ok, std::move(m), ""};
+}
+
 Status RenderTile::validate() const {
     if (page > 9999999u) {
         return Status::InvalidArgument;
@@ -2242,6 +2383,159 @@ Result<CancelBeforeReply> CancelBeforeReply::decode(Reader& reader) {
     return {Status::Ok, std::move(m), ""};
 }
 
+Status RenderBand::validate() const {
+    if (page > 9999999u) {
+        return Status::InvalidArgument;
+    }
+    if (dpi < 72u || dpi > 1200u) {
+        return Status::InvalidArgument;
+    }
+    if (rotation > 3) {
+        return Status::InvalidArgument;
+    }
+    if (page_width_px < 1u || page_width_px > 65536u) {
+        return Status::InvalidArgument;
+    }
+    if (page_height_px < 1u || page_height_px > 65536u) {
+        return Status::InvalidArgument;
+    }
+    if (band_top > 65535u) {
+        return Status::InvalidArgument;
+    }
+    if (band_height < 1u || band_height > 16384u) {
+        return Status::InvalidArgument;
+    }
+    if (flags > 7u) {
+        return Status::InvalidArgument;
+    }
+    if (slot_index > 1023u) {
+        return Status::InvalidArgument;
+    }
+    return Status::Ok;
+}
+
+Status RenderBand::encode(Writer& writer) const {
+    if (const Status valid = validate(); valid != Status::Ok) {
+        return valid;
+    }
+    writer.write_array_header(10);
+    writer.write_uint(page);
+    writer.write_uint(dpi);
+    writer.write_uint(rotation);
+    writer.write_uint(page_width_px);
+    writer.write_uint(page_height_px);
+    writer.write_uint(band_top);
+    writer.write_uint(band_height);
+    writer.write_uint(flags);
+    writer.write_uint(slot_index);
+    writer.write_uint(generation);
+    return writer.status();
+}
+
+Result<RenderBand> RenderBand::decode(Reader& reader) {
+    RenderBand m;
+    Status s = reader.expect_array(10);
+    if (s == Status::Ok) {
+        s = reader.read_u32(m.page, 0u, 9999999u);
+    }
+    if (s == Status::Ok) {
+        s = reader.read_u32(m.dpi, 72u, 1200u);
+    }
+    if (s == Status::Ok) {
+        s = reader.read_u16(m.rotation, 0, 3);
+    }
+    if (s == Status::Ok) {
+        s = reader.read_u32(m.page_width_px, 1u, 65536u);
+    }
+    if (s == Status::Ok) {
+        s = reader.read_u32(m.page_height_px, 1u, 65536u);
+    }
+    if (s == Status::Ok) {
+        s = reader.read_u32(m.band_top, 0u, 65535u);
+    }
+    if (s == Status::Ok) {
+        s = reader.read_u32(m.band_height, 1u, 16384u);
+    }
+    if (s == Status::Ok) {
+        s = reader.read_u32(m.flags, 0u, 7u);
+    }
+    if (s == Status::Ok) {
+        s = reader.read_u32(m.slot_index, 0u, 1023u);
+    }
+    if (s == Status::Ok) {
+        s = reader.read_u64(m.generation, 0ull, 18446744073709551615ull);
+    }
+    if (s == Status::Ok) {
+        s = m.validate();
+        if (s != Status::Ok) {
+            reader.fail(s, "message violates a schema limit");
+        }
+    }
+    if (s != Status::Ok) {
+        return {s, RenderBand{}, reader.detail()};
+    }
+    return {Status::Ok, std::move(m), ""};
+}
+
+Status RenderBandReply::validate() const {
+    if (slot_index > 1023u) {
+        return Status::InvalidArgument;
+    }
+    if (width < 1u || width > 65536u) {
+        return Status::InvalidArgument;
+    }
+    if (height < 1u || height > 16384u) {
+        return Status::InvalidArgument;
+    }
+    if (stride < 4u || stride > 262144u) {
+        return Status::InvalidArgument;
+    }
+    return Status::Ok;
+}
+
+Status RenderBandReply::encode(Writer& writer) const {
+    if (const Status valid = validate(); valid != Status::Ok) {
+        return valid;
+    }
+    writer.write_array_header(5);
+    writer.write_uint(slot_index);
+    writer.write_uint(width);
+    writer.write_uint(height);
+    writer.write_uint(stride);
+    writer.write_uint(generation);
+    return writer.status();
+}
+
+Result<RenderBandReply> RenderBandReply::decode(Reader& reader) {
+    RenderBandReply m;
+    Status s = reader.expect_array(5);
+    if (s == Status::Ok) {
+        s = reader.read_u32(m.slot_index, 0u, 1023u);
+    }
+    if (s == Status::Ok) {
+        s = reader.read_u32(m.width, 1u, 65536u);
+    }
+    if (s == Status::Ok) {
+        s = reader.read_u32(m.height, 1u, 16384u);
+    }
+    if (s == Status::Ok) {
+        s = reader.read_u32(m.stride, 4u, 262144u);
+    }
+    if (s == Status::Ok) {
+        s = reader.read_u64(m.generation, 0ull, 18446744073709551615ull);
+    }
+    if (s == Status::Ok) {
+        s = m.validate();
+        if (s != Status::Ok) {
+            reader.fail(s, "message violates a schema limit");
+        }
+    }
+    if (s != Status::Ok) {
+        return {s, RenderBandReply{}, reader.detail()};
+    }
+    return {Status::Ok, std::move(m), ""};
+}
+
 Status ValidateStructure::validate() const {
     if (handle < 1ull) {
         return Status::InvalidArgument;
@@ -2366,6 +2660,273 @@ Result<ValidateStructureReply> ValidateStructureReply::decode(Reader& reader) {
     return {Status::Ok, std::move(m), ""};
 }
 
+Status ShellOpen::validate() const {
+    if (section < 1ull) {
+        return Status::InvalidArgument;
+    }
+    if (bytes < 1u || bytes > 33554432u) {
+        return Status::InvalidArgument;
+    }
+    return Status::Ok;
+}
+
+Status ShellOpen::encode(Writer& writer) const {
+    if (const Status valid = validate(); valid != Status::Ok) {
+        return valid;
+    }
+    writer.write_array_header(2);
+    writer.write_uint(section);
+    writer.write_uint(bytes);
+    return writer.status();
+}
+
+Result<ShellOpen> ShellOpen::decode(Reader& reader) {
+    ShellOpen m;
+    Status s = reader.expect_array(2);
+    if (s == Status::Ok) {
+        s = reader.read_u64(m.section, 1ull, 18446744073709551615ull);
+    }
+    if (s == Status::Ok) {
+        s = reader.read_u32(m.bytes, 1u, 33554432u);
+    }
+    if (s == Status::Ok) {
+        s = m.validate();
+        if (s != Status::Ok) {
+            reader.fail(s, "message violates a schema limit");
+        }
+    }
+    if (s != Status::Ok) {
+        return {s, ShellOpen{}, reader.detail()};
+    }
+    return {Status::Ok, std::move(m), ""};
+}
+
+Status ShellOpenReply::validate() const {
+    if (document_id < 1u) {
+        return Status::InvalidArgument;
+    }
+    if (page_count > 10000000u) {
+        return Status::InvalidArgument;
+    }
+    if (!std::isfinite(first_width) || first_width <= 0.0f || first_width > 14400.0f) {
+        return Status::InvalidArgument;
+    }
+    if (!std::isfinite(first_height) || first_height <= 0.0f || first_height > 14400.0f) {
+        return Status::InvalidArgument;
+    }
+    return Status::Ok;
+}
+
+Status ShellOpenReply::encode(Writer& writer) const {
+    if (const Status valid = validate(); valid != Status::Ok) {
+        return valid;
+    }
+    writer.write_array_header(4);
+    writer.write_uint(document_id);
+    writer.write_uint(page_count);
+    writer.write_f32(first_width);
+    writer.write_f32(first_height);
+    return writer.status();
+}
+
+Result<ShellOpenReply> ShellOpenReply::decode(Reader& reader) {
+    ShellOpenReply m;
+    Status s = reader.expect_array(4);
+    if (s == Status::Ok) {
+        s = reader.read_u32(m.document_id, 1u, 4294967295u);
+    }
+    if (s == Status::Ok) {
+        s = reader.read_u32(m.page_count, 0u, 10000000u);
+    }
+    if (s == Status::Ok) {
+        s = reader.read_f32(m.first_width, 0.0f, 14400.0f, true);
+    }
+    if (s == Status::Ok) {
+        s = reader.read_f32(m.first_height, 0.0f, 14400.0f, true);
+    }
+    if (s == Status::Ok) {
+        s = m.validate();
+        if (s != Status::Ok) {
+            reader.fail(s, "message violates a schema limit");
+        }
+    }
+    if (s != Status::Ok) {
+        return {s, ShellOpenReply{}, reader.detail()};
+    }
+    return {Status::Ok, std::move(m), ""};
+}
+
+Status ShellRenderPage::validate() const {
+    if (page > 9999999u) {
+        return Status::InvalidArgument;
+    }
+    if (max_width < 16u || max_width > 1024u) {
+        return Status::InvalidArgument;
+    }
+    if (max_height < 16u || max_height > 1024u) {
+        return Status::InvalidArgument;
+    }
+    if (flags > 1u) {
+        return Status::InvalidArgument;
+    }
+    if (pixels < 1ull) {
+        return Status::InvalidArgument;
+    }
+    if (pixel_bytes < 4u || pixel_bytes > 4194304u) {
+        return Status::InvalidArgument;
+    }
+    return Status::Ok;
+}
+
+Status ShellRenderPage::encode(Writer& writer) const {
+    if (const Status valid = validate(); valid != Status::Ok) {
+        return valid;
+    }
+    writer.write_array_header(6);
+    writer.write_uint(page);
+    writer.write_uint(max_width);
+    writer.write_uint(max_height);
+    writer.write_uint(flags);
+    writer.write_uint(pixels);
+    writer.write_uint(pixel_bytes);
+    return writer.status();
+}
+
+Result<ShellRenderPage> ShellRenderPage::decode(Reader& reader) {
+    ShellRenderPage m;
+    Status s = reader.expect_array(6);
+    if (s == Status::Ok) {
+        s = reader.read_u32(m.page, 0u, 9999999u);
+    }
+    if (s == Status::Ok) {
+        s = reader.read_u32(m.max_width, 16u, 1024u);
+    }
+    if (s == Status::Ok) {
+        s = reader.read_u32(m.max_height, 16u, 1024u);
+    }
+    if (s == Status::Ok) {
+        s = reader.read_u32(m.flags, 0u, 1u);
+    }
+    if (s == Status::Ok) {
+        s = reader.read_u64(m.pixels, 1ull, 18446744073709551615ull);
+    }
+    if (s == Status::Ok) {
+        s = reader.read_u32(m.pixel_bytes, 4u, 4194304u);
+    }
+    if (s == Status::Ok) {
+        s = m.validate();
+        if (s != Status::Ok) {
+            reader.fail(s, "message violates a schema limit");
+        }
+    }
+    if (s != Status::Ok) {
+        return {s, ShellRenderPage{}, reader.detail()};
+    }
+    return {Status::Ok, std::move(m), ""};
+}
+
+Status ShellRenderPageReply::validate() const {
+    if (width < 1u || width > 1024u) {
+        return Status::InvalidArgument;
+    }
+    if (height < 1u || height > 1024u) {
+        return Status::InvalidArgument;
+    }
+    if (stride < 4u || stride > 4096u) {
+        return Status::InvalidArgument;
+    }
+    return Status::Ok;
+}
+
+Status ShellRenderPageReply::encode(Writer& writer) const {
+    if (const Status valid = validate(); valid != Status::Ok) {
+        return valid;
+    }
+    writer.write_array_header(3);
+    writer.write_uint(width);
+    writer.write_uint(height);
+    writer.write_uint(stride);
+    return writer.status();
+}
+
+Result<ShellRenderPageReply> ShellRenderPageReply::decode(Reader& reader) {
+    ShellRenderPageReply m;
+    Status s = reader.expect_array(3);
+    if (s == Status::Ok) {
+        s = reader.read_u32(m.width, 1u, 1024u);
+    }
+    if (s == Status::Ok) {
+        s = reader.read_u32(m.height, 1u, 1024u);
+    }
+    if (s == Status::Ok) {
+        s = reader.read_u32(m.stride, 4u, 4096u);
+    }
+    if (s == Status::Ok) {
+        s = m.validate();
+        if (s != Status::Ok) {
+            reader.fail(s, "message violates a schema limit");
+        }
+    }
+    if (s != Status::Ok) {
+        return {s, ShellRenderPageReply{}, reader.detail()};
+    }
+    return {Status::Ok, std::move(m), ""};
+}
+
+Status ShellClose::validate() const {
+    return Status::Ok;
+}
+
+Status ShellClose::encode(Writer& writer) const {
+    if (const Status valid = validate(); valid != Status::Ok) {
+        return valid;
+    }
+    writer.write_array_header(0);
+    return writer.status();
+}
+
+Result<ShellClose> ShellClose::decode(Reader& reader) {
+    ShellClose m;
+    Status s = reader.expect_array(0);
+    if (s == Status::Ok) {
+        s = m.validate();
+        if (s != Status::Ok) {
+            reader.fail(s, "message violates a schema limit");
+        }
+    }
+    if (s != Status::Ok) {
+        return {s, ShellClose{}, reader.detail()};
+    }
+    return {Status::Ok, std::move(m), ""};
+}
+
+Status ShellCloseReply::validate() const {
+    return Status::Ok;
+}
+
+Status ShellCloseReply::encode(Writer& writer) const {
+    if (const Status valid = validate(); valid != Status::Ok) {
+        return valid;
+    }
+    writer.write_array_header(0);
+    return writer.status();
+}
+
+Result<ShellCloseReply> ShellCloseReply::decode(Reader& reader) {
+    ShellCloseReply m;
+    Status s = reader.expect_array(0);
+    if (s == Status::Ok) {
+        s = m.validate();
+        if (s != Status::Ok) {
+            reader.fail(s, "message violates a schema limit");
+        }
+    }
+    if (s != Status::Ok) {
+        return {s, ShellCloseReply{}, reader.detail()};
+    }
+    return {Status::Ok, std::move(m), ""};
+}
+
 namespace {
 
 template <class Variant, class T>
@@ -2410,12 +2971,22 @@ Result<RequestPayload> decode_request_payload(MessageType type, Reader& reader) 
             return lift<RequestPayload>(SearchPage::decode(reader));
         case MessageType::GetDocumentDetails:
             return lift<RequestPayload>(GetDocumentDetails::decode(reader));
+        case MessageType::GetViewerPreferences:
+            return lift<RequestPayload>(GetViewerPreferences::decode(reader));
         case MessageType::RenderTile:
             return lift<RequestPayload>(RenderTile::decode(reader));
         case MessageType::CancelBefore:
             return lift<RequestPayload>(CancelBefore::decode(reader));
+        case MessageType::RenderBand:
+            return lift<RequestPayload>(RenderBand::decode(reader));
         case MessageType::ValidateStructure:
             return lift<RequestPayload>(ValidateStructure::decode(reader));
+        case MessageType::ShellOpen:
+            return lift<RequestPayload>(ShellOpen::decode(reader));
+        case MessageType::ShellRenderPage:
+            return lift<RequestPayload>(ShellRenderPage::decode(reader));
+        case MessageType::ShellClose:
+            return lift<RequestPayload>(ShellClose::decode(reader));
     }
     return {Status::ProtocolError, RequestPayload{}, "unknown message type"};
 }
@@ -2452,12 +3023,22 @@ Result<ReplyPayload> decode_reply_payload(MessageType type, Reader& reader) {
             return lift<ReplyPayload>(SearchPageReply::decode(reader));
         case MessageType::GetDocumentDetails:
             return lift<ReplyPayload>(GetDocumentDetailsReply::decode(reader));
+        case MessageType::GetViewerPreferences:
+            return lift<ReplyPayload>(GetViewerPreferencesReply::decode(reader));
         case MessageType::RenderTile:
             return lift<ReplyPayload>(RenderTileReply::decode(reader));
         case MessageType::CancelBefore:
             return lift<ReplyPayload>(CancelBeforeReply::decode(reader));
+        case MessageType::RenderBand:
+            return lift<ReplyPayload>(RenderBandReply::decode(reader));
         case MessageType::ValidateStructure:
             return lift<ReplyPayload>(ValidateStructureReply::decode(reader));
+        case MessageType::ShellOpen:
+            return lift<ReplyPayload>(ShellOpenReply::decode(reader));
+        case MessageType::ShellRenderPage:
+            return lift<ReplyPayload>(ShellRenderPageReply::decode(reader));
+        case MessageType::ShellClose:
+            return lift<ReplyPayload>(ShellCloseReply::decode(reader));
     }
     return {Status::ProtocolError, ReplyPayload{}, "unknown message type"};
 }

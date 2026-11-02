@@ -46,8 +46,8 @@ public:
     /// an InvalidArgument. The handle is consumed either way.
     [[nodiscard]] Reply attach_slot_ring(const protocol::AttachSlotRing& request);
 
-    /// OpenDocument, CloseDocument, GetDocumentInfo, GetPageSizes, RenderTile and the reading services (GetOutline, GetPageLinks,
-    /// GetLinkUri, GetPageBoxes, GetPageText, SearchPage) and GetDocumentDetails. Anything else is InvalidArgument.
+    /// OpenDocument, CloseDocument, GetDocumentInfo, GetPageSizes, RenderTile, RenderBand and the reading services (GetOutline, GetPageLinks,
+    /// GetLinkUri, GetPageBoxes, GetPageText, SearchPage), GetDocumentDetails and GetViewerPreferences. Anything else is InvalidArgument.
     /// `deadline` is when the request's budget runs out (time_point::max() for none). The OpenDocument password is wiped
     /// from `request` once it has been used.
     [[nodiscard]] Reply execute(protocol::RequestEnvelope& request, Clock::time_point deadline);
@@ -56,6 +56,12 @@ public:
     [[nodiscard]] Reply cancel_before(std::uint32_t document_id, std::uint64_t generation);
 
     [[nodiscard]] std::size_t open_document_count() const;
+
+    /// How much work the engine thread has done: it goes up when a request starts, when PDFium or a long loop polls for an interrupt, and when a request ends.
+    /// The I/O lane puts it in every Pong, so the broker can tell an engine that is busy with a heavy page from one whose work thread is stuck: a hang is a
+    /// counter that stands still while a request is overdue, not a request that took longer than its deadline (PDFium only looks at the deadline about every 100
+    /// drawing operations). Safe from any thread.
+    [[nodiscard]] std::uint64_t progress() const noexcept { return progress_.load(std::memory_order_relaxed); }
 
     /// Closes every document (engine thread only). Must run before the PDFium library is destroyed.
     void close_all();
@@ -74,13 +80,16 @@ private:
     [[nodiscard]] Reply get_page_sizes(Entry& entry, const protocol::GetPageSizes& request);
     [[nodiscard]] Reply read_page_data(Entry& entry, protocol::RequestEnvelope& request, Clock::time_point deadline);
     [[nodiscard]] Reply render_tile(Entry& entry, const protocol::RenderTile& request, Clock::time_point deadline);
+    [[nodiscard]] Reply render_band(Entry& entry, const protocol::RenderBand& request, Clock::time_point deadline);
     [[nodiscard]] Entry* find(std::uint32_t id);
+    void tick() noexcept { progress_.fetch_add(1, std::memory_order_relaxed); }
 
     EngineKind kind_;
     [[nodiscard]] SlotMemory slots() const;
 
     SlotMemory slots_;  // guarded by mutex_
     std::uint32_t next_id_{1};  // engine thread only
+    std::atomic<std::uint64_t> progress_{0};
     mutable std::mutex mutex_;
     std::unordered_map<std::uint32_t, std::unique_ptr<Entry>> documents_;
 };
