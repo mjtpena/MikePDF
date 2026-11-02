@@ -14,7 +14,7 @@ The user renamed the project from Quire to MikePDF before any release. Nothing h
 Option 2.
 - `Quire` becomes `MikePDF`, `quire` becomes `mikepdf` and `QUIRE` becomes `MIKEPDF`, in namespaces, projects, executables, the package, environment variables, C++ namespaces and documents. There is one spelling, so .NET identifiers keep the capitals of the product name.
 - **Not renamed:** `docs/MASTER-PROMPT.md` (verbatim), and `spikes/`, `docs/spikes/` and `docs/test-reports/`. These record what was run and measured under the old name, and their paths and logs need to keep matching. Nothing in the build uses them.
-- The GitHub repository name is a separate step for the user. Links stay at `mjtpe/QuirePDF` until it changes.
+- The GitHub repository was renamed from `mjtpe/QuirePDF` to `mjtpe/MikePDF` on 2026-11-02, at the user's request. GitHub redirects the old URL, and links now use the new one.
 
 ## Consequences
 - Old names in the historical folders and in earlier commits mean this project.
@@ -22,5 +22,5 @@ Option 2.
 - The Store identity values still come from Partner Center, after the name is reserved.
 
 ## Verification
-- No `Quire` is left outside the folders listed above, apart from the repository URL.
+- No `Quire` is left outside the folders listed above.
 - The tests, UI journeys, package self-test and sandbox probe all pass under the new name, on CI as well as locally.

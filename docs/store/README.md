@@ -31,7 +31,7 @@ Run **Actions > Store release > Run workflow** with the version (first release `
 
 ### 4. Create the submission (You)
 1. **Pricing:** Free. **Markets:** your choice. **Audience:** Private, with your test group.
-2. **Properties:** category Productivity. Add the privacy policy URL: `https://github.com/mjtpena/QuirePDF/blob/main/docs/user/privacy.md`.
+2. **Properties:** category Productivity. Add the privacy policy URL: `https://github.com/mjtpena/MikePDF/blob/main/docs/user/privacy.md`.
 3. **Age ratings:** complete the questionnaire with the answers in [certification-notes.md](certification-notes.md).
 4. **Packages:** upload the `.msixupload`.
 5. **Store listing:** paste from [listing.md](listing.md). Upload the 1:1 tile from `build/store/assets/store-listing/` and the screenshots from `docs/store/screenshots/`.

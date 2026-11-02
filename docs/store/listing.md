@@ -37,11 +37,11 @@ PDF, PDF reader, PDF viewer, document viewer, open source, private, secure
 | Field | Value |
 |---|---|
 | Category | Productivity |
-| Website | https://github.com/mjtpena/QuirePDF |
-| Support contact | https://github.com/mjtpena/QuirePDF/issues |
-| Privacy policy | https://github.com/mjtpena/QuirePDF/blob/main/docs/user/privacy.md |
+| Website | https://github.com/mjtpena/MikePDF |
+| Support contact | https://github.com/mjtpena/MikePDF/issues |
+| Privacy policy | https://github.com/mjtpena/MikePDF/blob/main/docs/user/privacy.md |
 | Copyright | Copyright 2026 Michael John Peña and the MikePDF contributors |
-| Additional licence terms | Apache License 2.0: https://github.com/mjtpena/QuirePDF/blob/main/LICENSE |
+| Additional licence terms | Apache License 2.0: https://github.com/mjtpena/MikePDF/blob/main/LICENSE |
 | Accessibility | Tick "accessible" only after the manual Narrator and NVDA pass (spike S7) has been run |
 | System requirements | Windows 11 version 24H2 or later (the package's minimum is 10.0.26100.0), x64 or ARM64 |
 

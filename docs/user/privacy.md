@@ -2,7 +2,7 @@
 
 Last updated: 2 November 2026
 
-MikePDF is a PDF reader that runs on your device. This policy applies to the MikePDF app published from the [MikePDF open-source project](https://github.com/mjtpena/QuirePDF).
+MikePDF is a PDF reader that runs on your device. This policy applies to the MikePDF app published from the [MikePDF open-source project](https://github.com/mjtpena/MikePDF).
 
 ## The short version
 MikePDF doesn't collect your personal information, doesn't send your documents anywhere, and has no account, advertising or analytics.
@@ -31,4 +31,4 @@ MikePDF doesn't collect personal information from anyone, including children.
 If this policy changes, we'll update this page and the date above. Future features that could send data anywhere, such as optional cloud AI, will be opt-in, and they'll be described here before they ship. The source code is public, so you can verify these statements yourself.
 
 ## Contact
-Questions about this policy: [open an issue](https://github.com/mjtpena/QuirePDF/issues) on the project's GitHub page.
+Questions about this policy: [open an issue](https://github.com/mjtpena/MikePDF/issues) on the project's GitHub page.
