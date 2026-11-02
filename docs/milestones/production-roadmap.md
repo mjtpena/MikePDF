@@ -60,6 +60,8 @@ Found while reviewing wave 1. Each gets a work package or joins one.
 | Engine budget: each document starts its own pool engine (`DocumentSession.cs`), but ADR-0004 says one shared pool and a cap. This must be fixed before tabs | W1-specs finding 1 | Wave 2, first tabs WP |
 | The watchdog can kill an engine on a heavy page as "hung", because PDFium checks its deadline only about every 100 drawing operations. The viewer has the same defaults. Base hang detection on a heartbeat, not on the render deadline | W1-render risk 2 | Wave 2 engine WP |
 | `EngineProtocolTests.RenderTileIsRefusedUntilTheRingIsAttachedAndTheRingAttachesOnce` is flaky on ARM64 | W1-render risk 3 | Wave 2 engine WP |
+| Starting an engine failed 5 times out of 5 ("Hello failed ... Pipe is broken") when every core was busy; it never failed on an idle machine in 3,000 cycles. Likely a startup timeout or race in the broker or engine | W1-perf | Wave 2 engine WP |
+| Run `tools/MikePDF.Perf/measure-app.ps1` against the installed app to verify the app-level markers end to end | W1-perf | Opus, with the next UI run |
 | UI tests kill every `MikePDF.Engine` on the machine | W1-render risk 1 | W1-reader (sent) |
 | A test helper listens on all interfaces, so a firewall prompt appears | W1-reader | W1-reader (sent) |
 | Integration tests in parallel worktrees share the `MikePDF.IntegrationTests` AppContainer profile and can fail each other | W1-reader | Wave 2 engine WP |
