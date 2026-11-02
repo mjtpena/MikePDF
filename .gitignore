@@ -17,3 +17,6 @@ spikes/_shared/corpus/pdfium-resources/
 **/BundleArtifacts/
 build/out/
 TestResults/
+
+# Agent worktrees
+.claude/worktrees/

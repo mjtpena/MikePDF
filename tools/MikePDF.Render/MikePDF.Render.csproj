@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <AssemblyName>mikepdf-render</AssemblyName>
+    <RootNamespace>MikePDF.Render</RootNamespace>
+    <Description>Headless CLI: renders PDFs through the sandboxed engine and reports visual diffs against a PDFium reference (master prompt 12.3, 17 M1 gate).</Description>
+    <IsPackable>false</IsPackable>
+    <!-- A console tool has no synchronisation context. -->
+    <NoWarn>$(NoWarn);CA2007</NoWarn>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\MikePDF.Broker\MikePDF.Broker.csproj" />
+    <ProjectReference Include="..\..\src\MikePDF.Protocol\MikePDF.Protocol.csproj" />
+    <!-- The reference renderer is a separate process (a hostile file can crash it); building this tool builds it and puts it beside this one. -->
+    <ProjectReference Include="..\MikePDF.Render.Reference\MikePDF.Render.Reference.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="MikePDF.Render.Tests" />
+  </ItemGroup>
+</Project>

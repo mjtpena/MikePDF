@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <!-- The tool is an executable; the tests drive its internals (InternalsVisibleTo) and run it against the real sandboxed engine. -->
+    <ValidateExecutableReferencesMatchSelfContained>false</ValidateExecutableReferencesMatchSelfContained>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <NoWarn>$(NoWarn);xUnit1051</NoWarn>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\tools\MikePDF.Render\MikePDF.Render.csproj" />
+    <ProjectReference Include="..\..\src\MikePDF.Broker\MikePDF.Broker.csproj" />
+    <ProjectReference Include="..\..\src\MikePDF.Protocol\MikePDF.Protocol.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- The same small PDFium test PDFs the integration tests use (BSD-3-Clause, see tests/MikePDF.Integration.Tests/Fixtures/MANIFEST.md). -->
+    <Content Include="..\MikePDF.Integration.Tests\Fixtures\*.pdf" Link="Fixtures\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>
