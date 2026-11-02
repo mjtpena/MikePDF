@@ -1,0 +1,66 @@
+## A. Hidden flag versus removing the annotation (page 0, 1.5 scale, FPDF_ANNOT)
+file | idx | subtype | /F | pixels change when hidden | hidden render == removed render | SSIM(hidden, removed) | meanAbs
+annotation_highlight_square_with_ap.pdf | 0 | Highlight | 4 | True | True | 1.00000 | 0.0000
+annotation_highlight_square_with_ap.pdf | 1 | Popup | 28 | False | True | 1.00000 | 0.0000
+annotation_highlight_square_with_ap.pdf | 2 | Square | 4 | True | True | 1.00000 | 0.0000
+annotation_highlight_square_with_ap.pdf | 3 | Popup | 28 | False | True | 1.00000 | 0.0000
+annotation_ink_multiple.pdf | 0 | Ink | 4 | True | True | 1.00000 | 0.0000
+annotation_ink_multiple.pdf | 1 | Ink | 4 | True | True | 1.00000 | 0.0000
+annotation_ink_multiple.pdf | 2 | Ink | 4 | True | True | 1.00000 | 0.0000
+annotation_stamp_with_ap.pdf | 0 | Stamp | 4 | True | True | 1.00000 | 0.0000
+annotation_stamp_with_ap.pdf | 1 | Stamp | 4 | True | True | 1.00000 | 0.0000
+annots.pdf | 0 | Link | 4 | False | True | 1.00000 | 0.0000
+annots.pdf | 1 | Link | 4 | False | True | 1.00000 | 0.0000
+annots.pdf | 2 | Link | 4 | False | True | 1.00000 | 0.0000
+annots.pdf | 3 | Link | 4 | False | True | 1.00000 | 0.0000
+annots.pdf | 4 | Highlight | 4 | True | True | 1.00000 | 0.0000
+annots.pdf | 5 | Highlight | 4 | True | True | 1.00000 | 0.0000
+annots.pdf | 6 | Popup | 0 | False | True | 1.00000 | 0.0000
+annots.pdf | 7 | Highlight | 4 | True | True | 1.00000 | 0.0000
+annots.pdf | 8 | Widget | 0 | False | True | 1.00000 | 0.0000
+ink_annot.pdf | 0 | Ink | 4 | False | True | 1.00000 | 0.0000
+ink_annot.pdf | 1 | Ink | 4 | False | True | 1.00000 | 0.0000
+line_annot.pdf | 0 | Line | 4 | False | True | 1.00000 | 0.0000
+line_annot.pdf | 1 | Line | 4 | False | True | 1.00000 | 0.0000
+polygon_annot.pdf | 0 | Polygon | 4 | False | True | 1.00000 | 0.0000
+polygon_annot.pdf | 1 | Polygon | 4 | False | True | 1.00000 | 0.0000
+links_highlights_annots.pdf | 0 | Widget | 0 | False | True | 1.00000 | 0.0000
+links_highlights_annots.pdf | 1 | Widget | 0 | False | True | 1.00000 | 0.0000
+links_highlights_annots.pdf | 2 | Widget | 0 | False | True | 1.00000 | 0.0000
+links_highlights_annots.pdf | 3 | Widget | 0 | False | True | 1.00000 | 0.0000
+links_highlights_annots.pdf | 4 | Link | 4 | False | True | 1.00000 | 0.0000
+links_highlights_annots.pdf | 5 | Highlight | 4 | True | True | 1.00000 | 0.0000
+annotation_markup_multiline_no_ap.pdf | 0 | Highlight | 4 | True | True | 1.00000 | 0.0000
+annotation_markup_multiline_no_ap.pdf | 1 | Underline | 4 | True | True | 1.00000 | 0.0000
+annotation_markup_multiline_no_ap.pdf | 2 | Squiggly | 4 | True | True | 1.00000 | 0.0000
+annotation_markup_multiline_no_ap.pdf | 3 | StrikeOut | 4 | True | True | 1.00000 | 0.0000
+annotation_highlight_long_content.pdf | 0 | Highlight | 4 | True | True | 1.00000 | 0.0000
+freetext_annotation_without_da.pdf | 0 | FreeText | 0 | True | True | 1.00000 | 0.0000
+summary A: 36 annotations; 17 change the page pixels when hidden; hidden render equals removed render for 36/36
+
+## B. Persistence across page reload, and does the flag leak into a save?
+annotations on page: 3; original /F of #0 = 4; render changed by hiding: True; still hidden after ClosePage+LoadPage: True
+FPDF_SaveAsCopy full rewrite while hidden: saved /F of #0 = 6 (leak = True); incremental while hidden: saved /F = 6 (leak = True; incremental length 83004 vs source 52263)
+after restoring /F=4: full save /F = 4, incremental save /F = 4 (incremental length 83004: PDFium still writes the touched object; harmless but not byte-identical to the source)
+
+## C. Tile render and hide cost versus annotation count (ink annotations with /AP, one stroke each, one page)
+annots | doc bytes | LoadMemDocument ms | LoadPage ms | tile 1.33x p50/p95 FPDF_ANNOT | same, no annots flag | tile 5.33x p50/p95 FPDF_ANNOT | GetAnnot+SetFlags+Close us (p50) | tile after hiding 1 | tile after hiding 50
+0 | 5921 | 0.1 | 3.3 | 3.42/4.89 | 3.52 | 6.60/8.30 | - | NaN | NaN
+10 | 40277 | 0.2 | 2.9 | 4.59/7.58 | 4.06 | 6.91/14.20 | 0.7 | 4.03 | 3.64
+100 | 345165 | 0.5 | 3.4 | 8.97/17.03 | 3.26 | 8.76/9.89 | 1.2 | 7.24 | 5.45
+1000 | 3403182 | 3.5 | 3.3 | 42.51/51.52 | 2.22 | 34.63/39.30 | 2.9 | 38.34 | 38.82
+5000 | 17023418 | 13.6 | 4.4 | 172.94/193.22 | 1.91 | 145.30/173.92 | 4.2 | 323.60 | 295.94
+
+## D. Can the engine produce a sprite of ONE loaded annotation (so the overlay can draw it moved)?
+method: reload page, hide every other annotation, FPDFPage_RemoveObject all page objects (in memory only, no GenerateContent), render onto a transparent bitmap
+file | idx | subtype | sprite ms | composite SourceOver SSIM vs visible | composite Multiply SSIM vs visible | page restored after (render hash == baseline)
+annotation_ink_multiple.pdf | 0 | Ink | 14.6 | 1.00000 | 1.00000 | True
+annotation_ink_multiple.pdf | 1 | Ink | 5.9 | 1.00000 | 1.00000 | True
+annotation_ink_multiple.pdf | 2 | Ink | 4.4 | 1.00000 | 1.00000 | True
+annotation_highlight_square_with_ap.pdf | 0 | Highlight | 3.7 | 0.99862 | 1.00000 | True
+annotation_highlight_square_with_ap.pdf | 2 | Square | 4.4 | 1.00000 | 1.00000 | True
+annotation_stamp_with_ap.pdf | 0 | Stamp | 5.8 | 1.00000 | 0.99596 | True
+annotation_stamp_with_ap.pdf | 1 | Stamp | 9.2 | 1.00000 | 1.00000 | True
+annots.pdf | 4 | Highlight | 3.1 | 0.99887 | 1.00000 | True
+annots.pdf | 5 | Highlight | 14.0 | 0.99818 | 1.00000 | True
+annots.pdf | 7 | Highlight | 3.2 | 0.99934 | 1.00000 | True

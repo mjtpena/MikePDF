@@ -1,0 +1,6 @@
+<Project>
+  <!-- Opt out of the repo's central package management: this spike pins versions on the PackageReference. -->
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>false</ManagePackageVersionsCentrally>
+  </PropertyGroup>
+</Project>

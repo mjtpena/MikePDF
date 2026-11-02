@@ -1,0 +1,13 @@
+Win2D Multiply (BlendEffect) vs PDFium AP        n=62 min 0.9705 mean 0.9945
+Win2D Multiply + PDFium rect pixel snapping      n=62 min 0.9996 mean 1.0000 max abs channel difference over all samples: 1
+Win2D SourceOver alpha 0.4*CA vs PDFium AP       n=62 min 0.3744 mean 0.8452
+PDFium-generated AP (no /AP) vs our AP           n=62 min 1.0000 mean 1.0000
+no overlay vs PDFium AP (control)                n=62 min 0.6969 mean 0.9080
+  Multiply: 1x white paper + black text          n=10 min 0.9805 mean 0.9924
+  Multiply: 1x salmon block                      n=10 min 0.9968 mean 0.9988
+  Multiply: 1x light green block                 n=10 min 0.9772 mean 0.9885
+  Multiply: 1x mid grey + white text             n=10 min 0.9963 mean 0.9989
+  Multiply: 1x dark grey + black text            n=10 min 0.9963 mean 0.9986
+  Multiply: 4x white paper + black text          n=4 min 0.9705 mean 0.9795
+  Multiply: 4x salmon block                      n=4 min 0.9936 mean 0.9962
+  Multiply: 4x light green block                 n=4 min 0.9932 mean 0.9959

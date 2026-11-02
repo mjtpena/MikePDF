@@ -1,0 +1,27 @@
+SNAPPED rects rot   0 scale 1.33 Highlight yellow CA1                       ROI SSIM 1.0000 meanAbs 0.000 max 0
+SNAPPED rects rot   0 scale 1.33 Highlight green CA0.5 over salmon block    ROI SSIM 1.0000 meanAbs 0.105 max 1
+SNAPPED rects rot   0 scale 2.67 Highlight yellow CA1                       ROI SSIM 1.0000 meanAbs 0.000 max 0
+SNAPPED rects rot   0 scale 2.67 Highlight green CA0.5 over salmon block    ROI SSIM 1.0000 meanAbs 0.090 max 1
+SNAPPED rects rot   0 scale 5.33 Highlight yellow CA1                       ROI SSIM 1.0000 meanAbs 0.000 max 0
+SNAPPED rects rot   0 scale 5.33 Highlight green CA0.5 over salmon block    ROI SSIM 1.0000 meanAbs 0.028 max 1
+SNAPPED rects rot  90 scale 1.33 Highlight yellow CA1                       ROI SSIM 1.0000 meanAbs 0.000 max 0
+SNAPPED rects rot  90 scale 1.33 Highlight green CA0.5 over salmon block    ROI SSIM 1.0000 meanAbs 0.119 max 1
+SNAPPED rects rot  90 scale 2.67 Highlight yellow CA1                       ROI SSIM 1.0000 meanAbs 0.000 max 0
+SNAPPED rects rot  90 scale 2.67 Highlight green CA0.5 over salmon block    ROI SSIM 1.0000 meanAbs 0.070 max 1
+SNAPPED rects rot  90 scale 5.33 Highlight yellow CA1                       ROI SSIM 1.0000 meanAbs 0.000 max 0
+SNAPPED rects rot  90 scale 5.33 Highlight green CA0.5 over salmon block    ROI SSIM 1.0000 meanAbs 0.029 max 1
+SNAPPED rects rot 180 scale 1.33 Highlight yellow CA1                       ROI SSIM 1.0000 meanAbs 0.000 max 0
+SNAPPED rects rot 180 scale 1.33 Highlight green CA0.5 over salmon block    ROI SSIM 1.0000 meanAbs 0.104 max 1
+SNAPPED rects rot 180 scale 2.67 Highlight yellow CA1                       ROI SSIM 1.0000 meanAbs 0.000 max 0
+SNAPPED rects rot 180 scale 2.67 Highlight green CA0.5 over salmon block    ROI SSIM 1.0000 meanAbs 0.099 max 1
+SNAPPED rects rot 180 scale 5.33 Highlight yellow CA1                       ROI SSIM 1.0000 meanAbs 0.000 max 0
+SNAPPED rects rot 180 scale 5.33 Highlight green CA0.5 over salmon block    ROI SSIM 1.0000 meanAbs 0.029 max 1
+SNAPPED rects rot 270 scale 1.33 Highlight yellow CA1                       ROI SSIM 1.0000 meanAbs 0.000 max 0
+SNAPPED rects rot 270 scale 1.33 Highlight green CA0.5 over salmon block    ROI SSIM 1.0000 meanAbs 0.107 max 1
+SNAPPED rects rot 270 scale 2.67 Highlight yellow CA1                       ROI SSIM 1.0000 meanAbs 0.000 max 0
+SNAPPED rects rot 270 scale 2.67 Highlight green CA0.5 over salmon block    ROI SSIM 1.0000 meanAbs 0.075 max 1
+SNAPPED rects rot 270 scale 5.33 Highlight yellow CA1                       ROI SSIM 1.0000 meanAbs 0.000 max 0
+SNAPPED rects rot 270 scale 5.33 Highlight green CA0.5 over salmon block    ROI SSIM 1.0000 meanAbs 0.028 max 1
+double drawing (overlay kept on the rebased tile): Highlight yellow CA1: ROI SSIM vs correct 0.9974, mean abs 3.59
+double drawing (overlay kept on the rebased tile): Highlight green CA0.5 over salmon block: ROI SSIM vs correct 0.9778, mean abs 23.80
+double drawing (overlay kept on the rebased tile): Ink highlighter Multiply CA0.5: ROI SSIM vs correct 0.9528, mean abs 22.52

@@ -1,0 +1,13 @@
+## C2. 5000 and 1000 ink annotations: what changes tile cost after touching flags? (tile 512x512 at 1.33x, FPDF_ANNOT, 31 renders each, p50 / p95 / first-after-change ms)
+N=1000: cold (nothing touched)                : 29.9 / 35.1 / first 83.1
+N=1000: warm again                            : 31.7 / 35.3 / first 30.6
+N=1000: after GetAnnot/GetFlags on all (no set): 37.2 / 45.1 / first 30.2
+N=1000: after hiding annotation 0              : 41.5 / 48.9 / first 32.9
+N=1000: after un-hiding annotation 0           : 38.7 / 45.3 / first 43.4
+N=1000: after ClosePage + LoadPage (annotation flags restored): first 35.9, p50 40.2
+N=5000: cold (nothing touched)                : 177.2 / 193.5 / first 513.2
+N=5000: warm again                            : 172.4 / 191.5 / first 172.6
+N=5000: after GetAnnot/GetFlags on all (no set): 177.1 / 195.3 / first 184.4
+N=5000: after hiding annotation 0              : 185.4 / 238.9 / first 173.1
+N=5000: after un-hiding annotation 0           : 190.0 / 239.3 / first 210.4
+N=5000: after ClosePage + LoadPage (annotation flags restored): first 219.7, p50 199.9

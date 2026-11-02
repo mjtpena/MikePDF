@@ -1,0 +1,71 @@
+kind,rotate,scale,roi_ssim,roi_mean_abs,roi_max_abs,page_ssim,page_mean_abs
+Highlight yellow CA1,0,1.333,0.9906,9.546,159,0.9998,0.0971
+Highlight green CA0.5 over salmon block,0,1.333,0.9990,1.038,39,1.0000,0.0086
+Underline,0,1.333,0.9995,0.854,13,1.0000,0.0073
+StrikeOut,0,1.333,0.9998,0.355,11,1.0000,0.0036
+Square,0,1.333,0.9999,0.254,32,1.0000,0.0052
+Circle,0,1.333,0.9993,0.682,54,1.0000,0.0123
+Line,0,1.333,0.9996,0.313,31,1.0000,0.0100
+Ink variable width (3 strokes),0,1.333,0.9999,0.061,35,1.0000,0.0052
+Ink highlighter Multiply CA0.5,0,1.333,0.9998,0.496,10,1.0000,0.0073
+FreeText 12pt (Helvetica vs Arial),0,1.333,0.9558,6.275,242,0.9992,0.1136
+Highlight yellow CA1,0,2.667,0.9842,4.190,96,0.9998,0.0365
+Highlight green CA0.5 over salmon block,0,2.667,0.9845,1.014,55,0.9999,0.0072
+Underline,0,2.667,0.9998,0.457,11,1.0000,0.0033
+StrikeOut,0,2.667,0.9999,0.225,11,1.0000,0.0020
+Square,0,2.667,0.9999,0.134,44,1.0000,0.0026
+Circle,0,2.667,0.9991,0.491,81,1.0000,0.0083
+Line,0,2.667,0.9996,0.173,31,1.0000,0.0053
+Ink variable width (3 strokes),0,2.667,0.9999,0.044,40,1.0000,0.0036
+Ink highlighter Multiply CA0.5,0,2.667,0.9997,0.517,12,1.0000,0.0069
+FreeText 12pt (Helvetica vs Arial),0,2.667,0.9961,1.167,149,0.9999,0.0196
+Highlight yellow CA1,0,5.333,0.9783,2.997,170,NaN,NaN
+Highlight green CA0.5 over salmon block,0,5.333,0.9960,0.302,35,NaN,NaN
+Underline,0,5.333,0.9997,0.269,13,NaN,NaN
+StrikeOut,0,5.333,0.9999,0.130,11,NaN,NaN
+Square,0,5.333,0.9999,0.069,32,NaN,NaN
+Circle,0,5.333,0.9994,0.223,69,NaN,NaN
+Line,0,5.333,0.9998,0.090,34,NaN,NaN
+Ink variable width (3 strokes),0,5.333,0.9999,0.026,40,NaN,NaN
+Ink highlighter Multiply CA0.5,0,5.333,0.9998,0.489,11,NaN,NaN
+FreeText 12pt (Helvetica vs Arial),0,5.333,0.9943,0.745,186,NaN,NaN
+Highlight yellow CA1,0,1.333,0.9906,,,0.9988,
+Highlight green CA0.5 over salmon block,0,1.333,0.9990,,,0.9988,
+Underline,0,1.333,0.9995,,,0.9988,
+StrikeOut,0,1.333,0.9997,,,0.9988,
+Square,0,1.333,0.9999,,,0.9988,
+Circle,0,1.333,0.9993,,,0.9988,
+Line,0,1.333,0.9995,,,0.9988,
+Ink variable width (3 strokes),0,1.333,0.9998,,,0.9988,
+Ink highlighter Multiply CA0.5,0,1.333,0.9998,,,0.9988,
+FreeText 12pt (Helvetica vs Arial),0,1.333,0.9558,,,0.9988,
+Highlight yellow CA1,90,1.333,0.9899,,,0.9984,
+Highlight green CA0.5 over salmon block,90,1.333,0.9987,,,0.9984,
+Underline,90,1.333,0.9996,,,0.9984,
+StrikeOut,90,1.333,0.9994,,,0.9984,
+Square,90,1.333,0.9999,,,0.9984,
+Circle,90,1.333,0.9992,,,0.9984,
+Line,90,1.333,0.9995,,,0.9984,
+Ink variable width (3 strokes),90,1.333,0.9998,,,0.9984,
+Ink highlighter Multiply CA0.5,90,1.333,0.9995,,,0.9984,
+FreeText 12pt (Helvetica vs Arial),90,1.333,0.9306,,,0.9984,
+Highlight yellow CA1,180,1.333,0.9906,,,0.9988,
+Highlight green CA0.5 over salmon block,180,1.333,0.9990,,,0.9988,
+Underline,180,1.333,0.9995,,,0.9988,
+StrikeOut,180,1.333,0.9998,,,0.9988,
+Square,180,1.333,0.9999,,,0.9988,
+Circle,180,1.333,0.9993,,,0.9988,
+Line,180,1.333,0.9995,,,0.9988,
+Ink variable width (3 strokes),180,1.333,0.9998,,,0.9988,
+Ink highlighter Multiply CA0.5,180,1.333,0.9998,,,0.9988,
+FreeText 12pt (Helvetica vs Arial),180,1.333,0.9550,,,0.9988,
+Highlight yellow CA1,270,1.333,0.9894,,,0.9988,
+Highlight green CA0.5 over salmon block,270,1.333,0.9987,,,0.9988,
+Underline,270,1.333,0.9995,,,0.9988,
+StrikeOut,270,1.333,0.9998,,,0.9988,
+Square,270,1.333,0.9999,,,0.9988,
+Circle,270,1.333,0.9993,,,0.9988,
+Line,270,1.333,0.9995,,,0.9988,
+Ink variable width (3 strokes),270,1.333,0.9998,,,0.9988,
+Ink highlighter Multiply CA0.5,270,1.333,0.9994,,,0.9988,
+FreeText 12pt (Helvetica vs Arial),270,1.333,0.9552,,,0.9988,

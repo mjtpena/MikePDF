@@ -1,0 +1,5 @@
+dgpu: NVIDIA GeForce RTX 5080 Laptop GPU
+dgpu: 50,000 strokes (48 pts each): model 143 ms, geometry 2029 ms (incl. one full draw), private bytes +181 MB
+igpu: Intel(R) Graphics
+igpu: 50,000 strokes (48 pts each): model 121 ms, geometry 1598 ms (incl. one full draw), private bytes +151 MB
+warp: WARP (software)
