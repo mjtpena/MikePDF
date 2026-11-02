@@ -52,6 +52,15 @@ public enum PdfErrorCode
     InvalidObjectStream,
     InvalidStream,
     InvalidUpdate,
+
+    /// <summary>An edit names a page or annotation the base document does not have, or has no valid shape (the edit stage refuses the whole save).</summary>
+    InvalidEdit,
+
+    /// <summary>A loaded annotation is not what the edit expected (subtype or rectangle): the writer refuses rather than edit the wrong object.</summary>
+    ExpectationMismatch,
+
+    /// <summary>The base's page count is not the one the edits were made against.</summary>
+    PageCountMismatch,
 }
 
 /// <summary>A typed failure. <see cref="Offset"/> is a file (or decoded-stream) offset, or -1 when not applicable.</summary>
