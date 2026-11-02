@@ -87,8 +87,8 @@ Get-Content (Join-Path $OutDir 'driver-stdout.txt') -ErrorAction SilentlyContinu
 
 # ---- the same driver at HIGH (the runner), MEDIUM and LOW integrity, unpackaged (a copy outside the package: no identity, no registry virtualization) -----------------------------
 # The runner's token is High integrity, so the packaged run above was High. A real Explorer runs at Medium; prevhost's classic default for stream handlers is Low.
-# MEDIUM: runas /trustlevel:0x20000 (a "Basic User" restricted token: Administrators deny-only, privileges removed, Medium). LOW: a duplicate of the runner's token with the Low
-# label (SetTokenInformation(TokenIntegrityLevel); raising to Medium that way is refused with 1314, so Medium uses runas). Neither is a real interactive user session.
+# MEDIUM: an executable carrying a Medium mandatory label. LOW: a duplicate of the runner's token with the Low label (SetTokenInformation(TokenIntegrityLevel)).
+# The token keeps the runner's elevated administrator group: neither is a real filtered interactive user session.
 # The tools live OUTSIDE C:\s6b-log: that folder carries a Low label so every integrity level can append logs, and an executable under it would start at Low.
 $tools = Join-Path $env:RUNNER_TEMP 's6b-tools'
 $fx2 = Join-Path $logDir 'fixtures'
@@ -105,23 +105,18 @@ New-Item -ItemType Directory -Force $o, $work | Out-Null
 & $driverExe --selftest $o $fx2 $work 2>&1 | Out-Null
 if (Test-Path (Join-Path $o 'driver.log')) { Copy-Item (Join-Path $o 'driver.log') (Join-Path $OutDir 'driver-high-unpackaged.log') }
 
-Mark 'driver at MEDIUM integrity (runas /trustlevel:0x20000)'
+Mark 'driver at MEDIUM integrity (executable labelled Medium)'
+# runas /trustlevel:0x20000 gave a High, elevated process on this runner (no UAC filtering), and SetTokenInformation cannot raise Low to Medium. What does work: an image carrying a
+# Medium mandatory label starts a Medium-integrity process even from a High parent (the same mechanism that started the executable under the Low-labelled log folder at Low).
+$toolsMed = Join-Path $env:RUNNER_TEMP 's6b-tools-medium'
+New-Item -ItemType Directory -Force $toolsMed | Out-Null
+Copy-Item $driverExe $toolsMed
+icacls $toolsMed /grant '*S-1-1-0:(OI)(CI)RX' | Out-Null
+icacls (Join-Path $toolsMed 'S6bDriver.exe') /setintegritylevel M | Out-Null
 $o = Join-Path $logDir 'out-medium'; $work = Join-Path $logDir 'work-medium'
 New-Item -ItemType Directory -Force $o, $work | Out-Null
-$cmd = "$driverExe --selftest $o $fx2 $work"
-foreach ($attempt in 1, 2) {
-    Log "medium-integrity attempt ${attempt}: runas /trustlevel:0x20000"
-    try {
-        if ($attempt -eq 1) { Start-Process -FilePath 'runas.exe' -ArgumentList '/trustlevel:0x20000', "`"$cmd`"" -WindowStyle Hidden | Out-Null }
-        else { Start-Process -FilePath 'cmd.exe' -ArgumentList '/c', "runas /trustlevel:0x20000 `"$cmd`"" -WindowStyle Hidden | Out-Null }
-    } catch { Log "could not start: $($_.Exception.Message)" }
-    for ($i = 0; $i -lt 60; $i++) {
-        if ((Test-Path (Join-Path $o 'driver.log')) -and (Select-String -Path (Join-Path $o 'driver.log') -Pattern 'driver done' -Quiet)) { break }
-        Start-Sleep -Seconds 2
-    }
-    if (Test-Path (Join-Path $o 'driver.log')) { break }
-}
-if (Test-Path (Join-Path $o 'driver.log')) { Copy-Item (Join-Path $o 'driver.log') (Join-Path $OutDir 'driver-medium.log') } else { Log 'MEDIUM INTEGRITY: no driver.log after two attempts (runas /trustlevel did not start the driver)' }
+& (Join-Path $toolsMed 'S6bDriver.exe') --selftest $o $fx2 $work 2>&1 | Out-Null
+if (Test-Path (Join-Path $o 'driver.log')) { Copy-Item (Join-Path $o 'driver.log') (Join-Path $OutDir 'driver-medium.log') } else { Log 'MEDIUM INTEGRITY: no driver.log' }
 
 Mark 'driver at LOW integrity (token with the Low label)'
 $o = Join-Path $logDir 'out-low'; $work = Join-Path $logDir 'work-low'

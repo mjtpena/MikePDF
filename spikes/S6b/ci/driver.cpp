@@ -358,6 +358,12 @@ static void SetDefaultValue(const std::wstring& subkey, const wchar_t* value) {
     P("  registry: HKCU\\%ls = %ls (%s)", subkey.c_str(), value, r == ERROR_SUCCESS ? "written" : "FAILED");
 }
 
+// Microsoft: after changing a shell extension handler's registration, SHChangeNotify(SHCNE_ASSOCCHANGED) must be called or the change may not be seen (docs: "Creating Shell Extension Handlers").
+static void AssocChanged() {
+    SHChangeNotify(SHCNE_ASSOCCHANGED, SHCNF_IDLIST | SHCNF_FLUSH, nullptr, nullptr);
+    Sleep(1500);
+}
+
 // Run in a fresh process per case: the shell caches association lookups for the life of the process that asks.
 static int Experiment(const std::wstring& name, const std::wstring& dir, const std::wstring& pdf) {
     const wchar_t* thumbIid = L"{E357FCCD-A995-4576-B01F-234630154E96}";
@@ -371,6 +377,7 @@ static int Experiment(const std::wstring& name, const std::wstring& dir, const s
     if (name == L"ext-level") SetDefaultValue(extKey, competitor);
     if (name == L"progid-level") SetDefaultValue(progKey, competitor);
     if (name == L"both") { SetDefaultValue(extKey, competitor); SetDefaultValue(progKey, competitor); }
+    if (name != L"none") { AssocChanged(); P("  SHChangeNotify(SHCNE_ASSOCCHANGED) sent, waited 1.5 s"); }
     wchar_t file[MAX_PATH];
     swprintf_s(file, L"%ls\\exp-%ls-%lu.pdf", dir.c_str(), name.c_str(), GetCurrentProcessId());
     CopyFixture(pdf, file);
@@ -382,6 +389,7 @@ static int Experiment(const std::wstring& name, const std::wstring& dir, const s
     P("  served by: MikePDF packaged handler +%d, competitor (ExeServer) +%d", CountIn("C:\\s6b-log\\handler.log", "GetThumbnail cx=") - ours0, CountIn("C:\\s6b-log\\comserver.log", "GetThumbnail cx=") - theirs0);
     if (name == L"ext-level" || name == L"both") RegDeleteTreeW(HKEY_CURRENT_USER, extKey.c_str());
     if (name == L"progid-level" || name == L"both") RegDeleteTreeW(HKEY_CURRENT_USER, progKey.c_str());
+    if (name != L"none") AssocChanged();
     return 0;
 }
 
