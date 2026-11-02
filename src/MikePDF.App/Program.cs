@@ -16,6 +16,7 @@ public static class Program
     [STAThread]
     public static int Main(string[] args)
     {
+        AppTrace.ProcessMain();
         WinRT.ComWrappersSupport.InitializeComWrappers();
 #if MIKEPDF_SELFTEST
         if (SelfTest.Requested(args))

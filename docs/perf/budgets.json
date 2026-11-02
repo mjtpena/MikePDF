@@ -1,0 +1,189 @@
+{
+  "schema": 1,
+  "source": "docs/MASTER-PROMPT.md section 11 (Performance budgets). Opus may revise numbers after spike S2, with an ADR.",
+  "regressionThreshold": 0.10,
+  "tiers": {
+    "R1": {
+      "description": "Low-end: x64, 4 cores, 8 GB RAM, integrated graphics, SSD. Budgets are measured here unless stated.",
+      "hardware": null
+    },
+    "R2": {
+      "description": "ARM64: Snapdragon X-class Copilot+ PC, 16 GB RAM.",
+      "hardware": null
+    },
+    "R3": {
+      "description": "High-end: x64, 8+ cores, 32 GB RAM, discrete GPU, 4K display.",
+      "hardware": null
+    }
+  },
+  "metrics": [
+    {
+      "budgetId": "startup.cold",
+      "name": "Cold start to interactive empty window",
+      "unit": "ms",
+      "direction": "lower",
+      "targets": { "R1": 600, "R2": 600, "R3": 350 },
+      "targetsInherited": ["R2"],
+      "measuredBy": "app-etw",
+      "harnessMetrics": ["app.cold_start_to_interactive"],
+      "notes": "Process creation to the window shown, laid out and the UI thread idle (markers ProcessMain, WindowInteractive). Needs the packaged app: tools/MikePDF.Perf/measure-app.ps1, run by the reviewer. Not measured by the headless suite."
+    },
+    {
+      "budgetId": "open.cold.1p",
+      "name": "Cold open of a 1-page PDF from Explorer to first rendered pixel",
+      "unit": "ms",
+      "direction": "lower",
+      "targets": { "R1": 800, "R2": 800, "R3": 800 },
+      "targetsInherited": ["R2", "R3"],
+      "measuredBy": "headless-part+app-etw",
+      "harnessMetrics": ["app.cold_open_to_first_pixel", "open.cold_engine.first_tile.text1"],
+      "coverage": { "open.cold_engine.first_tile.text1": "lower-bound" },
+      "notes": "The headless metric is the engine's share only (two engine starts, open, first tile). Process start, XAML and drawing come from the app markers. 'Cold' here means a fresh process with a warm OS file cache; a true cold file cache (after a reboot) is not produced by either tool."
+    },
+    {
+      "budgetId": "open.warm.20p",
+      "name": "Warm open (app running) to first rendered pixel, typical 20-page PDF",
+      "unit": "ms",
+      "direction": "lower",
+      "targets": { "R1": 250, "R2": 250, "R3": 250 },
+      "targetsInherited": ["R2", "R3"],
+      "measuredBy": "headless-part+app-etw",
+      "harnessMetrics": ["app.warm_open_to_first_pixel", "open.warm.first_tile.text20"],
+      "coverage": { "open.warm.first_tile.text20": "lower-bound" },
+      "notes": "The headless metric follows the app's own open sequence (a new document engine and pool engine per document) up to the first sharp tile; the UI thread's upload and draw are on top of it. open.engine_warm.first_tile.text20 is the same open in an engine that is already running."
+    },
+    {
+      "budgetId": "open.large.2000p",
+      "name": "2,000-page PDF: first page visible",
+      "unit": "ms",
+      "direction": "lower",
+      "targets": { "R1": 1000, "R2": 1000, "R3": 1000 },
+      "targetsInherited": ["R2", "R3"],
+      "measuredBy": "headless-part+app-etw",
+      "harnessMetrics": ["open.large.first_tile.text2000"],
+      "coverage": { "open.large.first_tile.text2000": "lower-bound" },
+      "notes": "Same sequence as the warm open, on the generated 2,000-page document. A scanned or image-heavy 2,000-page file will differ: the generated pages are text."
+    },
+    {
+      "budgetId": "scroll.fps",
+      "name": "Scroll frame rate on a typical text PDF",
+      "unit": "frames/s",
+      "direction": "higher",
+      "targets": { "R1": 60, "R2": 60, "R3": null },
+      "targetsInherited": ["R2"],
+      "measuredBy": "app-etw",
+      "harnessMetrics": ["app.scroll_fps"],
+      "notes": "60 fps sustained on R1; on R3 the display's refresh rate, which is not a fixed number, so no numeric target is set. Needs a continuous 10 s fling as input (measure-app.ps1 -Fling drives the mouse wheel, or a person flings by hand); frames are draws of the page surface, not DWM presents."
+    },
+    {
+      "budgetId": "scroll.frame_max",
+      "name": "No frame over 50 ms during a 10 s fling",
+      "unit": "ms",
+      "direction": "lower",
+      "targets": { "R1": 50, "R2": 50, "R3": 50 },
+      "targetsInherited": ["R2", "R3"],
+      "measuredBy": "app-etw",
+      "harnessMetrics": ["app.scroll_frame_interval_max"],
+      "notes": "The longest gap between two draws while input was arriving. See scroll.fps for the capture."
+    },
+    {
+      "budgetId": "scroll.blank",
+      "name": "Blank area visible while scrolling",
+      "unit": "blank frames",
+      "direction": "lower",
+      "targets": { "R1": 0, "R2": 0, "R3": 0 },
+      "targetsInherited": ["R2", "R3"],
+      "measuredBy": "manual",
+      "harnessMetrics": [],
+      "notes": "None allowed; a low-res placeholder is always present. Not measured by this harness. Spike S2 counted blank frames from the draw list on a development machine only (docs/spikes/S2.md); a counter in the presenter would make it an automated metric."
+    },
+    {
+      "budgetId": "zoom.response",
+      "name": "Zoom gesture response: sharp tiles after the gesture settles",
+      "unit": "ms",
+      "direction": "lower",
+      "targets": { "R1": 300, "R2": 300, "R3": 300 },
+      "targetsInherited": ["R2", "R3"],
+      "measuredBy": "manual",
+      "harnessMetrics": [],
+      "notes": "Next frame by GPU scaling, sharp tiles within 300 ms of the settle. Not measured by this harness; spike S2 measured it on a development machine."
+    },
+    {
+      "budgetId": "search.500p.first",
+      "name": "Search, 500-page text PDF: first result",
+      "unit": "ms",
+      "direction": "lower",
+      "targets": { "R1": 300, "R2": 300, "R3": 300 },
+      "targetsInherited": ["R2", "R3"],
+      "measuredBy": "headless",
+      "harnessMetrics": ["search.first_result.text500"],
+      "notes": "FindSession from page 1; the generated document has its first match on page 5, so five pages are searched before the first result."
+    },
+    {
+      "budgetId": "search.500p.full",
+      "name": "Search, 500-page text PDF: full results",
+      "unit": "ms",
+      "direction": "lower",
+      "targets": { "R1": 3000, "R2": 3000, "R3": 3000 },
+      "targetsInherited": ["R2", "R3"],
+      "measuredBy": "headless",
+      "harnessMetrics": ["search.full.text500"],
+      "notes": "Every page searched, 11 matches found. Highlighting the matches on screen is not included."
+    },
+    {
+      "budgetId": "ink.latency",
+      "name": "Ink pen-to-pixel latency",
+      "unit": "ms",
+      "direction": "lower",
+      "targets": { "R1": 25, "R2": 25, "R3": 25 },
+      "targetsInherited": ["R2", "R3"],
+      "measuredBy": "manual",
+      "harnessMetrics": [],
+      "notes": "Surface Pro-class hardware with a pen and a high-speed camera (spike S5, R-17). There is no ink in the app yet (M4). Cannot be measured by software alone."
+    },
+    {
+      "budgetId": "memory.ui.20p",
+      "name": "UI process memory, idle with one 20-page document",
+      "unit": "MB",
+      "direction": "lower",
+      "targets": { "R1": 200, "R2": 200, "R3": 200 },
+      "targetsInherited": ["R2", "R3"],
+      "measuredBy": "app-etw",
+      "harnessMetrics": ["app.ui_working_set"],
+      "notes": "Working set of MikePDF.exe sampled by measure-app.ps1 after the document has drawn and the UI has been idle. Needs the packaged app."
+    },
+    {
+      "budgetId": "memory.engine.500p",
+      "name": "Engine process memory, 500-page document after full scroll",
+      "unit": "MB",
+      "direction": "lower",
+      "targets": { "R1": 600, "R2": 600, "R3": 600 },
+      "targetsInherited": ["R2", "R3"],
+      "measuredBy": "headless",
+      "harnessMetrics": ["memory.engine_peak_working_set.text500"],
+      "notes": "Peak working set of the document engine after rendering every 512 px tile of every page at 100% (3,000 tiles), three in flight. 1 MB = 1,048,576 bytes. Private bytes are reported next to it."
+    },
+    {
+      "budgetId": "install.size",
+      "name": "Install size (MSIX, single architecture)",
+      "unit": "MB",
+      "direction": "lower",
+      "targets": { "R1": 60, "R2": 60, "R3": 60 },
+      "targetsInherited": ["R2", "R3"],
+      "measuredBy": "package",
+      "harnessMetrics": ["package.install_size"],
+      "notes": "Unpacked size of the .msix (the sum of its files), excluding optional AI models; skipped when no package has been built. The size of the .msix file itself is reported as package.msix_file_size."
+    },
+    {
+      "budgetId": "recovery.engine_crash",
+      "name": "Engine crash to restored document",
+      "unit": "ms",
+      "direction": "lower",
+      "targets": { "R1": 2000, "R2": 2000, "R3": 2000 },
+      "targetsInherited": ["R2", "R3"],
+      "measuredBy": "headless",
+      "harnessMetrics": ["recovery.crash_to_first_tile"],
+      "notes": "From killing the sandboxed engine process to the same document rendering a tile in the replacement engine. The in-app banner is not included."
+    }
+  ]
+}

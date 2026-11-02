@@ -353,7 +353,11 @@ internal sealed partial class DocumentSession : IAsyncDisposable
 
     public void SetViewport(double width, double height, double dpiScale) => Change(() => Controller.SetViewport(width, height, dpiScale));
 
-    public void ScrollBy(double dx, double dy) => Change(() => Controller.ScrollBy(dx, dy), trackVelocity: true);
+    public void ScrollBy(double dx, double dy)
+    {
+        AppTrace.ScrollInput();
+        Change(() => Controller.ScrollBy(dx, dy), trackVelocity: true);
+    }
 
     public void ZoomBy(double factor, PointD? anchor = null) => Change(() => Controller.ZoomBy(factor, anchor));
 

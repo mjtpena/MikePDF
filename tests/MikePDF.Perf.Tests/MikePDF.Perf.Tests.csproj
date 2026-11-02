@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="..\..\tools\MikePDF.Perf\MikePDF.Perf.csproj" />
+    <ProjectReference Include="..\..\src\MikePDF.Broker\MikePDF.Broker.csproj" />
+    <ProjectReference Include="..\..\src\MikePDF.Core\MikePDF.Core.csproj" />
+    <ProjectReference Include="..\..\src\MikePDF.Protocol\MikePDF.Protocol.csproj" />
+  </ItemGroup>
+  <PropertyGroup>
+    <!-- Engine round trips use explicit timeouts; the per-test cancellation token adds nothing. -->
+    <NoWarn>$(NoWarn);xUnit1051</NoWarn>
+  </PropertyGroup>
+</Project>
