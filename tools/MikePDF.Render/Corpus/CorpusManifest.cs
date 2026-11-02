@@ -62,6 +62,12 @@ internal sealed record CorpusFile
 
     public bool Redistributable { get; init; }
 
+    /// <summary>Where the licence of this file (not just of its source's repository) was read: a URL or a short statement. Required for files outside the smoke tier.</summary>
+    public string? LicenceEvidence { get; init; }
+
+    /// <summary>The result of the per-file licence audit: what was checked, by whom and when, and anything noted. Absent means the file was not audited individually.</summary>
+    public string? Audit { get; init; }
+
     public required string Sha256 { get; init; }
 
     public long Bytes { get; init; }

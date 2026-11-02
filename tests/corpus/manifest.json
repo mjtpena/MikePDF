@@ -22,7 +22,8 @@
         "opens": true,
         "status": "Ok",
         "pages": 1
-      }
+      },
+      "audit": "audited 2026-11-03: first added in 506e6dc46 (Tom Sepez, 2015-01-27: Add embedder test for stream length beyond end of file.) to the BSD-3-Clause repository under Google's contributor agreement; hand-written template hello_world.in is in the same folder; rendered and scanned, no third-party text, logos, photographs or copyright notices."
     },
     {
       "id": "pdfium/hello_world_2_pages.pdf",
@@ -45,7 +46,8 @@
         "opens": true,
         "status": "Ok",
         "pages": 2
-      }
+      },
+      "audit": "audited 2026-11-03: first added in 506e6dc46 (Tom Sepez, 2015-01-27: Add embedder test for stream length beyond end of file.) to the BSD-3-Clause repository under Google's contributor agreement; hand-written template hello_world_2_pages.in is in the same folder; rendered and scanned, no third-party text, logos, photographs or copyright notices."
     },
     {
       "id": "pdfium/text_font.pdf",
@@ -68,7 +70,8 @@
         "opens": true,
         "status": "Ok",
         "pages": 1
-      }
+      },
+      "audit": "audited 2026-11-03: first added in 53d4f0a45 (Miklos Vajna, 2018-08-01: Add FPDFText_GetFontName() API) to the BSD-3-Clause repository under Google's contributor agreement; binary file with no template source; rendered and scanned, no third-party text, logos, photographs or copyright notices. Embeds a Liberation Serif subset (SIL OFL 1.1, which allows embedding in documents)."
     },
     {
       "id": "pdfium/latin_extended.pdf",
@@ -91,7 +94,8 @@
         "opens": true,
         "status": "Ok",
         "pages": 1
-      }
+      },
+      "audit": "audited 2026-11-03: first added in fee18fe49 (Lei Zhang, 2019-07-26: Add FPDFText_FindStart() test case with non-ASCII characters.) to the BSD-3-Clause repository under Google's contributor agreement; binary file with no template source; rendered and scanned, no third-party text, logos, photographs or copyright notices. Printed by Skia/PDF from a Chrome page; embeds a Roboto subset (Apache-2.0)."
     },
     {
       "id": "pdfium/arabic.pdf",
@@ -114,7 +118,8 @@
         "opens": true,
         "status": "Ok",
         "pages": 1
-      }
+      },
+      "audit": "audited 2026-11-03: first added in 80bccb870 (Lei Zhang, 2026-09-17: Add FPDFTextEmbedderTest.Arabic regression test) to the BSD-3-Clause repository under Google's contributor agreement; hand-written template arabic.in is in the same folder; rendered and scanned, no third-party text, logos, photographs or copyright notices."
     },
     {
       "id": "pdfium/vertical_text.pdf",
@@ -137,7 +142,8 @@
         "opens": true,
         "status": "Ok",
         "pages": 1
-      }
+      },
+      "audit": "audited 2026-11-03: first added in 0f4ac587a (Ian Prest, 2019-09-26: New API to retrieve a character's loose bounds) to the BSD-3-Clause repository under Google's contributor agreement; hand-written template vertical_text.in is in the same folder; rendered and scanned, no third-party text, logos, photographs or copyright notices."
     },
     {
       "id": "pdfium/hebrew_mirrored.pdf",
@@ -160,7 +166,8 @@
         "opens": true,
         "status": "Ok",
         "pages": 1
-      }
+      },
+      "audit": "audited 2026-11-03: first added in 0e550952d (Lei Zhang, 2020-03-27: Add a FPDFTextEmbedderTest for mirrored Hebrew text.) to the BSD-3-Clause repository under Google's contributor agreement; hand-written template hebrew_mirrored.in is in the same folder; rendered and scanned, no third-party text, logos, photographs or copyright notices."
     },
     {
       "id": "pdfium/actual_text_rtl.pdf",
@@ -183,7 +190,8 @@
         "opens": true,
         "status": "Ok",
         "pages": 1
-      }
+      },
+      "audit": "audited 2026-11-03: first added in 506e6dc46 (Tom Sepez, 2015-01-27: Add embedder test for stream length beyond end of file.) to the BSD-3-Clause repository under Google's contributor agreement; hand-written template actual_text_rtl.in is in the same folder; rendered and scanned, no third-party text, logos, photographs or copyright notices."
     },
     {
       "id": "pdfium/text_color.pdf",
@@ -205,7 +213,8 @@
         "opens": true,
         "status": "Ok",
         "pages": 1
-      }
+      },
+      "audit": "audited 2026-11-03: first added in 506e6dc46 (Tom Sepez, 2015-01-27: Add embedder test for stream length beyond end of file.) to the BSD-3-Clause repository under Google's contributor agreement; hand-written template text_color.in is in the same folder; rendered and scanned, no third-party text, logos, photographs or copyright notices."
     },
     {
       "id": "pdfium/text_render_mode.pdf",
@@ -227,7 +236,8 @@
         "opens": true,
         "status": "Ok",
         "pages": 1
-      }
+      },
+      "audit": "audited 2026-11-03: first added in 1448cc11b (Miklos Vajna, 2018-07-03: Add FPDFText_GetTextRenderMode() API) to the BSD-3-Clause repository under Google's contributor agreement; binary file with no template source; rendered and scanned, no third-party text, logos, photographs or copyright notices."
     },
     {
       "id": "pdfium/rotated_text.pdf",
@@ -250,7 +260,8 @@
         "opens": true,
         "status": "Ok",
         "pages": 1
-      }
+      },
+      "audit": "audited 2026-11-03: first added in 506e6dc46 (Tom Sepez, 2015-01-27: Add embedder test for stream length beyond end of file.) to the BSD-3-Clause repository under Google's contributor agreement; hand-written template rotated_text.in is in the same folder; rendered and scanned, no third-party text, logos, photographs or copyright notices."
     },
     {
       "id": "pdfium/rotated_text_90.pdf",
@@ -273,7 +284,8 @@
         "opens": true,
         "status": "Ok",
         "pages": 1
-      }
+      },
+      "audit": "audited 2026-11-03: first added in 506e6dc46 (Tom Sepez, 2015-01-27: Add embedder test for stream length beyond end of file.) to the BSD-3-Clause repository under Google's contributor agreement; hand-written template rotated_text_90.in is in the same folder; rendered and scanned, no third-party text, logos, photographs or copyright notices."
     },
     {
       "id": "pdfium/bigtable_mini.pdf",
@@ -296,7 +308,8 @@
         "opens": true,
         "status": "Ok",
         "pages": 1
-      }
+      },
+      "audit": "audited 2026-11-03: first added in 2a66db2c7 (Lei Zhang, 2021-07-15: Add a test case for FPDFText_GetUnicode() regression.) to the BSD-3-Clause repository under Google's contributor agreement; hand-written template bigtable_mini.in is in the same folder; rendered and scanned, no third-party text, logos, photographs or copyright notices."
     },
     {
       "id": "pdfium/font_matrix.pdf",
@@ -318,7 +331,8 @@
         "opens": true,
         "status": "Ok",
         "pages": 1
-      }
+      },
+      "audit": "audited 2026-11-03: first added in 506e6dc46 (Tom Sepez, 2015-01-27: Add embedder test for stream length beyond end of file.) to the BSD-3-Clause repository under Google's contributor agreement; hand-written template font_matrix.in is in the same folder; rendered and scanned, no third-party text, logos, photographs or copyright notices."
     },
     {
       "id": "pdfium/rectangles.pdf",
@@ -340,7 +354,8 @@
         "opens": true,
         "status": "Ok",
         "pages": 1
-      }
+      },
+      "audit": "audited 2026-11-03: first added in 60bde1073 (Nicolas Pena, 2017-07-26: Fix FPDF_RenderPageBitmapWithMatrix) to the BSD-3-Clause repository under Google's contributor agreement; hand-written template rectangles.in is in the same folder; rendered and scanned, no third-party text, logos, photographs or copyright notices."
     },
     {
       "id": "pdfium/rectangles_multi_pages.pdf",
@@ -364,7 +379,8 @@
         "opens": true,
         "status": "Ok",
         "pages": 5
-      }
+      },
+      "audit": "audited 2026-11-03: first added in 66ce22c6c (xlou, 2018-01-31: Experimental API for N-up feature support for print) to the BSD-3-Clause repository under Google's contributor agreement; hand-written template rectangles_multi_pages.in is in the same folder; rendered and scanned, no third-party text, logos, photographs or copyright notices."
     },
     {
       "id": "pdfium/many_rectangles.pdf",
@@ -386,7 +402,8 @@
         "opens": true,
         "status": "Ok",
         "pages": 1
-      }
+      },
+      "audit": "audited 2026-11-03: first added in 657a1aa07 (Henrique Nakashima, 2018-09-12: Set correct stream index when parsing is done in several steps.) to the BSD-3-Clause repository under Google's contributor agreement; hand-written template many_rectangles.in is in the same folder; rendered and scanned, no third-party text, logos, photographs or copyright notices."
     },
     {
       "id": "pdfium/dashed_lines.pdf",
@@ -408,7 +425,8 @@
         "opens": true,
         "status": "Ok",
         "pages": 1
-      }
+      },
+      "audit": "audited 2026-11-03: first added in e0bbe4aac (Tom Sepez, 2015-01-23: Fix null crash in CheckTrailer.) to the BSD-3-Clause repository under Google's contributor agreement; hand-written template dashed_lines.in is in the same folder; rendered and scanned, no third-party text, logos, photographs or copyright notices."
     },
     {
       "id": "pdfium/clip_path.pdf",
@@ -430,7 +448,8 @@
         "opens": true,
         "status": "Ok",
         "pages": 1
-      }
+      },
+      "audit": "audited 2026-11-03: first added in e0bbe4aac (Tom Sepez, 2015-01-23: Fix null crash in CheckTrailer.) to the BSD-3-Clause repository under Google's contributor agreement; hand-written template clip_path.in is in the same folder; rendered and scanned, no third-party text, logos, photographs or copyright notices."
     },
     {
       "id": "pdfium/pattern_fill.pdf",
@@ -453,7 +472,8 @@
         "opens": true,
         "status": "Ok",
         "pages": 1
-      }
+      },
+      "audit": "audited 2026-11-03: first added in 506e6dc46 (Tom Sepez, 2015-01-27: Add embedder test for stream length beyond end of file.) to the BSD-3-Clause repository under Google's contributor agreement; hand-written template pattern_fill.in is in the same folder; rendered and scanned, no third-party text, logos, photographs or copyright notices."
     },
     {
       "id": "pdfium/pattern_stroke.pdf",
@@ -476,7 +496,8 @@
         "opens": true,
         "status": "Ok",
         "pages": 1
-      }
+      },
+      "audit": "audited 2026-11-03: first added in 506e6dc46 (Tom Sepez, 2015-01-27: Add embedder test for stream length beyond end of file.) to the BSD-3-Clause repository under Google's contributor agreement; hand-written template pattern_stroke.in is in the same folder; rendered and scanned, no third-party text, logos, photographs or copyright notices."
     },
     {
       "id": "pdfium/multiple_graphics_states.pdf",
@@ -498,7 +519,8 @@
         "opens": true,
         "status": "Ok",
         "pages": 1
-      }
+      },
+      "audit": "audited 2026-11-03: first added in 60bde1073 (Nicolas Pena, 2017-07-26: Fix FPDF_RenderPageBitmapWithMatrix) to the BSD-3-Clause repository under Google's contributor agreement; hand-written template multiple_graphics_states.in is in the same folder; rendered and scanned, no third-party text, logos, photographs or copyright notices."
     },
     {
       "id": "pdfium/bug_547706.pdf",
@@ -521,7 +543,8 @@
         "opens": true,
         "status": "Ok",
         "pages": 1
-      }
+      },
+      "audit": "audited 2026-11-03: first added in 85361b227 (Dan Sinclair, 2015-10-26: Make m_pShadingObj a CPDF_Stream instead of CPDF_Object.) to the BSD-3-Clause repository under Google's contributor agreement; hand-written template bug_547706.in is in the same folder; rendered and scanned, no third-party text, logos, photographs or copyright notices."
     },
     {
       "id": "pdfium/bug_901654.pdf",
@@ -544,7 +567,8 @@
         "opens": true,
         "status": "Ok",
         "pages": 1
-      }
+      },
+      "audit": "audited 2026-11-03: first added in 9cdf613ce (Tom Sepez, 2018-11-01: Make CPDF_ContentMarkItem stop caching the properties dict.) to the BSD-3-Clause repository under Google's contributor agreement; hand-written template bug_901654.in is in the same folder; rendered and scanned, no third-party text, logos, photographs or copyright notices."
     },
     {
       "id": "pdfium/pixel/bug_42271010.pdf",
@@ -567,7 +591,8 @@
         "opens": true,
         "status": "Ok",
         "pages": 1
-      }
+      },
+      "audit": "audited 2026-11-03: first added in a59704451 (Hui Yingst, 2023-03-23: Add a pixel test for axial shading) to the BSD-3-Clause repository under Google's contributor agreement; binary file with no template source; rendered and scanned, no third-party text, logos, photographs or copyright notices."
     },
     {
       "id": "pdfium/bug_583.pdf",
@@ -590,7 +615,8 @@
         "opens": true,
         "status": "Ok",
         "pages": 1
-      }
+      },
+      "audit": "audited 2026-11-03: first added in 84be3a3cf (npm, 2016-09-15: Use ToUnicode mapping even when unicode is 0.) to the BSD-3-Clause repository under Google's contributor agreement; binary file with no template source; rendered and scanned, no third-party text, logos, photographs or copyright notices. Skia/PDF test output (skbug_5606_b): the Skia project is BSD-3-Clause."
     },
     {
       "id": "pdfium/bug_642.pdf",
@@ -613,7 +639,8 @@
         "opens": true,
         "status": "Ok",
         "pages": 1
-      }
+      },
+      "audit": "audited 2026-11-03: first added in 52e9146a6 (Hui Yingst, 2020-01-14: Add an embeddertest for text extraction of Type 3 fonts.) to the BSD-3-Clause repository under Google's contributor agreement; hand-written template bug_642.in is in the same folder; rendered and scanned, no third-party text, logos, photographs or copyright notices."
     },
     {
       "id": "pdfium/bug_1591.pdf",
@@ -636,29 +663,8 @@
         "opens": true,
         "status": "Ok",
         "pages": 1
-      }
-    },
-    {
-      "id": "pdfium/embedded_images.pdf",
-      "origin": "fetch",
-      "source": "https://pdfium.googlesource.com/pdfium/+/43d55e429cf72c21e9a1e60475b50feefa16fda9/testing/resources/embedded_images.pdf",
-      "fetchUrl": "https://pdfium.googlesource.com/pdfium/+/43d55e429cf72c21e9a1e60475b50feefa16fda9/testing/resources/embedded_images.pdf?format=TEXT",
-      "fetchEncoding": "base64",
-      "licence": "BSD-3-Clause",
-      "redistributable": true,
-      "sha256": "13e3286f1fa7af8e762eaf013ef3f7ab4822776062fcec9a12c3f34aeb8982c2",
-      "bytes": 34279,
-      "tags": [
-        "image"
-      ],
-      "tiers": [
-        "smoke"
-      ],
-      "expect": {
-        "opens": true,
-        "status": "Ok",
-        "pages": 1
-      }
+      },
+      "audit": "audited 2026-11-03: first added in 2b2e1584e (Lei Zhang, 2020-09-18: Add a test case for FPDFText_GetCharBox() returning tall char box.) to the BSD-3-Clause repository under Google's contributor agreement; hand-written template bug_1591.in is in the same folder; rendered and scanned, no third-party text, logos, photographs or copyright notices."
     },
     {
       "id": "pdfium/jpeg_reduced_size.pdf",
@@ -681,7 +687,8 @@
         "opens": true,
         "status": "Ok",
         "pages": 1
-      }
+      },
+      "audit": "audited 2026-11-03: first added in 009b91d9d (Nico Weber, 2026-07-08: Decode JPEGs at reduced size via libjpeg scale_denom) to the BSD-3-Clause repository under Google's contributor agreement; hand-written template jpeg_reduced_size.in is in the same folder; rendered and scanned, no third-party text, logos, photographs or copyright notices."
     },
     {
       "id": "pdfium/jpeg_reduced_size_with_smask.pdf",
@@ -706,7 +713,8 @@
         "opens": true,
         "status": "Ok",
         "pages": 1
-      }
+      },
+      "audit": "audited 2026-11-03: first added in 009b91d9d (Nico Weber, 2026-07-08: Decode JPEGs at reduced size via libjpeg scale_denom) to the BSD-3-Clause repository under Google's contributor agreement; hand-written template jpeg_reduced_size_with_smask.in is in the same folder; rendered and scanned, no third-party text, logos, photographs or copyright notices."
     },
     {
       "id": "pdfium/simple_thumbnail.pdf",
@@ -730,7 +738,8 @@
         "opens": true,
         "status": "Ok",
         "pages": 2
-      }
+      },
+      "audit": "audited 2026-11-03: first added in 801e1bffb (Jeremy Chinsen, 2019-06-25: Create FPDF_Thumbnail API and refactor raw stream retrieval) to the BSD-3-Clause repository under Google's contributor agreement; hand-written template simple_thumbnail.in is in the same folder; rendered and scanned, no third-party text, logos, photographs or copyright notices."
     },
     {
       "id": "pdfium/matte.pdf",
@@ -754,7 +763,8 @@
         "opens": true,
         "status": "Ok",
         "pages": 1
-      }
+      },
+      "audit": "audited 2026-11-03: first added in 1f088ab87 (Lei Zhang, 2019-10-11: Avoid an assertion failure in CPDF_DIBBase::StartLoadMask().) to the BSD-3-Clause repository under Google's contributor agreement; hand-written template matte.in is in the same folder; rendered and scanned, no third-party text, logos, photographs or copyright notices."
     },
     {
       "id": "pdfium/rotated_image.pdf",
@@ -777,7 +787,8 @@
         "opens": true,
         "status": "Ok",
         "pages": 1
-      }
+      },
+      "audit": "audited 2026-11-03: first added in 506e6dc46 (Tom Sepez, 2015-01-27: Add embedder test for stream length beyond end of file.) to the BSD-3-Clause repository under Google's contributor agreement; hand-written template rotated_image.in is in the same folder; rendered and scanned, no third-party text, logos, photographs or copyright notices."
     },
     {
       "id": "pdfium/image_clipped.pdf",
@@ -799,30 +810,8 @@
         "opens": true,
         "status": "Ok",
         "pages": 1
-      }
-    },
-    {
-      "id": "pdfium/bug_650.pdf",
-      "origin": "fetch",
-      "source": "https://pdfium.googlesource.com/pdfium/+/43d55e429cf72c21e9a1e60475b50feefa16fda9/testing/resources/bug_650.pdf",
-      "fetchUrl": "https://pdfium.googlesource.com/pdfium/+/43d55e429cf72c21e9a1e60475b50feefa16fda9/testing/resources/bug_650.pdf?format=TEXT",
-      "fetchEncoding": "base64",
-      "licence": "BSD-3-Clause",
-      "redistributable": true,
-      "sha256": "6ff67975c0a90b85e880f968b365b08a977eb3cae8200fdb3d32265cc27f7964",
-      "bytes": 85296,
-      "tags": [
-        "image",
-        "dct"
-      ],
-      "tiers": [
-        "smoke"
-      ],
-      "expect": {
-        "opens": true,
-        "status": "Ok",
-        "pages": 1
-      }
+      },
+      "audit": "audited 2026-11-03: first added in 506e6dc46 (Tom Sepez, 2015-01-27: Add embedder test for stream length beyond end of file.) to the BSD-3-Clause repository under Google's contributor agreement; hand-written template image_clipped.in is in the same folder; rendered and scanned, no third-party text, logos, photographs or copyright notices."
     },
     {
       "id": "pdfium/jpx_lzw.pdf",
@@ -845,7 +834,8 @@
         "opens": true,
         "status": "Ok",
         "pages": 1
-      }
+      },
+      "audit": "audited 2026-11-03: first added in 97b62e848 (Lei Zhang, 2019-06-20: Add a LZW compressed JPEG2000 image.) to the BSD-3-Clause repository under Google's contributor agreement; hand-written template jpx_lzw.in is in the same folder; rendered and scanned, no third-party text, logos, photographs or copyright notices."
     },
     {
       "id": "pdfium/bug_1396264.pdf",
@@ -868,7 +858,8 @@
         "opens": true,
         "status": "Ok",
         "pages": 1
-      }
+      },
+      "audit": "audited 2026-11-03: first added in dd9ef1c0d (Lei Zhang, 2019-10-31: Add a pixel test for a JPEG2000 decoding issue.) to the BSD-3-Clause repository under Google's contributor agreement; hand-written template bug_1396264.in is in the same folder; rendered and scanned, no third-party text, logos, photographs or copyright notices."
     },
     {
       "id": "pdfium/pixel/bug_304.pdf",
@@ -891,7 +882,8 @@
         "opens": true,
         "status": "Ok",
         "pages": 1
-      }
+      },
+      "audit": "audited 2026-11-03: first added in 0cbfea5bd (Lei Zhang, 2019-06-19: Add a pixel test for JPEG 2000 image decoding.) to the BSD-3-Clause repository under Google's contributor agreement; binary file with no template source; rendered and scanned, no third-party text, logos, photographs or copyright notices."
     },
     {
       "id": "pdfium/bug_552046.pdf",
@@ -915,7 +907,8 @@
         "opens": true,
         "status": "Ok",
         "pages": 1
-      }
+      },
+      "audit": "audited 2026-11-03: first added in 182d129bc (Oliver Chang, 2015-11-12: Clear decoders after the image decoder in the /Filter array.) to the BSD-3-Clause repository under Google's contributor agreement; hand-written template bug_552046.in is in the same folder; rendered and scanned, no third-party text, logos, photographs or copyright notices."
     },
     {
       "id": "pdfium/bug_631912.pdf",
@@ -938,7 +931,8 @@
         "opens": true,
         "status": "Ok",
         "pages": 1
-      }
+      },
+      "audit": "audited 2026-11-03: first added in 6faf9f950 (weili, 2016-08-02: Fix Jbig2 document context creation by checking proper pointer) to the BSD-3-Clause repository under Google's contributor agreement; binary file with no template source; rendered and scanned, no third-party text, logos, photographs or copyright notices."
     },
     {
       "id": "pdfium/bug_674771.pdf",
@@ -961,7 +955,8 @@
         "opens": true,
         "status": "Ok",
         "pages": 1
-      }
+      },
+      "audit": "audited 2026-11-03: first added in 3e36f6883 (Lei Zhang, 2020-05-13: Add FPDF_PRINTMODE_EMF_IMAGE_MASKS print mode.) to the BSD-3-Clause repository under Google's contributor agreement; hand-written template bug_674771.in is in the same folder; rendered and scanned, no third-party text, logos, photographs or copyright notices."
     },
     {
       "id": "pdfium/pixel/bug_867501.pdf",
@@ -984,7 +979,8 @@
         "opens": true,
         "status": "Ok",
         "pages": 1
-      }
+      },
+      "audit": "audited 2026-11-03: first added in 0562ff4f6 (Tom Sepez, 2018-08-01: Bounds check lineSrc in JBig2_Image.cpp.) to the BSD-3-Clause repository under Google's contributor agreement; binary file with no template source; rendered and scanned, no third-party text, logos, photographs or copyright notices."
     },
     {
       "id": "pdfium/pixel/bug_1087.pdf",
@@ -1008,7 +1004,8 @@
         "opens": true,
         "status": "Ok",
         "pages": 1
-      }
+      },
+      "audit": "audited 2026-11-03: first added in dd5459ce8 (Wei Li, 2018-05-31: Handle image mask continuous loading correctly) to the BSD-3-Clause repository under Google's contributor agreement; binary file with no template source; rendered and scanned, no third-party text, logos, photographs or copyright notices."
     },
     {
       "id": "pdfium/text_form.pdf",
@@ -1031,7 +1028,8 @@
         "opens": true,
         "status": "Ok",
         "pages": 1
-      }
+      },
+      "audit": "audited 2026-11-03: first added in 742977f94 (Nicolas Pena, 2017-04-13: Add embeddertest for form text rendering and saving) to the BSD-3-Clause repository under Google's contributor agreement; hand-written template text_form.in is in the same folder; rendered and scanned, no third-party text, logos, photographs or copyright notices."
     },
     {
       "id": "pdfium/text_form_multiple.pdf",
@@ -1054,7 +1052,8 @@
         "opens": true,
         "status": "Ok",
         "pages": 1
-      }
+      },
+      "audit": "audited 2026-11-03: first added in 742977f94 (Nicolas Pena, 2017-04-13: Add embeddertest for form text rendering and saving) to the BSD-3-Clause repository under Google's contributor agreement; hand-written template text_form_multiple.in is in the same folder; rendered and scanned, no third-party text, logos, photographs or copyright notices."
     },
     {
       "id": "pdfium/text_form_multiline.pdf",
@@ -1077,7 +1076,8 @@
         "opens": true,
         "status": "Ok",
         "pages": 1
-      }
+      },
+      "audit": "audited 2026-11-03: first added in 742977f94 (Nicolas Pena, 2017-04-13: Add embeddertest for form text rendering and saving) to the BSD-3-Clause repository under Google's contributor agreement; hand-written template text_form_multiline.in is in the same folder; rendered and scanned, no third-party text, logos, photographs or copyright notices."
     },
     {
       "id": "pdfium/combobox_form.pdf",
@@ -1099,7 +1099,8 @@
         "opens": true,
         "status": "Ok",
         "pages": 1
-      }
+      },
+      "audit": "audited 2026-11-03: first added in b5c5ec063 (Lei Zhang, 2017-06-20: Add sample PDF with comboboxes.) to the BSD-3-Clause repository under Google's contributor agreement; hand-written template combobox_form.in is in the same folder; rendered and scanned, no third-party text, logos, photographs or copyright notices."
     },
     {
       "id": "pdfium/listbox_form.pdf",
@@ -1121,7 +1122,8 @@
         "opens": true,
         "status": "Ok",
         "pages": 1
-      }
+      },
+      "audit": "audited 2026-11-03: first added in b5c5ec063 (Lei Zhang, 2017-06-20: Add sample PDF with comboboxes.) to the BSD-3-Clause repository under Google's contributor agreement; hand-written template listbox_form.in is in the same folder; rendered and scanned, no third-party text, logos, photographs or copyright notices."
     },
     {
       "id": "pdfium/multiple_form_types.pdf",
@@ -1143,7 +1145,8 @@
         "opens": true,
         "status": "Ok",
         "pages": 1
-      }
+      },
+      "audit": "audited 2026-11-03: first added in 8c7e4ade6 (Ankit Kumar, 2020-02-07: Test FPDFAnnot_GetFormFieldType API with more form field types) to the BSD-3-Clause repository under Google's contributor agreement; hand-written template multiple_form_types.in is in the same folder; rendered and scanned, no third-party text, logos, photographs or copyright notices."
     },
     {
       "id": "pdfium/click_form.pdf",
@@ -1165,75 +1168,8 @@
         "opens": true,
         "status": "Ok",
         "pages": 1
-      }
-    },
-    {
-      "id": "pdfium/annotation_highlight_square_with_ap.pdf",
-      "origin": "fetch",
-      "source": "https://pdfium.googlesource.com/pdfium/+/43d55e429cf72c21e9a1e60475b50feefa16fda9/testing/resources/annotation_highlight_square_with_ap.pdf",
-      "fetchUrl": "https://pdfium.googlesource.com/pdfium/+/43d55e429cf72c21e9a1e60475b50feefa16fda9/testing/resources/annotation_highlight_square_with_ap.pdf?format=TEXT",
-      "fetchEncoding": "base64",
-      "licence": "BSD-3-Clause",
-      "redistributable": true,
-      "sha256": "e553d46b65227646d6f2103cd380cc8355226d4b8f6a9c4a181ee0455e8b3217",
-      "bytes": 14249,
-      "tags": [
-        "annotation"
-      ],
-      "tiers": [
-        "smoke"
-      ],
-      "expect": {
-        "opens": true,
-        "status": "Ok",
-        "pages": 1
-      }
-    },
-    {
-      "id": "pdfium/annotation_ink_multiple.pdf",
-      "origin": "fetch",
-      "source": "https://pdfium.googlesource.com/pdfium/+/43d55e429cf72c21e9a1e60475b50feefa16fda9/testing/resources/annotation_ink_multiple.pdf",
-      "fetchUrl": "https://pdfium.googlesource.com/pdfium/+/43d55e429cf72c21e9a1e60475b50feefa16fda9/testing/resources/annotation_ink_multiple.pdf?format=TEXT",
-      "fetchEncoding": "base64",
-      "licence": "BSD-3-Clause",
-      "redistributable": true,
-      "sha256": "f163a27eb8718a96a4c3c4e0f5c4e75664f29d373a5bac8eb401dd1bc2ff461c",
-      "bytes": 52263,
-      "tags": [
-        "annotation",
-        "ink"
-      ],
-      "tiers": [
-        "smoke"
-      ],
-      "expect": {
-        "opens": true,
-        "status": "Ok",
-        "pages": 1
-      }
-    },
-    {
-      "id": "pdfium/annotation_stamp_with_ap.pdf",
-      "origin": "fetch",
-      "source": "https://pdfium.googlesource.com/pdfium/+/43d55e429cf72c21e9a1e60475b50feefa16fda9/testing/resources/annotation_stamp_with_ap.pdf",
-      "fetchUrl": "https://pdfium.googlesource.com/pdfium/+/43d55e429cf72c21e9a1e60475b50feefa16fda9/testing/resources/annotation_stamp_with_ap.pdf?format=TEXT",
-      "fetchEncoding": "base64",
-      "licence": "BSD-3-Clause",
-      "redistributable": true,
-      "sha256": "b3952e8ed5fac840f178b38fb08676ce59bc903bacdec14b868eacafdeca1a07",
-      "bytes": 101719,
-      "tags": [
-        "annotation",
-        "stamp"
-      ],
-      "tiers": [
-        "smoke"
-      ],
-      "expect": {
-        "opens": true,
-        "status": "Ok",
-        "pages": 1
-      }
+      },
+      "audit": "audited 2026-11-03: first added in 562caaea8 (Lei Zhang, 2019-07-17: Add click_form.pdf test PDF.) to the BSD-3-Clause repository under Google's contributor agreement; hand-written template click_form.in is in the same folder; rendered and scanned, no third-party text, logos, photographs or copyright notices."
     },
     {
       "id": "pdfium/annots.pdf",
@@ -1257,7 +1193,8 @@
         "opens": true,
         "status": "Ok",
         "pages": 2
-      }
+      },
+      "audit": "audited 2026-11-03: first added in 2016aa078 (Manoj Biswas, 2019-07-16: Add tests for FPDFLink_Enumerate() and friends) to the BSD-3-Clause repository under Google's contributor agreement; hand-written template annots.in is in the same folder; rendered and scanned, no third-party text, logos, photographs or copyright notices."
     },
     {
       "id": "pdfium/ink_annot.pdf",
@@ -1280,7 +1217,8 @@
         "opens": true,
         "status": "Ok",
         "pages": 1
-      }
+      },
+      "audit": "audited 2026-11-03: first added in 506e6dc46 (Tom Sepez, 2015-01-27: Add embedder test for stream length beyond end of file.) to the BSD-3-Clause repository under Google's contributor agreement; hand-written template ink_annot.in is in the same folder; rendered and scanned, no third-party text, logos, photographs or copyright notices."
     },
     {
       "id": "pdfium/line_annot.pdf",
@@ -1302,7 +1240,8 @@
         "opens": true,
         "status": "Ok",
         "pages": 1
-      }
+      },
+      "audit": "audited 2026-11-03: first added in 506e6dc46 (Tom Sepez, 2015-01-27: Add embedder test for stream length beyond end of file.) to the BSD-3-Clause repository under Google's contributor agreement; hand-written template line_annot.in is in the same folder; rendered and scanned, no third-party text, logos, photographs or copyright notices."
     },
     {
       "id": "pdfium/polygon_annot.pdf",
@@ -1324,7 +1263,8 @@
         "opens": true,
         "status": "Ok",
         "pages": 1
-      }
+      },
+      "audit": "audited 2026-11-03: first added in 506e6dc46 (Tom Sepez, 2015-01-27: Add embedder test for stream length beyond end of file.) to the BSD-3-Clause repository under Google's contributor agreement; hand-written template polygon_annot.in is in the same folder; rendered and scanned, no third-party text, logos, photographs or copyright notices."
     },
     {
       "id": "pdfium/annotation_fileattachment.pdf",
@@ -1348,7 +1288,8 @@
         "opens": true,
         "status": "Ok",
         "pages": 1
-      }
+      },
+      "audit": "audited 2026-11-03: first added in 1908cfc53 (Ivan Odulo, 2024-02-16: add file annot api) to the BSD-3-Clause repository under Google's contributor agreement; binary file with no template source; rendered and scanned, no third-party text, logos, photographs or copyright notices."
     },
     {
       "id": "pdfium/pixel/freetext_annotation_without_da.pdf",
@@ -1370,7 +1311,8 @@
         "opens": true,
         "status": "Ok",
         "pages": 1
-      }
+      },
+      "audit": "audited 2026-11-03: first added in c94af33ec (Lei Zhang, 2024-11-23: Add a pixel test for freetext annotation not rendering) to the BSD-3-Clause repository under Google's contributor agreement; binary file with no template source; rendered and scanned, no third-party text, logos, photographs or copyright notices."
     },
     {
       "id": "pdfium/links_highlights_annots.pdf",
@@ -1393,7 +1335,8 @@
         "opens": true,
         "status": "Ok",
         "pages": 1
-      }
+      },
+      "audit": "audited 2026-11-03: first added in 44f1f2069 (Neha Gupta, 2019-12-11: Added test cases for focus APIs of class BAAnnotHandler.) to the BSD-3-Clause repository under Google's contributor agreement; hand-written template links_highlights_annots.in is in the same folder; rendered and scanned, no third-party text, logos, photographs or copyright notices."
     },
     {
       "id": "pdfium/redact_annot.pdf",
@@ -1415,7 +1358,8 @@
         "opens": true,
         "status": "Ok",
         "pages": 1
-      }
+      },
+      "audit": "audited 2026-11-03: first added in 506e6dc46 (Tom Sepez, 2015-01-27: Add embedder test for stream length beyond end of file.) to the BSD-3-Clause repository under Google's contributor agreement; hand-written template redact_annot.in is in the same folder; rendered and scanned, no third-party text, logos, photographs or copyright notices."
     },
     {
       "id": "pdfium/encrypted.pdf",
@@ -1439,7 +1383,8 @@
         "password": "5678",
         "pages": 1,
         "note": "The user password is 5678 (PDFium's own tests use it)"
-      }
+      },
+      "audit": "audited 2026-11-03: first added in 27ddf1615 (thestig, 2016-05-23: Distinguish between user and owner passwords.) to the BSD-3-Clause repository under Google's contributor agreement; binary file with no template source; rendered and scanned, no third-party text, logos, photographs or copyright notices."
     },
     {
       "id": "pdfium/encrypted_hello_world_r2.pdf",
@@ -1461,7 +1406,8 @@
         "opens": false,
         "status": "PasswordRequired",
         "note": "Opened without its password, which this corpus does not know: the security handler (revision 2) is recognised and asks for one"
-      }
+      },
+      "audit": "audited 2026-11-03: first added in b76e45126 (Lei Zhang, 2019-01-14: Add tests for loading documents with non-ASCII passwords.) to the BSD-3-Clause repository under Google's contributor agreement; binary file with no template source; rendered and scanned, no third-party text, logos, photographs or copyright notices."
     },
     {
       "id": "pdfium/encrypted_hello_world_r3.pdf",
@@ -1483,7 +1429,8 @@
         "opens": false,
         "status": "PasswordRequired",
         "note": "Revision 3, opened without its password"
-      }
+      },
+      "audit": "audited 2026-11-03: first added in b76e45126 (Lei Zhang, 2019-01-14: Add tests for loading documents with non-ASCII passwords.) to the BSD-3-Clause repository under Google's contributor agreement; binary file with no template source; rendered and scanned, no third-party text, logos, photographs or copyright notices."
     },
     {
       "id": "pdfium/encrypted_hello_world_r5.pdf",
@@ -1505,7 +1452,8 @@
         "opens": false,
         "status": "PasswordRequired",
         "note": "Revision 5 (AES-256), opened without its password"
-      }
+      },
+      "audit": "audited 2026-11-03: first added in b76e45126 (Lei Zhang, 2019-01-14: Add tests for loading documents with non-ASCII passwords.) to the BSD-3-Clause repository under Google's contributor agreement; binary file with no template source; rendered and scanned, no third-party text, logos, photographs or copyright notices."
     },
     {
       "id": "pdfium/encrypted_hello_world_r6.pdf",
@@ -1527,7 +1475,8 @@
         "opens": false,
         "status": "PasswordRequired",
         "note": "Revision 6 (AES-256), opened without its password"
-      }
+      },
+      "audit": "audited 2026-11-03: first added in b76e45126 (Lei Zhang, 2019-01-14: Add tests for loading documents with non-ASCII passwords.) to the BSD-3-Clause repository under Google's contributor agreement; binary file with no template source; rendered and scanned, no third-party text, logos, photographs or copyright notices."
     },
     {
       "id": "pdfium/bug_xrefv4_loop.pdf",
@@ -1550,7 +1499,8 @@
         "status": "Ok",
         "pages": 1,
         "note": "A cross-reference loop"
-      }
+      },
+      "audit": "audited 2026-11-03: first added in e0bbe4aac (Tom Sepez, 2015-01-23: Fix null crash in CheckTrailer.) to the BSD-3-Clause repository under Google's contributor agreement; binary file with no template source; rendered and scanned, no third-party text, logos, photographs or copyright notices."
     },
     {
       "id": "pdfium/empty_xref.pdf",
@@ -1573,7 +1523,8 @@
         "status": "Ok",
         "pages": 1,
         "note": "An empty cross-reference table, rebuilt by scanning"
-      }
+      },
+      "audit": "audited 2026-11-03: first added in 506e6dc46 (Tom Sepez, 2015-01-27: Add embedder test for stream length beyond end of file.) to the BSD-3-Clause repository under Google's contributor agreement; binary file with no template source; rendered and scanned, no third-party text, logos, photographs or copyright notices."
     },
     {
       "id": "pdfium/parser_rebuildxref_correct.pdf",
@@ -1595,7 +1546,8 @@
         "opens": true,
         "status": "Ok",
         "pages": 1
-      }
+      },
+      "audit": "audited 2026-11-03: first added in 506e6dc46 (Tom Sepez, 2015-01-27: Add embedder test for stream length beyond end of file.) to the BSD-3-Clause repository under Google's contributor agreement; binary file with no template source; rendered and scanned, no third-party text, logos, photographs or copyright notices."
     },
     {
       "id": "pdfium/parser_rebuildxref_error_notrailer.pdf",
@@ -1617,7 +1569,8 @@
         "opens": false,
         "status": "Damaged",
         "note": "No trailer to rebuild from"
-      }
+      },
+      "audit": "audited 2026-11-03: first added in 506e6dc46 (Tom Sepez, 2015-01-27: Add embedder test for stream length beyond end of file.) to the BSD-3-Clause repository under Google's contributor agreement; binary file with no template source; rendered and scanned, no third-party text, logos, photographs or copyright notices."
     },
     {
       "id": "pdfium/trailer_unterminated.pdf",
@@ -1638,7 +1591,8 @@
       "expect": {
         "opens": false,
         "status": "Damaged"
-      }
+      },
+      "audit": "audited 2026-11-03: first added in e0bbe4aac (Tom Sepez, 2015-01-23: Fix null crash in CheckTrailer.) to the BSD-3-Clause repository under Google's contributor agreement; hand-written template trailer_unterminated.in is in the same folder; rendered and scanned, no third-party text, logos, photographs or copyright notices."
     },
     {
       "id": "pdfium/trailer_as_hexstring.pdf",
@@ -1659,7 +1613,8 @@
       "expect": {
         "opens": false,
         "status": "Damaged"
-      }
+      },
+      "audit": "audited 2026-11-03: first added in e0bbe4aac (Tom Sepez, 2015-01-23: Fix null crash in CheckTrailer.) to the BSD-3-Clause repository under Google's contributor agreement; hand-written template trailer_as_hexstring.in is in the same folder; rendered and scanned, no third-party text, logos, photographs or copyright notices."
     },
     {
       "id": "pdfium/bug_325_a.pdf",
@@ -1680,7 +1635,8 @@
       "expect": {
         "opens": false,
         "status": "Damaged"
-      }
+      },
+      "audit": "audited 2026-11-03: first added in 2d88e91ca (Lei Zhang, 2016-01-05: Fix an infinite loop in CPDF_Parser::RebuildCrossRef().) to the BSD-3-Clause repository under Google's contributor agreement; binary file with no template source; rendered and scanned, no third-party text, logos, photographs or copyright notices."
     },
     {
       "id": "pdfium/bug_1324189.pdf",
@@ -1701,7 +1657,8 @@
       "expect": {
         "opens": false,
         "status": "Damaged"
-      }
+      },
+      "audit": "audited 2026-11-03: first added in d6189f4cb (Tom Sepez, 2022-05-12: Beware of negative offset values in trailers.) to the BSD-3-Clause repository under Google's contributor agreement; hand-written template bug_1324189.in is in the same folder; rendered and scanned, no third-party text, logos, photographs or copyright notices."
     },
     {
       "id": "pdfium/page_tree_empty_node.pdf",
@@ -1724,7 +1681,8 @@
         "status": "Ok",
         "pages": 2,
         "note": "An empty node in the page tree"
-      }
+      },
+      "audit": "audited 2026-11-03: first added in 506e6dc46 (Tom Sepez, 2015-01-27: Add embedder test for stream length beyond end of file.) to the BSD-3-Clause repository under Google's contributor agreement; hand-written template page_tree_empty_node.in is in the same folder; rendered and scanned, no third-party text, logos, photographs or copyright notices."
     },
     {
       "id": "pdfium/no_page_count.pdf",
@@ -1747,7 +1705,8 @@
         "status": "Ok",
         "pages": 6,
         "note": "The page tree has no /Count"
-      }
+      },
+      "audit": "audited 2026-11-03: first added in 506e6dc46 (Tom Sepez, 2015-01-27: Add embedder test for stream length beyond end of file.) to the BSD-3-Clause repository under Google's contributor agreement; hand-written template no_page_count.in is in the same folder; rendered and scanned, no third-party text, logos, photographs or copyright notices."
     },
     {
       "id": "pdfium/bad_page_type.pdf",
@@ -1773,7 +1732,8 @@
       },
       "render": {
         "pages": "1"
-      }
+      },
+      "audit": "audited 2026-11-03: first added in 506e6dc46 (Tom Sepez, 2015-01-27: Add embedder test for stream length beyond end of file.) to the BSD-3-Clause repository under Google's contributor agreement; hand-written template bad_page_type.in is in the same folder; rendered and scanned, no third-party text, logos, photographs or copyright notices."
     },
     {
       "id": "pdfium/bug_713197.pdf",
@@ -1795,7 +1755,8 @@
         "opens": true,
         "status": "Ok",
         "pages": 1
-      }
+      },
+      "audit": "audited 2026-11-03: first added in e0bbe4aac (Tom Sepez, 2015-01-23: Fix null crash in CheckTrailer.) to the BSD-3-Clause repository under Google's contributor agreement; hand-written template bug_713197.in is in the same folder; rendered and scanned, no third-party text, logos, photographs or copyright notices."
     },
     {
       "id": "pdfium/bug_1229106.pdf",
@@ -1818,7 +1779,8 @@
         "opens": true,
         "status": "Ok",
         "pages": 4
-      }
+      },
+      "audit": "audited 2026-11-03: first added in 096cf51da (Lei Zhang, 2021-08-11: Add a test case for 2-up PDF generation with rotated pages.) to the BSD-3-Clause repository under Google's contributor agreement; hand-written template bug_1229106.in is in the same folder; rendered and scanned, no third-party text, logos, photographs or copyright notices."
     },
     {
       "id": "pdfium/cropped_text.pdf",
@@ -1842,7 +1804,8 @@
         "opens": true,
         "status": "Ok",
         "pages": 4
-      }
+      },
+      "audit": "audited 2026-11-03: first added in 49fa50d7e (Lei Zhang, 2018-06-08: Use FPDFText_GetBoundedText() to get the visible text in a test.) to the BSD-3-Clause repository under Google's contributor agreement; hand-written template cropped_text.in is in the same folder; rendered and scanned, no third-party text, logos, photographs or copyright notices."
     },
     {
       "id": "pdfium/cropped_no_overlap.pdf",
@@ -1864,7 +1827,8 @@
         "opens": true,
         "status": "Ok",
         "pages": 1
-      }
+      },
+      "audit": "audited 2026-11-03: first added in e0bbe4aac (Tom Sepez, 2015-01-23: Fix null crash in CheckTrailer.) to the BSD-3-Clause repository under Google's contributor agreement; hand-written template cropped_no_overlap.in is in the same folder; rendered and scanned, no third-party text, logos, photographs or copyright notices."
     },
     {
       "id": "pdfium/bug_1399.pdf",
@@ -1886,7 +1850,8 @@
         "opens": true,
         "status": "Ok",
         "pages": 1
-      }
+      },
+      "audit": "audited 2026-11-03: first added in 571f9325c (Lei Zhang, 2019-09-25: Fix crashes in FPDFClipPath_CountPaths() and friends.) to the BSD-3-Clause repository under Google's contributor agreement; binary file with no template source; rendered and scanned, no third-party text, logos, photographs or copyright notices."
     },
     {
       "id": "pdfium/bug_487928.pdf",
@@ -1909,7 +1874,8 @@
         "opens": true,
         "status": "Ok",
         "pages": 1
-      }
+      },
+      "audit": "audited 2026-11-03: first added in a76f55765 (Tom Sepez, 2015-06-02: Automated test case for 487928.) to the BSD-3-Clause repository under Google's contributor agreement; hand-written template bug_487928.in is in the same folder; rendered and scanned, no third-party text, logos, photographs or copyright notices."
     },
     {
       "id": "pdfium/linearized.pdf",
@@ -1932,7 +1898,8 @@
         "opens": true,
         "status": "Ok",
         "pages": 3
-      }
+      },
+      "audit": "audited 2026-11-03: first added in 9fa503624 (Henrique Nakashima, 2017-11-10: Add FPDFSaveEmbedderTest.SaveLinearizedDoc) to the BSD-3-Clause repository under Google's contributor agreement; binary file with no template source; rendered and scanned, no third-party text, logos, photographs or copyright notices."
     },
     {
       "id": "pdfium/feature_linearized_loading.pdf",
@@ -1955,7 +1922,8 @@
         "opens": true,
         "status": "Ok",
         "pages": 2
-      }
+      },
+      "audit": "audited 2026-11-03: first added in d946f3011 (Jun Fang, 2015-11-02: Support linearized loading) to the BSD-3-Clause repository under Google's contributor agreement; binary file with no template source; rendered and scanned, no third-party text, logos, photographs or copyright notices."
     },
     {
       "id": "pdfium/tagged_table.pdf",
@@ -1978,32 +1946,8 @@
         "opens": true,
         "status": "Ok",
         "pages": 1
-      }
-    },
-    {
-      "id": "pdfium/page_labels.pdf",
-      "origin": "fetch",
-      "source": "https://pdfium.googlesource.com/pdfium/+/43d55e429cf72c21e9a1e60475b50feefa16fda9/testing/resources/page_labels.pdf",
-      "fetchUrl": "https://pdfium.googlesource.com/pdfium/+/43d55e429cf72c21e9a1e60475b50feefa16fda9/testing/resources/page_labels.pdf?format=TEXT",
-      "fetchEncoding": "base64",
-      "licence": "BSD-3-Clause",
-      "redistributable": true,
-      "sha256": "162a1d7f1a545d0d2f29edaf2a7f011c4495ac5e478bab64e9b9b84719045bdb",
-      "bytes": 10080,
-      "tags": [
-        "text",
-        "rotated",
-        "cropbox-offset",
-        "multi-page"
-      ],
-      "tiers": [
-        "smoke"
-      ],
-      "expect": {
-        "opens": true,
-        "status": "Ok",
-        "pages": 7
-      }
+      },
+      "audit": "audited 2026-11-03: first added in 9067fd683 (thestig, 2016-11-23: Add APIs for limited use of document tagged code.) to the BSD-3-Clause repository under Google's contributor agreement; hand-written template tagged_table.in is in the same folder; rendered and scanned, no third-party text, logos, photographs or copyright notices."
     },
     {
       "id": "pdfium/bookmarks.pdf",
@@ -2026,7 +1970,8 @@
         "opens": true,
         "status": "Ok",
         "pages": 2
-      }
+      },
+      "audit": "audited 2026-11-03: first added in 9dcd7b841 (Tom Sepez, 2015-01-21: Add tests for GetNamedDests() API.) to the BSD-3-Clause repository under Google's contributor agreement; hand-written template bookmarks.in is in the same folder; rendered and scanned, no third-party text, logos, photographs or copyright notices."
     },
     {
       "id": "generated/pages-10000.pdf",
@@ -2316,6 +2261,36 @@
       "source": "https://pdfium.googlesource.com/pdfium/+/refs/heads/chromium/8125/testing/resources/xfa and testing/resources/javascript",
       "licence": "BSD-3-Clause",
       "reason": "Left out of the smoke tier on purpose, not for licence: the pinned engine build has no XFA and no JavaScript, so these files exercise features it does not have. Candidates for the core tier."
+    },
+    {
+      "source": "https://pdfium.googlesource.com/pdfium/+/43d55e429cf72c21e9a1e60475b50feefa16fda9/testing/resources/embedded_images.pdf",
+      "licence": "BSD-3-Clause",
+      "reason": "Left out after the per-file audit (2026-11-03): Made in Microsoft Word by a contributor from Adobe's promotional text \"Adobe Acrobat PDF Files\" (Adobe copyright) and raster crops of it; the images were not traced to a licensed source."
+    },
+    {
+      "source": "https://pdfium.googlesource.com/pdfium/+/43d55e429cf72c21e9a1e60475b50feefa16fda9/testing/resources/bug_650.pdf",
+      "licence": "BSD-3-Clause",
+      "reason": "Left out after the per-file audit (2026-11-03): Page 26 of a third-party tutorial (\"Learn AutoCAD Basics in 21 DAYS\", tutorial45.com): copyrighted content of unknown permission, added by a bug-fix commit."
+    },
+    {
+      "source": "https://pdfium.googlesource.com/pdfium/+/43d55e429cf72c21e9a1e60475b50feefa16fda9/testing/resources/annotation_highlight_square_with_ap.pdf",
+      "licence": "BSD-3-Clause",
+      "reason": "Left out after the per-file audit (2026-11-03): Saved from Microsoft Word on macOS (Quartz PDFContext) with an embedded subset of Microsoft Calibri; proprietary font software we cannot show we may redistribute."
+    },
+    {
+      "source": "https://pdfium.googlesource.com/pdfium/+/43d55e429cf72c21e9a1e60475b50feefa16fda9/testing/resources/annotation_ink_multiple.pdf",
+      "licence": "BSD-3-Clause",
+      "reason": "Left out after the per-file audit (2026-11-03): Embeds a subset of Monotype Arial (the font's licence text is in the file). Embedding is permitted by the font, but it is proprietary font software we cannot show we may redistribute."
+    },
+    {
+      "source": "https://pdfium.googlesource.com/pdfium/+/43d55e429cf72c21e9a1e60475b50feefa16fda9/testing/resources/annotation_stamp_with_ap.pdf",
+      "licence": "BSD-3-Clause",
+      "reason": "Left out after the per-file audit (2026-11-03): Page of Adobe's promotional text \"Adobe Acrobat PDF Files\" (Adobe copyright) with an XMP packet from a desktop tool; origin of the text not traced to a licensed source."
+    },
+    {
+      "source": "https://pdfium.googlesource.com/pdfium/+/43d55e429cf72c21e9a1e60475b50feefa16fda9/testing/resources/page_labels.pdf",
+      "licence": "BSD-3-Clause",
+      "reason": "Left out after the per-file audit (2026-11-03): Page 1 carries the Chrome logo (Google trademark artwork); the BSD-3-Clause licence grants copyright, not trademark rights."
     }
   ]
 }
