@@ -51,6 +51,54 @@ internal static class TestPdfs
     }
 
     /// <summary>
+    /// A US Letter page for each text, the text large in the middle of it (60 pt). With <paramref name="link"/> the text of page <c>From</c> (zero based) is a link to page <c>To</c>.
+    /// </summary>
+    public static string WithText(string directory, string name, IReadOnlyList<string> texts, (int From, int To)? link = null, string catalogExtra = "")
+    {
+        Directory.CreateDirectory(directory);
+        var path = Path.Combine(directory, name);
+        var count = texts.Count;
+        var objects = new List<string>
+        {
+            "<< /Type /Catalog /Pages 2 0 R " + catalogExtra + " >>",
+            $"<< /Type /Pages /Kids [{string.Join(' ', Enumerable.Range(0, count).Select(i => $"{4 + (2 * i)} 0 R"))}] /Count {count} >>",
+            "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+        };
+        var annotation = 4 + (2 * count);
+        for (var i = 0; i < count; i++)
+        {
+            var annots = link is { } l && l.From == i ? $" /Annots [{annotation} 0 R]" : string.Empty;
+            objects.Add($"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R >> >> /Contents {5 + (2 * i)} 0 R{annots} >>");
+            var content = $"BT /F1 60 Tf 72 400 Td ({texts[i]}) Tj ET";
+            objects.Add($"<< /Length {content.Length} >>\nstream\n{content}\nendstream");
+        }
+
+        if (link is { } target)
+        {
+            objects.Add($"<< /Type /Annot /Subtype /Link /Rect [60 385 560 470] /Border [0 0 0] /Dest [{4 + (2 * target.To)} 0 R /Fit] >>");
+        }
+
+        var pdf = new StringBuilder("%PDF-1.7\n");
+        var offsets = new List<int>();
+        for (var i = 0; i < objects.Count; i++)
+        {
+            offsets.Add(pdf.Length);
+            pdf.Append(i + 1).Append(" 0 obj\n").Append(objects[i]).Append("\nendobj\n");
+        }
+
+        var xref = pdf.Length;
+        pdf.Append("xref\n0 ").Append(objects.Count + 1).Append("\n0000000000 65535 f \n");
+        foreach (var offset in offsets)
+        {
+            pdf.Append(offset.ToString("D10", System.Globalization.CultureInfo.InvariantCulture)).Append(" 00000 n \n");
+        }
+
+        pdf.Append("trailer\n<< /Size ").Append(objects.Count + 1).Append(" /Root 1 0 R >>\nstartxref\n").Append(xref).Append("\n%%EOF\n");
+        File.WriteAllText(path, pdf.ToString(), Encoding.Latin1);
+        return path;
+    }
+
+    /// <summary>
     /// One US Letter page with a red square and a 16 x 16 colour picture (no white in it, so the engine counts it a photograph) drawn 300 pt square. Its top-left corner is green.
     /// </summary>
     public static string WithPhoto(string directory, string name)
