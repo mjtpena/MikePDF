@@ -278,6 +278,17 @@ internal sealed class ScriptedNative(IReplaceNative inner) : IReplaceNative
         ReplaceFileCalls++;
         return ReplaceFileOverride is { } over ? over(target, replacement, backup) : inner.ReplaceFile(target, replacement, backup);
     }
+
+    /// <summary>Answers for the next plain moves (the put-back after a failed ReplaceFileW); a move with no answer queued runs for real.</summary>
+    public Queue<int> MoveAnswers { get; } = new();
+
+    public int MoveCalls { get; private set; }
+
+    public int Move(string source, string destination)
+    {
+        MoveCalls++;
+        return MoveAnswers.TryDequeue(out var answer) ? answer : inner.Move(source, destination);
+    }
 }
 
 /// <summary>A scratch directory on a local NTFS volume for one test, with the PDF fixtures it needs.</summary>

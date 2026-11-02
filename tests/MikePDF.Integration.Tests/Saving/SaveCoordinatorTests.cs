@@ -6,6 +6,7 @@ using MikePDF.Broker;
 using MikePDF.Broker.Saving;
 using MikePDF.Core.Editing;
 using MikePDF.Core.Editing.Journal;
+using MikePDF.Core.Editing.Recovery;
 using MikePDF.PdfWriter;
 using MikePDF.PdfWriter.Editing;
 
@@ -571,6 +572,91 @@ public sealed class SaveCoordinatorTests
         Assert.Equal(ReplaceMechanism.ReplaceFile, result.Replace!.Mechanism);
         Assert.Equal(1, native.ReplaceFileCalls);
         AssertCleanSave(rig);
+    }
+
+    // ---- a ReplaceFileW that fails after it has started ----
+
+    private static ScriptedNative FallbackWhere(Func<string, string, string?, int> replaceFile)
+    {
+        var native = new ScriptedNative(new WindowsReplaceNative());
+        native.PosixAnswers.Enqueue(87);
+        native.ReplaceFileOverride = replaceFile;
+        return native;
+    }
+
+    [Fact]
+    public async Task WhenReplaceFileMovesTheOriginalAsideAndFailsTheOriginalIsBackAtOnceAndTheSaveIsFailed()
+    {
+        var native = FallbackWhere((target, _, backup) =>
+        {
+            File.Move(target, backup!); // ERROR_UNABLE_TO_MOVE_REPLACEMENT_2: the original is at the backup name, nothing at the target
+            return 1177;
+        });
+        using var rig = new Rig(native: native);
+        rig.Session.Model.Apply(Commands.Highlight());
+
+        var result = await rig.SaveAsync();
+
+        Assert.Equal((SaveOutcome.Failed, SaveReason.Io), (result.Outcome, result.Reason));
+        Assert.Equal("win32-1177", result.Detail);
+        Assert.Equal(1, native.MoveCalls);
+        AssertUntouched(rig); // the user's bytes are at the user's path and no backup or temporary file is left
+        Assert.True(rig.Session.Model.IsDirty); // the edits are still pending
+    }
+
+    [Fact]
+    public async Task WhenReplaceFileFailsWithNothingMovedTheFileIsUntouchedAndNothingIsPutBack()
+    {
+        var native = FallbackWhere((_, _, _) => 1176); // ERROR_UNABLE_TO_MOVE_REPLACEMENT with a backup name: both files keep their names
+        using var rig = new Rig(native: native);
+        rig.Session.Model.Apply(Commands.Highlight());
+
+        var result = await rig.SaveAsync();
+
+        Assert.Equal((SaveOutcome.Failed, SaveReason.Io), (result.Outcome, result.Reason));
+        Assert.Equal(0, native.MoveCalls);
+        AssertUntouched(rig);
+        Assert.True(rig.Session.Model.IsDirty);
+    }
+
+    [Fact]
+    public async Task WhenTheOriginalCannotBePutBackNothingIsDeletedTheJournalKeepsItsRecordsAndTheNextStartRestoresIt()
+    {
+        string? backupPath = null;
+        var native = FallbackWhere((target, _, backup) =>
+        {
+            backupPath = backup;
+            File.Move(target, backup!);
+            return 1177;
+        });
+        native.MoveAnswers.Enqueue(1117); // the put-back fails too
+        using var rig = new Rig(native: native);
+        rig.Session.Model.Apply(Commands.Highlight());
+
+        var result = await rig.SaveAsync();
+
+        Assert.Equal((SaveOutcome.Failed, SaveReason.RestorePending), (result.Outcome, result.Reason));
+        Assert.Equal(backupPath, result.OriginalAt); // the message can say where the user's file is
+        Assert.False(File.Exists(rig.Doc));
+        Assert.Equal(rig.Original, File.ReadAllBytes(backupPath!));
+        var left = rig.Workspace.Listing();
+        Assert.Equal(2, left.Length); // the original under the backup name and the validated output under the temporary one: neither deleted
+        Assert.All(left, static n => Assert.Contains(".mikepdf-", n, StringComparison.Ordinal));
+        var output = Directory.GetFiles(rig.Workspace.Documents, "*.tmp").Single();
+        Assert.Equal(1, Annotations(File.ReadAllBytes(output)));
+
+        rig.Session.Dispose(); // the process ends; the journal is what is left
+        rig.Held.Dispose();
+        var journal = rig.Store.Read(rig.Store.List().Single().Path);
+        Assert.Contains(journal.Entries, static e => e is SaveIntentEntry);
+        Assert.Contains(journal.Entries, static e => e is SaveBeginEntry);
+        Assert.DoesNotContain(journal.Entries, static e => e is SaveCommittedEntry);
+
+        var candidates = new RecoveryService(rig.Store).Scan();
+
+        Assert.Equal(rig.Original, File.ReadAllBytes(rig.Doc));
+        Assert.Equal(["doc.pdf"], rig.Workspace.Listing());
+        Assert.Single(candidates);
     }
 
     private static void AssertCleanSave(Rig rig)

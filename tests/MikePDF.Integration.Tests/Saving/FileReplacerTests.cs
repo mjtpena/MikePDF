@@ -377,6 +377,119 @@ public sealed class FileReplacerTests : IDisposable
         Assert.Equal(["copy.pdf"], _workspace.Listing());
     }
 
+    // ---- a ReplaceFileW that fails after it has started (the fallback must never leave the document missing) ----
+
+    private static string[] Sorted(params string[] names) => [.. names.Order(StringComparer.Ordinal)];
+
+    /// <summary>A native layer whose POSIX rename is unsupported (so the fallback runs) and whose ReplaceFileW runs <paramref name="replaceFile"/> in place of the real one.</summary>
+    private static ScriptedNative FallbackWith(Func<string, string, string?, int> replaceFile)
+    {
+        var native = new ScriptedNative(new WindowsReplaceNative());
+        native.PosixAnswers.Enqueue(87);
+        native.ReplaceFileOverride = replaceFile;
+        return native;
+    }
+
+    private static int MovedTheOriginalAsideThenFailed(string target, string backup, int error)
+    {
+        File.Move(target, backup); // what ReplaceFileW did before it failed to move the replacement into place
+        return error;
+    }
+
+    [Fact]
+    public void WhenReplaceFileMovesTheOriginalAsideAndFailsTheOriginalIsPutBackAtOnceAndTheTemporaryFileIsKept()
+    {
+        var path = _workspace.Write("doc.pdf", OldBytes);
+        var backup = Path.Combine(_workspace.Documents, ".doc.pdf.mikepdf-00000001.bak");
+        var native = FallbackWith((target, _, back) => MovedTheOriginalAsideThenFailed(target, back!, 1177)); // ERROR_UNABLE_TO_MOVE_REPLACEMENT_2
+        var (temp, tempPath) = NewTemp(path, NewBytes);
+
+        var error = Assert.Throws<ReplaceException>(() => new FileReplacer(native, attempts: 5, delay: TimeSpan.FromMilliseconds(5)).Replace(path, temp, tempPath, expected: null, backup));
+
+        Assert.Equal((ReplaceFailure.Native, 1177), (error.Failure, error.Win32Error));
+        Assert.Equal(OldBytes, File.ReadAllBytes(path)); // the user's file is where it was, with its own bytes
+        Assert.Equal(1, native.MoveCalls);
+        Assert.Equal(1, native.ReplaceFileCalls); // not a lock: no retry
+        Assert.Equal(NewBytes, File.ReadAllBytes(tempPath)); // the caller deletes the temporary file; the replacer does not
+        Assert.Equal(Sorted("doc.pdf", Path.GetFileName(tempPath)), _workspace.Listing());
+    }
+
+    [Fact]
+    public void WhenReplaceFileFailsToMoveTheReplacementButLeavesBothFilesNamedAsTheyWereNothingIsMoved()
+    {
+        // ERROR_UNABLE_TO_MOVE_REPLACEMENT (1176), with a backup name: the documented outcome is that both files keep their names. Checked here, not assumed.
+        var path = _workspace.Write("doc.pdf", OldBytes);
+        var backup = Path.Combine(_workspace.Documents, ".doc.pdf.mikepdf-00000001.bak");
+        var native = FallbackWith((_, _, _) => 1176);
+        var (temp, tempPath) = NewTemp(path, NewBytes);
+
+        var error = Assert.Throws<ReplaceException>(() => new FileReplacer(native, attempts: 5, delay: TimeSpan.FromMilliseconds(5)).Replace(path, temp, tempPath, expected: null, backup));
+
+        Assert.Equal((ReplaceFailure.Native, 1176), (error.Failure, error.Win32Error));
+        Assert.Equal(OldBytes, File.ReadAllBytes(path));
+        Assert.Equal(0, native.MoveCalls); // the target is there, so there is nothing to put back
+        Assert.Equal(Sorted("doc.pdf", Path.GetFileName(tempPath)), _workspace.Listing());
+    }
+
+    [Fact]
+    public void WhenReplaceFileFailsAndTheOriginalCannotBePutBackNothingIsDeletedAndTheErrorSaysWhereItIs()
+    {
+        var path = _workspace.Write("doc.pdf", OldBytes);
+        var backup = Path.Combine(_workspace.Documents, ".doc.pdf.mikepdf-00000001.bak");
+        var native = FallbackWith((target, _, back) => MovedTheOriginalAsideThenFailed(target, back!, 1177));
+        native.MoveAnswers.Enqueue(1117); // the put-back fails with an error that is not a lock
+        var (temp, tempPath) = NewTemp(path, NewBytes);
+
+        var error = Assert.Throws<ReplaceException>(() => new FileReplacer(native, attempts: 5, delay: TimeSpan.FromMilliseconds(5)).Replace(path, temp, tempPath, expected: null, backup));
+
+        Assert.Equal((ReplaceFailure.RestorePending, 1117), (error.Failure, error.Win32Error));
+        Assert.Equal(backup, error.OriginalAt);
+        Assert.False(File.Exists(path));
+        Assert.Equal(OldBytes, File.ReadAllBytes(backup)); // the original, untouched, under the name the journal records
+        Assert.Equal(NewBytes, File.ReadAllBytes(tempPath));
+        Assert.Equal(1, native.MoveCalls);
+        Assert.Equal(Sorted(Path.GetFileName(backup), Path.GetFileName(tempPath)), _workspace.Listing());
+    }
+
+    [Fact]
+    public void ALockOnThePutBackIsRetriedAndWhenItClearsTheOriginalIsBack()
+    {
+        var path = _workspace.Write("doc.pdf", OldBytes);
+        var backup = Path.Combine(_workspace.Documents, ".doc.pdf.mikepdf-00000001.bak");
+        var native = FallbackWith((target, _, back) => MovedTheOriginalAsideThenFailed(target, back!, 1177));
+        native.MoveAnswers.Enqueue(SaveNative.ErrorSharingViolation);
+        native.MoveAnswers.Enqueue(SaveNative.ErrorAccessDenied);
+        var (temp, tempPath) = NewTemp(path, NewBytes);
+
+        var error = Assert.Throws<ReplaceException>(() => new FileReplacer(native, attempts: 5, delay: TimeSpan.FromMilliseconds(5)).Replace(path, temp, tempPath, expected: null, backup));
+
+        Assert.Equal(ReplaceFailure.Native, error.Failure);
+        Assert.Equal(3, native.MoveCalls);
+        Assert.Equal(OldBytes, File.ReadAllBytes(path));
+        Assert.Equal(Sorted("doc.pdf", Path.GetFileName(tempPath)), _workspace.Listing());
+    }
+
+    [Fact]
+    public void APutBackThatStaysLockedForEveryAttemptIsPendingNotLost()
+    {
+        var path = _workspace.Write("doc.pdf", OldBytes);
+        var backup = Path.Combine(_workspace.Documents, ".doc.pdf.mikepdf-00000001.bak");
+        var native = FallbackWith((target, _, back) => MovedTheOriginalAsideThenFailed(target, back!, 1177));
+        for (var i = 0; i < 20; i++)
+        {
+            native.MoveAnswers.Enqueue(SaveNative.ErrorSharingViolation);
+        }
+
+        var (temp, tempPath) = NewTemp(path, NewBytes);
+
+        var error = Assert.Throws<ReplaceException>(() => new FileReplacer(native, attempts: 5, delay: TimeSpan.FromMilliseconds(5)).Replace(path, temp, tempPath, expected: null, backup));
+
+        Assert.Equal(ReplaceFailure.RestorePending, error.Failure);
+        Assert.Equal(5, native.MoveCalls);
+        Assert.Equal(OldBytes, File.ReadAllBytes(backup));
+        Assert.Equal(Sorted(Path.GetFileName(backup), Path.GetFileName(tempPath)), _workspace.Listing());
+    }
+
     private static byte[] ReadAllFrom(SafeFileHandle file)
     {
         var bytes = new byte[RandomAccess.GetLength(file)];

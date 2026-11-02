@@ -52,6 +52,13 @@ public enum ReplaceFailure
 
     /// <summary>Anything else; <see cref="ReplaceException.Win32Error"/> says what.</summary>
     Native,
+
+    /// <summary>
+    /// <c>ReplaceFileW</c> moved the original aside and failed before the replacement took its place, and putting the original back failed too. Nothing is at
+    /// the target path; the original is at <see cref="ReplaceException.OriginalAt"/> and the validated replacement still has its own name. Nothing was deleted:
+    /// the next start's recovery restores the original from the journal's record.
+    /// </summary>
+    RestorePending,
 }
 
 public sealed class ReplaceException(ReplaceFailure failure, int win32Error, string message) : IOException(message)
@@ -59,6 +66,9 @@ public sealed class ReplaceException(ReplaceFailure failure, int win32Error, str
     public ReplaceFailure Failure { get; } = failure;
 
     public int Win32Error { get; } = win32Error;
+
+    /// <summary>For <see cref="ReplaceFailure.RestorePending"/>: where the user's original file is now (the recorded backup name); null if it is not there by that name.</summary>
+    public string? OriginalAt { get; init; }
 }
 
 /// <summary>How a replace was done. <c>BackupPath</c> is the file ReplaceFileW left (the original's bytes) when the fallback ran; the caller deletes it after the commit. Null otherwise.</summary>
@@ -72,6 +82,9 @@ public interface IReplaceNative
 
     /// <summary><c>ReplaceFileW(target, replacement, backup)</c>. Returns 0 or the Win32 error.</summary>
     int ReplaceFile(string target, string replacement, string? backup);
+
+    /// <summary>A plain move that fails when <paramref name="destination"/> exists (no replace). Returns 0 or the Win32 error.</summary>
+    int Move(string source, string destination);
 }
 
 internal sealed class WindowsReplaceNative : IReplaceNative
@@ -95,6 +108,23 @@ internal sealed class WindowsReplaceNative : IReplaceNative
         SaveNative.ReplaceFile(FileReplacer.LongPath(target), FileReplacer.LongPath(replacement), backup is null ? null : FileReplacer.LongPath(backup), SaveNative.ReplaceFileIgnoreMergeErrors, 0, 0)
             ? 0
             : Marshal.GetLastPInvokeError();
+
+    public int Move(string source, string destination)
+    {
+        try
+        {
+            File.Move(source, destination);
+            return 0;
+        }
+        catch (IOException e)
+        {
+            return e.HResult & 0xFFFF;
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return SaveNative.ErrorAccessDenied;
+        }
+    }
 }
 
 /// <summary>
@@ -303,7 +333,7 @@ public sealed class FileReplacer
                         break;
                     default:
                         temp.Dispose();
-                        error = MoveNew(tempPath, final);
+                        error = _native.Move(tempPath, final);
                         break;
                 }
 
@@ -317,6 +347,14 @@ public sealed class FileReplacer
                     // Not supported here (SMB, FAT, WebDAV): no retry, another mechanism.
                     mechanism = info.Exists ? ReplaceMechanism.ReplaceFile : ReplaceMechanism.Move;
                     continue;
+                }
+
+                if (mechanism == ReplaceMechanism.ReplaceFile && !File.Exists(final))
+                {
+                    // ReplaceFileW can fail after it has moved the original aside (1177: the original is at the backup name and nothing is at the target;
+                    // 1176 with a backup name leaves both files where they were, which this check confirms rather than assumes). Never leave the user's
+                    // document missing from its folder: put it back now, or throw RestorePending with everything kept.
+                    RestoreOriginal(final, backup, error);
                 }
 
                 if (IsTransient(error) && attempts < _attempts)
@@ -335,21 +373,36 @@ public sealed class FileReplacer
     /// <summary>Sharing violation, lock violation, access denied (OneDrive and scanners produce a transient one) and "unable to remove replaced" (seen once in S10).</summary>
     private static bool IsTransient(int error) => error is SaveNative.ErrorSharingViolation or SaveNative.ErrorLockViolation or SaveNative.ErrorAccessDenied or SaveNative.ErrorUnableToRemoveReplaced;
 
-    private static int MoveNew(string from, string to)
+    /// <summary>
+    /// Moves the backup back to the target (a plain move, retried for the transient errors). Returns when the original is back. When it cannot be put back
+    /// it throws <see cref="ReplaceFailure.RestorePending"/> and deletes nothing: both files stay as they are for the next start's recovery.
+    /// </summary>
+    private void RestoreOriginal(string final, string? backup, int replaceError)
     {
-        try
+        var restored = SaveNative.ErrorFileNotFound;
+        if (backup is not null && File.Exists(backup))
         {
-            File.Move(from, to);
-            return 0;
+            for (var attempt = 1; attempt <= _attempts; attempt++)
+            {
+                restored = _native.Move(backup, final);
+                if (restored == 0)
+                {
+                    return;
+                }
+
+                if (!IsTransient(restored) || attempt == _attempts)
+                {
+                    break;
+                }
+
+                Thread.Sleep(_delay);
+            }
         }
-        catch (IOException e)
+
+        throw new ReplaceException(ReplaceFailure.RestorePending, restored, $"The original could not be put back after ReplaceFileW failed (Win32 error {replaceError}, then {restored}).")
         {
-            return e.HResult & 0xFFFF;
-        }
-        catch (UnauthorizedAccessException)
-        {
-            return SaveNative.ErrorAccessDenied;
-        }
+            OriginalAt = backup is not null && File.Exists(backup) ? backup : null,
+        };
     }
 
     /// <summary>

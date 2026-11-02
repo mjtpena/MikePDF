@@ -51,12 +51,21 @@ public enum SaveReason
     HostFailed,
     Cancelled,
     Io,
+
+    /// <summary>
+    /// The replace failed part way (ReplaceFileW moved the original aside) and the original could not be put back. Nothing is at the document's path;
+    /// <see cref="SaveResult.OriginalAt"/> says where the original is. Nothing was deleted and the journal keeps its records, so the next start restores it.
+    /// </summary>
+    RestorePending,
 }
 
 /// <summary>The result of a save. <c>Detail</c> is a short, non-sensitive reason code for the Details button, never a path or document text.</summary>
 public sealed record SaveResult(SaveOutcome Outcome, SaveReason Reason, string? Detail = null, string? TargetPath = null, ReplaceOutcome? Replace = null, string? OutputSha256 = null, long OutputLength = 0)
 {
     public bool IsSaved => Outcome == SaveOutcome.Saved;
+
+    /// <summary>For <see cref="SaveReason.RestorePending"/>: the path of the user's original file, so the message can tell them where it is.</summary>
+    public string? OriginalAt { get; init; }
 }
 
 public sealed record SaveRequest
@@ -304,6 +313,12 @@ public sealed class SaveCoordinator(ISaveHost host, ISaveEngineCheck engineCheck
 
             faults?.Reach(SaveStep.Done);
             return new SaveResult(SaveOutcome.Saved, SaveReason.None, null, replaced.FinalPath, replaced, sha, length);
+        }
+        catch (ReplaceException e) when (e.Failure == ReplaceFailure.RestorePending)
+        {
+            // Keep both files: the original is under its backup name, the validated output under the temporary one, and the journal still has the
+            // SaveIntent and SaveBegin records that recovery needs. Deleting anything here could delete the only copy of either.
+            return new SaveResult(SaveOutcome.Failed, SaveReason.RestorePending, "win32-" + e.Win32Error) { OriginalAt = e.OriginalAt };
         }
         catch (ReplaceException e)
         {
