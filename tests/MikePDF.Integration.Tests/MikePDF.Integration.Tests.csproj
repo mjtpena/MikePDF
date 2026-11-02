@@ -4,6 +4,8 @@
     <!-- The tests compare the sandboxed host with an in-process validation of the same files (an oracle, not a product use). -->
     <ProjectReference Include="..\..\src\MikePDF.PdfWriter\MikePDF.PdfWriter.csproj" />
     <ProjectReference Include="..\..\src\MikePDF.Protocol\MikePDF.Protocol.csproj" />
+    <ProjectReference Include="..\..\src\MikePDF.ShellHost\MikePDF.ShellHost.csproj" />
+    <ProjectReference Include="..\..\src\MikePDF.Core\MikePDF.Core.csproj" />
   </ItemGroup>
   <ItemGroup>
     <!-- Small PDFium test PDFs (BSD-3-Clause), see Fixtures/MANIFEST.md. -->
