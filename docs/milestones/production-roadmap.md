@@ -57,7 +57,7 @@ These come after v1.0 ships.
 Found while reviewing wave 1. Each gets a work package or joins one.
 | Item | Source | Goes to |
 |---|---|---|
-| Engine budget: each document starts its own pool engine (`DocumentSession.cs`), but ADR-0004 says one shared pool and a cap. This must be fixed before tabs | W1-specs finding 1 | Done: PR #12 (ADR-0004 A3). The cap isn't read from policy and pinning isn't in the UI yet: tabs WP |
+| Engine budget: each document starts its own pool engine (`DocumentSession.cs`), but ADR-0004 says one shared pool and a cap. This must be fixed before tabs | W1-specs finding 1 | Done: PR #12 (ADR-0004 A3); the cap is read from policy and pinning is in the UI in `m3/tabs` |
 | The watchdog can kill an engine on a heavy page as "hung", because PDFium checks its deadline only about every 100 drawing operations. The viewer has the same defaults. Base hang detection on a heartbeat, not on the render deadline | W1-render risk 2 | Done: PR #12, progress-based hang detection (10 s stall, 90 s hard limit) |
 | `EngineProtocolTests.RenderTileIsRefusedUntilTheRingIsAttachedAndTheRingAttachesOnce` is flaky on ARM64 | W1-render risk 3 | Mitigated in PR #12 (errors logged, launch retried); root cause not proven |
 | Starting an engine failed 5 times out of 5 ("Hello failed ... Pipe is broken") when every core was busy; it never failed on an idle machine in 3,000 cycles. Likely a startup timeout or race in the broker or engine | W1-perf | Mitigated in PR #12 (start retried, exit code logged); not reproduced |
@@ -71,9 +71,9 @@ Found while reviewing wave 1. Each gets a work package or joins one.
 | Core and full corpus tiers; a hang file and a crash file in the smoke tier; per-file licence audit of PDFium's test resources | W1-render | Wave 2 |
 | `TileSchedulerTests.APresenterFailureDoesNotKillTheScheduler` failed once on ARM64 and passed on rerun | W2-engine CI | Wave 2 |
 | About can't show the PDFium version without an open document; expose the pool engine's `Hello` reply | W2-commands | Wave 2 |
-| `PageSurface` still has its own key handler for navigation keys; move them into the command dispatcher | W2-commands | Tabs WP (app-shell owner) |
+| `PageSurface` still has its own key handler for navigation keys; move them into the command dispatcher | W2-commands | Done in `m3/tabs` (the surface keeps only Esc and Shift+arrow selection) |
 | The engine memory-limit policy is read (`PolicySnapshot.EngineMemoryLimitMb`) but not applied to the broker | W2-commands | Wave 2 |
-| The pool engine's 32-document limit is now the effective limit on open tabs | W2-engine | Tabs WP |
+| The pool engine's 32-document limit is now the effective limit on open tabs | W2-engine | Done in `m3/tabs`: it is 16 documents, because each holds two pool documents; a 17th open is refused with a message |
 | The user-level policy comment says "stricter than the default", but the code compares against the least strict allowed value | W2-commands review | Wave 2 |
 
 ## What only the user can do

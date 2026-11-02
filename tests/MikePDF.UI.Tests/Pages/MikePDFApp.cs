@@ -20,11 +20,44 @@ public sealed class MikePDFApp : IDisposable
     private readonly UIA3Automation _automation;
     private readonly Application _application;
 
-    private MikePDFApp(UIA3Automation automation, Application application, Window window)
+    private readonly bool _owner;
+
+    private MikePDFApp(UIA3Automation automation, Application application, Window window, bool owner = true)
     {
         _automation = automation;
         _application = application;
         Window = window;
+        _owner = owner;
+    }
+
+    public UIA3Automation Automation => _automation;
+
+    /// <summary>Every top-level window of this MikePDF (a torn-out tab is another window of the same process).</summary>
+    public IReadOnlyList<Window> AllWindows() => _application.GetAllTopLevelWindows(_automation);
+
+    /// <summary>Another window of the same MikePDF, with the same page-object helpers. Disposing it does nothing; the app belongs to the first.</summary>
+    public MikePDFApp ForWindow(Window window) => new(_automation, _application, window, owner: false);
+
+    /// <summary>The tabs of the window, left to right.</summary>
+    public IReadOnlyList<AutomationElement> TabItems() =>
+        Window.FindFirstDescendant(cf => cf.ByAutomationId("DocumentTabs"))?.FindAllDescendants(cf => cf.ByControlType(ControlType.TabItem)).OrderBy(t => t.BoundingRectangle.Left).ToList() ?? [];
+
+    public IReadOnlyList<string> TabNames() => [.. TabItems().Select(t => t.Name)];
+
+    /// <summary>The name of the tab that is selected.</summary>
+    public string SelectedTabName() => TabItems().FirstOrDefault(t => t.Patterns.SelectionItem.IsSupported && t.Patterns.SelectionItem.Pattern.IsSelected.ValueOrDefault)?.Name ?? string.Empty;
+
+    /// <summary>Starts MikePDF's alias with these files, the way Explorer does: a running instance takes them, and this process ends.</summary>
+    public static void OpenInRunningApp(params string[] paths)
+    {
+        var alias = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Microsoft", "WindowsApps", "mikepdf.exe");
+        var start = new ProcessStartInfo(alias) { UseShellExecute = false };
+        foreach (var path in paths)
+        {
+            start.ArgumentList.Add(path);
+        }
+
+        Process.Start(start)?.Dispose();
     }
 
     public Window Window { get; }
@@ -34,7 +67,7 @@ public sealed class MikePDFApp : IDisposable
     public static string Fixture(string name) => Path.Combine(AppContext.BaseDirectory, "Fixtures", name);
 
     /// <summary>Starts MikePDF (alias <c>mikepdf.exe</c>) with an optional document and waits for its window. Any running MikePDF is closed first.</summary>
-    public static MikePDFApp Launch(string? document = null)
+    public static MikePDFApp Launch(string? document = null, string restore = "Never", bool fakeDirty = false, IReadOnlyDictionary<string, string>? environment = null, params string[] moreDocuments)
     {
         KillAll();
         var alias = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Microsoft", "WindowsApps", "mikepdf.exe");
@@ -44,9 +77,21 @@ public sealed class MikePDFApp : IDisposable
         }
 
         var start = new ProcessStartInfo(alias) { UseShellExecute = false };
+        // A killed run must not make the next one ask to restore it: journeys start with the setting Never unless they are about the session (the app reads this only for that).
+        start.Environment["MIKEPDF_TEST_RESTORE"] = restore;
+        start.Environment["MIKEPDF_TEST_FAKE_DIRTY"] = fakeDirty ? "1" : "0";
+        foreach (var (name, value) in environment ?? new Dictionary<string, string>())
+        {
+            start.Environment[name] = value;
+        }
         if (document is not null)
         {
             start.ArgumentList.Add(document);
+        }
+
+        foreach (var more in moreDocuments)
+        {
+            start.ArgumentList.Add(more);
         }
 
         // Right after the previous instance was killed the package can still be shutting down, and the alias refuses to start (access denied) for a moment.
@@ -501,6 +546,11 @@ public sealed class MikePDFApp : IDisposable
 
     public void Dispose()
     {
+        if (!_owner)
+        {
+            return;
+        }
+
         _automation.Dispose();
         _application.Dispose();
         KillAll();

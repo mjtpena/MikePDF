@@ -272,3 +272,40 @@ Telemetry: none. The product has no telemetry (§14); if opt-in diagnostics are 
 | TAB-29 | A hostile activation (device path `\\.\pipe\x`, directory, 40,000-character path, alternate data stream name) opens nothing and keeps the app responsive. | Unit + Integration |
 | TAB-30 | High contrast and 225% text scale: tab titles, close buttons and the "+" button remain reachable and unclipped (screenshot compare against golden at both settings). | UI journey (visual) |
 | TAB-31 | Ten tabs open for five minutes with background suspension on: UI-process private bytes stay within the budget set in OQ-TAB-6 (value not yet set; this criterion is "not measured" until it is). | Integration (perf) |
+
+
+## 15. What was built (work package W2-tabs, branch `m3/tabs`)
+
+Written 2026-11-03 by the implementer. The test map is in the work package's completion note; this section records the decisions and measurements that differ from the text above.
+
+| Part | Where |
+|---|---|
+| Identity, tab and window model, open rules, closed tabs, engine leases, activation relay, path validator, launch arguments | `MikePDF.Core/Windowing/` (`DocumentIdentity`, `TabModels`, `WindowModels`, `Activation`) |
+| `session.json` codec, store, recorder, restore policy, window placement | `MikePDF.Core/Windowing/Session.cs` |
+| What the app shares between windows (engine host and budget, model, activation, session, tab moves) | `MikePDF.App/Services/AppHost.cs`, `TabEntry.cs`, `NativeWindowing.cs` |
+| The window: strip in the title bar, opening into tabs, closing, moving, Settings as a tab, session capture and restore | `MikePDF.App/MainWindow.Tabs.cs` (and the other `MainWindow*` partials) |
+| A session that can change window | `DocumentSession.AttachPresenter` / `DetachPresenter` (a presenter proxy), `PinEngine`, `ResumeEngineAsync`, `EngineLifeChanged` |
+
+Decisions taken where the spec was silent or in conflict (all can be overridden):
+
+- **Command ids** follow `docs/design/commands.md` (`tab.next`, `file.newTab`, `file.close`, `file.reopenClosed` ...), as the commands work package did, not the `tabs.*` names of section 4.
+- **OQ-TAB-5:** go to tab 1 to 8 is **Alt+1 to Alt+8**, and Alt+9 goes to the last tab. Ctrl+1 and Ctrl+2 stay fit page and fit width (master prompt 10.2).
+- **OQ-TAB-1:** `startup.restore` is `Ask` by default, meaning: after an unclean exit ask first; after a normal close restore when more than one document was open, else start empty. `Always` and `Never` are as named; `Never` also stops the session file being written and removes an old one.
+- **OQ-TAB-3:** `windows.openFromShell` offers `LastActiveWindow` (default) and `NewWindow`. `ActiveWindowOfThisDesktop` is not offered: the virtual desktop API was not verified.
+- **Confirm before many files:** more than **10** files in one activation or drop asks first (decisions.md Q12), not 25. At most 100 files are read from one activation.
+- **Several files at once:** the first opens at once; the others become tabs that open when first shown (like a restored session), so ten files do not start ten engines.
+- **The open-document limit is 16, not 32.** Each open document holds two documents in the shared pool engine (one for placeholders, one for text, thumbnails and search), and the pool allows 32. A seventeenth open is refused with a message ("MikePDF keeps up to 16 documents open at once"). A restored placeholder holds nothing and does not count; a window holds at most 50 tabs.
+- **The cap on document engines** is read from `engines.maxLiveTabs` (policy `MaxLiveTabs`) at start and applied when it changes (`EngineBudget.SetMaxDocumentEngines`, a small addition to the broker). The tab on screen in each non-minimised window holds a pin; a minimised window releases it.
+- **Settings is a singleton tab** per window (design 13). Closing it goes back to the tab it was opened from.
+- **A window with one tab:** that tab is part of the title bar (not draggable out); dragging it moves the window. With two or more tabs, dragging out creates a window (TabView tear-out), and letting go over another window's strip merges the tab into it.
+- **Closing the last tab** leaves an empty tab (design 3.1.4); Ctrl+W on a lone empty tab does nothing.
+- **Dirty prompts** exist and are tested with a fake flag (`TabModel.IsDirty`; the journeys set it with the test seam `MIKEPDF_TEST_FAKE_DIRTY`). The Save button is disabled until the save pipeline sets `AppHost.SaveHandler`.
+
+Measured facts about WinUI's `TabView` in Windows App SDK 2.5.1 (answers to OQ-TAB-7 / spike S13):
+
+- `CanTearOutTabs`, `TabTearOutWindowRequested`, `TabTearOutRequested`, `ExternalTornOutTabsDropping` and `ExternalTornOutTabsDropped` exist (checked in the metadata) and tear-out works: dragging a tab down out of the strip raises the first event, then the second with the tab in hand, and the new window follows the pointer. **`TabTearOutRequested.NewWindowId` was 0, not the id given in the first event**, so the window made in the first event is remembered and used.
+- **`ExternalTornOutTabsDropping` and `Dropped` were never raised** when a torn-out tab was let go over another window's strip, so the merge is done by the app (the left button is watched until it comes up; if the pointer is over another strip the tab joins it).
+- Taking part of the title bar away from the tabs (`InputNonClientPointerSource` caption regions that cover them) stops a tab being dragged out, so the caption override is used only while the window has a single tab.
+- `DisplayArea.FindAll()` cannot be enumerated with `foreach` (an `InvalidCastException`); an index loop works.
+
+Not done, or not verified: see the completion note.
