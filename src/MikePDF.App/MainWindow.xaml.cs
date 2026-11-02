@@ -8,9 +8,9 @@ using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
 using MikePDF.App.Services;
-using MikePDF.Broker;
 using MikePDF.Core.Errors;
 using MikePDF.Core.Persistence;
+using MikePDF.Core.Windowing;
 using Windows.ApplicationModel.DataTransfer;
 using Windows.Graphics;
 using Windows.Storage;
@@ -24,25 +24,26 @@ namespace MikePDF.App;
 public sealed record RecentItem(string Name, string Folder, string Path, string AccessibleName);
 
 /// <summary>
-/// The window: title bar, command bar, the empty state with recent files, and the page surface. It opens one document at a time; opening
-/// another (from the picker, a drop, the command line, or a second MikePDF launch) replaces the open one. Tabs and more windows are later work.
+/// One window: tabs in the title bar, the command bar, the empty state with recent files, and the page surface, which shows the document of the selected tab. A window holds any number of
+/// tabs (docs/features/tabs-windows-session.md); each tab is a <see cref="DocumentSession"/> that can move to another window without reloading. The rules for where a file opens, and what
+/// the windows share (engines, the session file, activation), are in <see cref="AppHost"/>.
 /// </summary>
 public sealed partial class MainWindow : Window
 {
+    private readonly AppHost _app;
     private readonly DocumentStore _store;
-    private readonly Task<EngineHost> _host;
     private readonly TaskCompletionSource _loaded = new(TaskCreationOptions.RunContinuationsAsynchronously);
-    private Task _openChain = Task.CompletedTask;
     private readonly DispatcherQueueTimer _bannerTimer;
-    private DocumentSession? _session;
+    private DocumentSession? _session; // the session of the tab that is shown (null for an empty, Settings or placeholder tab)
     private bool _closed;
+    private bool _closeConfirmed;
 
-    internal MainWindow(AppServices services)
+    internal MainWindow(AppHost app, WindowModel model)
     {
-        _services = services;
-        _store = services.Documents;
-        // Creating the sandbox profile and putting the verified engine in place takes a moment; do it while the window comes up.
-        _host = Task.Run(EngineHost.Create);
+        _app = app;
+        Model = model;
+        _services = app.Services;
+        _store = app.Services.Documents;
         InitializeComponent();
         Pages.LinkActivated += OnLinkActivated;
         Pages.Copied += OnCopied;
@@ -56,23 +57,30 @@ public sealed partial class MainWindow : Window
             Banner.IsOpen = false;
         };
         Closed += OnClosed;
+        Activated += OnActivated;
+        AppWindow.Closing += OnAppWindowClosing;
         AppWindow.Changed += OnAppWindowChanged;
         InitializeReaderGaps();
         InitializeCommands();
+        InitializeTabs();
         RefreshRecent();
         UpdateChrome();
         Title = Strings.Get("AppName");
+        NativeWindowing.WatchEndSession(WindowNative.GetWindowHandle(this), _app.OnEndSession);
     }
+
+    /// <summary>The tabs of this window (plain data).</summary>
+    internal WindowModel Model { get; }
 
     /// <summary>The open document, for tests and diagnostics.</summary>
     internal DocumentSession? Session => _session;
 
-    // ---- window ------------------------------------------------------------------------------
+    // ---- window ------------------------------------------------------------------------------------------------------------------
 
     private void ConfigureTitleBar()
     {
         ExtendsContentIntoTitleBar = true;
-        SetTitleBar(AppTitleBar);
+        SetTitleBar(TitleDragRegion);
         var bar = AppWindow.TitleBar;
         bar.ButtonBackgroundColor = Colors.Transparent;
         bar.ButtonInactiveBackgroundColor = Colors.Transparent;
@@ -94,10 +102,52 @@ public sealed partial class MainWindow : Window
     private void OnAppWindowChanged(AppWindow sender, AppWindowChangedEventArgs args)
     {
         SyncFullScreen(args);
-        // Minimised: keep only what is on screen (master prompt 7.1 rule 5).
         if (args.DidPresenterChange && sender.Presenter is OverlappedPresenter { State: OverlappedPresenterState.Minimized })
         {
+            // Minimised: keep only what is on screen (master prompt 7.1 rule 5), and let the engine of the tab go: nothing is shown any more.
             _session?.TrimMemory();
+            ReleaseShownLease();
+        }
+        else if (args.DidPresenterChange)
+        {
+            AcquireShownLease();
+        }
+
+        if (args.DidPositionChange || args.DidSizeChange || args.DidPresenterChange)
+        {
+            _app.RequestSessionWrite();
+        }
+    }
+
+    private void OnActivated(object sender, WindowActivatedEventArgs args)
+    {
+        if (args.WindowActivationState != WindowActivationState.Deactivated)
+        {
+            _app.OnWindowActivated(this);
+        }
+    }
+
+    // Closing the window asks first when a tab has unsaved edits (one dialog for all of them); otherwise it just closes.
+    private async void OnAppWindowClosing(AppWindow sender, AppWindowClosingEventArgs args)
+    {
+        if (_closeConfirmed)
+        {
+            return;
+        }
+
+        var dirty = ClosePlan.Dirty(Model.Tabs);
+        if (dirty.Count == 0)
+        {
+            _app.OnWindowClosing(this);
+            return;
+        }
+
+        args.Cancel = true;
+        if (await ConfirmCloseAsync(dirty) != CloseAnswer.Cancel)
+        {
+            _closeConfirmed = true;
+            _app.OnWindowClosing(this);
+            Close();
         }
     }
 
@@ -106,10 +156,22 @@ public sealed partial class MainWindow : Window
         _closed = true;
         _policyTimer?.Stop();
         _services.Settings.Flush(); // a change in the last half second is written now, not lost
-        await CloseDocumentAsync();
+        var entries = _entries.Values.ToList();
+        _app.OnWindowClosed(this);
+        foreach (var entry in entries)
+        {
+            entry.Owner = null;
+            entry.ShownLease?.Dispose();
+            entry.ShownLease = null;
+            if (entry.Session is { } session)
+            {
+                entry.SetSession(null);
+                await session.DisposeAsync();
+            }
+        }
     }
 
-    /// <summary>Brings the window forward (a second launch redirected here).</summary>
+    /// <summary>Brings the window forward (a second launch redirected here, an existing tab was asked for).</summary>
     internal void BringToFront()
     {
         if (AppWindow.Presenter is OverlappedPresenter { State: OverlappedPresenterState.Minimized } presenter)
@@ -127,128 +189,39 @@ public sealed partial class MainWindow : Window
     [DllImport("user32.dll")]
     private static extern uint GetDpiForWindow(IntPtr hwnd);
 
-    // ---- opening -----------------------------------------------------------------------------
-
-    /// <summary>Opens a document, replacing the current one. Shows its own errors.</summary>
-    internal Task OpenPathAsync(string path)
+    /// <summary>A short message in the banner (a refused file, a path that cannot be opened).</summary>
+    internal void ShowNotice(string message)
     {
-        AppTrace.OpenRequested();
-        // One open at a time, in the order asked (a drop during an open waits for it).
-        var next = _openChain.ContinueWith(_ => OpenCoreAsync(path), CancellationToken.None, TaskContinuationOptions.None, TaskScheduler.FromCurrentSynchronizationContext()).Unwrap();
-        _openChain = next;
-        return next;
+        ShowBannerText(InfoBarSeverity.Informational, message, string.Empty);
+        _bannerTimer.Interval = TimeSpan.FromSeconds(6);
+        _bannerTimer.Stop();
+        _bannerTimer.Start();
     }
 
-    private async Task OpenCoreAsync(string path)
+    // ---- opening -----------------------------------------------------------------------------------------------------------------
+
+    /// <summary>Opens a document the way a person asked for it: where the rules say, replacing nothing. Shows its own errors.</summary>
+    internal Task OpenPathAsync(string path) => _app.OpenAsync(path, OpenSource.User, this);
+
+    /// <summary>More than ten files at once: ask first (decisions.md Q12).</summary>
+    internal async Task<bool> ConfirmOpenManyAsync(int count)
     {
-        await _loaded.Task; // dialogs need the window's XamlRoot
-        try
-        {
-            if (_closed)
-            {
-                return;
-            }
-
-            Busy.IsActive = true;
-            Banner.IsOpen = false;
-            EngineHost host;
-            try
-            {
-                host = await _host;
-            }
-            catch (Exception e) when (e is EngineStartException or InvalidOperationException)
-            {
-                await ShowErrorAsync(DocumentErrorKind.SandboxUnavailable, path, e.Message);
-                return;
-            }
-
-            await CloseDocumentAsync();
-            var session = new DocumentSession(host, _store, Pages.Presenter, DispatcherQueue);
-            session.ViewChanged += UpdateChrome;
-            session.EngineStateChanged += OnEngineStateChanged;
-            session.PageIncomplete += OnPageIncomplete;
-            session.OverlaysChanged += OnOverlaysChanged;
-            Pages.Session = session;
-            _session = session;
-
-            var attempts = new PasswordAttempts();
-            string? password = null;
-            while (true)
-            {
-                var outcome = await session.OpenAsync(path, password);
-                if (outcome.Kind == OpenOutcomeKind.Opened)
-                {
-                    ShowDocument();
-                    return;
-                }
-
-                if (outcome.Kind is OpenOutcomeKind.PasswordRequired or OpenOutcomeKind.PasswordIncorrect)
-                {
-                    if (attempts.Exhausted)
-                    {
-                        await CloseDocumentAsync();
-                        await ShowErrorAsync(DocumentErrorKind.PasswordIncorrect, path, null, tooMany: true);
-                        return;
-                    }
-
-                    var entered = await PromptPasswordAsync(path, wrong: outcome.Kind == OpenOutcomeKind.PasswordIncorrect, attempts.Remaining);
-                    if (entered is null)
-                    {
-                        await CloseDocumentAsync(); // cancelled
-                        return;
-                    }
-
-                    attempts.Record();
-                    password = entered;
-                    continue;
-                }
-
-                await CloseDocumentAsync();
-                if (outcome.Error == DocumentErrorKind.FileNotFound)
-                {
-                    _store.RemoveRecent(path);
-                    RefreshRecent();
-                }
-
-                await ShowErrorAsync(outcome.Error, path, outcome.Detail);
-                return;
-            }
-        }
-        catch (Exception e) when (e is not OutOfMemoryException)
-        {
-            // Whatever went wrong, the person gets a plain message and the window stays usable.
-            await CloseDocumentAsync();
-            await ShowErrorAsync(DocumentErrorKind.Unknown, path, e.Message);
-        }
-        finally
-        {
-            Busy.IsActive = false;
-        }
+        await _loaded.Task;
+        var dialog = NewDialog();
+        dialog.Title = Strings.Get("Open_Many_Title");
+        dialog.Content = new TextBlock { Text = Strings.Format(count == 1 ? "Open_Many_Body_One" : "Open_Many_Body_Other", count), TextWrapping = TextWrapping.Wrap };
+        dialog.PrimaryButtonText = Strings.Get("Open_Many_Open");
+        dialog.CloseButtonText = Strings.Get("Dialog_Cancel");
+        dialog.DefaultButton = ContentDialogButton.Primary;
+        AutomationProperties.SetAutomationId(dialog, "OpenManyDialog");
+        return await ShowDialogAsync(dialog) == ContentDialogResult.Primary;
     }
 
-    private async Task CloseDocumentAsync()
+    private void ShowDocument(bool focus = true)
     {
-        var session = _session;
-        _session = null;
-        DetachSidebar();
-        FindBar.Visibility = Visibility.Collapsed;
-        FindStatus.Text = string.Empty;
-        Pages.Session = null;
-        if (session is not null)
-        {
-            await session.DisposeAsync();
-        }
-
-        if (!_closed)
-        {
-            ShowEmptyState();
-        }
-    }
-
-    private void ShowDocument()
-    {
-        CloseSettings();
         EmptyState.Visibility = Visibility.Collapsed;
+        MissingPanel.Visibility = Visibility.Collapsed;
+        SettingsPage.Visibility = Visibility.Collapsed;
         Pages.Visibility = Visibility.Visible;
         RefreshRecent();
         UpdateChrome();
@@ -257,25 +230,20 @@ public sealed partial class MainWindow : Window
             AttachSidebar(opened);
         }
 
-        Pages.FocusPages();
+        if (focus)
+        {
+            Pages.FocusPages();
+        }
     }
 
     private void ShowEmptyState()
     {
         Pages.Visibility = Visibility.Collapsed;
+        MissingPanel.Visibility = Visibility.Collapsed;
+        SettingsPage.Visibility = Visibility.Collapsed;
         EmptyState.Visibility = Visibility.Visible;
         RefreshRecent();
         UpdateChrome();
-    }
-
-    /// <summary>Several files (a drop, a multi-file launch): the first is shown; the others are left for tabs (not built yet).</summary>
-    internal async Task HandleActivationAsync(IReadOnlyList<string> paths)
-    {
-        BringToFront();
-        if (paths.Count > 0)
-        {
-            await OpenPathAsync(paths[0]);
-        }
     }
 
     private void RefreshRecent()
@@ -288,7 +256,6 @@ public sealed partial class MainWindow : Window
                 Strings.Format("Recent_Automation", System.IO.Path.GetFileName(r.Path), System.IO.Path.GetDirectoryName(r.Path) ?? string.Empty)))
             .ToList();
         RecentList.ItemsSource = items;
-        _hasRecent = items.Count > 0;
         _hasRecent = items.Count > 0;
         RecentList.Visibility = items.Count == 0 ? Visibility.Collapsed : Visibility.Visible;
         NoRecentText.Visibility = items.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
@@ -305,7 +272,6 @@ public sealed partial class MainWindow : Window
         {
             PageIndicator.Content = Strings.Get("PageIndicator_None");
             ((AppBarButton)ZoomButton).Label = Strings.Get("Zoom_None");
-            TitleText.Text = Strings.Get("AppName");
             Title = Strings.Get("AppName");
             AutomationProperties.SetName(PageIndicator, Strings.Get("PageIndicator_None"));
             return;
@@ -321,7 +287,6 @@ public sealed partial class MainWindow : Window
         AutomationProperties.SetName(ZoomButton, Strings.Format("Zoom_Automation", percent));
         AutomationProperties.SetItemStatus(Pages, controller.ViewTurns == 0 ? Strings.Get("Surface_NotRotated") : Strings.Format("Surface_Rotated", controller.ViewTurns * 90));
         var title = Strings.Format("Window_Title", session.Title);
-        TitleText.Text = title;
         Title = title;
     }
 
@@ -409,7 +374,7 @@ public sealed partial class MainWindow : Window
         };
         AutomationProperties.SetAutomationId(dialog, "PasswordDialog");
         dialog.Opened += (_, _) => box.Focus(FocusState.Programmatic);
-        var result = await dialog.ShowAsync();
+        var result = await ShowDialogAsync(dialog);
         return result == ContentDialogResult.Primary ? box.Password : null;
     }
 
@@ -429,7 +394,7 @@ public sealed partial class MainWindow : Window
         };
         AutomationProperties.SetAutomationId(dialog, "ErrorDialog");
         _ = detail; // technical detail is not shown to people; it stays out of the UI (no logging yet: no telemetry)
-        await dialog.ShowAsync();
+        await ShowDialogAsync(dialog);
     }
 
     private async Task GoToPageAsync()
@@ -462,7 +427,7 @@ public sealed partial class MainWindow : Window
         };
         AutomationProperties.SetAutomationId(dialog, "GoToPageDialog");
         dialog.Opened += (_, _) => box.Focus(FocusState.Programmatic);
-        if (await dialog.ShowAsync() == ContentDialogResult.Primary && !double.IsNaN(box.Value) && _session is { IsOpen: true } current)
+        if (await ShowDialogAsync(dialog) == ContentDialogResult.Primary && !double.IsNaN(box.Value) && _session is { IsOpen: true } current)
         {
             current.JumpToPage((int)Math.Clamp(box.Value, 1, total) - 1);
         }
@@ -515,10 +480,20 @@ public sealed partial class MainWindow : Window
         try
         {
             var items = await e.DataView.GetStorageItemsAsync();
-            var file = items.OfType<StorageFile>().FirstOrDefault(f => string.Equals(f.FileType, ".pdf", StringComparison.OrdinalIgnoreCase)) ?? items.OfType<StorageFile>().FirstOrDefault();
-            if (file is not null)
+            var files = items.OfType<StorageFile>().Where(f => !string.IsNullOrEmpty(f.Path)).ToList();
+            var pdfs = files.Where(f => string.Equals(f.FileType, ".pdf", StringComparison.OrdinalIgnoreCase)).Select(f => f.Path).ToList();
+            if (pdfs.Count == 0 && files.Count > 0)
             {
-                await OpenPathAsync(file.Path);
+                pdfs = [files[0].Path]; // not named .pdf: the engine decides by content
+            }
+
+            if (pdfs.Count == 1)
+            {
+                await OpenPathAsync(pdfs[0]);
+            }
+            else if (pdfs.Count > 1 && (!ActivationLimits.NeedsConfirmation(pdfs.Count) || await ConfirmOpenManyAsync(pdfs.Count)))
+            {
+                await _app.OpenManyAsync(pdfs.Take(ActivationLimits.Maximum).ToList(), OpenSource.User, this);
             }
         }
         finally

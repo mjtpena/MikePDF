@@ -165,7 +165,7 @@ public sealed class TabModelTests : IDisposable
         var second = Fill(app.NewWindow(), "c", "d");
         var first = Fill(app.NewWindow(), "a", "b"); // the window used last
         var decision = app.Plan(Id("d"), OpenSource.User, preferred: first);
-        Assert.Equal(OpenOutcome.ActivateExisting, decision.Outcome);
+        Assert.Equal(OpenAction.ActivateExisting, decision.Outcome);
         Assert.Same(second, decision.Window);
         Assert.Same(second.Tabs[1], decision.Tab);
         Assert.Equal(4, app.OpenDocumentCount); // nothing was created
@@ -178,7 +178,7 @@ public sealed class TabModelTests : IDisposable
         var window = app.NewWindow();
         var empty = window.Active!;
         var reuse = app.Plan(Id("x"), OpenSource.User, window);
-        Assert.Equal(OpenOutcome.ReuseEmpty, reuse.Outcome);
+        Assert.Equal(OpenAction.ReuseEmpty, reuse.Outcome);
         Assert.Same(empty, reuse.Tab);
 
         window.Remove(empty.Id);
@@ -189,10 +189,10 @@ public sealed class TabModelTests : IDisposable
 
         window.Activate(window.Tabs[0].Id);
         var user = app.Plan(Id("n"), OpenSource.User, window);
-        Assert.Equal((OpenOutcome.NewTab, 1), (user.Outcome, user.Index));
+        Assert.Equal((OpenAction.NewTab, 1), (user.Outcome, user.Index));
         var outside = app.Plan(Id("n"), OpenSource.Outside, window);
-        Assert.Equal((OpenOutcome.NewTab, 3), (outside.Outcome, outside.Index));
-        Assert.Equal(OpenOutcome.NewWindow, app.Plan(Id("n"), OpenSource.Outside, window, forceNewWindow: true).Outcome);
+        Assert.Equal((OpenAction.NewTab, 3), (outside.Outcome, outside.Index));
+        Assert.Equal(OpenAction.NewWindow, app.Plan(Id("n"), OpenSource.Outside, window, forceNewWindow: true).Outcome);
     }
 
     [Fact]
@@ -208,7 +208,7 @@ public sealed class TabModelTests : IDisposable
 
         Assert.True(window.IsFull);
         Assert.False(window.Insert(0, new TabModel(TabKind.Empty), activate: false));
-        Assert.Equal(OpenOutcome.NewWindow, app.Plan(Id("z"), OpenSource.User, window).Outcome);
+        Assert.Equal(OpenAction.NewWindow, app.Plan(Id("z"), OpenSource.User, window).Outcome);
     }
 
     [Fact]
@@ -222,10 +222,10 @@ public sealed class TabModelTests : IDisposable
             window.Insert(window.Tabs.Count, Doc("d" + i), activate: false);
         }
 
-        Assert.Equal(OpenOutcome.Refused, app.Plan(Id("new"), OpenSource.User, window).Outcome);
-        Assert.Equal(OpenOutcome.ActivateExisting, app.Plan(Id("d3"), OpenSource.User, window).Outcome); // the same file is still just a switch
+        Assert.Equal(OpenAction.Refused, app.Plan(Id("new"), OpenSource.User, window).Outcome);
+        Assert.Equal(OpenAction.ActivateExisting, app.Plan(Id("d3"), OpenSource.User, window).Outcome); // the same file is still just a switch
         window.Tabs[5].IsSuspended = true;
-        Assert.Equal(OpenOutcome.NewTab, app.Plan(Id("new"), OpenSource.User, window).Outcome);
+        Assert.Equal(OpenAction.NewTab, app.Plan(Id("new"), OpenSource.User, window).Outcome);
     }
 
     [Theory]

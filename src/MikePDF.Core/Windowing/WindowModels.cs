@@ -199,7 +199,7 @@ public enum OpenSource
     Outside,
 }
 
-public enum OpenOutcome
+public enum OpenAction
 {
     /// <summary>A tab for the file exists: show it, and its window.</summary>
     ActivateExisting,
@@ -217,9 +217,9 @@ public enum OpenOutcome
     Refused,
 }
 
-public sealed record OpenDecision(OpenOutcome Outcome, WindowModel? Window, TabModel? Tab, int Index)
+public sealed record OpenDecision(OpenAction Outcome, WindowModel? Window, TabModel? Tab, int Index)
 {
-    public static OpenDecision Refuse { get; } = new(OpenOutcome.Refused, null, null, 0);
+    public static OpenDecision Refuse { get; } = new(OpenAction.Refused, null, null, 0);
 }
 
 /// <summary>The windows of the app, the one used last first, and the rules for where a document opens (docs/features/tabs-windows-session.md 3.2).</summary>
@@ -299,7 +299,7 @@ public sealed class AppModel
     {
         if (Find(identity) is { } existing)
         {
-            return new OpenDecision(OpenOutcome.ActivateExisting, existing.Window, existing.Tab, existing.Window.IndexOf(existing.Tab.Id));
+            return new OpenDecision(OpenAction.ActivateExisting, existing.Window, existing.Tab, existing.Window.IndexOf(existing.Tab.Id));
         }
 
         if (OpenDocumentCount >= MaxOpenDocuments)
@@ -310,16 +310,16 @@ public sealed class AppModel
         var window = forceNewWindow ? null : preferred ?? LastActive;
         if (window is null || window.IsFull)
         {
-            return new OpenDecision(OpenOutcome.NewWindow, null, null, 0);
+            return new OpenDecision(OpenAction.NewWindow, null, null, 0);
         }
 
         if (window.Active is { Kind: TabKind.Empty } empty)
         {
-            return new OpenDecision(OpenOutcome.ReuseEmpty, window, empty, window.ActiveIndex);
+            return new OpenDecision(OpenAction.ReuseEmpty, window, empty, window.ActiveIndex);
         }
 
         var index = source == OpenSource.User ? window.ActiveIndex + 1 : window.Tabs.Count;
-        return new OpenDecision(OpenOutcome.NewTab, window, null, index);
+        return new OpenDecision(OpenAction.NewTab, window, null, index);
     }
 }
 

@@ -173,6 +173,14 @@ public static class SettingsRegistry
         },
         new SettingDefinition
         {
+            Key = "privacy.addToWindowsRecent",
+            Kind = SettingKind.Bool,
+            Default = true,
+            Owner = "file association",
+            Section = SettingSection.Privacy,
+        },
+        new SettingDefinition
+        {
             Key = "links.behaviour",
             Kind = SettingKind.Enum,
             Default = "ShowAddress",
