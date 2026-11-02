@@ -10,6 +10,8 @@
     protocol-cs       C# IPC decoders                                                            tests/fuzz/MikePDF.Protocol.Fuzz
     pdfwriter-parse   MikePDF.PdfWriter parser and validator                                     tests/fuzz/MikePDF.PdfWriter.Fuzz
     pdfwriter-append  MikePDF.PdfWriter incremental writer round trip
+    shell-reply-cpp   the Explorer handler's reply decoder and checks (SHELL-18, libFuzzer+ASan)   tests/fuzz/shell_reply_fuzz.cpp
+    shell-request-cs  ShellHost's request decoder and rules (SHELL-18)                             tests/fuzz/MikePDF.ShellHost.Fuzz
 
   The three C# targets run in one of two modes (-CSharpMode, ADR-0017):
     coverage    (default) SharpFuzz-instrumented MikePDF.Protocol.dll / MikePDF.PdfWriter.dll, driven by MSVC's libFuzzer through the
@@ -25,7 +27,7 @@
 #>
 [CmdletBinding()]
 param(
-    [ValidateSet('protocol-cpp', 'engine-document', 'protocol-cs', 'pdfwriter-parse', 'pdfwriter-append', 'all')]
+    [ValidateSet('protocol-cpp', 'engine-document', 'protocol-cs', 'pdfwriter-parse', 'pdfwriter-append', 'shell-reply-cpp', 'shell-request-cs', 'all')]
     [string[]] $Target = @('all'),
     [int] $Seconds = 60,
     [string] $OutRoot,
@@ -47,7 +49,7 @@ $root = (Resolve-Path (Join-Path $PSScriptRoot '../..')).Path
 if (-not $OutRoot) { $OutRoot = Join-Path $root 'build/out/fuzz' }
 if (-not $CorpusRoot) { $CorpusRoot = Join-Path $OutRoot 'corpus' }
 if (-not $FindingsRoot) { $FindingsRoot = Join-Path $OutRoot 'findings' }
-$all = 'protocol-cpp', 'engine-document', 'protocol-cs', 'pdfwriter-parse', 'pdfwriter-append'
+$all = 'protocol-cpp', 'engine-document', 'protocol-cs', 'pdfwriter-parse', 'pdfwriter-append', 'shell-reply-cpp', 'shell-request-cs'
 if ($Target -contains 'all') { $Target = $all }
 if ($SelfTest) { $Target = @('protocol-cs'); $CSharpMode = 'coverage' }
 New-Item -ItemType Directory -Force $OutRoot, $CorpusRoot, $FindingsRoot, (Join-Path $OutRoot 'logs') | Out-Null
@@ -71,10 +73,11 @@ $csBin = @{
     'protocol-cs'      = Join-Path $root 'build/out/fuzz-bin/protocol'
     'pdfwriter-parse'  = Join-Path $root 'build/out/fuzz-bin/pdfwriter'
     'pdfwriter-append' = Join-Path $root 'build/out/fuzz-bin/pdfwriter'
+    'shell-request-cs' = Join-Path $root 'build/out/fuzz-bin/shellhost'
 }
 
 $driverExe = Join-Path $root 'build/out/fuzz-driver/driver/Release/libfuzzer_dotnet.exe'
-$useCoverage = ($CSharpMode -eq 'coverage') -and [bool] ($Target | Where-Object { $_ -in 'protocol-cs', 'pdfwriter-parse', 'pdfwriter-append' })
+$useCoverage = ($CSharpMode -eq 'coverage') -and [bool] ($Target | Where-Object { $_ -in 'protocol-cs', 'pdfwriter-parse', 'pdfwriter-append', 'shell-request-cs' })
 # SharpFuzz.CommandLine 2.3.0 (MIT, tests/fuzz/.config/dotnet-tools.json): a tool-manifest version pins the version but not the bytes, so the
 # package's SHA-512 is pinned here and checked after the restore.
 $sharpFuzzCliSha512 = 'G/7VoIh0eqKYdGM9GZJqM+twCotc9T3WFl6QMaulYhzKNGwS90zdXx43JC3jYrwz/BTGVDv4Nu1VK5F+f12kzg=='
@@ -111,19 +114,24 @@ function Install-Instrumented([string] $plain, [string[]] $assemblies) {
 }
 
 if (-not $SkipBuild) {
-    if ($Target | Where-Object { $_ -in 'protocol-cpp', 'engine-document' }) {
+    if ($Target | Where-Object { $_ -in 'protocol-cpp', 'engine-document', 'shell-reply-cpp' }) {
         $pdfium = & (Join-Path $root 'build/fetch-pdfium.ps1') -Arch x64 | Select-Object -Last 1
         $cmake = Find-CMake
         $buildDir = Join-Path $root 'build/out/fuzz-x64'
         Write-Host '==> native fuzz targets (MSVC libFuzzer + AddressSanitizer)' -ForegroundColor Cyan
         & $cmake -S $root -B $buildDir -A x64 "-DMIKEPDF_PDFIUM_DIR=$pdfium" -DMIKEPDF_BUILD_TESTS=OFF -DMIKEPDF_BUILD_FUZZERS=ON -DMIKEPDF_REQUIRE_SPECTRE=OFF
         if ($LASTEXITCODE -ne 0) { Write-Host 'CMake configure failed' -ForegroundColor Red; exit 2 }
-        & $cmake --build $buildDir --config Release --target fuzz_protocol fuzz_engine_document --parallel
+        & $cmake --build $buildDir --config Release --target fuzz_protocol fuzz_engine_document fuzz_shell_reply --parallel
         if ($LASTEXITCODE -ne 0) { Write-Host 'native fuzz build failed' -ForegroundColor Red; exit 2 }
     }
     if ($Target | Where-Object { $_ -eq 'protocol-cs' }) {
         Write-Host '==> C# protocol fuzz harness' -ForegroundColor Cyan
         dotnet build (Join-Path $root 'tests/fuzz/MikePDF.Protocol.Fuzz') -c Release -o $csBin['protocol-cs']
+        if ($LASTEXITCODE -ne 0) { Write-Host 'build failed' -ForegroundColor Red; exit 2 }
+    }
+    if ($Target | Where-Object { $_ -eq 'shell-request-cs' }) {
+        Write-Host '==> C# ShellHost fuzz harness' -ForegroundColor Cyan
+        dotnet build (Join-Path $root 'tests/fuzz/MikePDF.ShellHost.Fuzz') -c Release -o $csBin['shell-request-cs']
         if ($LASTEXITCODE -ne 0) { Write-Host 'build failed' -ForegroundColor Red; exit 2 }
     }
     if ($Target | Where-Object { $_ -like 'pdfwriter-*' }) {
@@ -134,6 +142,7 @@ if (-not $SkipBuild) {
     if ($useCoverage) {
         Install-CoverageTools
         if ($Target -contains 'protocol-cs') { Install-Instrumented $csBin['protocol-cs'] @('MikePDF.Protocol.dll') }
+        if ($Target -contains 'shell-request-cs') { Install-Instrumented $csBin['shell-request-cs'] @('MikePDF.Protocol.dll', 'MikePDF.ShellHost.dll') }
         if ($Target | Where-Object { $_ -like 'pdfwriter-*' }) { Install-Instrumented $csBin['pdfwriter-parse'] @('MikePDF.PdfWriter.dll') }
     }
 }
@@ -153,6 +162,16 @@ foreach ($dir in 'tests/MikePDF.PdfWriter.Tests/Fixtures/pdfium', 'tests/MikePDF
     foreach ($file in Get-ChildItem (Join-Path $root $dir) -Filter *.pdf) {
         Copy-Item $file.FullName (Join-Path $pdfSeeds $file.Name) -Force
     }
+}
+# The shell targets (SHELL-18): seeds made by seeds/make_shell_seeds.py. The request seeds are frames; the decoder also takes a body, so those are seeded too.
+$shellReplySeeds = Join-Path $seedRoot 'shell-reply'
+$shellRequestSeeds = Join-Path $seedRoot 'shell-request'
+New-Item -ItemType Directory -Force $shellReplySeeds, $shellRequestSeeds | Out-Null
+Copy-Item (Join-Path $PSScriptRoot 'seeds/shell-reply/*.bin') $shellReplySeeds -Force
+foreach ($file in Get-ChildItem (Join-Path $PSScriptRoot 'seeds/shell-request') -Filter *.bin) {
+    Copy-Item $file.FullName (Join-Path $shellRequestSeeds $file.Name) -Force
+    $bytes = [IO.File]::ReadAllBytes($file.FullName)
+    if ($bytes.Length -gt 4) { [IO.File]::WriteAllBytes((Join-Path $shellRequestSeeds ('body-' + $file.Name)), $bytes[4..($bytes.Length - 1)]) }
 }
 $dictionaries = Join-Path $PSScriptRoot 'dictionaries'
 
@@ -297,6 +316,8 @@ foreach ($t in $Target) {
         'protocol-cs'      { $results += Invoke-CSharp $t 'MikePDF.Protocol.Fuzz' @() $protocolSeeds (Join-Path $dictionaries 'protocol.dict') 65540 }
         'pdfwriter-parse'  { $results += Invoke-CSharp $t 'MikePDF.PdfWriter.Fuzz' @('parse') $pdfSeeds (Join-Path $dictionaries 'pdf.dict') 131072 }
         'pdfwriter-append' { $results += Invoke-CSharp $t 'MikePDF.PdfWriter.Fuzz' @('append') $pdfSeeds (Join-Path $dictionaries 'pdf.dict') 131072 }
+        'shell-reply-cpp'  { $results += Invoke-Native $t (Join-Path $nativeBin 'fuzz_shell_reply.exe') $shellReplySeeds (Join-Path $dictionaries 'protocol.dict') 65548 }
+        'shell-request-cs' { $results += Invoke-CSharp $t 'MikePDF.ShellHost.Fuzz' @() $shellRequestSeeds (Join-Path $dictionaries 'protocol.dict') 65540 }
     }
 }
 
