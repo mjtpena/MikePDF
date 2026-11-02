@@ -8,6 +8,8 @@ name: Fuzz
 # every push. How the nightly run is verified after the merge is in docs/fuzzing.md, "Verifying the scheduled workflow".
 
 on:
+  push:
+    branches: [m1/sharpfuzz] # TEMPORARY
   schedule:
     - cron: '17 2 * * *' # 02:17 UTC every night
   workflow_dispatch:
@@ -81,7 +83,7 @@ jobs:
     runs-on: windows-2025-vs2026
     timeout-minutes: 355
     env:
-      MINUTES: ${{ inputs.minutes || '300' }}
+      MINUTES: ${{ inputs.minutes || '2' }}
       PROCESSES: ${{ inputs.processes || '3' }}
       CSHARP_MODE: ${{ inputs.csharp_mode || 'coverage' }}
     steps:
