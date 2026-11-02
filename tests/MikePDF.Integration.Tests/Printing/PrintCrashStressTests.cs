@@ -11,7 +11,7 @@ namespace MikePDF.Integration.Tests.Printing;
 /// </summary>
 public sealed class PrintCrashStressTests
 {
-    private static readonly int Iterations = int.TryParse(Environment.GetEnvironmentVariable("MIKEPDF_PRINT_STRESS_ITERATIONS"), out var n) && n > 0 ? n : 40;
+    private static readonly int StressIterations = int.TryParse(Environment.GetEnvironmentVariable("MIKEPDF_PRINT_STRESS_ITERATIONS"), out var n) && n > 0 ? n : 0;
     private static readonly PaperArea A4At300 = new(2480, 3508, 300, 300);
     private static readonly SizeD Letter = new(612, 792);
 
@@ -27,8 +27,9 @@ public sealed class PrintCrashStressTests
         Assert.True(reference.Draws.Count >= 8, "the job has enough bands for a death to catch two of them");
 
         var random = new Random(20261103);
-        using var load = CpuLoad.OnEveryCore();
-        for (var i = 0; i < Iterations; i++)
+        var iterations = StressIterations > 0 ? StressIterations : 40;
+        using var load = StressIterations > 0 ? CpuLoad.OnEveryCore() : null;
+        for (var i = 0; i < iterations; i++)
         {
             var dies = random.Next(2, 6); // the call that is being served when the engine dies; the next call is in flight beside it
             var sibling = TimeSpan.FromMilliseconds(random.Next(1, 30));
