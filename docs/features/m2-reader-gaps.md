@@ -1,6 +1,6 @@
 # Feature spec: reader gaps (WP W1-reader, branch `m2/reader-gaps`)
 
-- Status: implemented on `m2/reader-gaps`, awaiting Opus review. The unit, protocol, engine and integration tests have run; the UI journeys are written but see the table below for whether they have run
+- Status: implemented on `m2/reader-gaps`, awaiting Opus review. Every test in the map below has run and passed (the full UI suite: 45 journeys, 44 passed, 1 skipped by design)
 - Master prompt: §2.1 (Viewing), §8.1 (Find), §10.2 (Keyboard), §10.3 (Accessibility), §5.4 (IPC), ADR-0004 A2 (broker-private data), ADR-0005 A1 (bounded windows)
 - Template: A.4. Anything that was ambiguous is marked **OPEN QUESTION** and what was done meanwhile is stated.
 - Out of scope (next wave, M3): tabs, extra windows, the command palette, the settings dialog, presentation mode, two-page layouts, remappable shortcuts. Every shortcut below is a default that the later shortcut map takes over.
@@ -226,25 +226,27 @@ None. No telemetry exists. Nothing here writes to the document, so there is no u
 
 ## Test map
 
+The one decision that changed while testing: actual size is **Ctrl+Alt+0**, not Ctrl+Shift+0. A key log inside the app showed Windows takes Ctrl+Shift+0 (the input-method hotkeys) and the window never receives the 0.
+
 | Criterion | Test (file) | Ran |
 |---|---|---|
 | H1 to H6 | `NavigationHistoryTests` (`tests/MikePDF.Core.Tests/ReaderGapsTests.cs`) | yes |
-| H7 to H9 | `ReaderGapsJourneyTests.H7_H8_H9_...`, `H8_GoToPageAThumbnailAndABookmarkAreJumpsToo` | no (UI) |
-| H10, H11 | `ReaderGapsJourneyTests.H10_...`, `H11_...` | no (UI) |
+| H7 to H9 | `ReaderGapsJourneyTests.H7_H8_H9_...`, `H8_GoToPageAThumbnailAndABookmarkAreJumpsToo` | yes (UI) |
+| H10, H11 | `ReaderGapsJourneyTests.H10_...`, `H11_...` | yes (UI) |
 | N1, N2, N3, N4, N5, N6, N7 | `NamedDestinationTest.*`, `NamedDestinationHostile.*` (`tests/MikePDF.Engine.Tests/reader_gaps_tests.cpp`) | yes |
 | N1, N3, N4 (through the sandbox) | `ReaderGapsServiceTests.N1_N3_N4_...` | yes |
-| N8 | `ReaderGapsJourneyTests.N8_...` | no (UI) |
+| N8 | `ReaderGapsJourneyTests.N8_...` | yes (UI) |
 | Z1, Z2 | `ZoomKeyTests` | yes |
-| Z3, Z4, Z5 | `ReaderGapsJourneyTests.Z3_Z4_...`, `Z5_...` | no (UI) |
-| Z6, Z7 | existing `JourneyTests.RotatingTheViewTurnsThePagesWithoutChangingThePage`, `ThePageIndicatorFollowsKeyboardNavigation` | not re-run after this change |
+| Z3, Z4, Z5 | `ReaderGapsJourneyTests.Z3_Z4_...`, `Z5_...` | yes (UI) |
+| Z6, Z7 | existing `JourneyTests.RotatingTheViewTurnsThePagesWithoutChangingThePage`, `ThePageIndicatorFollowsKeyboardNavigation` | yes (UI) |
 | F1 | `ReaderGapsServiceTests.F1_...` | yes |
 | F2 to F7 | `RegexFindTests` | yes |
-| F8, F9, F10 | `ReaderGapsJourneyTests.F8_F10_...`, `F8_APatternThatIsNotValid...`, `F9_...` | no (UI) |
+| F8, F9, F10 | `ReaderGapsJourneyTests.F8_F10_...`, `F8_APatternThatIsNotValid...`, `F9_...` | yes (UI) |
 | C1 to C4 | `PageColourTests` | yes |
-| C5 to C7 | `ReaderGapsJourneyTests.C5_C6_C7_...` | no (UI) |
+| C5 to C7 | `ReaderGapsJourneyTests.C5_C6_C7_...` | yes (UI) |
 | P1 | `GoldenTests`, `MalformedFrameTests` (C#), `ProtocolGolden.*` (C++) with the new vectors | yes |
 | P2, P3 | `DocumentDetails.*` (`reader_gaps_tests.cpp`) | yes |
 | P4 | `ReaderGapsServiceTests.P4_*`, `EngineClientValidationTests` (six new forged-reply scenarios) | yes |
 | P5 to P8 | `PropertiesTests` | yes |
-| P9 to P11 | `ReaderGapsJourneyTests.P9_P11_...`, `P10_...` | no (UI) |
-| S1 to S4 | `ReaderGapsJourneyTests.S1_S4_...` | no (UI) |
+| P9 to P11 | `ReaderGapsJourneyTests.P9_P11_...`, `P10_...` | yes (UI) |
+| S1 to S4 | `ReaderGapsJourneyTests.S1_S4_...` | yes (UI) |
