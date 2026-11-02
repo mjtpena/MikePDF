@@ -97,6 +97,9 @@ internal sealed record CorpusExpect
 
     public bool AllowsPartialRender { get; init; }
 
+    /// <summary>The document opens but some of its pages cannot be loaded (a page tree broken on purpose, a page of the wrong type): those pages end <c>Damaged</c> and that is the expected result. Other failures still fail the gate.</summary>
+    public bool AllowsDamagedPages { get; init; }
+
     /// <summary>
     /// <c>crash</c> or <c>hang</c>: the file is made to take the engine down (it runs it out of memory, or PDFium spins inside one drawing operation), and a run
     /// must see exactly that, and see the engine replaced. A run that does not is a failure: the file would no longer exercise recovery. Implies <see cref="AllowsEngineCrash"/>.

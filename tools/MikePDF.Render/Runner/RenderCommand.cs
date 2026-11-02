@@ -191,6 +191,7 @@ internal static class RenderCommand
                         Pages = item.Entry.Expect.Pages,
                         AllowsEngineCrash = item.Entry.Expect.AllowsEngineCrash || item.Entry.Expect.EngineEvent is not null,
                         AllowsPartialRender = item.Entry.Expect.AllowsPartialRender,
+                        AllowsDamagedPages = item.Entry.Expect.AllowsDamagedPages,
                         EngineEvent = item.Entry.Expect.EngineEvent,
                         KnownIssue = item.Entry.Expect.KnownIssue,
                     },

@@ -89,6 +89,18 @@ public sealed class CorpusTierTests
     }
 
     [Fact]
+    public void ADamagedPageIsExpectedOnlyWhereTheManifestSaysSo()
+    {
+        var broken = File("broken-pages.pdf", expected: new ExpectedOutcome { AllowsDamagedPages = true }, pages: [Page(), Page("Damaged", null, "2")]);
+        var result = Evaluate(null, broken);
+        Assert.True(result.Passed, string.Join("; ", result.Failures.Select(f => f.Message)));
+        Assert.Contains(result.Warnings, w => w.Kind == "PageDamaged");
+        AssertFails(Evaluate(null, File("other.pdf", pages: Page("Damaged", null))), "RenderFailed");
+        // Only Damaged is excused: a page that did not render for another reason still fails.
+        AssertFails(Evaluate(null, File("broken-pages.pdf", expected: new ExpectedOutcome { AllowsDamagedPages = true }, pages: Page("InternalError", null))), "RenderFailed");
+    }
+
+    [Fact]
     public void ATimeoutOnAFileThatIsNotAllowedToFailIsStillAFailure()
     {
         AssertFails(Evaluate(null, File("slow.pdf", pages: Page("Timeout", null))), "Timeout");
@@ -235,6 +247,22 @@ public sealed class CorpusTierTests
         });
         Assert.InRange(hang.Render?.TileDeadlineMs ?? int.MaxValue, 1, 2000);
         Assert.Contains(CorpusStore.InTier(manifest, "core"), f => f.Id == crash.Id);
+    }
+
+    [Fact]
+    public void TheNightlyWorkflowRendersTheCoreTierOnBothArchitecturesWithACacheAndUploadsTheReport()
+    {
+        var text = System.IO.File.ReadAllText(Path.Combine(Locations.RepositoryRoot()!, ".github", "workflows", "nightly-corpus.yml"));
+        foreach (var needed in new[] { "schedule:", "workflow_dispatch:", "windows-2025-vs2026", "windows-11-vs2026-arm", "actions/cache/restore@", "actions/cache/save@", "corpus fetch --tier", "--tier $env:TIER", "actions/upload-artifact@", "baseline-candidate.json" })
+        {
+            Assert.Contains(needed, text, StringComparison.Ordinal);
+        }
+
+        // Every third-party action is pinned to a commit, as ci.yml does.
+        foreach (var line in text.Split('\n').Where(l => l.TrimStart().StartsWith("- uses:", StringComparison.Ordinal) || l.TrimStart().StartsWith("uses:", StringComparison.Ordinal)))
+        {
+            Assert.Matches("@[0-9a-f]{40}", line);
+        }
     }
 
     // ---- against the real engine -----------------------------------------------------------------

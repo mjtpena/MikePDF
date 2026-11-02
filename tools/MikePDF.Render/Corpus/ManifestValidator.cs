@@ -10,8 +10,11 @@ internal static partial class ManifestValidator
 {
     public static readonly string[] Tiers = ["smoke", "core", "full"];
 
-    /// <summary>Licences ADR-0003 allows in files that are redistributed. Anything else needs an ADR first.</summary>
-    public static readonly string[] AllowedLicences = ["BSD-3-Clause", "Apache-2.0", "MIT", "CC0-1.0", "LicenseRef-Public-Domain"];
+    /// <summary>Licences allowed in corpus files (ADR-0003 for the permissive ones, ADR-0010's amendment of 2026-11-03 for Creative Commons Attribution). Anything else needs an ADR first.</summary>
+    public static readonly string[] AllowedLicences =
+    [
+        "BSD-3-Clause", "Apache-2.0", "MIT", "CC0-1.0", "LicenseRef-Public-Domain", "CC-BY-2.0", "CC-BY-2.5", "CC-BY-3.0", "CC-BY-4.0",
+    ];
 
     public const int SmokeMinimumFiles = 30;
 

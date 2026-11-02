@@ -102,6 +102,9 @@ internal sealed record ExpectedOutcome
     /// <summary>Pages that are expected to come back <c>PartiallyRendered</c>.</summary>
     public bool AllowsPartialRender { get; init; }
 
+    /// <summary>Pages that cannot be loaded and end <c>Damaged</c> are expected (the document is broken on purpose).</summary>
+    public bool AllowsDamagedPages { get; init; }
+
     /// <summary><c>crash</c> or <c>hang</c> when the file is made to take the engine down: the run must see that, and the engine replaced.</summary>
     public string? EngineEvent { get; init; }
 

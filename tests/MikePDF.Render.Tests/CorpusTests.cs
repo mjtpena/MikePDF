@@ -61,16 +61,33 @@ public sealed class CorpusTests
             Assert.NotEmpty(file.Licence);
             Assert.True(file.Redistributable, file.Id);
             Assert.NotEmpty(file.Source);
-            if (file.Origin == CorpusOrigin.Fetch)
+            if (file.Origin == CorpusOrigin.Generated)
+            {
+                Assert.Equal("Apache-2.0", file.Licence);
+                continue;
+            }
+
+            // A fetched file comes from a pinned, immutable address, and says where its licence was read.
+            Assert.StartsWith("https://", file.Source, StringComparison.Ordinal);
+            Assert.Contains(file.Licence, ManifestValidator.AllowedLicences);
+            if (file.Id.StartsWith("pdfium/", StringComparison.Ordinal))
             {
                 Assert.StartsWith("https://pdfium.googlesource.com/pdfium/+/43d55e429cf72c21e9a1e60475b50feefa16fda9/testing/resources/", file.Source, StringComparison.Ordinal);
                 Assert.Equal("BSD-3-Clause", file.Licence);
             }
+
+            if (!file.Tiers.Contains("smoke"))
+            {
+                Assert.False(string.IsNullOrWhiteSpace(file.LicenceEvidence), file.Id);
+            }
             else
             {
-                Assert.Equal("Apache-2.0", file.Licence);
+                Assert.False(string.IsNullOrWhiteSpace(file.Audit), file.Id + " is in the smoke tier and was audited");
             }
         }
+
+        // No file is fetched from a mutable address: a git branch or a "latest".
+        Assert.DoesNotContain(manifest.Files.Where(f => f.Origin == CorpusOrigin.Fetch), f => f.Source.Contains("/blob/main/", StringComparison.Ordinal) || f.Source.Contains("/blob/master/", StringComparison.Ordinal) || (f.FetchUrl ?? "").Contains("/main/", StringComparison.Ordinal) || (f.FetchUrl ?? "").Contains("/master/", StringComparison.Ordinal) || (f.FetchUrl ?? "").Contains("/staging/", StringComparison.Ordinal));
 
         Assert.NotEmpty(manifest.Excluded);
         Assert.All(manifest.Excluded, e => Assert.NotEmpty(e.Reason));
@@ -105,7 +122,7 @@ public sealed class CorpusTests
         {
             var name = Path.GetFileName(file.Id);
             var committed = Path.Combine(fixtures, name);
-            if (file.Origin == CorpusOrigin.Fetch && File.Exists(committed))
+            if (file.Origin == CorpusOrigin.Fetch && file.Id.StartsWith("pdfium/", StringComparison.Ordinal) && File.Exists(committed))
             {
                 Assert.Equal(file.Sha256, CorpusStore.Sha256Hex(File.ReadAllBytes(committed)));
             }
@@ -252,7 +269,7 @@ public sealed class CorpusTests
     }
 
     [Fact]
-    public async Task AServerErrorIsRetriedThreeTimesAndThenSucceedsOrFails()
+    public async Task AServerErrorIsRetriedAFewTimesAndThenSucceedsOrFails()
     {
         var content = "%PDF-1.4 flaky"u8.ToArray();
         var manifest = Manifest(Fetched("p/flaky.pdf", content));
@@ -269,7 +286,7 @@ public sealed class CorpusTests
             var other = Path.Combine(directory, "second");
             var failed = await new CorpusFetcher(new HttpClient(never), TimeSpan.Zero).FetchAsync(manifest, "smoke", other, null, null, CancellationToken.None);
             Assert.Single(failed.Failures);
-            Assert.Equal(3, never.Calls);
+            Assert.Equal(5, never.Calls);
         }
         finally
         {

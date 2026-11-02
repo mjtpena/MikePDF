@@ -159,6 +159,9 @@ internal static class GateEvaluator
                 }
 
                 break;
+            case nameof(MikePDF.Protocol.Status.Damaged) when file.Expected?.AllowsDamagedPages == true:
+                warnings.Add(new GateFailure("PageDamaged", file.Id, pageName, $"The page cannot be loaded, as the manifest expects.{Detail(page.Detail)}"));
+                return;
             case "Timeout" when file.Expected?.AllowsEngineCrash == true:
                 warnings.Add(new GateFailure("Timeout", file.Id, pageName, $"The page did not render within its deadline (a tolerated engine failure).{Detail(page.Detail)}"));
                 return;
