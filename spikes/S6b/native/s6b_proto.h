@@ -55,4 +55,6 @@ struct S6bTimings {
     double totalMs;
     S6bRep open, render; // the server's own breakdown
     uint32_t hr;
+    uint32_t connectError; // last Win32 error seen while connecting (0 = none)
+    uint32_t launchError;  // CreateProcess error when this call tried to start ShellHost (0 = started)
 };

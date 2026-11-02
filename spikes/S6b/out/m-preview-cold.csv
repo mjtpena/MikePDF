@@ -1,0 +1,17 @@
+# label=preview-cold preview mode=cold runs=15 pdf=C:\Users\mjtpe\dev\Orqentis\QuirePDF\.claude\worktrees\agent-a20eab59cba996f96\spikes\S6b\out\pdfs\text1.pdf
+run,ok,first_pixel_ms,do_preview_call_ms,painted_ok
+0,1,215.57,1.04,1
+1,1,205.13,0.80,1
+2,1,222.63,0.76,1
+3,1,208.40,0.75,1
+4,1,218.49,1.81,1
+5,1,222.48,0.74,1
+6,1,225.99,0.75,1
+7,1,216.48,1.10,1
+8,1,223.10,0.73,1
+9,1,235.73,0.69,1
+10,1,239.73,0.92,1
+11,1,205.99,0.81,1
+12,1,217.76,0.84,1
+13,1,207.25,0.65,1
+14,1,256.73,1.16,1

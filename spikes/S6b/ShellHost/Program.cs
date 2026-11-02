@@ -30,7 +30,7 @@ internal sealed class Args
     public bool AllowLowIl = true;
     public string? Log;
     public long MemLimitMb = 256;
-    public int SlotKb = 1024;
+    public int SlotKb = 4096;
     public bool FileCopyViaSection = true;
 
     public static Args Parse(string[] argv)
@@ -296,8 +296,15 @@ internal sealed class Session : IAsyncDisposable
     public uint PageCount;
     public long EngineSpawnUs, OpenUs;
 
+    private int _disposed;
+
     public async ValueTask DisposeAsync()
     {
+        if (Interlocked.Exchange(ref _disposed, 1) != 0)
+        {
+            return;
+        }
+
         try
         {
             if (Document is not null)
@@ -499,6 +506,26 @@ internal static class Program
                 WriteU32(rep, 0, Wire.Magic);
                 WriteU32(rep, 10 * 4, (uint)Environment.ProcessId);
                 var op = ReadU32(req, 4);
+                // A request/response protocol: the client sends nothing while it waits. A read that completes anyway means it went away (it gave up at its
+                // deadline, or crashed), and the engine working for it is killed at once instead of when it finishes.
+                using var watchCts = new CancellationTokenSource();
+                var watch = pipe.ReadSomeAsync(new byte[1], watchCts.Token);
+                var goneAt = 0L;
+                var watchDone = watch.ContinueWith(
+                    t =>
+                    {
+                        if (!watchCts.IsCancellationRequested)
+                        {
+                            Volatile.Write(ref goneAt, Stopwatch.GetTimestamp());
+                            var s2 = session;
+                            if (s2 is not null)
+                            {
+                                Log.Write($"client gone mid-request; killing its engine {(s2.Engine is null ? 0u : s2.Engine.EngineProcessId)}");
+                                _ = s2.DisposeAsync().AsTask();
+                            }
+                        }
+                    },
+                    TaskScheduler.Default);
                 try
                 {
                     if (ReadU32(req, 0) != Wire.Magic)
@@ -562,6 +589,13 @@ internal static class Program
 
                 // total server time of this op goes in slot 17
                 WriteU32(rep, 17 * 4, (uint)Us(Stopwatch.GetTimestamp() - t0));
+                watchCts.Cancel();
+                await watchDone.ConfigureAwait(false);
+                if (Volatile.Read(ref goneAt) != 0)
+                {
+                    break;
+                }
+
                 await pipe.WriteAsync(rep).ConfigureAwait(false);
                 if (inline.Length > 0)
                 {
@@ -829,6 +863,23 @@ internal sealed class NamedPipeServerStreamAdapter : IDisposable
     }
 
     public ValueTask WriteAsync(ReadOnlyMemory<byte> data) => _stream.WriteAsync(data);
+
+    /// <summary>Completes with 0 when the client has gone, cancels quietly when asked to.</summary>
+    public async Task<int> ReadSomeAsync(byte[] buffer, CancellationToken ct)
+    {
+        try
+        {
+            return await _stream.ReadAsync(buffer, ct).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException)
+        {
+            return -1;
+        }
+        catch (IOException)
+        {
+            return 0;
+        }
+    }
 
     public void Dispose() => _stream.Dispose();
 }

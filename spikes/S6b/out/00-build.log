@@ -1,0 +1,130 @@
+==> Protocol generator check
+Protocol code is up to date.
+==> CMake configure
+-- Building for: Visual Studio 17 2022
+-- Selecting Windows SDK version 10.0.26100.0 to target Windows 10.0.26300.
+-- The CXX compiler identification is MSVC 19.44.35227.0
+-- Detecting CXX compiler ABI info
+-- Detecting CXX compiler ABI info - done
+-- Check for working CXX compiler: C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/bin/Hostx64/x64/cl.exe - skipped
+-- Detecting CXX compile features
+-- Detecting CXX compile features - done
+CMake Warning at cmake/MikePDFHardening.cmake:21 (message):
+  Spectre-mitigated libraries not found; building WITHOUT /Qspectre (not for
+  release)
+Call Stack (most recent call first):
+  CMakeLists.txt:12 (include)
+
+
+-- Configuring done (3.2s)
+-- Generating done (0.2s)
+-- Build files have been written to: C:/Users/mjtpe/dev/Orqentis/QuirePDF/.claude/worktrees/agent-a20eab59cba996f96/build/out/cmake-x64
+==> CMake build
+MSBuild version 17.14.40+3e7442088 for .NET Framework
+
+  1>Checking Build System
+  Building Custom Rule C:/Users/mjtpe/dev/Orqentis/QuirePDF/.claude/worktrees/agent-a20eab59cba996f96/src/MikePDF.Engine/CMakeLists.txt
+  Building Custom Rule C:/Users/mjtpe/dev/Orqentis/QuirePDF/.claude/worktrees/agent-a20eab59cba996f96/src/MikePDF.Protocol/CMakeLists.txt
+  Building Custom Rule C:/Users/mjtpe/dev/Orqentis/QuirePDF/.claude/worktrees/agent-a20eab59cba996f96/src/MikePDF.Engine/CMakeLists.txt
+  Scanning sources for module dependencies...
+  Scanning sources for module dependencies...
+  Scanning sources for module dependencies...
+  runtime_policy.cpp
+  log_pipe.cpp
+  msgpack.cpp
+  codec.cpp
+  messages.cpp
+  Compiling...
+  Compiling...
+  Compiling...
+  messages.cpp
+  runtime_policy.cpp
+  msgpack.cpp
+  codec.cpp
+  log_pipe.cpp
+  mikepdf_runtime_policy.vcxproj -> C:\Users\mjtpe\dev\Orqentis\QuirePDF\.claude\worktrees\agent-a20eab59cba996f96\build\out\cmake-x64\src\MikePDF.Engine\Release\mikepdf_runtime_policy.lib
+  mikepdf_log_pipe.vcxproj -> C:\Users\mjtpe\dev\Orqentis\QuirePDF\.claude\worktrees\agent-a20eab59cba996f96\build\out\cmake-x64\src\MikePDF.Engine\Release\mikepdf_log_pipe.lib
+  mikepdf_protocol.vcxproj -> C:\Users\mjtpe\dev\Orqentis\QuirePDF\.claude\worktrees\agent-a20eab59cba996f96\build\out\cmake-x64\src\MikePDF.Protocol\Release\mikepdf_protocol.lib
+  Building Custom Rule C:/Users/mjtpe/dev/Orqentis/QuirePDF/.claude/worktrees/agent-a20eab59cba996f96/src/MikePDF.Engine.Pdfium/CMakeLists.txt
+  Scanning sources for module dependencies...
+  library.cpp
+  document.cpp
+  Compiling...
+  document.cpp
+  library.cpp
+  mikepdf_pdfium.vcxproj -> C:\Users\mjtpe\dev\Orqentis\QuirePDF\.claude\worktrees\agent-a20eab59cba996f96\build\out\cmake-x64\src\MikePDF.Engine.Pdfium\Release\mikepdf_pdfium.lib
+  Building Custom Rule C:/Users/mjtpe/dev/Orqentis/QuirePDF/.claude/worktrees/agent-a20eab59cba996f96/src/MikePDF.Engine/CMakeLists.txt
+  Scanning sources for module dependencies...
+  engine_core.cpp
+  slot_section.cpp
+  engine_host.cpp
+  command_line.cpp
+  handle_guard.cpp
+  mapped_file.cpp
+  pipe_client.cpp
+  Compiling...
+  engine_core.cpp
+  pipe_client.cpp
+  mapped_file.cpp
+  command_line.cpp
+  engine_host.cpp
+  handle_guard.cpp
+  slot_section.cpp
+  mikepdf_engine_core.vcxproj -> C:\Users\mjtpe\dev\Orqentis\QuirePDF\.claude\worktrees\agent-a20eab59cba996f96\build\out\cmake-x64\src\MikePDF.Engine\Release\mikepdf_engine_core.lib
+  Building Custom Rule C:/Users/mjtpe/dev/Orqentis/QuirePDF/.claude/worktrees/agent-a20eab59cba996f96/src/MikePDF.Engine/CMakeLists.txt
+  Scanning sources for module dependencies...
+  main.cpp
+  Compiling...
+  main.cpp
+  mikepdf_engine.vcxproj -> C:\Users\mjtpe\dev\Orqentis\QuirePDF\.claude\worktrees\agent-a20eab59cba996f96\build\out\cmake-x64\bin\Release\MikePDF.Engine.exe
+  Building Custom Rule C:/Users/mjtpe/dev/Orqentis/QuirePDF/.claude/worktrees/agent-a20eab59cba996f96/CMakeLists.txt
+==> dotnet restore
+  Determining projects to restore...
+  Restored C:\Users\mjtpe\dev\Orqentis\QuirePDF\.claude\worktrees\agent-a20eab59cba996f96\tools\MikePDF.Render.Reference\MikePDF.Render.Reference.csproj (in 391 ms).
+  Restored C:\Users\mjtpe\dev\Orqentis\QuirePDF\.claude\worktrees\agent-a20eab59cba996f96\src\MikePDF.PdfWriter\MikePDF.PdfWriter.csproj (in 398 ms).
+  Restored C:\Users\mjtpe\dev\Orqentis\QuirePDF\.claude\worktrees\agent-a20eab59cba996f96\tools\MikePDF.Render\MikePDF.Render.csproj (in 461 ms).
+  Restored C:\Users\mjtpe\dev\Orqentis\QuirePDF\.claude\worktrees\agent-a20eab59cba996f96\tests\fuzz\MikePDF.PdfWriter.Fuzz\MikePDF.PdfWriter.Fuzz.csproj (in 441 ms).
+  Restored C:\Users\mjtpe\dev\Orqentis\QuirePDF\.claude\worktrees\agent-a20eab59cba996f96\src\MikePDF.Protocol\MikePDF.Protocol.csproj (in 440 ms).
+  Restored C:\Users\mjtpe\dev\Orqentis\QuirePDF\.claude\worktrees\agent-a20eab59cba996f96\src\MikePDF.Core\MikePDF.Core.csproj (in 455 ms).
+  Restored C:\Users\mjtpe\dev\Orqentis\QuirePDF\.claude\worktrees\agent-a20eab59cba996f96\src\MikePDF.Broker\MikePDF.Broker.csproj (in 463 ms).
+  Restored C:\Users\mjtpe\dev\Orqentis\QuirePDF\.claude\worktrees\agent-a20eab59cba996f96\src\MikePDF.WriterHost\MikePDF.WriterHost.csproj (in 438 ms).
+  Restored C:\Users\mjtpe\dev\Orqentis\QuirePDF\.claude\worktrees\agent-a20eab59cba996f96\tests\fuzz\MikePDF.Protocol.Fuzz\MikePDF.Protocol.Fuzz.csproj (in 442 ms).
+  Restored C:\Users\mjtpe\dev\Orqentis\QuirePDF\.claude\worktrees\agent-a20eab59cba996f96\tools\MikePDF.Perf\MikePDF.Perf.csproj (in 445 ms).
+  Restored C:\Users\mjtpe\dev\Orqentis\QuirePDF\.claude\worktrees\agent-a20eab59cba996f96\tests\MikePDF.PdfWriter.Tests\MikePDF.PdfWriter.Tests.csproj (in 570 ms).
+  Restored C:\Users\mjtpe\dev\Orqentis\QuirePDF\.claude\worktrees\agent-a20eab59cba996f96\tests\MikePDF.Protocol.Tests\MikePDF.Protocol.Tests.csproj (in 570 ms).
+  Restored C:\Users\mjtpe\dev\Orqentis\QuirePDF\.claude\worktrees\agent-a20eab59cba996f96\tests\MikePDF.Core.Tests\MikePDF.Core.Tests.csproj (in 552 ms).
+  Restored C:\Users\mjtpe\dev\Orqentis\QuirePDF\.claude\worktrees\agent-a20eab59cba996f96\tests\MikePDF.UI.Tests\MikePDF.UI.Tests.csproj (in 563 ms).
+  Restored C:\Users\mjtpe\dev\Orqentis\QuirePDF\.claude\worktrees\agent-a20eab59cba996f96\tests\MikePDF.Integration.Tests\MikePDF.Integration.Tests.csproj (in 556 ms).
+  Restored C:\Users\mjtpe\dev\Orqentis\QuirePDF\.claude\worktrees\agent-a20eab59cba996f96\tests\MikePDF.Render.Tests\MikePDF.Render.Tests.csproj (in 552 ms).
+  Restored C:\Users\mjtpe\dev\Orqentis\QuirePDF\.claude\worktrees\agent-a20eab59cba996f96\tests\fuzz\MikePDF.Fuzz.Tests\MikePDF.Fuzz.Tests.csproj (in 559 ms).
+  Restored C:\Users\mjtpe\dev\Orqentis\QuirePDF\.claude\worktrees\agent-a20eab59cba996f96\tests\MikePDF.Perf.Tests\MikePDF.Perf.Tests.csproj (in 575 ms).
+  Restored C:\Users\mjtpe\dev\Orqentis\QuirePDF\.claude\worktrees\agent-a20eab59cba996f96\src\MikePDF.App\MikePDF.App.csproj (in 638 ms).
+  1 of 20 projects are up-to-date for restore.
+==> dotnet build
+  MikePDF.Protocol -> C:\Users\mjtpe\dev\Orqentis\QuirePDF\.claude\worktrees\agent-a20eab59cba996f96\src\MikePDF.Protocol\bin\Release\net10.0-windows10.0.26100.0\MikePDF.Protocol.dll
+  MikePDF.PdfWriter -> C:\Users\mjtpe\dev\Orqentis\QuirePDF\.claude\worktrees\agent-a20eab59cba996f96\src\MikePDF.PdfWriter\bin\Release\net10.0-windows10.0.26100.0\MikePDF.PdfWriter.dll
+  MikePDF.ProtocolGen -> C:\Users\mjtpe\dev\Orqentis\QuirePDF\.claude\worktrees\agent-a20eab59cba996f96\tools\MikePDF.ProtocolGen\bin\Release\net10.0-windows10.0.26100.0\MikePDF.ProtocolGen.dll
+  MikePDF.Core -> C:\Users\mjtpe\dev\Orqentis\QuirePDF\.claude\worktrees\agent-a20eab59cba996f96\src\MikePDF.Core\bin\Release\net10.0-windows10.0.26100.0\MikePDF.Core.dll
+  MikePDF.Protocol.Fuzz -> C:\Users\mjtpe\dev\Orqentis\QuirePDF\.claude\worktrees\agent-a20eab59cba996f96\tests\fuzz\MikePDF.Protocol.Fuzz\bin\Release\net10.0-windows10.0.26100.0\MikePDF.Protocol.Fuzz.dll
+  MikePDF.WriterHost -> C:\Users\mjtpe\dev\Orqentis\QuirePDF\.claude\worktrees\agent-a20eab59cba996f96\src\MikePDF.WriterHost\bin\Release\net10.0-windows10.0.26100.0\win-x64\MikePDF.WriterHost.dll
+  MikePDF.PdfWriter.Fuzz -> C:\Users\mjtpe\dev\Orqentis\QuirePDF\.claude\worktrees\agent-a20eab59cba996f96\tests\fuzz\MikePDF.PdfWriter.Fuzz\bin\Release\net10.0-windows10.0.26100.0\MikePDF.PdfWriter.Fuzz.dll
+  MikePDF.Render.Reference -> C:\Users\mjtpe\dev\Orqentis\QuirePDF\.claude\worktrees\agent-a20eab59cba996f96\tools\MikePDF.Render.Reference\bin\Release\net10.0-windows10.0.26100.0\mikepdf-refrender.dll
+  MikePDF.Broker -> C:\Users\mjtpe\dev\Orqentis\QuirePDF\.claude\worktrees\agent-a20eab59cba996f96\src\MikePDF.Broker\bin\Release\net10.0-windows10.0.26100.0\MikePDF.Broker.dll
+  MikePDF.Core.Tests -> C:\Users\mjtpe\dev\Orqentis\QuirePDF\.claude\worktrees\agent-a20eab59cba996f96\tests\MikePDF.Core.Tests\bin\Release\net10.0-windows10.0.26100.0\win-x64\MikePDF.Core.Tests.dll
+  MikePDF.PdfWriter.Tests -> C:\Users\mjtpe\dev\Orqentis\QuirePDF\.claude\worktrees\agent-a20eab59cba996f96\tests\MikePDF.PdfWriter.Tests\bin\Release\net10.0-windows10.0.26100.0\win-x64\MikePDF.PdfWriter.Tests.dll
+  MikePDF.Protocol.Tests -> C:\Users\mjtpe\dev\Orqentis\QuirePDF\.claude\worktrees\agent-a20eab59cba996f96\tests\MikePDF.Protocol.Tests\bin\Release\net10.0-windows10.0.26100.0\win-x64\MikePDF.Protocol.Tests.dll
+  MikePDF.UI.Tests -> C:\Users\mjtpe\dev\Orqentis\QuirePDF\.claude\worktrees\agent-a20eab59cba996f96\tests\MikePDF.UI.Tests\bin\Release\net10.0-windows10.0.26100.0\win-x64\MikePDF.UI.Tests.dll
+  MikePDF.Perf -> C:\Users\mjtpe\dev\Orqentis\QuirePDF\.claude\worktrees\agent-a20eab59cba996f96\tools\MikePDF.Perf\bin\Release\net10.0-windows10.0.26100.0\MikePDF.Perf.dll
+  MikePDF.Integration.Tests -> C:\Users\mjtpe\dev\Orqentis\QuirePDF\.claude\worktrees\agent-a20eab59cba996f96\tests\MikePDF.Integration.Tests\bin\Release\net10.0-windows10.0.26100.0\win-x64\MikePDF.Integration.Tests.dll
+  MikePDF.Render -> C:\Users\mjtpe\dev\Orqentis\QuirePDF\.claude\worktrees\agent-a20eab59cba996f96\tools\MikePDF.Render\bin\Release\net10.0-windows10.0.26100.0\mikepdf-render.dll
+  MikePDF.Fuzz.Tests -> C:\Users\mjtpe\dev\Orqentis\QuirePDF\.claude\worktrees\agent-a20eab59cba996f96\tests\fuzz\MikePDF.Fuzz.Tests\bin\Release\net10.0-windows10.0.26100.0\win-x64\MikePDF.Fuzz.Tests.dll
+  MikePDF.Perf.Tests -> C:\Users\mjtpe\dev\Orqentis\QuirePDF\.claude\worktrees\agent-a20eab59cba996f96\tests\MikePDF.Perf.Tests\bin\Release\net10.0-windows10.0.26100.0\win-x64\MikePDF.Perf.Tests.dll
+  MikePDF.Render.Tests -> C:\Users\mjtpe\dev\Orqentis\QuirePDF\.claude\worktrees\agent-a20eab59cba996f96\tests\MikePDF.Render.Tests\bin\Release\net10.0-windows10.0.26100.0\win-x64\MikePDF.Render.Tests.dll
+  MikePDF.App -> C:\Users\mjtpe\dev\Orqentis\QuirePDF\.claude\worktrees\agent-a20eab59cba996f96\src\MikePDF.App\bin\Release\net10.0-windows10.0.26100.0\win-x64\MikePDF.dll
+
+Build succeeded.
+    0 Warning(s)
+    0 Error(s)
+
+Time Elapsed 00:01:30.22
+exit 0

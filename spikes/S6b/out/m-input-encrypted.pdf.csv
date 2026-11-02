@@ -1,0 +1,9 @@
+# self integrity level: medium
+# label=input-encrypted.pdf mode=warm cx=256 runs=3 pdf=C:\Users\mjtpe\dev\Orqentis\QuirePDF\.claude\worktrees\agent-a20eab59cba996f96\spikes\S6b\out\pdfs\encrypted.pdf
+run,ok,hr,total_ms,copy_ms,connect_ms,launched,open_rt_ms,render_rt_ms,close_ms,convert_ms,srv_stage_us,srv_spawn_us,srv_open_us,srv_render_us,srv_out_us,srv_total_open_us,srv_total_render_us,engine_peak_kb,w,h,pages
+# call failed: hr=0x8007000b connectError=2 launchError=0
+0,0,0x8007000b,178.13,0.10,92.29,1,84.43,0.00,0.00,0.00,0,0,0,0,0,78124,0,0,0
+# call failed: hr=0x8007000b connectError=0 launchError=0
+1,0,0x8007000b,27.16,0.07,0.45,0,26.18,0.00,0.00,0.00,0,0,0,0,0,25709,0,0,0
+# call failed: hr=0x8007000b connectError=0 launchError=0
+2,0,0x8007000b,24.43,0.06,0.57,0,23.34,0.00,0.00,0.00,0,0,0,0,0,23037,0,0,0

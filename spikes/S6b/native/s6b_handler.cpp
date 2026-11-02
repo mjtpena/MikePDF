@@ -130,9 +130,11 @@ static bool Launch(const std::wstring& exe) {
     std::wstring buf = cmd;
     BOOL ok = CreateProcessW(nullptr, buf.data(), nullptr, nullptr, FALSE, flags | CREATE_BREAKAWAY_FROM_JOB, nullptr, nullptr, &si, &pi);
     DWORD err = ok ? 0 : GetLastError();
+    g_last.launchError = err;
     if (!ok) {
         buf = cmd;
         ok = CreateProcessW(nullptr, buf.data(), nullptr, nullptr, FALSE, flags, nullptr, nullptr, &si, &pi);
+        g_last.launchError = ok ? 0 : GetLastError();
         Log("launch: breakaway failed (%lu); without breakaway: %s (%lu)", err, ok ? "ok" : "FAILED", ok ? 0 : GetLastError());
     } else {
         Log("launch: ok pid=%lu", pi.dwProcessId);
@@ -211,6 +213,7 @@ struct Client {
             pipe = CreateFileW(path.c_str(), GENERIC_READ | GENERIC_WRITE, 0, nullptr, OPEN_EXISTING, FILE_FLAG_OVERLAPPED | SECURITY_SQOS_PRESENT | SECURITY_IDENTIFICATION, nullptr);
             if (pipe != INVALID_HANDLE_VALUE) break;
             DWORD e = GetLastError();
+            g_last.connectError = e;
             if (NowMs() - t0 > budgetMs) { Log("connect: timeout (last error %lu)", e); return false; }
             if (e == ERROR_FILE_NOT_FOUND) {
                 if (!launched) {
@@ -221,11 +224,12 @@ struct Client {
             } else if (e == ERROR_PIPE_BUSY) {
                 WaitNamedPipeW(path.c_str(), 20);
             } else {
+                g_last.connectError = e;
                 Log("connect: error %lu", e);
                 return false;
             }
         }
-        if (!VerifyServer(pipe, exe)) { CloseHandle(pipe); pipe = INVALID_HANDLE_VALUE; return false; }
+        if (!VerifyServer(pipe, exe)) { g_last.connectError = 0xFFFF0001; CloseHandle(pipe); pipe = INVALID_HANDLE_VALUE; return false; }
         return true;
     }
 

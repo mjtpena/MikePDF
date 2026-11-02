@@ -1,0 +1,6 @@
+# self integrity level: medium
+# label=input-js.pdf mode=warm cx=256 runs=3 pdf=C:\Users\mjtpe\dev\Orqentis\QuirePDF\.claude\worktrees\agent-a20eab59cba996f96\spikes\S6b\out\pdfs\js.pdf
+run,ok,hr,total_ms,copy_ms,connect_ms,launched,open_rt_ms,render_rt_ms,close_ms,convert_ms,srv_stage_us,srv_spawn_us,srv_open_us,srv_render_us,srv_out_us,srv_total_open_us,srv_total_render_us,engine_peak_kb,w,h,pages
+0,1,0x00000000,204.98,0.11,106.87,1,66.43,6.19,24.22,0.21,1376,48111,8879,4124,345,61052,5990,0,198
+1,1,0x00000000,24.64,0.07,0.56,0,15.92,0.51,7.27,0.17,353,14469,538,274,172,15702,459,0,198
+2,1,0x00000000,24.04,0.07,0.55,0,15.74,0.51,6.87,0.16,382,14292,503,291,168,15543,473,0,198

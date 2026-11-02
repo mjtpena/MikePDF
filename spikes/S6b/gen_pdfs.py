@@ -48,6 +48,32 @@ def build(pages, pad_bytes=0, rotate=0, seed=1):
     return bytes(out)
 
 
+def build_heavy(side):
+    """One page with a side x side RGB image, Flate-compressed (a few hundred KB): PDFium has to decode side*side*3 bytes to draw it."""
+    import zlib
+    row = bytes((x * 7 + 3) & 255 for x in range(side * 3))
+    comp = zlib.compress(row * side, 9)
+    objs = [
+        b"<< /Type /Catalog /Pages 2 0 R >>",
+        b"<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+        b"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /XObject << /Im0 5 0 R >> >> /Contents 4 0 R >>",
+        b"<< /Length 31 >>\nstream\nq 612 0 0 792 0 0 cm /Im0 Do Q\nendstream",
+        b"<< /Type /XObject /Subtype /Image /Width %d /Height %d /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /FlateDecode /Length %d >>\nstream\n" % (side, side, len(comp)) + comp + b"\nendstream",
+    ]
+    out = bytearray(b"%PDF-1.7\n")
+    offs = []
+    for i, body in enumerate(objs):
+        offs.append(len(out))
+        out += b"%d 0 obj\n" % (i + 1) + body + b"\nendobj\n"
+    x = len(out)
+    out += b"xref\n0 %d\n0000000000 65535 f \n" % (len(objs) + 1)
+    for o in offs:
+        out += b"%010d 00000 n \n" % o
+    out += b"trailer\n<< /Size %d /Root 1 0 R >>\nstartxref\n%d\n%%%%EOF\n" % (len(objs) + 1, x)
+    return bytes(out)
+
+
+
 def main():
     d = sys.argv[1]
     os.makedirs(d, exist_ok=True)
@@ -58,6 +84,8 @@ def main():
         "pad5mb.pdf": build(5, pad_bytes=5 * 1024 * 1024),
         "pad30mb.pdf": build(5, pad_bytes=30 * 1024 * 1024),
         "pad40mb.pdf": build(5, pad_bytes=40 * 1024 * 1024),
+        "heavy8k.pdf": build_heavy(8000),
+        "heavy14k.pdf": build_heavy(14000),
     }
     for name, data in files.items():
         with open(os.path.join(d, name), "wb") as f:

@@ -90,10 +90,26 @@ static SIZE_T WorkingSetOf(ULONG pid, SIZE_T* priv) {
 using GetClassObjectFn = HRESULT(STDAPICALLTYPE*)(REFCLSID, REFIID, void**);
 using TimingsFn = void(*)(S6bTimings*);
 
+static const char* SelfIntegrity() {
+    HANDLE t = nullptr;
+    OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY, &t);
+    DWORD len = 0;
+    GetTokenInformation(t, TokenIntegrityLevel, nullptr, 0, &len);
+    auto* b = (TOKEN_MANDATORY_LABEL*)LocalAlloc(LPTR, len);
+    const char* r = "?";
+    if (b && GetTokenInformation(t, TokenIntegrityLevel, b, len, &len)) {
+        DWORD rid = *GetSidSubAuthority(b->Label.Sid, *GetSidSubAuthorityCount(b->Label.Sid) - 1);
+        r = rid < SECURITY_MANDATORY_MEDIUM_RID ? "low" : rid < SECURITY_MANDATORY_HIGH_RID ? "medium" : "high or above";
+    }
+    CloseHandle(t);
+    return r;
+}
+
 static int RunThumbnail(const Opts& o, HMODULE dll) {
     auto getClass = (GetClassObjectFn)GetProcAddress(dll, "DllGetClassObject");
     auto timings = (TimingsFn)GetProcAddress(dll, "S6bLastTimings");
     if (!getClass || !timings) { POUT("missing exports\n"); return 2; }
+    POUT("# self integrity level: %s\n", SelfIntegrity());
     POUT("# label=%ls mode=%s cx=%u runs=%d pdf=%ls\n", o.label.c_str(), o.cold ? "cold" : "warm", o.cx, o.runs, o.pdf.c_str());
     POUT("run,ok,hr,total_ms,copy_ms,connect_ms,launched,open_rt_ms,render_rt_ms,close_ms,convert_ms,srv_stage_us,srv_spawn_us,srv_open_us,srv_render_us,srv_out_us,srv_total_open_us,srv_total_render_us,engine_peak_kb,w,h,pages\n");
     for (int i = 0; i < o.runs; ++i) {
@@ -115,6 +131,7 @@ static int RunThumbnail(const Opts& o, HMODULE dll) {
         const double total = NowMs() - t0;
         S6bTimings t{};
         timings(&t);
+        if (!SUCCEEDED(hr)) POUT("# call failed: hr=0x%08lx connectError=%lu launchError=%lu\n", (unsigned long)hr, (unsigned long)t.connectError, (unsigned long)t.launchError);
         BITMAP bm{};
         if (bmp) GetObjectW(bmp, sizeof(bm), &bm);
         POUT("%d,%d,0x%08lx,%.2f,%.2f,%.2f,%.0f,%.2f,%.2f,%.2f,%.2f,%u,%u,%u,%u,%u,%u,%d,%d,%u\n", i, SUCCEEDED(hr), (unsigned long)hr, total, t.copyMs, t.connectMs, t.launchedShellHost, t.openRtMs,
@@ -224,10 +241,11 @@ static int RunAsLowIntegrity(int argc, wchar_t** argv, const Opts& o) {
     tml.Label.Attributes = SE_GROUP_INTEGRITY;
     tml.Label.Sid = low;
     if (!SetTokenInformation(dup, TokenIntegrityLevel, &tml, sizeof(tml) + GetLengthSid(low))) { POUT("SetTokenInformation failed %lu\n", GetLastError()); return 3; }
-    wchar_t lowTemp[MAX_PATH];
-    SHGetFolderPathW(nullptr, CSIDL_LOCAL_APPDATA, nullptr, 0, lowTemp);
-    wcscat_s(lowTemp, L"\\Temp\\Low");
-    CreateDirectoryW(lowTemp, nullptr);
+    PWSTR lowRoot = nullptr; // %USERPROFILE%\AppData\LocalLow: the folder Windows labels Low for exactly this purpose
+    SHGetKnownFolderPath(FOLDERID_LocalAppDataLow, 0, nullptr, &lowRoot);
+    std::wstring lowTemp = std::wstring(lowRoot) + L"\\s6b";
+    CoTaskMemFree(lowRoot);
+    CreateDirectoryW(lowTemp.c_str(), nullptr);
     std::wstring outFile = std::wstring(lowTemp) + L"\\s6b-low-out.txt";
     DeleteFileW(outFile.c_str());
     std::wstring cmd = L"\"" + std::wstring(argv[0]) + L"\"";
@@ -268,7 +286,7 @@ int wmain(int argc, wchar_t** argv) {
         else if (a == L"--kill-after") o.killAfter = true;
         else if (a == L"--shutdown") { return ShutdownShellHost() ? 0 : 1; }
     }
-    if (!o.out.empty()) g_out = _wfopen(o.out.c_str(), L"wb");
+    if (!o.out.empty()) { g_out = _wfopen(o.out.c_str(), L"wb"); if (!g_out) return 4; }
     if (o.lowIl) return RunAsLowIntegrity(argc, argv, o);
     CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED); // the shell calls handlers on STAs
     HMODULE dll = LoadLibraryW(o.dll.c_str());
