@@ -38,7 +38,7 @@ Conventions are in [README.md](README.md).
 | B. Win32 print dialog and GDI | `PrintDlgExW` for settings, then `CreateDC`/`StartDoc`/`StartPage` and `StretchDIBits` per band | Classic dialog, no preview; no UWP dependency; direct control of banding and DPI; per-page `ResetDC` for orientation or paper changes. Drivers differ in how they handle many band blits. |
 | C. Print through an intermediate XPS or PDF document | Build a temporary document and hand it to the system | Extra encode step; needs an XPS or PDF writer for bitmaps; risks double rasterisation. |
 
-**Criteria for the ADR** (each must be answered with a measurement or a link, not an opinion): preview support; how page ranges, copies, collate and duplex reach the driver; whether printer DPI can be requested; peak memory at 600 dpi for a 1,000-page file; ARM64 behaviour with class drivers; Native AOT compatibility; dialog accessibility with Narrator; effort. **Spike P-1** (one WP): print one page and a 50-page file through each of A and B to Microsoft Print to PDF and record the criteria. Until P-1 reports, section 3.2 onwards is the behaviour contract and the implementation WPs that touch the dialog wait.
+**Criteria for the ADR** (each must be answered with a measurement or a link, not an opinion): preview support; how page ranges, copies, collate and duplex reach the driver; whether printer DPI can be requested; peak memory at 600 dpi for a 1,000-page file; ARM64 behaviour with class drivers; Native AOT compatibility; dialog accessibility with Narrator; effort. **Spike S12** (one WP): print one page and a 50-page file through each of A and B to Microsoft Print to PDF and record the criteria. Until S12 reports, section 3.2 onwards is the behaviour contract and the implementation WPs that touch the dialog wait.
 
 ### 3.2 Options (the same set under any candidate)
 
@@ -228,7 +228,7 @@ Telemetry: none.
 | Id | Question | Who answers |
 |---|---|---|
 | OQ-PRINT-1 | Meaning of "print as image fallback" (3.6). | Opus |
-| OQ-PRINT-2 | ADR-0011 (candidate A, B or C) after spike P-1. | Opus |
+| OQ-PRINT-2 | ADR-0011 (candidate A, B or C) after spike S12. | Opus |
 | OQ-PRINT-3 | Snapshot before printing a modified document (3.9) versus another approach. | Opus |
 | OQ-PRINT-4 | A second form option ("print form fields without contents")? | User (product) |
 | OQ-PRINT-5 | Use `/PageLabels` in the range box? | User (product) |
