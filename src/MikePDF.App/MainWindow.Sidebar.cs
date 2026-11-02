@@ -113,27 +113,6 @@ public sealed partial class MainWindow
         }
     }
 
-    // F4 opens the pane and puts the keyboard in it (a thumbnail or a bookmark is a keystroke away); F4 again, or Esc, gives the keyboard back to the pages.
-    private void OnSidebarAccelerator(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)
-    {
-        args.Handled = true;
-        if (!SidebarButton.IsEnabled)
-        {
-            return;
-        }
-
-        var open = SidebarButton.IsChecked != true;
-        SidebarButton.IsChecked = open;
-        if (open)
-        {
-            FocusSidebar();
-        }
-        else
-        {
-            Pages.FocusPages();
-        }
-    }
-
     private void FocusSidebar() => DispatcherQueue.TryEnqueue(() =>
     {
         if (OutlineShown)

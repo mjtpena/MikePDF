@@ -49,25 +49,8 @@
   <data name="Error_Unsupported" xml:space="preserve"><value>MikePDF can't open {0}.</value></data>
   <data name="Error_SandboxUnavailable" xml:space="preserve"><value>MikePDF couldn't start its protected viewer, so it did not open {0}. Nothing was read.</value></data>
   <data name="Error_Unknown" xml:space="preserve"><value>Something went wrong while opening {0}.</value></data>
-  <data name="OpenButton.Label" xml:space="preserve"><value>Open</value></data>
-  <data name="OpenButton.ToolTipService.ToolTip" xml:space="preserve"><value>Open a PDF (Ctrl+O)</value></data>
-  <data name="ZoomOutButton.Label" xml:space="preserve"><value>Zoom out</value></data>
-  <data name="ZoomOutButton.ToolTipService.ToolTip" xml:space="preserve"><value>Zoom out (Ctrl+-)</value></data>
-  <data name="ZoomInButton.Label" xml:space="preserve"><value>Zoom in</value></data>
-  <data name="ZoomInButton.ToolTipService.ToolTip" xml:space="preserve"><value>Zoom in (Ctrl+=)</value></data>
   <data name="ZoomButton.Label" xml:space="preserve"><value>Zoom</value></data>
   <data name="ZoomButton.ToolTipService.ToolTip" xml:space="preserve"><value>Zoom options</value></data>
-  <data name="ZoomFitWidth.Text" xml:space="preserve"><value>Fit width</value></data>
-  <data name="ZoomFitPage.Text" xml:space="preserve"><value>Fit page</value></data>
-  <data name="FitWidthButton.Label" xml:space="preserve"><value>Fit width</value></data>
-  <data name="FitWidthButton.ToolTipService.ToolTip" xml:space="preserve"><value>Fit to width (Ctrl+2)</value></data>
-  <data name="FitPageButton.Label" xml:space="preserve"><value>Fit page</value></data>
-  <data name="FitPageButton.ToolTipService.ToolTip" xml:space="preserve"><value>Fit whole page (Ctrl+1)</value></data>
-  <data name="RotateLeftButton.Label" xml:space="preserve"><value>Rotate left</value></data>
-  <data name="RotateLeftButton.ToolTipService.ToolTip" xml:space="preserve"><value>Rotate the view left (Ctrl+Shift+-). The file is not changed.</value></data>
-  <data name="RotateRightButton.Label" xml:space="preserve"><value>Rotate right</value></data>
-  <data name="RotateRightButton.ToolTipService.ToolTip" xml:space="preserve"><value>Rotate the view right (Ctrl+Shift+=). The file is not changed.</value></data>
-  <data name="PageIndicator.ToolTipService.ToolTip" xml:space="preserve"><value>Go to page (Ctrl+G)</value></data>
   <data name="PageSurface.AutomationProperties.Name" xml:space="preserve"><value>Document pages</value></data>
   <data name="Busy.AutomationProperties.Name" xml:space="preserve"><value>Opening</value></data>
   <data name="EmptyTitle.Text" xml:space="preserve"><value>Open a PDF</value></data>
@@ -76,10 +59,6 @@
   <data name="RecentHeading.Text" xml:space="preserve"><value>Recent</value></data>
   <data name="NoRecent.Text" xml:space="preserve"><value>Files you open will be listed here. The list stays on this device.</value></data>
   <data name="RecentList.AutomationProperties.Name" xml:space="preserve"><value>Recent files</value></data>
-  <data name="SidebarButton.Label" xml:space="preserve"><value>Sidebar</value></data>
-  <data name="SidebarButton.ToolTipService.ToolTip" xml:space="preserve"><value>Show or hide the thumbnails and bookmarks (F4)</value></data>
-  <data name="FindButton.Label" xml:space="preserve"><value>Find</value></data>
-  <data name="FindButton.ToolTipService.ToolTip" xml:space="preserve"><value>Find in this document (Ctrl+F)</value></data>
   <data name="SidebarTabs.AutomationProperties.Name" xml:space="preserve"><value>Sidebar view</value></data>
   <data name="ThumbnailsTab.Content" xml:space="preserve"><value>Thumbnails</value></data>
   <data name="BookmarksTab.Content" xml:space="preserve"><value>Bookmarks</value></data>
@@ -123,21 +102,11 @@
   <data name="Link_ExternalHostAscii" xml:space="preserve"><value>The site's name is also written {0}. Look-alike letters can make one site pass for another.</value></data>
   <data name="Link_AddressName" xml:space="preserve"><value>Link address: {0}</value></data>
   <data name="Link_Copy" xml:space="preserve"><value>Copy address</value></data>
-  <data name="BackButton.Label" xml:space="preserve"><value>Back</value></data>
-  <data name="BackButton.ToolTipService.ToolTip" xml:space="preserve"><value>Back to where you were (Alt+Left)</value></data>
-  <data name="ForwardButton.Label" xml:space="preserve"><value>Forward</value></data>
-  <data name="ForwardButton.ToolTipService.ToolTip" xml:space="preserve"><value>Forward (Alt+Right)</value></data>
-  <data name="ZoomActualSize.Text" xml:space="preserve"><value>Actual size</value></data>
-  <data name="ZoomActualSize.KeyboardAcceleratorTextOverride" xml:space="preserve"><value>Ctrl+Alt+0</value></data>
   <data name="PageColourButton.Label" xml:space="preserve"><value>Page colour</value></data>
   <data name="PageColourButton.ToolTipService.ToolTip" xml:space="preserve"><value>Page colour: normal, dark pages or sepia. The file is not changed.</value></data>
   <data name="PageColourNormal.Text" xml:space="preserve"><value>Normal</value></data>
   <data name="PageColourInverted.Text" xml:space="preserve"><value>Dark pages</value></data>
   <data name="PageColourSepia.Text" xml:space="preserve"><value>Sepia</value></data>
-  <data name="PropertiesButton.Label" xml:space="preserve"><value>Properties</value></data>
-  <data name="PropertiesButton.ToolTipService.ToolTip" xml:space="preserve"><value>Document properties (Ctrl+D)</value></data>
-  <data name="FullScreenButton.Label" xml:space="preserve"><value>Full screen</value></data>
-  <data name="FullScreenButton.ToolTipService.ToolTip" xml:space="preserve"><value>Full screen (F11). Esc leaves it.</value></data>
   <data name="FindWholeWordToggle.Content" xml:space="preserve"><value>[ab]</value></data>
   <data name="FindWholeWordToggle.AutomationProperties.Name" xml:space="preserve"><value>Whole word</value></data>
   <data name="FindWholeWordToggle.ToolTipService.ToolTip" xml:space="preserve"><value>Whole word: not inside a longer word</value></data>
@@ -223,4 +192,352 @@
   <data name="Properties_Font_Embedded" xml:space="preserve"><value>{0}, embedded</value></data>
   <data name="Properties_Font_EmbeddedSubset" xml:space="preserve"><value>{0}, embedded subset</value></data>
   <data name="Properties_Font_NotEmbedded" xml:space="preserve"><value>{0}, not embedded</value></data>
+  <!-- Command categories -->
+  <data name="Category_File" xml:space="preserve"><value>File</value></data>
+  <data name="Category_Edit" xml:space="preserve"><value>Edit</value></data>
+  <data name="Category_View" xml:space="preserve"><value>View</value></data>
+  <data name="Category_Navigate" xml:space="preserve"><value>Navigate</value></data>
+  <data name="Category_TabsAndWindows" xml:space="preserve"><value>Tabs and windows</value></data>
+  <data name="Category_Markup" xml:space="preserve"><value>Markup</value></data>
+  <data name="Category_Pen" xml:space="preserve"><value>Pen</value></data>
+  <data name="Category_Forms" xml:space="preserve"><value>Forms</value></data>
+  <data name="Category_Pages" xml:space="preserve"><value>Pages</value></data>
+  <data name="Category_Tools" xml:space="preserve"><value>Tools</value></data>
+  <data name="Category_Settings" xml:space="preserve"><value>Settings</value></data>
+  <data name="Category_Help" xml:space="preserve"><value>Help</value></data>
+  <!-- Why a command is unavailable -->
+  <data name="Reason_NoDocument" xml:space="preserve"><value>Open a document first</value></data>
+  <data name="Reason_NoSelection" xml:space="preserve"><value>Select some text first</value></data>
+  <data name="Reason_OwnerNoCopy" xml:space="preserve"><value>The document&apos;s owner doesn&apos;t allow copying text</value></data>
+  <data name="Reason_Policy" xml:space="preserve"><value>Turned off by your organisation</value></data>
+  <data name="Reason_Busy" xml:space="preserve"><value>MikePDF is busy with another task</value></data>
+  <data name="Reason_Presentation" xml:space="preserve"><value>Not available in presentation mode</value></data>
+  <data name="Reason_NoBackHistory" xml:space="preserve"><value>There&apos;s nowhere to go back to</value></data>
+  <data name="Reason_NoForwardHistory" xml:space="preserve"><value>There&apos;s nowhere to go forward to</value></data>
+  <data name="Reason_NoRecent" xml:space="preserve"><value>There are no recent files</value></data>
+  <data name="Reason_NoPath" xml:space="preserve"><value>This document isn&apos;t a file on disk</value></data>
+  <data name="Reason_NoCustomShortcuts" xml:space="preserve"><value>Every shortcut is already the default</value></data>
+  <data name="Reason_NothingToUndo" xml:space="preserve"><value>There is nothing to undo</value></data>
+  <data name="Reason_NothingToClear" xml:space="preserve"><value>There is nothing to clear</value></data>
+  <data name="Reason_FindNotOpen" xml:space="preserve"><value>Find is not open</value></data>
+  <!-- Command names (Cmd_<id>_Name), button labels where shorter (Cmd_<id>_Label) and search keywords (Cmd_<id>_Keywords) -->
+  <data name="Cmd_file_open_Name" xml:space="preserve"><value>Open...</value></data>
+  <data name="Cmd_file_open_Label" xml:space="preserve"><value>Open</value></data>
+  <data name="Cmd_file_open_Keywords" xml:space="preserve"><value>browse choose pdf file</value></data>
+  <data name="Cmd_file_reload_Name" xml:space="preserve"><value>Reload from disk</value></data>
+  <data name="Cmd_file_reload_Keywords" xml:space="preserve"><value>refresh reopen again</value></data>
+  <data name="Cmd_file_properties_Name" xml:space="preserve"><value>Document properties</value></data>
+  <data name="Cmd_file_properties_Label" xml:space="preserve"><value>Properties</value></data>
+  <data name="Cmd_file_properties_Keywords" xml:space="preserve"><value>info details metadata author title</value></data>
+  <data name="Cmd_nav_back_Name" xml:space="preserve"><value>Back</value></data>
+  <data name="Cmd_nav_forward_Name" xml:space="preserve"><value>Forward</value></data>
+  <data name="Cmd_nav_goToPage_Name" xml:space="preserve"><value>Go to page...</value></data>
+  <data name="Cmd_nav_goToPage_Keywords" xml:space="preserve"><value>jump page number</value></data>
+  <data name="Cmd_nav_nextPage_Name" xml:space="preserve"><value>Next page</value></data>
+  <data name="Cmd_nav_previousPage_Name" xml:space="preserve"><value>Previous page</value></data>
+  <data name="Cmd_nav_firstPage_Name" xml:space="preserve"><value>First page</value></data>
+  <data name="Cmd_nav_lastPage_Name" xml:space="preserve"><value>Last page</value></data>
+  <data name="Cmd_nav_scrollScreenDown_Name" xml:space="preserve"><value>Scroll down one screen</value></data>
+  <data name="Cmd_nav_scrollScreenUp_Name" xml:space="preserve"><value>Scroll up one screen</value></data>
+  <data name="Cmd_nav_scrollDown_Name" xml:space="preserve"><value>Scroll down</value></data>
+  <data name="Cmd_nav_scrollUp_Name" xml:space="preserve"><value>Scroll up</value></data>
+  <data name="Cmd_view_zoomIn_Name" xml:space="preserve"><value>Zoom in</value></data>
+  <data name="Cmd_view_zoomIn_Keywords" xml:space="preserve"><value>magnify enlarge bigger larger</value></data>
+  <data name="Cmd_view_zoomOut_Name" xml:space="preserve"><value>Zoom out</value></data>
+  <data name="Cmd_view_zoomOut_Keywords" xml:space="preserve"><value>shrink smaller reduce</value></data>
+  <data name="Cmd_view_zoomActual_Name" xml:space="preserve"><value>Zoom to 100%</value></data>
+  <data name="Cmd_view_zoomActual_Keywords" xml:space="preserve"><value>reset one hundred percent</value></data>
+  <data name="Cmd_view_zoomPhysical_Name" xml:space="preserve"><value>Actual size</value></data>
+  <data name="Cmd_view_zoomPhysical_Keywords" xml:space="preserve"><value>real life size inches</value></data>
+  <data name="Cmd_view_fitWidth_Name" xml:space="preserve"><value>Fit width</value></data>
+  <data name="Cmd_view_fitPage_Name" xml:space="preserve"><value>Fit page</value></data>
+  <data name="Cmd_view_zoomTo_Name" xml:space="preserve"><value>Zoom to...</value></data>
+  <data name="Cmd_view_rotateRight_Name" xml:space="preserve"><value>Rotate view right</value></data>
+  <data name="Cmd_view_rotateRight_Label" xml:space="preserve"><value>Rotate right</value></data>
+  <data name="Cmd_view_rotateRight_Keywords" xml:space="preserve"><value>turn clockwise</value></data>
+  <data name="Cmd_view_rotateLeft_Name" xml:space="preserve"><value>Rotate view left</value></data>
+  <data name="Cmd_view_rotateLeft_Label" xml:space="preserve"><value>Rotate left</value></data>
+  <data name="Cmd_view_rotateLeft_Keywords" xml:space="preserve"><value>turn anticlockwise counterclockwise</value></data>
+  <data name="Cmd_view_readingMode_Name" xml:space="preserve"><value>Full screen</value></data>
+  <data name="Cmd_view_readingMode_Keywords" xml:space="preserve"><value>fullscreen maximise presentation</value></data>
+  <data name="Cmd_view_pageColors_Name" xml:space="preserve"><value>Cycle page colour</value></data>
+  <data name="Cmd_view_pageColors_Keywords" xml:space="preserve"><value>dark mode night sepia invert theme</value></data>
+  <data name="Cmd_view_pageColorsNormal_Name" xml:space="preserve"><value>Page colour: normal</value></data>
+  <data name="Cmd_view_pageColorsDark_Name" xml:space="preserve"><value>Page colour: dark pages</value></data>
+  <data name="Cmd_view_pageColorsDark_Keywords" xml:space="preserve"><value>night invert dark mode</value></data>
+  <data name="Cmd_view_pageColorsSepia_Name" xml:space="preserve"><value>Page colour: sepia</value></data>
+  <data name="Cmd_pane_toggleLeft_Name" xml:space="preserve"><value>Show or hide the sidebar</value></data>
+  <data name="Cmd_pane_toggleLeft_Label" xml:space="preserve"><value>Sidebar</value></data>
+  <data name="Cmd_pane_toggleLeft_Keywords" xml:space="preserve"><value>panel thumbnails bookmarks</value></data>
+  <data name="Cmd_pane_thumbnails_Name" xml:space="preserve"><value>Thumbnails</value></data>
+  <data name="Cmd_pane_outline_Name" xml:space="preserve"><value>Bookmarks</value></data>
+  <data name="Cmd_pane_outline_Keywords" xml:space="preserve"><value>contents table of contents outline</value></data>
+  <data name="Cmd_find_open_Name" xml:space="preserve"><value>Find in document</value></data>
+  <data name="Cmd_find_open_Label" xml:space="preserve"><value>Find</value></data>
+  <data name="Cmd_find_open_Keywords" xml:space="preserve"><value>search text</value></data>
+  <data name="Cmd_find_next_Name" xml:space="preserve"><value>Find next</value></data>
+  <data name="Cmd_find_previous_Name" xml:space="preserve"><value>Find previous</value></data>
+  <data name="Cmd_find_close_Name" xml:space="preserve"><value>Close find</value></data>
+  <data name="Cmd_edit_selectAll_Name" xml:space="preserve"><value>Select all text</value></data>
+  <data name="Cmd_edit_copy_Name" xml:space="preserve"><value>Copy</value></data>
+  <data name="Cmd_app_commandPalette_Name" xml:space="preserve"><value>Command palette</value></data>
+  <data name="Cmd_app_commandPalette_Keywords" xml:space="preserve"><value>commands actions run</value></data>
+  <data name="Cmd_app_settings_Name" xml:space="preserve"><value>Settings</value></data>
+  <data name="Cmd_app_settings_Keywords" xml:space="preserve"><value>preferences options</value></data>
+  <data name="Cmd_app_shortcuts_Name" xml:space="preserve"><value>Keyboard shortcuts</value></data>
+  <data name="Cmd_app_shortcuts_Keywords" xml:space="preserve"><value>keys hotkeys keyboard remap</value></data>
+  <data name="Cmd_app_about_Name" xml:space="preserve"><value>About MikePDF</value></data>
+  <data name="Cmd_app_about_Keywords" xml:space="preserve"><value>version licence</value></data>
+  <data name="Cmd_app_policies_Name" xml:space="preserve"><value>Enterprise policies</value></data>
+  <data name="Cmd_app_policies_Keywords" xml:space="preserve"><value>managed administrator organisation</value></data>
+  <data name="Cmd_app_clearRecent_Name" xml:space="preserve"><value>Clear recent files</value></data>
+  <data name="Cmd_app_clearHistory_Name" xml:space="preserve"><value>Clear history...</value></data>
+  <data name="Cmd_app_clearUsageHistory_Name" xml:space="preserve"><value>Clear command history</value></data>
+  <data name="Cmd_app_exportSettings_Name" xml:space="preserve"><value>Export settings...</value></data>
+  <data name="Cmd_app_importSettings_Name" xml:space="preserve"><value>Import settings...</value></data>
+  <data name="Cmd_app_undoImportSettings_Name" xml:space="preserve"><value>Undo settings import</value></data>
+  <data name="Cmd_app_resetSettings_Name" xml:space="preserve"><value>Reset all settings...</value></data>
+  <data name="Cmd_app_changeShortcut_Name" xml:space="preserve"><value>Change a shortcut...</value></data>
+  <data name="Cmd_app_exportShortcuts_Name" xml:space="preserve"><value>Export shortcuts...</value></data>
+  <data name="Cmd_app_importShortcuts_Name" xml:space="preserve"><value>Import shortcuts...</value></data>
+  <data name="Cmd_app_resetShortcuts_Name" xml:space="preserve"><value>Reset all shortcuts...</value></data>
+  <data name="Cmd_app_copyShortcuts_Name" xml:space="preserve"><value>Copy shortcut list</value></data>
+  <!-- Command palette -->
+  <data name="Palette_Name" xml:space="preserve"><value>Command palette</value></data>
+  <data name="Palette_Box_Name" xml:space="preserve"><value>Type a command</value></data>
+  <data name="Palette_Box_Placeholder" xml:space="preserve"><value>Type a command, a page number or a file name</value></data>
+  <data name="Palette_List_Name" xml:space="preserve"><value>Results</value></data>
+  <data name="Palette_NoResults" xml:space="preserve"><value>No matching commands</value></data>
+  <data name="Palette_Count_One" xml:space="preserve"><value>1 result</value></data>
+  <data name="Palette_Count_Other" xml:space="preserve"><value>{0} results</value></data>
+  <data name="Palette_Row_Automation" xml:space="preserve"><value>{0}, {1}, {2}</value></data>
+  <data name="Palette_Row_Unavailable" xml:space="preserve"><value>unavailable, {0}</value></data>
+  <data name="Palette_NoShortcut" xml:space="preserve"><value>no shortcut</value></data>
+  <data name="Palette_SwitchTab" xml:space="preserve"><value>Switch to tab: {0}</value></data>
+  <data name="Palette_OpenRecent" xml:space="preserve"><value>Open recent: {0}</value></data>
+  <data name="Palette_GoToPage" xml:space="preserve"><value>Go to page {0}</value></data>
+  <data name="Palette_Settings" xml:space="preserve"><value>Settings: {0}</value></data>
+  <data name="Palette_Footer" xml:space="preserve"><value>Up and Down to choose. Enter to run. Esc to close.</value></data>
+  <data name="Palette_Recent" xml:space="preserve"><value>Recently used</value></data>
+  <data name="Palette_Close" xml:space="preserve"><value>Close the command palette</value></data>
+  <data name="Palette_Selected" xml:space="preserve"><value>Selected: {0}</value></data>
+  <data name="Palette_Unavailable_Announce" xml:space="preserve"><value>{0} is unavailable. {1}.</value></data>
+  <data name="Command_Failed" xml:space="preserve"><value>That didn&apos;t work. {0} couldn&apos;t finish.</value></data>
+  <data name="Command_Disabled_Banner" xml:space="preserve"><value>{0} is not available</value></data>
+  <!-- Shortcuts page and dialogs -->
+  <data name="Shortcuts_Title" xml:space="preserve"><value>Shortcuts</value></data>
+  <data name="Shortcuts_Change" xml:space="preserve"><value>Change shortcut</value></data>
+  <data name="Shortcuts_Change_Title" xml:space="preserve"><value>Change shortcut for {0}</value></data>
+  <data name="Shortcuts_Capture_Prompt" xml:space="preserve"><value>Press the keys you want to use</value></data>
+  <data name="Shortcuts_Capture_Box" xml:space="preserve"><value>Shortcut keys</value></data>
+  <data name="Shortcuts_Capture_Typed" xml:space="preserve"><value>Or type it, for example Ctrl+Alt+K</value></data>
+  <data name="Shortcuts_Capture_TypedName" xml:space="preserve"><value>Type the shortcut</value></data>
+  <data name="Shortcuts_Capture_Live" xml:space="preserve"><value>Shortcut: {0}</value></data>
+  <data name="Shortcuts_Capture_None" xml:space="preserve"><value>No keys pressed yet</value></data>
+  <data name="Shortcuts_Conflict" xml:space="preserve"><value>{0} is used by {1}.</value></data>
+  <data name="Shortcuts_Reassign" xml:space="preserve"><value>Reassign</value></data>
+  <data name="Shortcuts_Assign" xml:space="preserve"><value>Assign</value></data>
+  <data name="Shortcuts_Clear" xml:space="preserve"><value>Remove shortcut</value></data>
+  <data name="Shortcuts_Reserved" xml:space="preserve"><value>{0} is reserved by Windows or by MikePDF and can&apos;t be used.</value></data>
+  <data name="Shortcuts_PlainKey" xml:space="preserve"><value>A plain key like {0} can only be used for commands that work on the page.</value></data>
+  <data name="Shortcuts_Invalid" xml:space="preserve"><value>That isn&apos;t a shortcut. Use keys like Ctrl+Shift+K.</value></data>
+  <data name="Shortcuts_Max" xml:space="preserve"><value>A command can have up to two shortcuts.</value></data>
+  <data name="Shortcuts_Reset" xml:space="preserve"><value>Reset</value></data>
+  <data name="Shortcuts_Reset_Name" xml:space="preserve"><value>Reset the shortcut for {0}</value></data>
+  <data name="Shortcuts_ResetAll" xml:space="preserve"><value>Reset all shortcuts</value></data>
+  <data name="Shortcuts_ResetAll_Confirm" xml:space="preserve"><value>Restore every shortcut to its default?</value></data>
+  <data name="Shortcuts_Export" xml:space="preserve"><value>Export shortcuts</value></data>
+  <data name="Shortcuts_Import" xml:space="preserve"><value>Import shortcuts</value></data>
+  <data name="Shortcuts_Copy" xml:space="preserve"><value>Copy shortcut list</value></data>
+  <data name="Shortcuts_Copied" xml:space="preserve"><value>Copied</value></data>
+  <data name="Shortcuts_UpdateConflicts" xml:space="preserve"><value>Shortcut conflicts after update</value></data>
+  <data name="Shortcuts_UpdateConflict_Line" xml:space="preserve"><value>{0} is now used by {1}, so {2} lost it.</value></data>
+  <data name="Shortcuts_Unreadable" xml:space="preserve"><value>Couldn&apos;t read a shortcut for {0}.</value></data>
+  <data name="Shortcuts_Filter" xml:space="preserve"><value>Search shortcuts</value></data>
+  <data name="Shortcuts_None" xml:space="preserve"><value>None</value></data>
+  <data name="Shortcuts_Row_Automation" xml:space="preserve"><value>{0}, {1}</value></data>
+  <data name="Shortcuts_Changed" xml:space="preserve"><value>changed</value></data>
+  <data name="Shortcuts_Saved" xml:space="preserve"><value>Shortcut for {0} is now {1}</value></data>
+  <data name="Shortcuts_Removed" xml:space="preserve"><value>Shortcut for {0} removed</value></data>
+  <data name="Shortcuts_ResetDone" xml:space="preserve"><value>Shortcut for {0} reset</value></data>
+  <data name="Shortcuts_NoMatch" xml:space="preserve"><value>No commands match.</value></data>
+  <data name="Shortcuts_ExportDone" xml:space="preserve"><value>Shortcuts saved.</value></data>
+  <data name="Shortcuts_ExportFailed" xml:space="preserve"><value>The shortcuts couldn&apos;t be saved.</value></data>
+  <data name="Shortcuts_ImportTitle" xml:space="preserve"><value>Import shortcuts</value></data>
+  <data name="Shortcuts_ImportSummary" xml:space="preserve"><value>{0} shortcuts will be set. {1} entries will be skipped.</value></data>
+  <data name="Shortcuts_ImportDone" xml:space="preserve"><value>Shortcuts imported.</value></data>
+  <data name="Shortcuts_ImportInvalid" xml:space="preserve"><value>That isn&apos;t a MikePDF shortcuts file, or it&apos;s too large.</value></data>
+  <data name="Shortcuts_ImportSkip_UnknownCommand" xml:space="preserve"><value>{0}: no such command</value></data>
+  <data name="Shortcuts_ImportSkip_InvalidChord" xml:space="preserve"><value>{0}: {1} is not a shortcut</value></data>
+  <data name="Shortcuts_ImportSkip_ReservedChord" xml:space="preserve"><value>{0}: {1} is reserved</value></data>
+  <data name="Shortcuts_ImportSkip_TooManyChords" xml:space="preserve"><value>{0}: more than two shortcuts</value></data>
+  <data name="Shortcuts_ImportSkip_PlainKeyOutsideReader" xml:space="preserve"><value>{0}: {1} is a plain key</value></data>
+  <data name="Shortcuts_ImportSkip_Conflict" xml:space="preserve"><value>{0}: {1} is already used by {2}</value></data>
+  <data name="Shortcuts_ImportSkip_DuplicateCommand" xml:space="preserve"><value>{0}: listed twice</value></data>
+  <!-- Settings page -->
+  <data name="Settings_Title" xml:space="preserve"><value>Settings</value></data>
+  <data name="Settings_Nav_Name" xml:space="preserve"><value>Settings sections</value></data>
+  <data name="Settings_Back" xml:space="preserve"><value>Back to the document</value></data>
+  <data name="Settings_Back_Name" xml:space="preserve"><value>Close Settings</value></data>
+  <data name="Settings_Section_General" xml:space="preserve"><value>General</value></data>
+  <data name="Settings_Section_Reading" xml:space="preserve"><value>Reading</value></data>
+  <data name="Settings_Section_Privacy" xml:space="preserve"><value>Privacy and data</value></data>
+  <data name="Settings_Section_Shortcuts" xml:space="preserve"><value>Keyboard shortcuts</value></data>
+  <data name="Settings_Section_Policies" xml:space="preserve"><value>Enterprise policies</value></data>
+  <data name="Settings_Section_About" xml:space="preserve"><value>About</value></data>
+  <data name="Settings_Locked" xml:space="preserve"><value>Managed by your organisation</value></data>
+  <data name="Settings_Locked_Description" xml:space="preserve"><value>{0} is controlled by your organisation and can&apos;t be changed here.</value></data>
+  <data name="Settings_Locked_Help" xml:space="preserve"><value>Managed by your organisation. The value can&apos;t be changed here.</value></data>
+  <data name="Settings_Theme_Announce" xml:space="preserve"><value>Theme changed to {0}</value></data>
+  <data name="Settings_SaveFailed" xml:space="preserve"><value>MikePDF couldn&apos;t save your settings.</value></data>
+  <data name="Settings_Retry" xml:space="preserve"><value>Try again</value></data>
+  <data name="Settings_Corrupt_Notice" xml:space="preserve"><value>Your settings file was damaged, so MikePDF started with the defaults. A copy was kept.</value></data>
+  <data name="Settings_Export" xml:space="preserve"><value>Export settings</value></data>
+  <data name="Settings_Import" xml:space="preserve"><value>Import settings</value></data>
+  <data name="Settings_Reset" xml:space="preserve"><value>Reset all settings</value></data>
+  <data name="Settings_Export_AuthorNote" xml:space="preserve"><value>The file includes your annotation author name.</value></data>
+  <data name="Settings_Export_Done" xml:space="preserve"><value>Settings saved.</value></data>
+  <data name="Settings_Export_Failed" xml:space="preserve"><value>The settings couldn&apos;t be saved.</value></data>
+  <data name="Settings_Import_Title" xml:space="preserve"><value>Import settings</value></data>
+  <data name="Settings_Import_Summary" xml:space="preserve"><value>{0} will change, {1} can&apos;t be imported because your organisation controls them, {2} aren&apos;t recognised, {3} are not valid.</value></data>
+  <data name="Settings_Import_Shortcuts" xml:space="preserve"><value>The file also sets {0} shortcuts.</value></data>
+  <data name="Settings_Import_Confirm" xml:space="preserve"><value>Import</value></data>
+  <data name="Settings_Import_Done" xml:space="preserve"><value>Settings imported.</value></data>
+  <data name="Settings_Import_Invalid" xml:space="preserve"><value>That isn&apos;t a MikePDF settings file, or it&apos;s too large.</value></data>
+  <data name="Settings_Import_Newer" xml:space="preserve"><value>The file is from a newer version. Only the settings this version knows will be imported.</value></data>
+  <data name="Settings_Import_Undo" xml:space="preserve"><value>Undo import</value></data>
+  <data name="Settings_Import_Undone" xml:space="preserve"><value>The import was undone.</value></data>
+  <data name="Settings_Import_Blocked" xml:space="preserve"><value>Your organisation has turned off importing and exporting settings.</value></data>
+  <data name="Settings_Reset_Confirm" xml:space="preserve"><value>Reset every setting to its default? Your history and unsaved-change backups aren&apos;t affected.</value></data>
+  <data name="Settings_Reset_Done" xml:space="preserve"><value>Settings were reset.</value></data>
+  <data name="Settings_ClearHistory" xml:space="preserve"><value>Clear history</value></data>
+  <data name="Settings_ClearHistory_Confirm" xml:space="preserve"><value>Clear the recent files list, the remembered page positions and the command history?</value></data>
+  <data name="Settings_ClearHistory_Done" xml:space="preserve"><value>History cleared.</value></data>
+  <data name="Settings_ClearRecent_Confirm" xml:space="preserve"><value>Clear the list of recent files?</value></data>
+  <data name="Settings_DataFolder" xml:space="preserve"><value>MikePDF keeps its settings and history on this device only, in its private data folder. Nothing is sent anywhere.</value></data>
+  <data name="Settings_NoPolicies" xml:space="preserve"><value>No policies are applied.</value></data>
+  <data name="Settings_Policies_Header" xml:space="preserve"><value>These settings come from your organisation. They override your choices.</value></data>
+  <data name="Settings_Policies_List" xml:space="preserve"><value>Enterprise policies</value></data>
+  <data name="Settings_Policies_Copy" xml:space="preserve"><value>Copy as text</value></data>
+  <data name="Settings_Policies_Registry" xml:space="preserve"><value>Policies are read from HKLM\Software\Policies\MikePDF and HKCU\Software\Policies\MikePDF. A user-level value can only make a setting stricter.</value></data>
+  <data name="Settings_Policies_ReadFailed" xml:space="preserve"><value>The policy settings couldn&apos;t be read.</value></data>
+  <data name="Settings_Link_Note" xml:space="preserve"><value>MikePDF never opens a web address or starts a program for a document. A link shows its address so that you can copy it.</value></data>
+  <data name="Dialog_Confirm" xml:space="preserve"><value>Yes</value></data>
+  <data name="Dialog_Decline" xml:space="preserve"><value>No</value></data>
+  <data name="Dialog_Ok" xml:space="preserve"><value>OK</value></data>
+  <data name="Dialog_Apply" xml:space="preserve"><value>Apply</value></data>
+  <!-- Individual settings -->
+  <data name="Setting_general_theme_Name" xml:space="preserve"><value>Theme</value></data>
+  <data name="Setting_general_theme_Description" xml:space="preserve"><value>Light, dark, or follow Windows.</value></data>
+  <data name="Setting_general_theme_Value_Dark" xml:space="preserve"><value>Dark</value></data>
+  <data name="Setting_general_theme_Value_Light" xml:space="preserve"><value>Light</value></data>
+  <data name="Setting_general_theme_Value_System" xml:space="preserve"><value>Use the Windows setting</value></data>
+  <data name="Setting_view_pageColour_Name" xml:space="preserve"><value>Page colour</value></data>
+  <data name="Setting_view_pageColour_Description" xml:space="preserve"><value>Normal, dark pages or sepia. The file is not changed.</value></data>
+  <data name="Setting_view_pageColour_Value_Normal" xml:space="preserve"><value>Normal</value></data>
+  <data name="Setting_view_pageColour_Value_Inverted" xml:space="preserve"><value>Dark pages</value></data>
+  <data name="Setting_view_pageColour_Value_Sepia" xml:space="preserve"><value>Sepia</value></data>
+  <data name="Setting_view_restorePosition_Name" xml:space="preserve"><value>Reopen documents where I left off</value></data>
+  <data name="Setting_view_restorePosition_Description" xml:space="preserve"><value>Remember the page and zoom of each document.</value></data>
+  <data name="Setting_recent_maxItems_Name" xml:space="preserve"><value>Recent files to remember</value></data>
+  <data name="Setting_recent_maxItems_Description" xml:space="preserve"><value>From 0 (keep no list) to 50.</value></data>
+  <data name="Setting_links_behaviour_Name" xml:space="preserve"><value>Links that lead outside the document</value></data>
+  <data name="Setting_links_behaviour_Description" xml:space="preserve"><value>MikePDF never opens them. It can show the address so you can copy it, or block them.</value></data>
+  <data name="Setting_links_behaviour_Value_Block" xml:space="preserve"><value>Block them</value></data>
+  <data name="Setting_links_behaviour_Value_Confirm" xml:space="preserve"><value>Ask first (shows the address in this build)</value></data>
+  <data name="Setting_links_behaviour_Value_ShowAddress" xml:space="preserve"><value>Show the address</value></data>
+  <data name="Setting_save_mode_Name" xml:space="preserve"><value>Save</value></data>
+  <data name="Setting_save_mode_Description" xml:space="preserve"><value>How saving works.</value></data>
+  <data name="Setting_save_mode_Value_InPlace" xml:space="preserve"><value>Save in place</value></data>
+  <data name="Setting_save_mode_Value_AlwaysSaveAsCopy" xml:space="preserve"><value>Always save as a copy</value></data>
+  <data name="Setting_markup_authorName_Name" xml:space="preserve"><value>Author name</value></data>
+  <data name="Setting_markup_authorName_Description" xml:space="preserve"><value>The name written into comments you add.</value></data>
+  <data name="Setting_engines_maxLiveTabs_Name" xml:space="preserve"><value>Documents kept ready</value></data>
+  <data name="Setting_engines_maxLiveTabs_Description" xml:space="preserve"><value>How many open documents keep their viewer running.</value></data>
+  <!-- Policies: names, effects and sources -->
+  <data name="Policy_Source_Machine" xml:space="preserve"><value>Registry policy, machine</value></data>
+  <data name="Policy_Source_User" xml:space="preserve"><value>Registry policy, user</value></data>
+  <data name="About_Title" xml:space="preserve"><value>About MikePDF</value></data>
+  <data name="About_Version" xml:space="preserve"><value>Version {0}, {1}</value></data>
+  <data name="About_Engine" xml:space="preserve"><value>PDF engine: PDFium, in a separate protected process</value></data>
+  <data name="About_NoTracking" xml:space="preserve"><value>No telemetry. No account. Nothing leaves this device.</value></data>
+  <data name="About_Managed_Header" xml:space="preserve"><value>Managed by your organisation</value></data>
+  <data name="About_Policy_Line" xml:space="preserve"><value>{0}: {1}. {2}</value></data>
+  <data name="About_Policy_Received" xml:space="preserve"><value>set to {0}</value></data>
+  <data name="About_Policy_EffectSource" xml:space="preserve"><value>{0} ({1})</value></data>
+  <data name="About_Policies_Count" xml:space="preserve"><value>Policies in effect: {0}</value></data>
+  <data name="About_Policy_Invalid" xml:space="preserve"><value>Ignored: not a valid value</value></data>
+  <data name="About_Policy_InvalidClosed" xml:space="preserve"><value>Not a valid value, so the most restrictive result applies:</value></data>
+  <data name="About_Policy_Reserved" xml:space="preserve"><value>Reserved for a future version</value></data>
+  <data name="About_Policy_NotInBuild" xml:space="preserve"><value>Not available in this build</value></data>
+  <data name="About_Policy_Ignored" xml:space="preserve"><value>Ignored: this build does not use it</value></data>
+  <data name="About_Policy_UserNotStricter" xml:space="preserve"><value>Ignored: a user-level policy can only make this stricter than the default or the machine policy</value></data>
+  <data name="About_Policy_UserScopeNotAllowed" xml:space="preserve"><value>Ignored: this policy is only read from the machine</value></data>
+  <data name="About_Policy_Overridden" xml:space="preserve"><value>Replaced by a stricter user-level value</value></data>
+  <data name="About_Policy_ReadFailed" xml:space="preserve"><value>The policy couldn&apos;t be read.</value></data>
+  <data name="About_Copy" xml:space="preserve"><value>Copy details</value></data>
+  <data name="About_Copied" xml:space="preserve"><value>Copied</value></data>
+  <data name="About_Licences" xml:space="preserve"><value>MikePDF is open source under the Apache-2.0 licence. Third-party notices are in the app package.</value></data>
+  <data name="About_Updates" xml:space="preserve"><value>Updates come through the Microsoft Store.</value></data>
+  <data name="About_Header_Product" xml:space="preserve"><value>MikePDF {0}</value></data>
+  <data name="About_Header_Os" xml:space="preserve"><value>Windows {0}</value></data>
+  <data name="Policy_JavaScriptEnabled_Name" xml:space="preserve"><value>JavaScript in documents</value></data>
+  <data name="Policy_JavaScriptEnabled_Value_0" xml:space="preserve"><value>JavaScript: off</value></data>
+  <data name="Policy_JavaScriptEnabled_Value_1" xml:space="preserve"><value>JavaScript: not available in this build</value></data>
+  <data name="Policy_ExternalLinks_Name" xml:space="preserve"><value>External links</value></data>
+  <data name="Policy_ExternalLinks_Value_0" xml:space="preserve"><value>Links that lead outside the document are blocked</value></data>
+  <data name="Policy_ExternalLinks_Value_1" xml:space="preserve"><value>Links that lead outside the document show their address only</value></data>
+  <data name="Policy_ExternalLinks_Value_2" xml:space="preserve"><value>Links that lead outside the document ask first; this build shows the address and opens nothing</value></data>
+  <data name="Policy_AllowedLinkSchemes_Name" xml:space="preserve"><value>Allowed link schemes</value></data>
+  <data name="Policy_AllowedLinkSchemes_Effect" xml:space="preserve"><value>Link schemes allowed: {0}</value></data>
+  <data name="Policy_AiMode_Name" xml:space="preserve"><value>AI features</value></data>
+  <data name="Policy_AiMode_Value_0" xml:space="preserve"><value>AI: off</value></data>
+  <data name="Policy_AiMode_Value_1" xml:space="preserve"><value>AI: local only</value></data>
+  <data name="Policy_AiMode_Value_2" xml:space="preserve"><value>AI: local and cloud</value></data>
+  <data name="Policy_AiAllowedEndpoints_Name" xml:space="preserve"><value>Allowed AI endpoints</value></data>
+  <data name="Policy_AiAllowedEndpoints_Effect" xml:space="preserve"><value>AI endpoints allowed: {0}</value></data>
+  <data name="Policy_TelemetryEnabled_Name" xml:space="preserve"><value>Telemetry</value></data>
+  <data name="Policy_TelemetryEnabled_Value_0" xml:space="preserve"><value>Telemetry: off (this build has none)</value></data>
+  <data name="Policy_TelemetryEnabled_Value_1" xml:space="preserve"><value>Telemetry: off (this build has none)</value></data>
+  <data name="Policy_SaveMode_Name" xml:space="preserve"><value>Default save</value></data>
+  <data name="Policy_SaveMode_Value_0" xml:space="preserve"><value>Save writes to the original file</value></data>
+  <data name="Policy_SaveMode_Value_1" xml:space="preserve"><value>Save always makes a copy and never overwrites the original</value></data>
+  <data name="Policy_EngineMemoryLimitMB_Name" xml:space="preserve"><value>Engine memory limit</value></data>
+  <data name="Policy_EngineMemoryLimitMB_Effect" xml:space="preserve"><value>Each viewer process may use up to {0} MB</value></data>
+  <data name="Policy_MaxLiveTabs_Name" xml:space="preserve"><value>Documents kept ready</value></data>
+  <data name="Policy_MaxLiveTabs_Effect" xml:space="preserve"><value>Up to {0} open documents keep their viewer running</value></data>
+  <data name="Policy_PrintingEnabled_Name" xml:space="preserve"><value>Printing</value></data>
+  <data name="Policy_PrintingEnabled_Value_0" xml:space="preserve"><value>Printing is turned off</value></data>
+  <data name="Policy_PrintingEnabled_Value_1" xml:space="preserve"><value>Printing is allowed</value></data>
+  <data name="Policy_ShellThumbnailsEnabled_Name" xml:space="preserve"><value>Explorer thumbnails</value></data>
+  <data name="Policy_ShellThumbnailsEnabled_Value_0" xml:space="preserve"><value>Thumbnails in Explorer are turned off</value></data>
+  <data name="Policy_ShellThumbnailsEnabled_Value_1" xml:space="preserve"><value>Thumbnails in Explorer are allowed</value></data>
+  <data name="Policy_ShellPreviewEnabled_Name" xml:space="preserve"><value>Explorer preview pane</value></data>
+  <data name="Policy_ShellPreviewEnabled_Value_0" xml:space="preserve"><value>The preview pane is turned off</value></data>
+  <data name="Policy_ShellPreviewEnabled_Value_1" xml:space="preserve"><value>The preview pane is allowed</value></data>
+  <data name="Policy_DefaultAppPromptEnabled_Name" xml:space="preserve"><value>Default app prompt</value></data>
+  <data name="Policy_DefaultAppPromptEnabled_Value_0" xml:space="preserve"><value>The default app prompt is hidden</value></data>
+  <data name="Policy_DefaultAppPromptEnabled_Value_1" xml:space="preserve"><value>The default app prompt may be shown</value></data>
+  <data name="Policy_SettingsImportExportEnabled_Name" xml:space="preserve"><value>Settings import and export</value></data>
+  <data name="Policy_SettingsImportExportEnabled_Value_0" xml:space="preserve"><value>Importing and exporting settings and shortcuts is turned off</value></data>
+  <data name="Policy_SettingsImportExportEnabled_Value_1" xml:space="preserve"><value>Importing and exporting settings and shortcuts is allowed</value></data>
+  <data name="Policy_AnnotationAuthorName_Name" xml:space="preserve"><value>Annotation author name</value></data>
+  <data name="Policy_AnnotationAuthorName_Effect" xml:space="preserve"><value>New comments are written with the author name {0}</value></data>
+  <data name="Policy_AllowWeakerSandbox_Name" xml:space="preserve"><value>Weaker sandbox</value></data>
+  <data name="Policy_AllowWeakerSandbox_Value_0" xml:space="preserve"><value>There is no weaker sandbox</value></data>
+  <data name="Policy_UpdateChannel_Name" xml:space="preserve"><value>Update channel</value></data>
+  <data name="Policy_UpdateChannel_Value_0" xml:space="preserve"><value>Updates come through the Microsoft Store</value></data>
+  <!-- Dialogs added with the commands -->
+  <data name="ZoomTo_Title" xml:space="preserve"><value>Zoom to</value></data>
+  <data name="ZoomTo_Box_Name" xml:space="preserve"><value>Zoom percentage, from 10 to 6400</value></data>
+  <data name="ZoomTo_Go" xml:space="preserve"><value>Zoom</value></data>
+  <data name="Link_Blocked_Title" xml:space="preserve"><value>Link blocked</value></data>
+  <data name="Link_Blocked_Message" xml:space="preserve"><value>Your organisation has turned off links that lead outside a document.</value></data>
+  <data name="Banner_ReopenFailed" xml:space="preserve"><value>The document couldn&apos;t be reloaded.</value></data>
+  <data name="Banner_Disabled_Title" xml:space="preserve"><value>{0} is not available</value></data>
+  <data name="Command_Palette_Opened" xml:space="preserve"><value>Command palette</value></data>
+  <data name="ShortcutDialog_Name" xml:space="preserve"><value>Change shortcut</value></data>
+  <data name="Settings_On" xml:space="preserve"><value>On</value></data>
+  <data name="Settings_Off" xml:space="preserve"><value>Off</value></data>
+  <data name="Settings_Row_Locked" xml:space="preserve"><value>{0}: {1}. Locked. Managed by your organisation.</value></data>
 </root>

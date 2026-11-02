@@ -136,40 +136,6 @@ public sealed partial class MainWindow
 
     // ---- events -------------------------------------------------------------------------------------------------------------------------
 
-    private void OnFindClick(object sender, RoutedEventArgs e) => OpenFind();
-
-    private void OnFindAccelerator(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)
-    {
-        args.Handled = true;
-        OpenFind();
-    }
-
-    private void OnFindNextAccelerator(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)
-    {
-        args.Handled = true;
-        if (FindOpen && _session?.Find is not null)
-        {
-            _ = MoveToMatchAsync(forward: true);
-        }
-        else
-        {
-            OpenFind();
-        }
-    }
-
-    private void OnFindPreviousAccelerator(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)
-    {
-        args.Handled = true;
-        if (FindOpen && _session?.Find is not null)
-        {
-            _ = MoveToMatchAsync(forward: false);
-        }
-        else
-        {
-            OpenFind();
-        }
-    }
-
     private void OnFindTextChanged(object sender, TextChangedEventArgs e)
     {
         _findTimer ??= DispatcherQueue.CreateTimer();
@@ -203,12 +169,6 @@ public sealed partial class MainWindow
         StartFind();
     }
 
-    private void OnFindNextClick(object sender, RoutedEventArgs e) => _ = MoveToMatchAsync(forward: true);
-
-    private void OnFindPreviousClick(object sender, RoutedEventArgs e) => _ = MoveToMatchAsync(forward: false);
-
-    private void OnFindCloseClick(object sender, RoutedEventArgs e) => CloseFind();
-
     private void OnFindBarKeyDown(object sender, KeyRoutedEventArgs e)
     {
         switch (e.Key)
@@ -237,6 +197,8 @@ public sealed partial class MainWindow
 
 internal static class InputKeyboardState
 {
-    public static bool IsShiftDown() =>
-        Microsoft.UI.Input.InputKeyboardSource.GetKeyStateForCurrentThread(VirtualKey.Shift).HasFlag(Windows.UI.Core.CoreVirtualKeyStates.Down);
+    public static bool IsShiftDown() => IsDown(VirtualKey.Shift);
+
+    public static bool IsDown(VirtualKey key) =>
+        Microsoft.UI.Input.InputKeyboardSource.GetKeyStateForCurrentThread(key).HasFlag(Windows.UI.Core.CoreVirtualKeyStates.Down);
 }
