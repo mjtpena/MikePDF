@@ -1,0 +1,30 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <!-- The harness projects are executables; the tests reference them for their internal targets and launch their apphosts. -->
+    <ValidateExecutableReferencesMatchSelfContained>false</ValidateExecutableReferencesMatchSelfContained>
+    <!-- MutationalFuzzer.cs is compiled into each harness and into this project too; the local copy wins. -->
+    <NoWarn>$(NoWarn);CS0436;CA5394</NoWarn>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\MikePDF.Protocol.Fuzz\MikePDF.Protocol.Fuzz.csproj" />
+    <ProjectReference Include="..\MikePDF.PdfWriter.Fuzz\MikePDF.PdfWriter.Fuzz.csproj" />
+    <Compile Include="..\Shared\MutationalFuzzer.cs" Link="Shared\MutationalFuzzer.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- Minimised reproducers of past findings; every file in here is replayed against its target on every test run. -->
+    <Content Include="..\regressions\**\*" LinkBase="regressions" CopyToOutputDirectory="PreserveNewest" />
+    <!-- The same seeds the fuzz runs start from (protocol golden vectors; PDFium BSD-3-Clause fixtures, see their MANIFEST.md). -->
+    <Content Include="..\..\MikePDF.Protocol.Tests\golden\*.bin" LinkBase="seeds\golden" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="..\..\MikePDF.PdfWriter.Tests\Fixtures\pdfium\*.pdf" LinkBase="seeds\pdf" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="..\..\MikePDF.Integration.Tests\Fixtures\*.pdf" LinkBase="seeds\pdf-integration" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="..\dictionaries\*.dict" LinkBase="dictionaries" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- Where the harness apphosts are built (the same configuration and framework as this project). -->
+    <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute">
+      <_Parameter1>ProtocolFuzzExe</_Parameter1>
+      <_Parameter2>$(MSBuildThisFileDirectory)..\MikePDF.Protocol.Fuzz\bin\$(Configuration)\$(TargetFramework)\MikePDF.Protocol.Fuzz.exe</_Parameter2>
+    </AssemblyAttribute>
+  </ItemGroup>
+</Project>

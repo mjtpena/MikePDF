@@ -56,7 +56,7 @@ The checklists refer to output files under `spikes/S4/out/` and `spikes/S8/out/`
 
 **Still open in the full M1 gate (§17), outside the waiver:** the `mikepdf-render` CLI, corpus manifest + smoke tier (ADR-0010), visual-diff and perf harnesses, the >4 GiB document test, and 24 h of fuzzing including the IPC decoders on both sides.
 
-Key documents: [master prompt](MASTER-PROMPT.md) · [M0 report](milestones/M0-report.md) · [M0 spike plan](spikes/M0-spike-plan.md) · [ADRs](adr/) · [risk register](risks.md) · [threat model](threat-model/README.md) · [Store runbook](store/README.md)
+Key documents: [master prompt](MASTER-PROMPT.md) · [UI design spec](design/README.md) ([teardown](design/competitive-teardown.md), [commands](design/commands.md), [UX metrics](design/ux-metrics.md), [screens](design/screens/)) · [M0 report](milestones/M0-report.md) · [M0 spike plan](spikes/M0-spike-plan.md) · [ADRs](adr/) · [risk register](risks.md) · [threat model](threat-model/README.md) · [Store runbook](store/README.md)
 
 ## M0 exit gate (§17)
 | Criterion | Status | Evidence |
@@ -112,3 +112,4 @@ Key documents: [master prompt](MASTER-PROMPT.md) · [M0 report](milestones/M0-re
 - 2026-10-27/28: P0 and spikes S1–S8 (plus S3b) run on DEV by Sonnet agents and reviewed by Opus. ADRs 0002–0010 written. ADR-0001 amendment A1. Threat-model skeleton. Risk register re-scored (R-30–R-36 added). M0 gate assessed: **not passed**.
 - 2026-10-28: user granted a scoped M0 waiver for M1 foundations. WP1–WP4b implemented on `m1/foundations` by Sonnet agents and reviewed by Opus.
 - 2026-11-02: repository made public under Apache-2.0, CI fixed, Store preview built (ADR-0015, ADR-0004 A2). Renamed from Quire to MikePDF (ADR-0016).
+- 2026-11-02: UI design spec drafted on `m3/design` (W1-design): [design system](design/README.md), competitive teardown, 15 screen specs, command inventory, UX metrics. Draft for Opus review; nothing in it is built or measured.

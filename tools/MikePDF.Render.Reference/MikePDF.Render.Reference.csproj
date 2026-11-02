@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <AssemblyName>mikepdf-refrender</AssemblyName>
+    <RootNamespace>MikePDF.Render.Reference</RootNamespace>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <Description>Test-only reference renderer: the pinned pdfium.dll driven directly, outside the sandbox (master prompt 12.3). Never shipped.</Description>
+    <IsPackable>false</IsPackable>
+    <!-- A console tool has no synchronisation context. -->
+    <NoWarn>$(NoWarn);CA2007</NoWarn>
+  </PropertyGroup>
+</Project>

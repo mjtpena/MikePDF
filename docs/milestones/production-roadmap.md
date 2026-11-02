@@ -53,6 +53,21 @@ This wave starts after the W1-design and W1-specs reviews.
 ### Later: M6 professional features and M7 AI (v1.x)
 These come after v1.0 ships.
 
+## Backlog from reviews
+Found while reviewing wave 1. Each gets a work package or joins one.
+| Item | Source | Goes to |
+|---|---|---|
+| Engine budget: each document starts its own pool engine (`DocumentSession.cs`), but ADR-0004 says one shared pool and a cap. This must be fixed before tabs | W1-specs finding 1 | Wave 2, first tabs WP |
+| The watchdog can kill an engine on a heavy page as "hung", because PDFium checks its deadline only about every 100 drawing operations. The viewer has the same defaults. Base hang detection on a heartbeat, not on the render deadline | W1-render risk 2 | Wave 2 engine WP |
+| `EngineProtocolTests.RenderTileIsRefusedUntilTheRingIsAttachedAndTheRingAttachesOnce` is flaky on ARM64 | W1-render risk 3 | Wave 2 engine WP |
+| UI tests kill every `MikePDF.Engine` on the machine | W1-render risk 1 | W1-reader (sent) |
+| A test helper listens on all interfaces, so a firewall prompt appears | W1-reader | W1-reader (sent) |
+| Integration tests in parallel worktrees share the `MikePDF.IntegrationTests` AppContainer profile and can fail each other | W1-reader | Wave 2 engine WP |
+| C# fuzz targets aren't coverage-guided. Run the SharpFuzz spike in ADR-0017 | W1-fuzz | Wave 2 |
+| Fuzzing gate: count nightly 5-hour slices per target, with the corpus carried over, toward 24 h (M1) and 72 h (M5) | W1-fuzz | Decided by Opus 2026-11-02 |
+| Inverted pages also invert photographs; preserving images needs engine work | W1-reader | Wave 2 |
+| Core and full corpus tiers; a hang file and a crash file in the smoke tier; per-file licence audit of PDFium's test resources | W1-render | Wave 2 |
+
 ## What only the user can do
 The following gate v1.0, and agents can't do them:
 - Reference hardware runs on R1, R2, R3 and a Surface with a pen (§11, R-17)

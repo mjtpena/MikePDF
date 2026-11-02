@@ -29,7 +29,10 @@ public sealed class SerializerTests
     [InlineData(0.1, "0.1")]
     [InlineData(-0.25, "-0.25")]
     [InlineData(123.456, "123.456")]
-    [InlineData(1e-20, "0.0")]
+    [InlineData(1e-20, "0.00000000000000000001")]
+    [InlineData(-1.5e-7, "-0.00000015")]
+    [InlineData(841.8897637795277, "841.8897637795277")]
+    [InlineData(0.30000000000000004, "0.30000000000000004")]
     [InlineData(1e15, "1000000000000000.0")]
     [InlineData(2.5e20, "250000000000000000000.0")]
     [InlineData(0.000001, "0.000001")]
@@ -38,6 +41,36 @@ public sealed class SerializerTests
         string text = Text(new PdfReal(value));
         Assert.Equal(expected, text);
         Assert.DoesNotContain("E", text, StringComparison.OrdinalIgnoreCase);
+    }
+
+    // Found by the append fuzz target: a real with more than 15 fractional digits was cut, so the object did not read back as written
+    // and the writer's own self-check refused the whole update.
+    [Theory]
+    [InlineData(841.8897637795277)]
+    [InlineData(595.2755905511812)]
+    [InlineData(0.1 + 0.2)]
+    [InlineData(1e-19)]
+    [InlineData(-3.3e-100)]
+    [InlineData(123456789.12345679)]
+    [InlineData(3.4028234663852886e38)]
+    public void RealsReadBackAsExactlyTheSameDouble(double value)
+    {
+        string text = Text(new PdfReal(value));
+        Assert.DoesNotContain("E", text, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal(value, Assert.IsType<PdfReal>(Parse(text)).Value);
+    }
+
+    [Fact]
+    public void RealsRoundTripExactlyAcrossTheRange()
+    {
+        var rng = new Random(2026);
+        for (int i = 0; i < 20_000; i++)
+        {
+            // Mantissa bits from the generator, exponent spread over the float range down to 1e-60 (about 61 characters when written).
+            double v = (rng.NextDouble() - 0.5) * Math.Pow(10, rng.Next(-60, 38));
+            if (v == 0) continue;
+            Assert.Equal(v, Assert.IsType<PdfReal>(Parse(Text(new PdfReal(v)))).Value);
+        }
     }
 
     [Fact]

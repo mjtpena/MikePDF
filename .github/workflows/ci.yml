@@ -47,3 +47,103 @@ jobs:
             **/TestResults/**
             build/out/cmake-${{ matrix.arch }}/Testing/**
           if-no-files-found: ignore
+
+  # About 60 seconds on each fuzz target (docs/fuzzing.md): proves on every push that the targets build, start, accept their seeds and
+  # still find nothing. It is a smoke test, not fuzzing: the real runs are the nightly slices in fuzz.yml. x64 only (the native
+  # libFuzzer and AddressSanitizer runtimes ship for x64).
+  fuzz-smoke:
+    name: fuzz-smoke
+    runs-on: windows-2025-vs2026
+    timeout-minutes: 45
+    env:
+      CI: 'true'
+      DOTNET_NOLOGO: 'true'
+      DOTNET_CLI_TELEMETRY_OPTOUT: 'true'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          dotnet-version: '10.0.4xx' # ADR-0001 pin (10.0.403); global.json rolls forward to it
+      - name: Fuzz smoke (60 s per target)
+        shell: pwsh
+        run: ./tests/fuzz/run-fuzz.ps1 -Target all -Seconds 60
+      - name: Summary
+        if: always()
+        shell: pwsh
+        run: |
+          if (Test-Path build/out/fuzz/summary.md) { Get-Content build/out/fuzz/summary.md | Add-Content $env:GITHUB_STEP_SUMMARY }
+      - name: Upload fuzz findings and logs
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: fuzz-smoke
+          path: |
+            build/out/fuzz/findings/**
+            build/out/fuzz/logs/**
+            build/out/fuzz/summary.*
+          if-no-files-found: ignore
+
+  render-smoke:
+    # The M1 exit gate (master prompt 17): the smoke corpus through the sandboxed engine, every page compared with a PDFium render made outside the
+    # sandbox. Fails on a crash or hang in a MikePDF-owned process (the engine, or the reference renderer), a file that opens differently from its
+    # manifest entry, a page that does not render, or an SSIM regression against tests/corpus/baselines (tools/MikePDF.Render/README.md).
+    name: render-smoke-${{ matrix.arch }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: x64
+            runner: windows-2025-vs2026
+          - arch: arm64
+            runner: windows-11-vs2026-arm
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 45
+    env:
+      CI: 'true'
+      DOTNET_NOLOGO: 'true'
+      DOTNET_CLI_TELEMETRY_OPTOUT: 'true'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          dotnet-version: '10.0.4xx' # ADR-0001 pin (10.0.403); global.json rolls forward to it
+      - name: Build the engine and the render tool
+        shell: pwsh
+        run: |
+          ./build.ps1 -Configuration Release -Arch ${{ matrix.arch }} -SkipManaged
+          dotnet build tools/MikePDF.Render -c Release -p:MikePDFArch=${{ matrix.arch }}
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Check the corpus manifest
+        shell: pwsh
+        run: |
+          dotnet run --project tools/MikePDF.Render -c Release --no-build -- corpus check
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Cache the smoke corpus
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: build/out/corpus
+          # Files are verified against the manifest's SHA-256 whether they come from the cache or the network.
+          key: smoke-corpus-${{ hashFiles('tests/corpus/manifest.json') }}
+      - name: Fetch the smoke corpus
+        shell: pwsh
+        run: |
+          dotnet run --project tools/MikePDF.Render -c Release --no-build -- corpus fetch --tier smoke
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Render the smoke corpus through the sandboxed engine
+        shell: pwsh
+        run: |
+          dotnet run --project tools/MikePDF.Render -c Release --no-build -- --tier smoke --scale 1,2 --out render-out --write-baseline render-out/baseline-candidate.json
+          $code = $LASTEXITCODE
+          if (Test-Path render-out/report.md) { Get-Content render-out/report.md | Out-File -Append -Encoding utf8 $env:GITHUB_STEP_SUMMARY }
+          exit $code
+      - name: Upload the report and the failure images
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: render-smoke-${{ matrix.arch }}
+          path: |
+            render-out/report.json
+            render-out/report.md
+            render-out/baseline-candidate.json
+            render-out/diff/**
+          if-no-files-found: warn
