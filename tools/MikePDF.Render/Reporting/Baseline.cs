@@ -24,6 +24,9 @@ internal sealed record SsimBaseline
 
     public double Threshold { get; init; }
 
+    /// <summary>The share of the files that should open that did, at the last accepted run. A later run below it fails (a drop in the open rate, §0.3). Absent in baselines written before it existed.</summary>
+    public double? OpenSuccessPercent { get; init; }
+
     /// <summary><c>file id#page@scale</c> to SSIM, rounded to six places.</summary>
     public Dictionary<string, double> Entries { get; init; } = [];
 
@@ -40,7 +43,7 @@ internal sealed record SsimBaseline
             }
         }
 
-        return new SsimBaseline { Architecture = architecture, Pdfium = pdfium, Tier = settings.Tier, Threshold = settings.SsimThreshold, Entries = entries };
+        return new SsimBaseline { Architecture = architecture, Pdfium = pdfium, Tier = settings.Tier, Threshold = settings.SsimThreshold, OpenSuccessPercent = Summarizer.Summarize(files.ToList(), settings).OpenSuccessPercent, Entries = entries };
     }
 
     public static SsimBaseline Load(string path)

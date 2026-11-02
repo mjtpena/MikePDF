@@ -48,3 +48,10 @@
 ## Verification
 - `fetch.ps1 -Tier smoke` passes in CI with every hash matching.
 - A CI check rejects manifest entries with `licence` UNVERIFIED in any tier.
+
+## Amendment 2026-11-03: the core tier (W2-corpus)
+- **Licences.** Test data is fetched, never committed or shipped, so ADR-0003 (which governs code that is shipped) is applied to it as follows: the allowed list is BSD-3-Clause, Apache-2.0, MIT, CC0-1.0, public domain (`LicenseRef-Public-Domain`) and Creative Commons Attribution (`CC-BY-2.0`, `CC-BY-2.5`, `CC-BY-3.0`, `CC-BY-4.0`), as the brief for the core tier asked. ShareAlike, NonCommercial and NoDerivatives licences, GPL, AGPL and MPL stay out. Attribution: each CC-BY entry keeps its source URL; `tests/corpus/ATTRIBUTION.md` names the sources.
+- **Evidence.** A file outside the smoke tier carries `licenceEvidence` (where its licence was read: the repository licence, the Commons file page, the arXiv record, the statute) and, where an audit was done, `audit`. The manifest check refuses a core entry without evidence.
+- **Tiers nest.** A file is listed once, in the smallest tier it belongs to; core runs smoke too, full runs core.
+- **Per-file audit.** A repository licence is not proof that every test file in it was the contributor's to give. PDFium's smoke files were audited one by one (6 left out); the other test-suite sources are filtered by rule (no desktop-application producer, no proprietary embedded font, no large photographic image) and the rules, and every rejection, are in `tests/corpus/curation/`.
+- **Open rate.** A real file that should open and does not is marked `expect.knownIssue`: it counts against the 99.5% of §0.3, which a file broken on purpose does not.

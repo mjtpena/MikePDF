@@ -13,7 +13,7 @@ using MikePDF.Render.Reporting;
 namespace MikePDF.Render.Runner;
 
 /// <summary>One file to render and what is known about it beforehand.</summary>
-internal sealed record WorkItem(string Id, string Path, string? Password, ExpectedOutcome? Expected, PageSpec Pages, IReadOnlyList<string> Tags);
+internal sealed record WorkItem(string Id, string Path, string? Password, ExpectedOutcome? Expected, PageSpec Pages, IReadOnlyList<string> Tags, TimeSpan? TileDeadline = null, bool UseReference = true);
 
 /// <summary>
 /// A run: every file through the sandboxed engine, page by page and tile by tile, each page compared with the reference render, everything recorded in a
@@ -103,6 +103,7 @@ internal sealed class RenderRun
         };
         using var limit = CancellationTokenSource.CreateLinkedTokenSource(runToken);
         limit.CancelAfter(_options.FileTimeout);
+        var crashesBefore = _host.CrashesSeen;
         _host.SetContext("open");
         try
         {
@@ -145,11 +146,36 @@ internal sealed class RenderRun
         }
         finally
         {
+            await SettleEngineEventsAsync(item, file, crashesBefore).ConfigureAwait(false);
             _host.SetContext(null);
             file.EngineEvents.AddRange(_host.DrainEvents());
         }
 
         return file;
+    }
+
+    /// <summary>
+    /// A hang or a crash is reported by the supervisor a moment after the request it hit has been answered. Wait for it while the file's context is still set, so it is
+    /// filed under this file. A page that ended <c>EngineCrashed</c> means a process died, so the event is sure to come: wait as long as it takes up to a generous limit;
+    /// one that ended <c>Timeout</c> may or may not have cost the engine its life, so wait only a little, unless the manifest says this file is meant to.
+    /// </summary>
+    private async Task SettleEngineEventsAsync(WorkItem item, FileReport file, int crashesBefore)
+    {
+        var sure = file.Open.Status == nameof(Status.EngineCrashed) || file.Pages.Any(p => p.Status == nameof(Status.EngineCrashed)) || item.Expected?.EngineEvent is not null;
+        var maybe = file.Pages.Any(p => p.Status == "Timeout");
+        if (!sure && !maybe)
+        {
+            return;
+        }
+
+        try
+        {
+            await _host.SettleAsync(crashesBefore, sure ? TimeSpan.FromSeconds(20) : TimeSpan.FromSeconds(3), CancellationToken.None).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException)
+        {
+            // The caller was told to stop; the events that did arrive are kept.
+        }
     }
 
     private static long SizeOf(string path)
@@ -182,7 +208,7 @@ internal sealed class RenderRun
         file.Open = new OpenReport(opened.Status.ToString(), opened.Detail, open.ElapsedMilliseconds);
         if (!opened.IsOk || opened.Value is null)
         {
-            if (_reference is not null)
+            if (_reference is not null && item.UseReference)
             {
                 // Does PDFium, outside the sandbox, see the same? A file the reference opens and the engine does not is a finding.
                 using var probe = await _reference.RenderAsync(item.Path, password, 0, [(1, 1f)], TimeSpan.FromSeconds(60), cancellationToken).ConfigureAwait(false);
@@ -233,7 +259,7 @@ internal sealed class RenderRun
         ReferenceResult? reference = null;
         try
         {
-            if (_reference is not null && planned.Count > 0)
+            if (_reference is not null && item.UseReference && planned.Count > 0)
             {
                 _host.SetContext("reference");
                 var timeout = TimeSpan.FromSeconds(Math.Min(_options.FileTimeout.TotalSeconds, 60 + (planned.Count * 5.0)));
@@ -253,7 +279,7 @@ internal sealed class RenderRun
                 }
 
                 _host.SetContext($"page {report.Key}");
-                var image = await RenderWithRetriesAsync(document, report, plan, cancellationToken).ConfigureAwait(false);
+                var image = await RenderWithRetriesAsync(document, report, plan, item.TileDeadline ?? _options.TileDeadline, cancellationToken).ConfigureAwait(false);
                 consecutiveFailures = report.Status is "Ok" or "PartiallyRendered" ? 0 : consecutiveFailures + 1;
                 if (image is not null)
                 {
@@ -267,14 +293,14 @@ internal sealed class RenderRun
         }
     }
 
-    private async Task<BgraImage?> RenderWithRetriesAsync(SupervisedDocument document, PageReport report, PagePlan plan, CancellationToken cancellationToken)
+    private async Task<BgraImage?> RenderWithRetriesAsync(SupervisedDocument document, PageReport report, PagePlan plan, TimeSpan tileDeadline, CancellationToken cancellationToken)
     {
         var clock = Stopwatch.StartNew();
         PageRender result;
         var attempt = 0;
         while (true)
         {
-            result = await EnginePageRenderer.RenderAsync(document, (uint)report.Page - 1, plan, _options.Rotation, _options.TileDeadline, cancellationToken).ConfigureAwait(false);
+            result = await EnginePageRenderer.RenderAsync(document, (uint)report.Page - 1, plan, _options.Rotation, tileDeadline, cancellationToken).ConfigureAwait(false);
             report.Tiles += result.Tiles;
             if (result.Status == nameof(Status.Cancelled) && cancellationToken.IsCancellationRequested)
             {
