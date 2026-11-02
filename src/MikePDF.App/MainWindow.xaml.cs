@@ -142,6 +142,18 @@ public sealed partial class MainWindow : Window
             return;
         }
 
+        if (PrintJobRunning)
+        {
+            // A job started here stops with the window: ask first, stop it if the person says so, then close the way a window without a job closes (unsaved edits are asked about next).
+            args.Cancel = true;
+            if (await ConfirmClosingWhilePrintingAsync())
+            {
+                Close();
+            }
+
+            return;
+        }
+
         var dirty = ClosePlan.Dirty(Model.Tabs);
         if (dirty.Count == 0)
         {

@@ -175,6 +175,14 @@
           "MikePDF.Protocol": "[1.0.0, )"
         }
       },
+      "mikepdf.printing": {
+        "type": "Project",
+        "dependencies": {
+          "MikePDF.Broker": "[1.0.0, )",
+          "MikePDF.Core": "[1.0.0, )",
+          "MikePDF.Protocol": "[1.0.0, )"
+        }
+      },
       "mikepdf.protocol": {
         "type": "Project",
         "dependencies": {

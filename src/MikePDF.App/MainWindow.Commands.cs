@@ -87,6 +87,10 @@ public sealed partial class MainWindow
     private void BindCommands()
     {
         Bind(OpenButton, "file.open");
+        Bind(PrintButton, "file.print");
+        Bind(PrintCancelButton, "print.cancel", Parts.Click | Parts.Tooltip | Parts.Accelerator);
+        PrintCancelButton.Content = Strings.Get("Print_Strip_Cancel");
+        AutomationProperties.SetName(PrintCancelButton, Strings.Get("Print_Cancel"));
         Bind(EmptyOpenButton, "file.open", Parts.Click | Parts.Accelerator);
         Bind(BackButton, "nav.back");
         Bind(ForwardButton, "nav.forward");
@@ -207,7 +211,14 @@ public sealed partial class MainWindow
 
             if (binding.Parts.HasFlag(Parts.Tooltip) && target is UIElement element)
             {
-                ToolTipService.SetToolTip(element, shown.Length == 0 ? name : name + " (" + shown + ")");
+                // A command that cannot run says why in its tooltip as well as in the control's help text and the palette (print.md PRINT-22).
+                var tip = shown.Length == 0 ? name : name + " (" + shown + ")";
+                if (!availability.IsEnabled && availability.Reason is { } why)
+                {
+                    tip += "\n" + Strings.Get(Reasons.ResourceKey(why));
+                }
+
+                ToolTipService.SetToolTip(element, tip);
             }
 
             if (binding.Parts.HasFlag(Parts.Accelerator))
@@ -262,6 +273,8 @@ public sealed partial class MainWindow
             Presentation = _presenting,
             ImportExportAllowed = policy.ImportExportAllowed,
             PrintingAllowed = policy.PrintingAllowed,
+            OwnerAllowsPrinting = !open || session!.OwnerAllowsPrinting,
+            PrintJobRunning = PrintJobRunning,
         };
     }
 
@@ -521,6 +534,7 @@ public sealed partial class MainWindow
         Sync("app.policies", () => ShowSettings("policies"));
         Async("app.about", ShowAboutAsync);
         RegisterSettingsActions(Sync, Async);
+        RegisterPrintActions(Sync, Async);
     }
 
     // Reload opens the same file again in the same tab, where it was.
