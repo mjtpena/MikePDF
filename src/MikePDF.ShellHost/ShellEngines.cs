@@ -74,8 +74,14 @@ internal interface IShellEngine : IAsyncDisposable
     /// <summary>Renders <paramref name="page"/> to fit <paramref name="maxWidth"/> x <paramref name="maxHeight"/>, never larger than <paramref name="maxScale"/> times its natural size.</summary>
     Task<ShellResult<ShellRender>> RenderAsync(uint page, uint maxWidth, uint maxHeight, bool annotations, float maxScale, CancellationToken cancellationToken);
 
-    /// <summary>Ends the process now, without asking it to leave. Safe at any time and more than once.</summary>
+    /// <summary>Ends the process now, without asking it to leave. Safe at any time and more than once. A second call may return while the first is still working.</summary>
     ValueTask KillAsync();
+
+    /// <summary>
+    /// True once the process is really gone, false if it is still there after <paramref name="timeout"/>. <see cref="KillAsync"/> is a request and a second caller may return
+    /// before the process has exited: the pool's cap counts processes, so it frees a slot only when this says true (SHELL-12).
+    /// </summary>
+    Task<bool> WaitForExitAsync(TimeSpan timeout);
 }
 
 internal interface IShellEngineFactory
@@ -112,12 +118,28 @@ internal sealed class SandboxedShellEngine : IShellEngine
     private readonly EngineSupervisor _supervisor;
     private SupervisedDocument? _document;
     private ShellDocumentInfo? _first;
+    private readonly ProcessExit _exit;
     private int _disposed;
 
-    private SandboxedShellEngine(EngineSupervisor supervisor) => _supervisor = supervisor;
+    private SandboxedShellEngine(EngineSupervisor supervisor)
+    {
+        _supervisor = supervisor;
+        _exit = ProcessExit.Watch(supervisor.EngineProcessId); // now, while the id still names this engine
+    }
 
     public static async Task<SandboxedShellEngine> StartAsync(EngineSupervisorOptions options, CancellationToken cancellationToken) =>
         new(await EngineSupervisor.StartAsync(options, cancellationToken).ConfigureAwait(false));
+
+    public async Task<bool> WaitForExitAsync(TimeSpan timeout)
+    {
+        var exited = await _exit.WaitAsync(timeout).ConfigureAwait(false);
+        if (exited)
+        {
+            _exit.Dispose();
+        }
+
+        return exited;
+    }
 
     public uint ProcessId => _supervisor.EngineProcessId;
 

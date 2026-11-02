@@ -7,6 +7,8 @@ internal static unsafe partial class Native
 {
     public const uint ProcessDupHandle = 0x0040;
     public const uint ProcessQueryLimitedInformation = 0x1000;
+    public const uint Synchronize = 0x00100000;
+    public const int ErrorInvalidParameter = 87;
     public const uint DuplicateSameAccess = 2;
     public const uint FileMapRead = 4;
     public const uint FileMapWrite = 2;

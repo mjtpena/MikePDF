@@ -27,7 +27,7 @@ internal enum EngineWaitFailure
 /// included</b>. Requests that cannot have one yet wait <b>newest first</b> (the folder the person is looking at now, not the one they scrolled past) in a queue of at most
 /// 64, and a request whose deadline passes while it waits is dropped without any work being done for it.
 /// </summary>
-internal sealed class ShellEnginePool(IShellEngineFactory factory, Func<int> maxEngines) : IAsyncDisposable
+internal sealed class ShellEnginePool(IShellEngineFactory factory, Func<int> maxEngines, TimeSpan? exitWait = null) : IAsyncDisposable
 {
     public const int MaxWaiting = 64;
 
@@ -177,7 +177,7 @@ internal sealed class ShellEnginePool(IShellEngineFactory factory, Func<int> max
                 }
 
                 // The spare died while it waited. Its slot is free again; take another route.
-                await engine.KillAsync().ConfigureAwait(false);
+                await EndAsync(engine).ConfigureAwait(false);
                 ReleaseSlot();
                 continue;
             }
@@ -256,8 +256,7 @@ internal sealed class ShellEnginePool(IShellEngineFactory factory, Func<int> max
     {
         try
         {
-            var engine = await spare.ConfigureAwait(false);
-            await engine.KillAsync().ConfigureAwait(false);
+            await EndAsync(await spare.ConfigureAwait(false)).ConfigureAwait(false);
         }
         catch (Exception e) when (e is not OutOfMemoryException)
         {
@@ -301,12 +300,25 @@ internal sealed class ShellEnginePool(IShellEngineFactory factory, Func<int> max
     {
         try
         {
-            await engine.KillAsync().ConfigureAwait(false);
+            await EndAsync(engine).ConfigureAwait(false);
         }
         finally
         {
             ReleaseSlot();
         }
+    }
+
+    /// <summary>How long a killed engine process gets to be gone before its slot is given back anyway: a wedged process must not wedge ShellHost with it.</summary>
+    internal static readonly TimeSpan DefaultExitWait = TimeSpan.FromSeconds(5);
+
+    /// <summary>
+    /// Kills the engine and waits until the process is really gone. The cap is on processes alive, so a slot goes back (and a new engine may start) only after this: a kill that
+    /// another caller started, a kill that has been asked for and not yet carried out, and a process that is exiting all still count (SHELL-12).
+    /// </summary>
+    private async Task EndAsync(IShellEngine engine)
+    {
+        await engine.KillAsync().ConfigureAwait(false);
+        await engine.WaitForExitAsync(exitWait ?? DefaultExitWait).ConfigureAwait(false);
     }
 
     public async ValueTask DisposeAsync()
@@ -331,7 +343,7 @@ internal sealed class ShellEnginePool(IShellEngineFactory factory, Func<int> max
         {
             try
             {
-                await (await spare.ConfigureAwait(false)).KillAsync().ConfigureAwait(false);
+                await EndAsync(await spare.ConfigureAwait(false)).ConfigureAwait(false);
             }
             catch (Exception e) when (e is not OutOfMemoryException)
             {
