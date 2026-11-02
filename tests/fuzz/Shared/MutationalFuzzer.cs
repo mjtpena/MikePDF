@@ -8,12 +8,13 @@ namespace MikePDF.Fuzz.Shared;
 /// <summary>
 /// A dependency-free mutational fuzzer for the .NET targets (ADR-0005 rule 7, master prompt 12.6).
 ///
-/// What it is, plainly: a havoc-style byte mutator with a corpus and a watchdog. It has NO code coverage feedback,
-/// because instrumenting an assembly needs SharpFuzz.CommandLine and a libFuzzer driver, neither of which has an accepted ADR
-/// (see docs/adr/0017-fuzzing-toolchain.md). In its place the target returns an *outcome signature* (which decoder verdict and
-/// which typed error an input produced), and an input that yields a signature not seen before joins the corpus. That steers
-/// the search towards new rejection and acceptance paths without instrumentation, but it is weaker than coverage guidance:
-/// two inputs that take different code paths to the same verdict look the same to it.
+/// What it is, plainly: the FALLBACK fuzzer for the .NET targets. The default is coverage-guided (SharpFuzz instrumentation driven by
+/// libFuzzer, see LibFuzzerEntry and docs/adr/0017-fuzzing-toolchain.md). This one is a havoc-style byte mutator with a corpus and a
+/// watchdog and NO code coverage feedback; it needs no C++ toolchain, so it runs anywhere .NET does (`run-fuzz.ps1 -CSharpMode mutational`).
+/// In place of coverage the target returns an *outcome signature* (which decoder verdict and which typed error an input produced), and
+/// an input that yields a signature not seen before joins the corpus. That steers the search towards new rejection and acceptance paths
+/// without instrumentation, but it is weaker than coverage guidance: two inputs that take different code paths to the same verdict
+/// look the same to it (the measured difference is in the ADR).
 ///
 /// A supervisor process restarts a worker process whenever it dies, so a stack overflow or an out-of-memory crash is recorded
 /// as a finding instead of ending the run. The input being executed is mirrored into a memory-mapped file before each run, which

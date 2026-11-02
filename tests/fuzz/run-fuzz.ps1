@@ -36,7 +36,10 @@ param(
     # Parallel processes per target, sharing one corpus directory. libFuzzer's -fork mode does not exist on Windows; -jobs/-workers does.
     [ValidateRange(1, 64)] [int] $Jobs = 1,
     # How the C# targets are driven. `coverage` fails with exit code 2 when the driver or the instrumenter cannot be set up (it never falls back silently).
-    [ValidateSet('coverage', 'mutational')] [string] $CSharpMode = 'coverage'
+    [ValidateSet('coverage', 'mutational')] [string] $CSharpMode = 'coverage',
+    # Instead of fuzzing: prove that the coverage-guided pipeline (driver, instrumented harness, libFuzzer) finds a planted exception, hang and
+    # stack overflow and keeps a reproducer for each. Exit code 0 when all three are found.
+    [switch] $SelfTest
 )
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
@@ -46,6 +49,7 @@ if (-not $CorpusRoot) { $CorpusRoot = Join-Path $OutRoot 'corpus' }
 if (-not $FindingsRoot) { $FindingsRoot = Join-Path $OutRoot 'findings' }
 $all = 'protocol-cpp', 'engine-document', 'protocol-cs', 'pdfwriter-parse', 'pdfwriter-append'
 if ($Target -contains 'all') { $Target = $all }
+if ($SelfTest) { $Target = @('protocol-cs'); $CSharpMode = 'coverage' }
 New-Item -ItemType Directory -Force $OutRoot, $CorpusRoot, $FindingsRoot, (Join-Path $OutRoot 'logs') | Out-Null
 # The fuzzers run with another working directory (one per target), so a relative root would point somewhere else for them.
 $OutRoot = (Resolve-Path $OutRoot).Path; $CorpusRoot = (Resolve-Path $CorpusRoot).Path; $FindingsRoot = (Resolve-Path $FindingsRoot).Path
@@ -239,8 +243,33 @@ function Invoke-CSharp([string] $name, [string] $harness, [string[]] $leading, [
     if ($CSharpMode -eq 'coverage') {
         Invoke-Guided $name ((Join-Path ($csBin[$name] + '-cov') $harness) + '.exe') $leading $seeds $dict $maxLen
     } else {
-        Invoke-Managed $name (Join-Path $csBin[$name] $harness) $leading $seeds $dict $maxLen
+        Invoke-Managed $name ((Join-Path $csBin[$name] $harness) + '.dll') $leading $seeds $dict $maxLen
     }
+}
+
+if ($SelfTest) {
+    if (-not (Test-Path $driverExe)) { Write-Host "the libFuzzer driver is not built ($driverExe); run without -SkipBuild" -ForegroundColor Red; exit 2 }
+    $harness = (Join-Path ($csBin['protocol-cs'] + '-cov') 'MikePDF.Protocol.Fuzz') + '.exe'
+    $expected = [ordered]@{ throw = 'crash-'; hang = 'timeout-'; overflow = 'crash-' }
+    $failed = 0
+    foreach ($kind in $expected.Keys) {
+        $dir = Join-Path $OutRoot "selftest/$kind"
+        if (Test-Path $dir) { Remove-Item $dir -Recurse -Force }
+        $seed = Join-Path $dir 'seed'; $found = Join-Path $dir 'findings'
+        New-Item -ItemType Directory -Force $seed, $found | Out-Null
+        [IO.File]::WriteAllBytes((Join-Path $seed 'fzz'), [byte[]] (70, 90, 90)) # "FZZ": the planted failure fires on an input that starts with it
+        $argv = @(('"--target_path=\"' + $harness + '\" --libfuzzer --selftest ' + $kind + '"'), '-max_total_time=30', '-timeout=3', '-max_len=64',
+                  ('-artifact_prefix=' + $found.Replace('\', '/') + '/'), $seed)
+        $log = Join-Path $dir 'run.log'
+        $p = Start-Process -FilePath $driverExe -ArgumentList $argv -NoNewWindow -Wait -PassThru -RedirectStandardError $log -RedirectStandardOutput (Join-Path $dir 'run.out')
+        $artifact = @(Get-ChildItem $found -File | Where-Object { $_.Name -like "$($expected[$kind])*" })
+        $ok = ($p.ExitCode -ne 0) -and ($artifact.Count -eq 1) -and ($artifact[0].Length -ge 3)
+        if ($ok -and $kind -eq 'throw') { $ok = (Get-Content $log -Raw) -match 'the planted failure was reached' }
+        Write-Host ("selftest {0,-8} exit {1,-3} reproducer {2}: {3}" -f $kind, $p.ExitCode, $(if ($artifact) { $artifact[0].Name } else { 'none' }), $(if ($ok) { 'found' } else { 'NOT FOUND' }))
+        if (-not $ok) { $failed++ }
+    }
+    if ($failed) { Write-Host "$failed planted failure(s) were not found: the coverage-guided pipeline cannot be trusted" -ForegroundColor Red; exit 1 }
+    exit 0
 }
 
 $results = @()

@@ -11,7 +11,10 @@ How to run them, how coverage is measured, how findings are triaged and the 24-h
 | `CMakeLists.txt` | Builds those two with MSVC `/fsanitize=fuzzer /fsanitize=address` (`-DMIKEPDF_BUILD_FUZZERS=ON`, x64 only) |
 | `MikePDF.Protocol.Fuzz/` | The C# IPC decoders, broker side |
 | `MikePDF.PdfWriter.Fuzz/` | `MikePDF.PdfWriter`: parse and validate (`parse`), incremental writer round trip (`append`) |
-| `Shared/MutationalFuzzer.cs` | The dependency-free mutational driver the two C# harnesses use (no coverage feedback; see ADR-0017) |
+| `libfuzzer-dotnet/` | The libFuzzer driver for the SharpFuzz-instrumented C# harnesses: Metalnem's `libfuzzer-dotnet-windows.cc` vendored unchanged (MIT), with a standalone CMake project that builds it against MSVC's libFuzzer (ADR-0017) |
+| `.config/dotnet-tools.json` | Local tool manifest: `SharpFuzz.CommandLine` 2.3.0, which instruments `MikePDF.Protocol.dll` and `MikePDF.PdfWriter.dll` |
+| `Shared/LibFuzzerEntry.cs` | The harnesses' `--libfuzzer` child mode (what the driver starts) |
+| `Shared/MutationalFuzzer.cs` | The dependency-free mutational fuzzer, the fallback for the C# harnesses (`run-fuzz.ps1 -CSharpMode mutational`; no coverage feedback) |
 | `MikePDF.Fuzz.Tests/` | Tests: the harness finds a planted crash, hang and stack overflow; the mutator; every regression and seed replayed |
 | `dictionaries/` | `protocol.dict` and `pdf.dict` (libFuzzer and AFL format, used by both the native and the C# fuzzers) |
 | `regressions/` | Minimised reproducers of fixed findings; replayed on every test run |

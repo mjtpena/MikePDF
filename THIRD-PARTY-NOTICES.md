@@ -22,7 +22,8 @@ Release packages embed the full licence texts: `build/generate-notices.ps1` asse
 | xunit.v3 | Apache-2.0 |
 | Microsoft.Testing.Extensions.CodeCoverage | Microsoft licence |
 | Microsoft.Windows.CsWin32 | MIT |
-| SharpFuzz | MIT |
+| SharpFuzz, SharpFuzz.Common, SharpFuzz.CommandLine (fuzz instrumenter, a local tool), dnlib (inside it) | MIT |
+| libfuzzer-dotnet-windows.cc (libFuzzer driver for .NET, vendored in `tests/fuzz/libfuzzer-dotnet/`, built from source; ADR-0017) | MIT |
 | qpdf, pdf.js, pyHanko (spikes only) | Apache-2.0, Apache-2.0, MIT |
 
 PDFium test PDFs under `tests/*/Fixtures/` are BSD-3-Clause. Each folder has a `MANIFEST.md` with source paths and hashes.
