@@ -1,0 +1,4 @@
+LIBRARY MikePDF.ShellExt
+EXPORTS
+    DllGetClassObject PRIVATE
+    DllCanUnloadNow PRIVATE
