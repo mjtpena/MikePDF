@@ -26,6 +26,27 @@ public static partial class SystemLoad
         return total <= 0 ? null : Math.Round(100.0 * busy / total, 1);
     }
 
+    /// <summary>
+    /// Waits for the machine to go quiet before measuring: samples (each sample takes its own time) until a reading is at or under
+    /// <paramref name="thresholdPercent"/>, or <paramref name="maxWait"/> has passed. A hosted runner has just finished a build whose compiler servers
+    /// are still winding down; measuring straight away would time them. Returns the last reading (null if the counter is unavailable) and how long it took.
+    /// </summary>
+    public static async Task<(double? Busy, TimeSpan Waited)> WaitForQuietAsync(Func<Task<double?>> sample, TimeSpan maxWait, double thresholdPercent, TimeSpan pause, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(sample);
+        var clock = System.Diagnostics.Stopwatch.StartNew();
+        while (true)
+        {
+            var busy = await sample();
+            if (busy is null || busy <= thresholdPercent || clock.Elapsed >= maxWait)
+            {
+                return (busy, clock.Elapsed);
+            }
+
+            await Task.Delay(pause, cancellationToken);
+        }
+    }
+
     /// <summary>Samples the machine for <paramref name="window"/> and returns the busy percentage; call before starting any work of your own.</summary>
     public static async Task<double?> MeasureAsync(TimeSpan window, CancellationToken cancellationToken = default)
     {

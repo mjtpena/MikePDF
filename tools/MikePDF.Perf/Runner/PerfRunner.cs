@@ -62,7 +62,8 @@ public static class PerfRunner
             }
         }
 
-        var background = await SystemLoad.MeasureAsync(TimeSpan.FromMilliseconds(500), cancellationToken);
+        var window = TimeSpan.FromMilliseconds(500);
+        var (background, waited) = await SystemLoad.WaitForQuietAsync(() => SystemLoad.MeasureAsync(window, cancellationToken), TimeSpan.FromSeconds(options.Profile.QuietWaitSeconds), BusyWarningPercent, TimeSpan.FromMilliseconds(250), cancellationToken);
         using var engine = EngineWorkspace.Create(options.EngineDirectory, options.AppContainerName);
         var documentsDirectory = options.DocumentsDirectory
             ?? (engine.RepositoryRoot.Length > 0 ? Path.Combine(engine.RepositoryRoot, "build", "out", "perf-documents") : Path.Combine(Path.GetTempPath(), "MikePDF.Perf.Documents"));
@@ -107,14 +108,14 @@ public static class PerfRunner
             Profile = new ProfileInfo(options.Profile.Name, options.Profile.Warmup, options.Profile.Iterations, options.Profile.HeavyIterations),
             Documents = [.. documents.Select(d => new DocumentInfo(d.Spec.Id, d.Spec.Pages, d.Bytes, d.Sha256))],
             Metrics = finalMetrics,
-            Notes = Notes(options, machine, finalMetrics, background),
+            Notes = Notes(options, machine, finalMetrics, background, waited),
         };
     }
 
     /// <summary>Above this share of background CPU use the timings are flagged as inflated.</summary>
     public const double BusyWarningPercent = 15;
 
-    private static List<string> Notes(PerfRunOptions options, MachineInfo machine, IReadOnlyList<MetricResult> metrics, double? background)
+    private static List<string> Notes(PerfRunOptions options, MachineInfo machine, IReadOnlyList<MetricResult> metrics, double? background, TimeSpan waited)
     {
         var notes = new List<string>
         {
@@ -123,6 +124,11 @@ public static class PerfRunner
         if (options.ReferenceTier is null)
         {
             notes.Add("Not reference hardware (R1, R2 and R3 are not declared for this run): every comparison with a §11 target is indicative only and proves nothing about the budget.");
+        }
+
+        if (options.Profile.QuietWaitSeconds > 0)
+        {
+            notes.Add($"Waited {waited.TotalSeconds:0.#} s (at most {options.Profile.QuietWaitSeconds} s) for the machine to be under {BusyWarningPercent:0}% busy before measuring; it read {background:0}% when the run began.");
         }
 
         if (background is > BusyWarningPercent)

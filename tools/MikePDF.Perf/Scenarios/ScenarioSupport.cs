@@ -8,16 +8,16 @@ using MikePDF.Protocol;
 namespace MikePDF.Perf.Scenarios;
 
 /// <summary>How much to measure. A metric's reported value is the median of <see cref="Iterations"/> (or <see cref="HeavyIterations"/>) timed runs after <see cref="Warmup"/> untimed ones.</summary>
-public sealed record PerfProfile(string Name, int Warmup, int Iterations, int HeavyIterations)
+public sealed record PerfProfile(string Name, int Warmup, int Iterations, int HeavyIterations, int QuietWaitSeconds = 0)
 {
     /// <summary>For tests: enough to prove every scenario runs and its checks hold; the numbers mean nothing.</summary>
     public static PerfProfile Quick { get; } = new("quick", 1, 3, 1);
 
     /// <summary>CI: median of 15 (5 for the heavy scenarios), after 3 warm-ups.</summary>
-    public static PerfProfile Ci { get; } = new("ci", 3, 15, 5);
+    public static PerfProfile Ci { get; } = new("ci", 3, 15, 5, 20);
 
     /// <summary>A reference-hardware or baseline run: median of 30 (9 heavy).</summary>
-    public static PerfProfile Full { get; } = new("full", 5, 30, 9);
+    public static PerfProfile Full { get; } = new("full", 5, 30, 9, 40);
 
     public static PerfProfile? Find(string name) => name.ToUpperInvariant() switch
     {

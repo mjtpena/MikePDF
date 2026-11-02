@@ -23,7 +23,7 @@ public static class MarkdownReport
             text.AppendLine(CultureInfo.InvariantCulture, $"- Machine busy with other work before the run: {busy:0}%");
         }
 
-        text.AppendLine(CultureInfo.InvariantCulture, $"- Profile:{results.Profile.Name} (warm-up {results.Profile.Warmup}, {results.Profile.Iterations} iterations, {results.Profile.HeavyIterations} for the heavy scenarios)");
+        text.AppendLine(CultureInfo.InvariantCulture, $"- Profile: {results.Profile.Name} (warm-up {results.Profile.Warmup}, {results.Profile.Iterations} iterations, {results.Profile.HeavyIterations} for the heavy scenarios)");
         text.AppendLine(CultureInfo.InvariantCulture, $"- Date: {results.CreatedUtc:yyyy-MM-dd HH:mm} UTC");
         if (results.Engine is { } engine)
         {
@@ -106,7 +106,7 @@ public static class MarkdownReport
         var parts = new List<string>();
         if (item is not null && item.Verdict != Verdict.Ok)
         {
-            parts.Add(item.Verdict.ToString().ToLowerInvariant());
+            parts.Add(item.Verdict == Verdict.NoBaseline ? "no baseline" : item.Verdict.ToString().ToLowerInvariant());
         }
 
         if (metric.Budget is { } budget)

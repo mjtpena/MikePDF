@@ -51,6 +51,10 @@ jobs:
       - name: Build the harness
         shell: pwsh
         run: dotnet build tools/MikePDF.Perf/MikePDF.Perf.csproj -c Release -p:MikePDFArch=${{ matrix.arch }}
+      - name: Stop the compiler servers
+        # They are still winding down after the build; the harness would be timing them. (It also waits for the machine to be under 15% busy.)
+        shell: pwsh
+        run: dotnet build-server shutdown
       - name: Measure and compare with the baseline
         shell: pwsh
         run: |

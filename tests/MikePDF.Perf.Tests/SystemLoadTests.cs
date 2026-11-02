@@ -21,6 +21,34 @@ public sealed class SystemLoadTests
         Assert.Null(SystemLoad.BusyPercent(new SystemLoad.Snapshot(5, 5), null));
     }
 
+    private static Func<Task<double?>> Script(params double?[] readings)
+    {
+        var next = 0;
+        return () => Task.FromResult(readings[Math.Min(next++, readings.Length - 1)]);
+    }
+
+    [Fact]
+    public async Task WaitingForQuietStopsAtTheFirstReadingUnderTheThreshold()
+    {
+        var (busy, waited) = await SystemLoad.WaitForQuietAsync(Script(80, 60, 10, 90), TimeSpan.FromSeconds(30), 15, TimeSpan.FromMilliseconds(5));
+        Assert.Equal(10, busy);
+        Assert.True(waited < TimeSpan.FromSeconds(10));
+
+        var (immediately, _) = await SystemLoad.WaitForQuietAsync(Script(3), TimeSpan.FromSeconds(30), 15, TimeSpan.FromMilliseconds(5));
+        Assert.Equal(3, immediately);
+    }
+
+    [Fact]
+    public async Task WaitingForQuietGivesUpAfterTheMaximumAndReportsHowBusyItStillWas()
+    {
+        var (busy, waited) = await SystemLoad.WaitForQuietAsync(Script(95), TimeSpan.FromMilliseconds(200), 15, TimeSpan.FromMilliseconds(20));
+        Assert.Equal(95, busy);
+        Assert.InRange(waited.TotalMilliseconds, 200, 5000);
+
+        var (none, _) = await SystemLoad.WaitForQuietAsync(Script((double?)null), TimeSpan.FromSeconds(30), 15, TimeSpan.FromMilliseconds(5));
+        Assert.Null(none); // no counter: do not wait for nothing
+    }
+
     [Fact]
     public async Task TheRealCounterGivesAPercentageAndRisesWhenEveryCoreIsKeptBusy()
     {
