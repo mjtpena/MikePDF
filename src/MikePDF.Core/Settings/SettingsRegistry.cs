@@ -155,6 +155,24 @@ public static class SettingsRegistry
         },
         new SettingDefinition
         {
+            Key = "view.defaultArrangement",
+            Kind = SettingKind.Enum,
+            Default = "OnePage",
+            Values = ["OnePage", "Facing", "FacingWithCover"],
+            Owner = "page modes",
+            Section = SettingSection.Reading,
+        },
+        new SettingDefinition
+        {
+            Key = "view.defaultFlow",
+            Kind = SettingKind.Enum,
+            Default = "Continuous",
+            Values = ["Continuous", "Paged"],
+            Owner = "page modes",
+            Section = SettingSection.Reading,
+        },
+        new SettingDefinition
+        {
             Key = "view.restorePosition",
             Kind = SettingKind.Bool,
             Default = true,

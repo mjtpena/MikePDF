@@ -525,6 +525,15 @@
   <data name="Setting_view_pageColour_Value_Normal" xml:space="preserve"><value>Normal</value></data>
   <data name="Setting_view_pageColour_Value_Inverted" xml:space="preserve"><value>Dark pages</value></data>
   <data name="Setting_view_pageColour_Value_Sepia" xml:space="preserve"><value>Sepia</value></data>
+  <data name="Setting_view_defaultArrangement_Name" xml:space="preserve"><value>Pages shown for a new document</value></data>
+  <data name="Setting_view_defaultArrangement_Description" xml:space="preserve"><value>How pages are laid out the first time a document is opened: one page, two pages, or two pages with the first alone as a cover. The choice made for a document is remembered for it.</value></data>
+  <data name="Setting_view_defaultArrangement_Value_OnePage" xml:space="preserve"><value>Single page</value></data>
+  <data name="Setting_view_defaultArrangement_Value_Facing" xml:space="preserve"><value>Two pages</value></data>
+  <data name="Setting_view_defaultArrangement_Value_FacingWithCover" xml:space="preserve"><value>Two pages with cover</value></data>
+  <data name="Setting_view_defaultFlow_Name" xml:space="preserve"><value>Scrolling for a new document</value></data>
+  <data name="Setting_view_defaultFlow_Description" xml:space="preserve"><value>Continuous scrolling, or one page (or two) at a time, the first time a document is opened.</value></data>
+  <data name="Setting_view_defaultFlow_Value_Continuous" xml:space="preserve"><value>Continuous</value></data>
+  <data name="Setting_view_defaultFlow_Value_Paged" xml:space="preserve"><value>One page at a time</value></data>
   <data name="Setting_view_restorePosition_Name" xml:space="preserve"><value>Reopen documents where I left off</value></data>
   <data name="Setting_view_restorePosition_Description" xml:space="preserve"><value>Remember the page and zoom of each document.</value></data>
   <data name="Setting_recent_maxItems_Name" xml:space="preserve"><value>Recent files to remember</value></data>

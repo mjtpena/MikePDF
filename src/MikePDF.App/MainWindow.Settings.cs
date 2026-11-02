@@ -39,7 +39,7 @@ public sealed partial class MainWindow : ISettingsHost
             ApplyPageColourMenu();
         }
 
-        if (Has("recent.maxItems") || Has("view.restorePosition"))
+        if (Has("recent.maxItems") || Has("view.restorePosition") || Has("view.defaultArrangement") || Has("view.defaultFlow"))
         {
             _services.ApplyToDocuments();
             RefreshRecent();

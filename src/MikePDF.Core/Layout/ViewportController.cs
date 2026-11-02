@@ -2,8 +2,8 @@ using MikePDF.Core.Geometry;
 
 namespace MikePDF.Core.Layout;
 
-/// <summary>Everything a renderer needs to know about the current view.</summary>
-public sealed record ViewSnapshot(DocumentLayout Layout, double ScrollX, double ScrollY, double ViewportWidth, double ViewportHeight, double VelocityPxPerSecond);
+/// <summary>Everything a renderer needs to know about the current view. With <c>PrefetchAdjacentSpreads</c> the whole spreads before and after the one shown are also drawn ahead (a presentation: the next page must be there the moment it is asked for).</summary>
+public sealed record ViewSnapshot(DocumentLayout Layout, double ScrollX, double ScrollY, double ViewportWidth, double ViewportHeight, double VelocityPxPerSecond, bool PrefetchAdjacentSpreads = false);
 
 /// <summary>
 /// The scroll, zoom, fit and rotation state of one open document, and the rules that change it (continuous scroll, master prompt 2.1; the page view modes of
@@ -107,7 +107,10 @@ public sealed class ViewportController
     /// </summary>
     public (double Zoom, FitMode Fit, ViewMode Mode) PersistedView => Presenting && _backup is { } back ? (back.Zoom, back.Fit, back.Mode) : (Zoom, Fit, Mode);
 
-    public ViewSnapshot Snapshot(double velocityPxPerSecond = 0) => new(_layout, ScrollX, ScrollY, _viewportWidth, _viewportHeight, velocityPxPerSecond);
+    /// <summary>Whether the spreads beside the one shown are drawn ahead in full while presenting (the default). A test turns it off to measure what it buys.</summary>
+    public bool PrefetchAdjacent { get; set; } = true;
+
+    public ViewSnapshot Snapshot(double velocityPxPerSecond = 0) => new(_layout, ScrollX, ScrollY, _viewportWidth, _viewportHeight, velocityPxPerSecond, Presenting && PrefetchAdjacent);
 
     private double MarginPx => Presenting ? 0 : MarginDip * _dpiScale;
 
@@ -377,6 +380,73 @@ public sealed class ViewportController
         }
 
         ScrollTo(x, y);
+    }
+
+    /// <summary>
+    /// Whether a box of a page (page space) needs the view to move to be seen: it is off the window, or on a spread that the paged flow is not showing. A page that is on
+    /// the other half of the spread shown needs nothing.
+    /// </summary>
+    public bool NeedsReveal(int page, RectD pageRect)
+    {
+        if (_layout.PageCount == 0)
+        {
+            return false;
+        }
+
+        page = Math.Clamp(page, 0, _layout.PageCount - 1);
+        if (Mode.IsPaged && _layout.SpreadOf(page) != CurrentSpread)
+        {
+            return true;
+        }
+
+        if (PageProjection.For(Snapshot(), page) is not { } projection)
+        {
+            return false;
+        }
+
+        var r = projection.PageToViewport(pageRect);
+        return r.Y < 0 || r.Bottom > _viewportHeight || r.X < 0 || r.Right > _viewportWidth;
+    }
+
+    /// <summary>
+    /// Scrolls just enough to bring a box of a page (page space) into view: not at all if it is already there, otherwise to the middle of the viewport. In the paged flow a box on
+    /// another spread turns to that spread first (a search match, a selection moved by the keyboard). Works for either page of a spread.
+    /// </summary>
+    public void RevealPageRect(int page, RectD pageRect)
+    {
+        if (_layout.PageCount == 0)
+        {
+            return;
+        }
+
+        page = Math.Clamp(page, 0, _layout.PageCount - 1);
+        if (Mode.IsPaged && _layout.SpreadOf(page) != CurrentSpread)
+        {
+            GoToPage(page);
+        }
+
+        if (PageProjection.For(Snapshot(), page) is not { } projection)
+        {
+            return;
+        }
+
+        var r = projection.PageToViewport(pageRect);
+        double dy = 0;
+        double dx = 0;
+        if (r.Y < 0 || r.Bottom > _viewportHeight)
+        {
+            dy = r.Y + (r.Height / 2) - (_viewportHeight / 2);
+        }
+
+        if (r.X < 0 || r.Right > _viewportWidth)
+        {
+            dx = r.X + (r.Width / 2) - (_viewportWidth / 2);
+        }
+
+        if (dx != 0 || dy != 0)
+        {
+            ScrollBy(dx, dy);
+        }
     }
 
     /// <summary>The first page of the next spread (the next page, for single pages).</summary>

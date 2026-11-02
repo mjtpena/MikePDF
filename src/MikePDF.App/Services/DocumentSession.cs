@@ -121,6 +121,7 @@ internal sealed partial class DocumentSession : IAsyncDisposable
         _prefetchTimer.IsRepeating = false;
         _prefetchTimer.Interval = PrefetchDelay;
         _prefetchTimer.Tick += (_, _) => PrefetchVisible();
+        Controller.PrefetchAdjacent = TestSeams.Get(MikePDF.Core.TestSeamGate.NoPrefetch) != "1"; // (a journey measures the turn with and without it)
     }
 
     public ViewportController Controller { get; } = new();
@@ -454,6 +455,10 @@ internal sealed partial class DocumentSession : IAsyncDisposable
         {
             Controller.Restore(saved.Page, saved.PageFraction, saved.Zoom, saved.Fit, saved.ViewTurns, saved.Mode);
         }
+        else if (_store.DefaultMode != ViewMode.Default)
+        {
+            Controller.SetMode(_store.DefaultMode); // a document seen for the first time: the layout the person chose as their default
+        }
     }
 
     // ---- input from the page surface ---------------------------------------------------------
@@ -584,6 +589,37 @@ internal sealed partial class DocumentSession : IAsyncDisposable
         return turned;
     }
 
+    /// <summary>A page was turned in a presentation: milliseconds from the key press to the first frame drawn, and to the first frame with every tile sharp (no placeholder left in it). UI thread.</summary>
+    public event Action<double, double>? TurnMeasured;
+
+    private long _turnStarted;
+    private double _turnFirstFrameMs = -1;
+
+    // Called with every frame handed to the presenter: closes a turn that is being timed once the page on screen is sharp all over. (The GPU draw of that frame follows within one refresh.)
+    private void MeasureTurn(FrameComposition frame)
+    {
+        if (_turnStarted == 0)
+        {
+            return;
+        }
+
+        var ms = (Stopwatch.GetTimestamp() - _turnStarted) * 1000.0 / Stopwatch.Frequency;
+        if (_turnFirstFrameMs < 0)
+        {
+            _turnFirstFrameMs = ms;
+        }
+
+        if (frame.SharpArea > 0 && frame.FallbackArea + frame.BlankArea <= 0.002 * (frame.SharpArea + frame.FallbackArea + frame.BlankArea)) // sharp all over, give or take a seam
+        {
+            _turnStarted = 0;
+            TurnMeasured?.Invoke(_turnFirstFrameMs, ms);
+        }
+        else if (ms > 10_000)
+        {
+            _turnStarted = 0; // never sharp (a page that cannot be drawn): not a measurement
+        }
+    }
+
     public bool WheelNotch(double dyPx, long tickMs)
     {
         var turned = false;
@@ -625,7 +661,15 @@ internal sealed partial class DocumentSession : IAsyncDisposable
 
         var before = Controller.Layout;
         var scrollBefore = Controller.ScrollY;
+        var started = Stopwatch.GetTimestamp();
+        var spreadBefore = Controller.Presenting ? Controller.CurrentSpread : -1;
         action();
+        if (spreadBefore >= 0 && Controller.Presenting && Controller.CurrentSpread != spreadBefore)
+        {
+            _turnStarted = started; // a page was turned in a presentation, by whatever key: timed until the page on screen is sharp all over
+            _turnFirstFrameMs = -1;
+        }
+
         var after = Controller.Layout;
         var layoutChanged = after.RenderScale != before.RenderScale || after.ViewTurns != before.ViewTurns || after.PageCount != before.PageCount;
         if (trackVelocity)
@@ -704,6 +748,7 @@ internal sealed partial class DocumentSession : IAsyncDisposable
 
             var frame = FrameComposer.Compose(Controller.Snapshot(_velocity), Cache);
             LastFrame = frame;
+            MeasureTurn(frame);
             _presenter.Present(frame);
             Cache.DisposeEvicted(); // after the new frame replaced the old one: nothing draws an evicted surface any more
         });
