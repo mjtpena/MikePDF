@@ -55,3 +55,12 @@ The shell-extensions work package applies the ten spec corrections in the S6b re
 | Thumbnails when the handler is off (OQ-SHELL-14), measured in PR #14 | The shell doesn't fall through to another app's handler when ours declines: Explorer shows the generic icon. The settings text says so. Whether MikePDF's thumbnails should replace another default app's is still the product owner's call; default on |
 | Native AOT toolchain for ShellHost | Accepted without a new ADR: the ILCompiler packages are part of the .NET SDK (MIT) and follow its patch version, so ShellHost has no lock file for them |
 | Printing form field contents (PRINT-15) | A v1.0 blocker. The engine must draw widgets with `FPDF_FFLDraw` when `RenderBand` flag bit 1 is set. Goes to the next engine work package, before the print sheet ships |
+
+## After the tabs review (2026-11-03)
+| Item | Decision |
+|---|---|
+| Tab shortcuts (OQ-TAB-5) | Alt+1 to Alt+8 go to a tab and Alt+9 to the last, because Ctrl+1 and Ctrl+2 are fit page and fit width (master prompt 10.2) |
+| Session restore default (OQ-TAB-1) | `Ask` after a crash; restore without asking after a normal close with more than one tab |
+| Opening many files (Q12) | Confirm above 10 files, read at most 100. The spec's 25 is replaced |
+| UI journeys and the shell handlers | `build/run-ui-tests.ps1` always registers a copy of the package without the Explorer handlers and COM servers, and refuses to run if any remain. Shell handlers are tested only on hosted runners |
+| Test seams in shipped builds | Every `MIKEPDF_TEST_*` variable goes through one gate that ignores them in Store-signed packages |
