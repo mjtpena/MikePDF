@@ -2,14 +2,15 @@
 
 Master prompt §11 sets the budgets and §15.1 step 7 puts a "performance smoke against budgets" in the pipeline. This directory holds the budgets, the baselines and the notes on how the numbers are made. The tool is `tools/MikePDF.Perf`; its tests are `tests/MikePDF.Perf.Tests`.
 
-**Read this first.** Nothing here proves a budget. R1, R2 and R3 (the reference machines, R-17) have not been confirmed, and GitHub-hosted runners are shared virtual machines. What this harness gives you today is (a) a way to measure every budget that can be measured by software, the same way every time; (b) a gate that catches a 10% regression against a baseline taken on the same kind of runner; and (c) numbers from one development machine, marked as such. When R1, R2 and R3 exist, run `MikePDF.Perf run --profile full --reference-tier R1` on them (see "Reference hardware") and the same files become the evidence for the budgets.
+**Read this first.** Nothing here proves a budget. R1, R2 and R3 (the reference machines, R-17) have not been confirmed, and GitHub-hosted runners are shared virtual machines. What this harness gives you today is (a) a way to measure every budget that can be measured by software, the same way every time; (b) a CI gate that measures the base and the head in the same job on the same runner and fails only on a regression it can show is real (a 10% limit, A/B, with a confidence interval; see "The regression gate"); and (c) numbers from one development machine, marked as such. When R1, R2 and R3 exist, run `MikePDF.Perf run --profile full --reference-tier R1` on them (see "Reference hardware") and the same files become the evidence for the budgets.
 
 ## What is in here
 
 | File | What it is |
 |---|---|
 | `budgets.json` | Every row of §11: the R1, R2 and R3 target, the statistic compared, which tool measures it, and notes. A test holds it to the §11 table |
-| `baselines/*.json`, `*.md` | Result files kept as baselines: `ci-x64.<cpu>.json` and `ci-arm64.<cpu>.json` for each CPU the hosted pool has handed out, and `dev-...` for a development machine |
+| `baselines/*.json`, `*.md` | Result files kept as a trend record: `ci-x64.<cpu>.json` and `ci-arm64.<cpu>.json` for each CPU the hosted pool has handed out, and `dev-...` for a development machine. The CI gate does not use them; the report shows the head against them for information |
+| `calibration/` | The A/A and planted-slowdown runs the gate's numbers were set from: one `perf-ab.*.json` per run, `index.md` (run, CPU, commit), `summary.md` (`MikePDF.Perf calibrate`) |
 | `README.md` | This file |
 
 ## Running it
@@ -22,11 +23,24 @@ dotnet build tools/MikePDF.Perf -c Release
 $perf = (Get-ChildItem tools/MikePDF.Perf/bin/Release -Recurse -Filter MikePDF.Perf.exe).FullName
 
 & $perf run --profile ci   --out perf-results                    # measure; writes perf-results.json and .md
-& $perf gate --profile ci  --baseline-dir docs/perf/baselines --runner-id ci-x64   # measure and compare with the baseline for this CPU, exit 1 on a regression
+& $perf gate --profile ci  --baseline-dir docs/perf/baselines --runner-id ci-x64   # measure and compare with a stored baseline for this CPU (a development machine, reference hardware), exit 1 on a regression
 & $perf report --results docs/perf/baselines/dev-275hx.json                    # render a result file as Markdown
 & $perf compare --baseline a.json --current b.json              # compare two result files
 & $perf generate --out docs-out                                  # just write the test PDFs
 ```
+
+The CI gate is `ab`, which needs two built copies (the base and the head). `build-bundle.ps1` builds the engine and the tool of a checkout into one folder:
+
+```powershell
+git worktree add ../base-src <commit-to-compare-with>
+./tools/MikePDF.Perf/build-bundle.ps1 -Source . -Out ../bundle-head -Arch x64
+./tools/MikePDF.Perf/build-bundle.ps1 -Source ../base-src -Out ../bundle-base -Arch x64 -SeedPdfiumFrom .
+& ../bundle-head/harness/MikePDF.Perf.exe ab --base-exe ../bundle-base/harness/MikePDF.Perf.exe --base-engine ../bundle-base/engine `
+    --head-exe ../bundle-head/harness/MikePDF.Perf.exe --head-engine ../bundle-head/engine --runner-id local --out perf-ab
+& $perf calibrate --dir <folder with perf-ab*.json files>       # how the rule behaved over many A/B or A/A runs
+```
+
+For a quick look at your own change use `--rounds 6 --only <metric id>`; on a development machine other programs make rounds noisy, and the report says how busy the machine was.
 
 `--profile quick` (1 warm-up, 3 iterations) is for tests, `ci` (3 warm-ups, median of 15; 5 for the heavy scenarios) is what CI runs, `full` (5 warm-ups, median of 30; 9 heavy) is for baselines and reference machines. Exit codes: 0 pass, 1 regression, 2 bad usage, 3 a metric could not be measured.
 
@@ -102,27 +116,88 @@ Not measured by this harness, and why:
 
 `budgets.json` has one entry per §11 row: `targets` for R1, R2 and R3 (a `null` means §11 sets no number for that tier; §11 says budgets are measured on R1 unless stated, so R2 and R3 repeat R1's where it says nothing, and `targetsInherited` lists those), `measuredBy` (`headless`, `headless-part+app-etw`, `app-etw`, `package` or `manual`), the harness metrics held against it, and `coverage` where a metric is only part of the row (`lower-bound`). In a result file a metric with a budget carries a `budget` object: the target, the tier, whether the median is within it, and `referenceHardware`. **`referenceHardware` is false unless the run was started with `--reference-tier` on a machine that really is that tier**, and the Markdown then says "here (not reference hardware)". A `lower-bound` metric under its target is reported as "engine share only: under target, not a pass".
 
-## The regression gate and its noise policy
+## The regression gate
 
-§11: "A regression of more than 10% on any budget metric fails the build." R-09 warns that a 10% wall-clock gate on hosted runners "will be flaky". The policy below is built to make that less likely; it is a first version, with numbers chosen by judgement and not yet calibrated against a month of hosted-runner data. **Expect to tune the floors, and to mark individual metrics non-gating, after the first dozen CI runs.**
+§11: "A regression of more than 10% on any budget metric fails the build." The CI gate measures that on **one runner, in one job, the base against the head**, and fails only when the head is more than 10% slower with the evidence to show it is real. It does not compare with a stored file.
 
-1. **Median of N.** Each iteration gives one sample after untimed warm-ups (JIT, file cache, first-run allocations). A metric is the median of 15 (5 for search and memory, which take seconds per iteration). The median ignores up to half the samples being slow, which a shared machine produces (another VM, an antivirus scan, a GC); the mean would move with one 100 ms stall. The p95, the minimum, the maximum and the coefficient of variation are in the file so a noisy metric is visible.
-2. **Wait for a quiet machine.** The `ci` profile waits up to 20 s (`full`: 40 s) for the whole machine to be under 15% busy before it starts, and the workflow shuts down the compiler servers first (the first CI run found hosted runners 57% to 62% busy in the half second after the build, which made the opens up to 80% noisy). What it read, and how long it waited, are in the result file; a run that never got quiet says its timings are inflated.
-3. **Fresh processes where it matters.** Opens start new engines each iteration (as the app does). Memory uses a new engine per iteration. Recovery uses a new supervisor per iteration.
-4. **Two conditions to regress.** A metric regresses only if it is worse than the baseline by more than **10% of the baseline** *and* by more than its **absolute floor** (`Metrics/MetricCatalog.cs`: 0.25 ms for a tile, 3 to 8 ms for opens, 25 ms for search and recovery, 8 MB for memory, 1 MB for sizes, 40 tiles/s for throughput). 10% of a 1 ms tile is 0.1 ms, below what a hosted runner's scheduler can resolve; the floors are about a scheduler time-slice or two of jitter, chosen by judgement. A change under its floor is reported as "under the floor" and passes.
-5. **Retry the suspects, vote.** After the first run, only the metrics that look regressed are measured again, alone, twice more. Their reported value is the **median of the three run medians**, so a real slowdown must show up in at least two of the three runs, and one bad run is outvoted. The cost is at most two extra runs of the suspect scenarios, not the whole suite. If a run were independently wrong 5% of the time, two of three being wrong would be about 0.7%; runs on a shared machine are not independent (a noisy neighbour lasts minutes), so the real figure is higher. That is the main residual risk.
-6. **Baselines per runner and per CPU, reviewed.** Baselines are `docs/perf/baselines/ci-<arch>.<cpu>.json` and only ever change by a commit someone reviews, never by CI, so slow drift cannot ratchet in. This is not tidiness: the first CI runs of this branch were given an AMD EPYC 7763, then an EPYC 9V45, then an EPYC 9V74, and the same code was 37% to 47% faster on the second than the first (and 34% to 58% slower on the third than the second) (tile throughput 1015 and then 1935 tiles/s); on ARM64 a Cobalt 100 and a Cobalt 200 differed by 28% to 36%. Once a run landed on a CPU that has a baseline (ARM64, Cobalt 100 again) every metric was within 2.5% of it, which is what makes a 10% gate workable at all. A single baseline per architecture would have failed or passed builds according to which VM the pool handed out. `gate --baseline-dir` therefore picks the baseline whose CPU equals the current one. If there is none, the closest is shown **for information only**: regressions against a baseline from another CPU (or architecture) are reported as advisory and never fail the build, and the job output names the file to commit to start gating on the new CPU. The cost: a regression that lands while only a new CPU class is being drawn is not caught until its baseline is committed.
-7. **Cannot measure is a failure; skipped is not.** A metric that errors (the engine will not start, a correctness check fails, the search finds the wrong number of matches) fails the gate. A metric skipped with a stated reason (no package) does not.
-8. **No baseline passes, loudly.** The first run on a runner compares nothing, says so in the job summary, and uploads its results as the candidate baseline.
-9. **Advisory metrics.** A metric whose `MetricDefinition.Gate` is false is compared and reported but never fails the build. None is advisory today; this is the lever for a metric that proves too noisy on hosted runners.
+### Why not a stored baseline
 
-If the hosted gate proves flaky anyway, R-09's fallback applies: keep these results as trend data, gate on wall-clock only nightly on self-hosted R1/R2/R3, and gate per PR on deterministic proxies (install size and engine memory are already much steadier than times).
+The gate used to compare each run with a baseline file measured on an earlier VM of the same CPU model. That failed 4 times on 2026-11-02 and -03 with no code cause: several engine metrics (also ones the change could not touch) were 20% to 31% slower at once, and a rerun passed. The hosted pool is a mix of machines and of neighbours. In the first eight A/A runs below, the x64 jobs got an AMD EPYC 7763, an EPYC 9V74 and an Intel Xeon 6973P-C, and the same build opened the 20-page file in 25.7 ms on one VM and 41.5 ms on another (62% apart); a baseline from one VM cannot gate a run on another with a 10% limit. The same VM measured twice in the same minute agrees to a few percent (below), which is why the comparison is made on one VM.
+
+### How it works
+
+1. **Two builds.** `tools/MikePDF.Perf/build-bundle.ps1` builds the engine (`build.ps1 -SkipManaged`) and `tools/MikePDF.Perf` of a checkout and gathers `engine/` and `harness/` into one relocatable folder. The job does it for the head and for the base (always with the head's copy of the script). Nothing else is built: no app, no tests. The base is the first parent of the pull request's merge commit, that is the tip of the branch the pull request merges into, so the change measured is exactly what merging would do; on a push it is the previous tip of the branch (or the merge base with `main`).
+2. **Rounds.** `MikePDF.Perf ab` runs, 8 times, the whole `ci` suite of the base and then of the head, in separate processes of each side's own harness and engine, and **which side goes first alternates** (base, head; head, base; ...). A slow minute on the shared machine lands on both halves of a round, and a trend or a "second run is warmer" effect cancels across rounds.
+3. **Change per round.** For every metric and round: `(head - base) / base` for a time or size, `(base - head) / base` for a throughput, so positive always means worse.
+4. **Estimate and interval.** The metric's change is the **median of the 8 per-round changes**, with the sign-test confidence interval: the k-th smallest to the k-th largest of n changes contains the true median with probability `1 - 2 * P(Binomial(n, 1/2) <= k - 1)`, whatever the distribution (`Measurement/PairedStats.cs`). With 6 to 8 rounds that is the whole range (96.9% to 99.2%); with 12 it is the 3rd smallest to the 3rd largest (96.1%). Nothing is assumed to be normal, which hosted-runner noise is not.
+5. **The rule.** A metric **regresses** only when all three hold:
+   * the median change is **more than 10%** worse (§11);
+   * the **lower end of the 95% interval** is **more than 3%** worse, which in practice means that almost every round, not the median one, shows the slowdown;
+   * the difference of the medians is over the metric's **A/B floor** (`MetricDefinition.AbFloor`, 0.04 ms for a tile up to 30 tiles/s for throughput; set from the A/A runs).
+
+   Over 10% without the evidence is `unconfirmed`: reported, never failing. A metric that cannot be measured in the head fails the gate (it is not a pass); one the base lacks, or a skipped one, does not.
+6. **Confirmation.** A metric that regresses, or is over 10% but `unconfirmed`, after the 8 rounds is measured again, alone, for 4 more rounds, and the decision is taken over all 12. A real slowdown stays and its interval narrows; a fluke is diluted. The cost is 4 more runs of that metric's scenario.
+7. **Verdicts and exit codes.** `ok`, `improved`, `regressed`, `unconfirmed`, `failed`, `skipped`, `no base value`. Exit 0 passed, 1 a regression, 2 bad usage, 3 a metric could not be measured.
+
+The Markdown report has, for every metric, base, head, ratio head/base, the interval of the ratio, the number of rounds and the verdict; then the §11 targets, then the trend against the stored baselines.
+
+### Where the numbers come from
+
+All of this ran on GitHub-hosted runners (`windows-2025-vs2026`, 4 logical cores; `windows-11-vs2026-arm`, Cobalt 100) from the branch `m3/perf-gate`. The files are in `docs/perf/calibration/` (`index.md` lists every run, CPU and commit; `summary.md` is the output of `MikePDF.Perf calibrate`). Regenerate with `MikePDF.Perf calibrate --dir docs/perf/calibration/aa`.
+
+**A/A: the head against itself** (`gh workflow run perf.yml -f base=self`; the second copy of the bundle is in another folder, so path and file effects are in the noise too). 11 runs per architecture, 8 rounds each, 13 metrics:
+
+| | x64 | ARM64 |
+|---|---:|---:|
+| Runs, VMs | 11, four CPU models (EPYC 7763, 9V45, 9V74, Xeon 6973P-C) | 11, Cobalt 100 |
+| Runs with a metric `regressed` (false positive) | **0 of 11** | **0 of 11** |
+| Largest median change of any metric in any run | +4.6% (`search.first_result`, a 6 to 12 ms metric) | +1.8% |
+| Largest lower end of any interval | -0.4% (the rule needs more than +3%) | +0.1% |
+| Spread of a single round's change, standard deviation, by metric | 0.8% to 9.7% | 0.4% to 8.8% |
+| Largest single round | +26% | +40% |
+
+A single round is noisy (+40% happens); the median of 8 is not (never above +4.6%), and the lower end of the interval never came close to the 3% margin. That is the gain from interleaving. The gate also does not depend on how fast the VM is: the base medians of the same metric ranged 60% between x64 VMs and the ratios did not care.
+
+*False-positive rate.* 0 of 22 A/A jobs. Zero events in 11 jobs per architecture only bounds the true rate below about 27% at 95% confidence (rule of three), so the better estimate is by resampling: 8 single-round changes drawn with replacement from the 88 observed per metric and architecture (11 runs of 8 rounds), 100,000 times, the rule applied. **None of the 100,000 resampled jobs flagged any of the 13 metrics, on either architecture**; with the 3% margin removed the same resampling flags 1.4e-4 of jobs on x64 and 4e-5 on ARM64 (summed over the metrics), which is what the margin buys. Resampling treats rounds as independent and ignores a neighbour that is noisy for ten minutes; the nightly A/A run (below) is how a worse reality would show. A threshold of 7% (margin 3%) gave 3e-5 on x64 and 0 on ARM64, so the data would carry a stricter gate than §11's 10%; §11 says 10% and 10% it is.
+
+**Planted slowdown** (`gh workflow run perf.yml -f base=self -f plant=15`). `MIKEPDF_PERF_PLANT_SLOWDOWN` makes `Clock` lengthen every time the harness measures by that fraction (it spins for the extra time and reports the sum). It exists in `tools/MikePDF.Perf`, which no package contains, is off unless the variable is set, and a result made with it says so in its notes and report. It does not touch the memory metrics or `recovery.supervisor_restore` (the supervisor's own clock); those must stay `ok`, and did. 12 planted runs per architecture (6 at 15%, 1 at 18%, 5 at 20%):
+
+| | x64 | ARM64 |
+|---|---:|---:|
+| Jobs failed by the gate | **12 of 12** | **12 of 12** |
+| Slowed metrics flagged `regressed` | 111 of 120 | 116 of 120 |
+| Not flagged | `search.first_result` 4 of 12 and `recovery.crash_to_first_tile` 4 of 12 (the two noisiest, 5 to 25 ms); `search.full` 1 `unconfirmed` | `search.first_result` 4 of 12, all of them in the first 8 runs, which had a 1.2 ms floor that hid 15% of 7.4 ms (now 0.75 ms; the 4 later runs caught it 4 of 4) |
+
+Every other slowed metric was caught in every run on both architectures. The measured change of a 15% plant is typically 12% to 17% (the throughput's is `1 - 1/1.15` = 13%, and the two noisy metrics read as low as 9%), so 15% is caught with room; the gate is not tuned to find 10.5%.
+
+**Floors.** The floors for stored baselines (up to 44% of a hosted-runner value: 8 MB on an 18 MB working set, 25 ms on a 17 ms crash recovery, 8 ms on a 6 ms search) would have made at least five metrics impossible to fail however slow the head. The A/B gate has its own, `AbFloor`: at or above the largest difference of medians any A/A run showed (`open.large`: 1.35 ms, floor 2 ms; `recovery.crash`: 0.7 ms, floor 1.5 ms), and below 15% of the metric's smallest value seen, so that a 15% slowdown can still clear it. The exception is `search.first_result`: its 0.75 ms floor is under the 1.06 ms difference one noisy x64 VM showed (+4.6% of 11 ms), because a floor above it would hide 15% of 7.4 ms on ARM64; there the 10% limit and the interval do the protecting. The old `Floor` stays for `gate` and `compare`.
+
+### What the gate cannot do
+
+* **Slow drift.** Ten pull requests that each add 5% pass ten times. The trend record (below) and the nightly run on `main` are how that is seen; nothing gates on it yet.
+* **Small regressions.** Between about 5% and 10% shows in the table (and as `unconfirmed` when over 10% without the evidence) but does not fail. §11 says 10%.
+* **A lone noisy metric.** `search.first_result` (5 pages searched, 6 to 12 ms) and `recovery.crash_to_first_tile` on x64 are caught 8 times in 12 at 15% to 20%; a real 15% regression of only that metric may need a second push to show. They are still gated, because they are §11 rows.
+* **The harness differs between base and head.** Each side uses its own harness and engine, which is right for a change to the broker or the protocol and wrong for a change to the harness itself: a pull request that changes `tools/MikePDF.Perf` can move a metric by changing how it is measured. Read such a diff with that in mind (`perf-results-base.json` and `rounds/` are in the artifact).
+* **Hosted runners are not reference hardware.** A passing job says "no slower than the base here"; it says nothing about a §11 budget (see the next section).
+
+### The §11 targets
+
+Reported in the table, every run, from the head's medians over all rounds. **They gate nowhere on a hosted runner**: §11 puts the absolute budgets on reference hardware ("nightly on real reference hardware"), and a hosted VM is neither R1, R2 nor R3. `ab --reference-tier R1` (only on that machine) makes a metric over its target fail the run. A `lower-bound` metric (the engine's share of an open) under its target is reported as "not a pass".
+
+### Trend record
+
+`docs/perf/baselines/` still holds results from runs worth keeping, and every `ab` run shows the head against the baseline of the same CPU model as **information only**; it never gates. The artifact `perf-results.json` of a run is the head over all rounds and the candidate for a new baseline file, as before (never one made with a planted slowdown). The nightly schedule runs an A/A (`base` = head), so the false-positive rate keeps being measured: download the `perf-results-*` artifacts of the last nights into one folder and run `MikePDF.Perf calibrate --dir <folder>`. The `gate` command (measure, compare with one stored file, retry the suspects) is kept for a development machine and for reference hardware, where the same machine measures every time.
 
 ## CI
 
-`.github/workflows/perf.yml` runs on every PR and `m*/**` push, nightly, and on demand, for **x64** (`windows-2025-vs2026`) and **ARM64** (`windows-11-vs2026-arm`): build the native engine (`build.ps1 -SkipManaged`), build the tool, shut down the compiler servers, run `gate --profile ci --baseline-dir docs/perf/baselines`, write the Markdown to the job summary, and upload `perf-results/` (JSON and Markdown) as an artifact. It is a separate workflow so that it does not collide with edits to `ci.yml`.
+`.github/workflows/perf.yml`, on every pull request, on pushes to `main` and `m*/**`, nightly (A/A) and on demand, for **x64** (`windows-2025-vs2026`) and **ARM64** (`windows-11-vs2026-arm`):
 
-**Setting or changing a baseline**: take `perf-results.json` from the artifact of a CI run you judge typical (not one that ran during an incident), commit it under the name the job output suggests (`ci-x64.<cpu>.json`; `MikePDF.Perf report --results <json> --out <md>` refreshes the Markdown beside it) in a reviewed change, and say why. Re-baseline after an intended change in speed (better or worse). A new CPU class in the pool needs its own baseline file; the job tells you when it is missing. These runners are **not reference hardware**: CI numbers say "no worse than last time on this kind of VM", never "meets the budget".
+1. Check out with full history and choose the base (log line `mode=... base=...`). Manual runs take `base` (`self` for an A/A run, or a commit/ref), `plant` (percent, test only) and `rounds`.
+2. Build the head into `$RUNNER_TEMP/perf/head`, or restore it from the cache `perf-bundle-v1-<arch>-<commit>`. Pushes and manual runs save it, so the next pull request, whose base is that `main` commit, finds its base built; a base that is not cached is built from a `git worktree` (about a minute).
+3. `MikePDF.Perf ab` (head's copy), 8 rounds of the `ci` profile per side, plus confirmation rounds if needed. Each run still waits up to 20 s for the machine to be under 15% busy (the first hosted runs found 57% to 62% right after a build) and the job shuts the compiler servers down first.
+4. Job summary, and the artifact `perf-results-<arch>`: `perf-results.md` (the report), `perf-ab.json` (the decision), `perf-results.json` (the head over all rounds), `perf-results-base.json`, `rounds/` (every run with its log).
+
+**Job time.** Before: 2.6 to 3.9 minutes per job (engine build 1.1 to 2.5, harness build 0.2 to 0.3, one suite run 0.6 to 1.1). Now: 9 to 16 minutes per job, in parallel for the two architectures. Cold (nothing cached): head build 1.4 to 2.0, base build 0.6 to 1.0, 16 suite runs 6.7 to 12 minutes (an EPYC 7763 VM is the slowest), and up to 8 more runs when a metric needs confirming. The measuring is the cost, not the builds, and the limit is 60 minutes. The cache saves about a minute per pull request.
 
 ## Reference hardware
 
@@ -157,7 +232,7 @@ What the harness does: an iteration in which the engine dies (or fails to start)
 
 * `FirstPagePixels` fires on the first draw with page content after an open request. If the surface is redrawn with the previous document's content before the new one's first tile (a window resize during an open, say), a warm open reads too fast. Use warm-open figures from runs where nothing else happens.
 * The engine-memory reading was cross-checked once by polling `Get-Process` from a second shell while the scenario ran (21 MB working set, 6 MB private; the harness read 19 MB and 6 MB). The engine's page cache keeps this far below the 600 MB budget on text pages; image-heavy pages will use more.
-* Hosted-runner numbers are noisy and not reference hardware; floors and the choice of gating metrics are first guesses.
+* Hosted-runner numbers are noisy and not reference hardware. The A/B gate is calibrated on 11 A/A and 12 planted runs per architecture (`calibration/`); the nightly A/A run keeps adding evidence, and its false-positive rate should be read after the first weeks.
 * The app-level measurements are unverified end to end.
 * Text-only documents. No scanned, vector-heavy or transparency-heavy documents until the corpus tier lands.
 * Search starts at page 1; a search that starts mid-document, regex and whole-word variants are not measured.
