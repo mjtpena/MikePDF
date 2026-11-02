@@ -82,8 +82,15 @@ public sealed record EngineSupervisorOptions
 
     public TimeSpan RestartWindow { get; init; } = TimeSpan.FromMinutes(1);
 
-    /// <summary>Consecutive attempts to bring a new engine up before giving up.</summary>
+    /// <summary>
+    /// Consecutive attempts to bring a new engine up before giving up. The first start gets the same attempts as a restart: an engine process that is lost
+    /// while it starts (<see cref="EngineStartException.IsTransient"/>) costs a few milliseconds to replace, and a user opening a document should not have
+    /// to be the one to retry.
+    /// </summary>
     public int MaxStartAttempts { get; init; } = 3;
+
+    /// <summary>Test seam: called with the new process (still suspended) and the attempt number, before it runs. Lets a test lose the process the way a busy machine can.</summary>
+    internal Action<SandboxedProcess, int>? AfterLaunch { get; init; }
 }
 
 /// <summary>
@@ -196,7 +203,7 @@ public sealed class EngineSupervisor : IAsyncDisposable
         var supervisor = new EngineSupervisor(options);
         try
         {
-            var instance = await EngineInstance.StartAsync(options, supervisor._launcher, supervisor._ring, options.Client, cancellationToken).ConfigureAwait(false);
+            var instance = await supervisor.StartInstanceAsync(cancellationToken).ConfigureAwait(false);
             lock (supervisor._gate)
             {
                 supervisor._instance = instance;
@@ -210,6 +217,22 @@ public sealed class EngineSupervisor : IAsyncDisposable
         {
             await supervisor.DisposeAsync().ConfigureAwait(false);
             throw;
+        }
+    }
+
+    /// <summary>Starts an engine, trying again (up to <see cref="EngineSupervisorOptions.MaxStartAttempts"/> times) when the process is lost while it starts.</summary>
+    private async Task<EngineInstance> StartInstanceAsync(CancellationToken cancellationToken)
+    {
+        for (var attempt = 1; ; attempt++)
+        {
+            try
+            {
+                return await EngineInstance.StartAsync(_options, _launcher, _ring, _options.Client, cancellationToken, attempt).ConfigureAwait(false);
+            }
+            catch (EngineStartException e) when (e.IsTransient && attempt < _options.MaxStartAttempts && !cancellationToken.IsCancellationRequested)
+            {
+                await Task.Delay(TimeSpan.FromMilliseconds(50 * attempt), cancellationToken).ConfigureAwait(false);
+            }
         }
     }
 
@@ -467,7 +490,7 @@ public sealed class EngineSupervisor : IAsyncDisposable
             EngineInstance? replacement = null;
             try
             {
-                replacement = await EngineInstance.StartAsync(_options, _launcher, _ring, _options.Client, _shutdown.Token).ConfigureAwait(false);
+                replacement = await EngineInstance.StartAsync(_options, _launcher, _ring, _options.Client, _shutdown.Token, attempt).ConfigureAwait(false);
                 var (restored, lost) = await ReopenDocumentsAsync(replacement).ConfigureAwait(false);
                 bool adopted;
                 lock (_gate)

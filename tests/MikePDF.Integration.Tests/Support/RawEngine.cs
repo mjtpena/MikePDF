@@ -46,18 +46,48 @@ internal sealed class RawEngine : IAsyncDisposable
         return new RawEngine(process, server, pipe, null, 0);
     }
 
-    public static async Task<RawEngine> StartAsync(SandboxFixture sandbox, int slotCount = 8, int slotSize = 4 << 20)
+    /// <summary>
+    /// Starts the engine. <paramref name="brokerStallAfterResume"/> is how long the broker does nothing between letting the engine run and
+    /// listening on its pipe: what a broker thread that is preempted on a busy machine looks like.
+    /// </summary>
+    public static async Task<RawEngine> StartAsync(SandboxFixture sandbox, int slotCount = 8, int slotSize = 4 << 20, TimeSpan brokerStallAfterResume = default)
     {
-        var launcher = new SandboxedProcessLauncher(sandbox.Profile);
-        var ring = new SlotRing(slotCount, slotSize);
-        var server = EnginePipeServer.Create(sandbox.Profile.Sid);
-        var process = launcher.Launch(new SandboxLaunchRequest(sandbox.EnginePath, $"--pipe {server.Name} --parent {Environment.ProcessId} --kind document") { StartSuspended = true });
-        var ringHandle = ring.DuplicateInto(process); // nothing is inherited: the ring is duplicated in, and announced by AttachSlotRing
-        process.Resume();
-        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(15));
-        var pipe = await server.AcceptAsync(process.ProcessId, timeout.Token);
-        return new RawEngine(process, server, pipe, ring, ringHandle);
+        // A process that is lost between CreateProcess and its first instruction is not what these tests are about, and the product retries it too
+        // (EngineSupervisor); a test that talks to the engine frame by frame does the same, and says so, instead of failing for it. One CI run on
+        // ARM64 lost DuplicateHandle into a fresh, suspended engine this way (RenderTileIsRefusedUntilTheRingIsAttachedAndTheRingAttachesOnce).
+        for (var attempt = 1; ; attempt++)
+        {
+            var launcher = new SandboxedProcessLauncher(sandbox.Profile);
+            var ring = new SlotRing(slotCount, slotSize);
+            var server = EnginePipeServer.Create(sandbox.Profile.Sid);
+            SandboxedProcess? process = null;
+            try
+            {
+                process = launcher.Launch(new SandboxLaunchRequest(sandbox.EnginePath, $"--pipe {server.Name} --parent {Environment.ProcessId} --kind document") { StartSuspended = true });
+                var ringHandle = ring.DuplicateInto(process); // nothing is inherited: the ring is duplicated in, and announced by AttachSlotRing
+                process.Resume();
+                if (brokerStallAfterResume > TimeSpan.Zero)
+                {
+                    await Task.Delay(brokerStallAfterResume);
+                }
+
+                using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(15));
+                var pipe = await server.AcceptAsync(process.ProcessId, timeout.Token);
+                return new RawEngine(process, server, pipe, ring, ringHandle);
+            }
+            catch (System.ComponentModel.Win32Exception e) when (process is not null && attempt < 3)
+            {
+                TestContext.Current.SendDiagnosticMessage($"RawEngine.StartAsync attempt {attempt}: the engine was lost while it was being set up ({e.Message}); exited={process.HasExited}, exit code 0x{process.ExitCode:X}");
+                process.Kill();
+                process.Dispose();
+                server.Dispose();
+                ring.Dispose();
+            }
+        }
     }
+
+    /// <summary>A second, fresh duplicate of the ring in the engine (what a broker that attached twice would send), as opposed to the value that the first attach consumed.</summary>
+    public ulong DuplicateRingAgain() => _ring is null ? 0 : _ring.DuplicateInto(Process);
 
     /// <summary>Sends one request and returns its requestId.</summary>
     public async Task<ulong> SendAsync(uint documentId, IRequestMessage payload, uint deadlineMs = 0)

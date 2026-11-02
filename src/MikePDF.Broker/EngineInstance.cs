@@ -12,7 +12,15 @@ public enum EngineKind
     Pool,
 }
 
-public sealed class EngineStartException(string message, Exception? inner = null) : Exception(message, inner);
+/// <summary>
+/// An engine could not be brought up. <see cref="IsTransient"/> says the engine process was lost during its start-up (it exited, or closed its
+/// pipe, before the handshake was over), which a second attempt may get past; every other cause (no sandbox, a missing executable, another schema
+/// version, a start-up that merely took too long) would fail again the same way and is not retried.
+/// </summary>
+public sealed class EngineStartException(string message, Exception? inner = null, bool isTransient = false) : Exception(message, inner)
+{
+    public bool IsTransient { get; } = isTransient;
+}
 
 /// <summary>One running engine: its sandboxed process, job, pipe and client. Owned by the supervisor.</summary>
 internal sealed class EngineInstance : IAsyncDisposable
@@ -52,7 +60,8 @@ internal sealed class EngineInstance : IAsyncDisposable
         SandboxedProcessLauncher launcher,
         SlotRing? ring,
         EngineClientOptions clientOptions,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        int attempt = 1)
     {
         EnginePipeServer? pipe = null;
         SandboxedProcess? process = null;
@@ -69,6 +78,7 @@ internal sealed class EngineInstance : IAsyncDisposable
             // Suspended and with nothing inherited (R1): hand over the slot ring by duplication, then let the process run.
             process = launcher.Launch(new SandboxLaunchRequest(options.EnginePath, arguments) { StartSuspended = true });
             var ringHandle = isEngine ? ring!.DuplicateInto(process) : 0UL;
+            options.AfterLaunch?.Invoke(process, attempt);
             process.Resume();
 
             using var startup = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
@@ -77,7 +87,7 @@ internal sealed class EngineInstance : IAsyncDisposable
             var finished = await Task.WhenAny(accept, process.Exited).ConfigureAwait(false);
             if (finished != accept)
             {
-                throw new EngineStartException($"The engine exited with code 0x{process.ExitCode:X} before it connected. Log: {process.LogText}");
+                throw new EngineStartException($"The engine exited with code 0x{process.ExitCode:X} before it connected. Log: {process.LogText}", isTransient: true);
             }
 
             var stream = await accept.ConfigureAwait(false);
@@ -85,7 +95,7 @@ internal sealed class EngineInstance : IAsyncDisposable
             var hello = await client.HelloAsync(options.StartupTimeout, cancellationToken).ConfigureAwait(false);
             if (!hello.IsOk)
             {
-                throw new EngineStartException($"The engine's Hello failed with status {hello.Status} ({hello.Detail}). Log: {process.LogText}");
+                throw await LostDuringHandshakeAsync(process, hello.Status, $"The engine's Hello failed with status {hello.Status} ({hello.Detail})").ConfigureAwait(false);
             }
 
             if (isEngine)
@@ -94,11 +104,18 @@ internal sealed class EngineInstance : IAsyncDisposable
                 var attached = await client.AttachSlotRingAsync(ringHandle, ring!.SlotCount, ring.SlotSize, options.StartupTimeout, cancellationToken).ConfigureAwait(false);
                 if (!attached.IsOk)
                 {
-                    throw new EngineStartException($"The engine did not accept the slot ring (status {attached.Status}). Log: {process.LogText}");
+                    throw await LostDuringHandshakeAsync(process, attached.Status, $"The engine did not accept the slot ring (status {attached.Status})").ConfigureAwait(false);
                 }
             }
 
             return new EngineInstance(process, pipe, client, hello.Value!);
+        }
+        catch (System.ComponentModel.Win32Exception e) when (process is not null)
+        {
+            // The process exists but a step of setting it up failed (duplicating the ring into it, resuming it): it was lost while it was being made.
+            var fate = Fate(process); // before Cleanup, which kills and closes the process
+            Cleanup();
+            throw new EngineStartException($"Starting the engine failed: {e.Message}; the process {fate}.", e, isTransient: true);
         }
         catch (Exception e) when (e is not EngineStartException)
         {
@@ -110,6 +127,22 @@ internal sealed class EngineInstance : IAsyncDisposable
             Cleanup();
             throw;
         }
+
+        // A handshake that ends with EngineCrashed means the pipe broke under it: the process died (or was killed) while it started. The exit code and
+        // what the process logged say how; wait a moment for the exit to be visible, since the pipe breaks a little before the process is gone.
+        static async Task<EngineStartException> LostDuringHandshakeAsync(SandboxedProcess process, Status status, string what)
+        {
+            if (status != Status.EngineCrashed)
+            {
+                return new EngineStartException($"{what}. Log: {process.LogText}");
+            }
+
+            await process.WaitForExitAsync(TimeSpan.FromMilliseconds(500)).ConfigureAwait(false);
+            return new EngineStartException($"{what}; the engine {Fate(process)}. Log: {process.LogText}", isTransient: true);
+        }
+
+        // GetExitCodeProcess answers 259 (STILL_ACTIVE) while the process runs.
+        static string Fate(SandboxedProcess process) => process.ExitCode is 259 ? "was still running" : $"had exited with code 0x{process.ExitCode:X}";
 
         void Cleanup()
         {

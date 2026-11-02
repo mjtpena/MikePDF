@@ -11,9 +11,10 @@ internal static class Win32
     /// <summary>HRESULT_FROM_WIN32(ERROR_ALREADY_EXISTS), what CreateAppContainerProfile returns for an existing profile.</summary>
     public const int HResultAlreadyExists = unchecked((int)0x800700B7);
 
-    public static Win32Exception LastError(string what) => new(Marshal.GetLastPInvokeError(), what + " failed");
+    public static Win32Exception LastError(string what) => Error(Marshal.GetLastPInvokeError(), what);
 
-    public static Win32Exception Error(int code, string what) => new(code, what + " failed");
+    /// <summary>The message names the call, the system's text for the code and the code itself: a failure seen once on a build machine has to say which error it was.</summary>
+    public static Win32Exception Error(int code, string what) => new(code, $"{what} failed: {new Win32Exception(code).Message} (error {code})");
 
     public static void ThrowIfFalse(bool success, string what)
     {

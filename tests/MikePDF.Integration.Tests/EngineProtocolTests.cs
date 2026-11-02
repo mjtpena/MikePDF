@@ -110,7 +110,11 @@ public sealed class EngineProtocolTests(SandboxFixture sandbox)
         Assert.Equal(Status.InvalidArgument, (await engine.CallAsync(document, tile)).Status); // no ring yet
         Assert.Equal(Status.Ok, (await engine.AttachRingAsync()).Status);
         Assert.Equal(Status.Ok, (await engine.CallAsync(document, tile)).Status);
-        Assert.Equal(Status.InvalidArgument, (await engine.AttachRingAsync()).Status);             // not twice
+
+        // Not twice. The second attach carries a fresh duplicate of the ring, as a broker that attached twice would send, and not the handle value the
+        // first attach consumed: the engine closed that value, and by now it can name any handle the engine has opened since (a document's
+        // mapping, something PDFium made while drawing the tile above), so re-sending it closed somebody else's handle.
+        Assert.Equal(Status.InvalidArgument, (await engine.CallAsync(0, new AttachSlotRing { Handle = engine.DuplicateRingAgain(), SlotCount = 8, SlotSize = 4 << 20 })).Status);
         Assert.Equal(Status.Ok, (await engine.CallAsync(document, tile)).Status);                  // and the first one still stands
     }
 
