@@ -964,6 +964,9 @@ public sealed class SupervisedDocument : IAsyncDisposable
 
     public uint PageCount { get; }
 
+    /// <summary>How many times the engine this document lives in has been replaced after a crash. A caller that reads it before a call can tell calls that met the same engine death from calls that met two.</summary>
+    public int EngineRestartCount => _owner.RestartCount;
+
     internal string? Password { get; }
 
     internal SafeFileHandle Handle => _file;

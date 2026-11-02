@@ -14,6 +14,8 @@ internal sealed class RecordingSource(IPrintSource inner) : IPrintSource
 
     public int SlotBytes => inner.SlotBytes;
 
+    public int EngineGeneration => inner.EngineGeneration;
+
     public Task<(Status Status, PrintDocumentInfo? Info)> GetInfoAsync(CancellationToken cancellationToken) => inner.GetInfoAsync(cancellationToken);
 
     public Task<(Status Status, IReadOnlyList<SizeD> Sizes)> GetPageSizesAsync(int first, int count, CancellationToken cancellationToken) => inner.GetPageSizesAsync(first, count, cancellationToken);
