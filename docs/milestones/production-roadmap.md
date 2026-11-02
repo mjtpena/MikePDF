@@ -9,7 +9,7 @@
 ## How work flows
 1. Each work package (WP) gets one Sonnet agent, in its own git worktree, on a branch named `m<milestone>/<wp>`. That prefix makes CI run on push.
 2. The agent works in commits of about 600 changed lines or fewer. It maps every acceptance criterion to a test and ends with a §19.1 completion note.
-3. Opus reviews against A.6 (correctness, security, threading, test quality, accessibility, performance), re-runs the tests, and merges to `main` through a PR once CI is green. If it isn't good enough, it goes back to the agent with a numbered list.
+3. Opus reviews against A.6 (correctness, security, threading, test quality, accessibility, performance), re-runs the tests, and merges to `main` through a PR once **the PR's own CI is green**. That CI runs on the merge with current `main`. Two branches that each merged cleanly broke the build together on 2026-11-02, so a branch's own CI isn't enough. After a merge that touches the app, Opus runs the UI journeys on `main`. If it isn't good enough, it goes back to the agent with a numbered list.
 4. One owner at a time for shared surfaces:
    - **Protocol schema** (`src/MikePDF.Protocol/schema`): one WP per wave may change it, and it bumps `schemaVersion`.
    - **App shell** (`MainWindow*`, `PageSurface*`): one WP per wave.
