@@ -126,7 +126,7 @@ Rules:
 
 The title bar uses the 40 epx height the app already has **[repo]**. Windows' standard is 32 epx and 48 epx when it holds a search box or account control **[src: [title bar page](https://learn.microsoft.com/en-us/windows/apps/design/basics/titlebar-design), 2024-07-31, accessed 2026-11-02]**. 40 epx is a **[design]** compromise so that tabs have a 32 epx hit height with 8 epx of breathing room. The caption-button inset comes from `AppWindow.TitleBar.RightInset`, as today **[repo]**.
 
-**Contextual command bar.** When the user enters Markup, Organise pages, or Form mode, the **centre of the same 40 epx row changes in place**. The row never grows and the page well never moves. This is how the spec gets many more commands than a fixed toolbar without any extra chrome.
+**Contextual command bar.** When the user enters Markup or Organise pages, the **centre of the same 40 epx row changes in place**. The row never grows and the page well never moves. This is how the spec gets many more commands than a fixed toolbar without any extra chrome.
 
 **Left pane and right pane.** Both overlay at narrow widths ([3.2](#32-breakpoints)). They never sit side by side with the page at less than the minimum page-well width of 360 epx.
 

@@ -3,7 +3,7 @@
 - Part of the [MikePDF design spec](../README.md)
 - Serves §18 scenarios: 3 (a 120-field government form: tab through every field in order, save, reopen, values intact, opens correctly in Edge), 6 (screen-reader user fills fields)
 - Spec: master prompt §2.1 (AcroForm filling, tab order, validation display, flatten on export), §8.4. Milestone M4. Nothing here exists in the app yet.
-- There's **no separate Form mode**. A fillable form is just a document whose fields are live. A **Form bar** offers form commands. (README and [01](01-main-window.md) refer to a "Form mode"; that means the Form bar and the form commands in the View menu and palette.)
+- There's **no separate Form mode**. A fillable form is just a document whose fields are live. A **Form bar** offers form commands, which are also in the View menu and the palette.
 
 ## 1. Purpose
 
