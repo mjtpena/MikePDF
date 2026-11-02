@@ -15,6 +15,7 @@
     <Project Path="tests/MikePDF.Protocol.Tests/MikePDF.Protocol.Tests.csproj" />
   </Folder>
   <Folder Name="/tests/fuzz/">
+    <Project Path="tests/fuzz/MikePDF.Fuzz.Tests/MikePDF.Fuzz.Tests.csproj" />
     <Project Path="tests/fuzz/MikePDF.PdfWriter.Fuzz/MikePDF.PdfWriter.Fuzz.csproj" />
     <Project Path="tests/fuzz/MikePDF.Protocol.Fuzz/MikePDF.Protocol.Fuzz.csproj" />
   </Folder>

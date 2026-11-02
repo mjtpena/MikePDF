@@ -84,13 +84,40 @@ public static class PdfSerializer
         sink.Write(" >>"u8);
     }
 
-    /// <summary>Reals as plain decimals with up to 15 fractional digits and no exponent. Whole numbers keep a ".0" so they stay reals.</summary>
+    /// <summary>
+    /// Reals as plain decimals (the grammar has no exponent), with the fewest digits that read back as exactly the same double:
+    /// rewriting an object must not change a number it holds. Whole numbers keep a ".0" so they stay reals.
+    /// (An earlier version cut reals to 15 fractional digits, which turned 841.8897637795277 into 841.889763779528 and 1e-19 into 0, and made
+    /// the output self-check refuse to save any object holding such a number. Found by the append fuzz target.)
+    /// </summary>
     internal static string FormatReal(double value)
     {
-        string s = value.ToString("0.###############", CultureInfo.InvariantCulture);
-        if (s is "-0" or "0")
-            return "0.0";
+        if (value == 0)
+            return "0.0"; // also negative zero
+        string s = value.ToString("R", CultureInfo.InvariantCulture);
+        int exponentAt = s.IndexOf('E', StringComparison.Ordinal);
+        if (exponentAt >= 0)
+            s = ExpandExponent(s, exponentAt);
         return s.Contains('.', StringComparison.Ordinal) ? s : s + ".0";
+    }
+
+    /// <summary>"1.5E-07" to "0.00000015", "2.5E+20" to "250000000000000000000".</summary>
+    private static string ExpandExponent(string s, int exponentAt)
+    {
+        int exponent = int.Parse(s.AsSpan(exponentAt + 1), NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture);
+        string mantissa = s[..exponentAt];
+        bool negative = mantissa.StartsWith('-');
+        if (negative)
+            mantissa = mantissa[1..];
+        int dot = mantissa.IndexOf('.', StringComparison.Ordinal);
+        string digits = dot < 0 ? mantissa : mantissa.Remove(dot, 1);
+        int pointAt = (dot < 0 ? mantissa.Length : dot) + exponent; // where the decimal point falls within `digits`
+        string plain = pointAt <= 0
+            ? "0." + new string('0', -pointAt) + digits
+            : pointAt >= digits.Length
+                ? digits + new string('0', pointAt - digits.Length)
+                : digits[..pointAt] + "." + digits[pointAt..];
+        return negative ? "-" + plain : plain;
     }
 
     private static void WriteName(ByteSink sink, string name)

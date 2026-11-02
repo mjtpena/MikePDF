@@ -1,12 +1,17 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <Description>SharpFuzz harness for MikePDF.PdfWriter (parse + validate, and incremental append round trip). Not part of MikePDF.slnx yet.</Description>
+    <Description>Fuzz harness for MikePDF.PdfWriter (parse + validate, and incremental append round trip): a dependency-free mutational fuzzer and SharpFuzz entry points.</Description>
+    <NoWarn>$(NoWarn);CA5394</NoWarn>
+    <!-- LibraryImport (SetErrorMode in MutationalFuzzer) generates unsafe marshalling code. -->
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <!-- Fuzz targets deliberately catch nothing: any exception that escapes is the finding. -->
     <IsPackable>false</IsPackable>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\..\src\MikePDF.PdfWriter\MikePDF.PdfWriter.csproj" />
     <PackageReference Include="SharpFuzz" />
+    <Compile Include="..\Shared\MutationalFuzzer.cs" Link="Shared\MutationalFuzzer.cs" />
+    <InternalsVisibleTo Include="MikePDF.Fuzz.Tests" />
   </ItemGroup>
 </Project>

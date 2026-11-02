@@ -47,3 +47,38 @@ jobs:
             **/TestResults/**
             build/out/cmake-${{ matrix.arch }}/Testing/**
           if-no-files-found: ignore
+
+  # About 60 seconds on each fuzz target (docs/fuzzing.md): proves on every push that the targets build, start, accept their seeds and
+  # still find nothing. It is a smoke test, not fuzzing: the real runs are the nightly slices in fuzz.yml. x64 only (the native
+  # libFuzzer and AddressSanitizer runtimes ship for x64).
+  fuzz-smoke:
+    name: fuzz-smoke
+    runs-on: windows-2025-vs2026
+    timeout-minutes: 45
+    env:
+      CI: 'true'
+      DOTNET_NOLOGO: 'true'
+      DOTNET_CLI_TELEMETRY_OPTOUT: 'true'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          dotnet-version: '10.0.4xx' # ADR-0001 pin (10.0.403); global.json rolls forward to it
+      - name: Fuzz smoke (60 s per target)
+        shell: pwsh
+        run: ./tests/fuzz/run-fuzz.ps1 -Target all -Seconds 60
+      - name: Summary
+        if: always()
+        shell: pwsh
+        run: |
+          if (Test-Path build/out/fuzz/summary.md) { Get-Content build/out/fuzz/summary.md | Add-Content $env:GITHUB_STEP_SUMMARY }
+      - name: Upload fuzz findings and logs
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: fuzz-smoke
+          path: |
+            build/out/fuzz/findings/**
+            build/out/fuzz/logs/**
+            build/out/fuzz/summary.*
+          if-no-files-found: ignore

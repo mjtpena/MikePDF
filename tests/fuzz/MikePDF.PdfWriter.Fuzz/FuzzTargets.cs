@@ -1,3 +1,5 @@
+using MikePDF.Fuzz.Shared;
+
 namespace MikePDF.PdfWriter.Fuzz;
 
 /// <summary>
@@ -19,12 +21,24 @@ internal static class FuzzTargets
     };
 
     /// <summary>Strict parse, lenient parse, whole-file validation, object and stream access.</summary>
-    public static void ParseAndValidate(ReadOnlySpan<byte> input)
+    public static void ParseAndValidate(ReadOnlySpan<byte> input) => _ = ParseOutcome(input.ToArray());
+
+    /// <summary>
+    /// <see cref="ParseAndValidate"/>, returning a summary of the verdicts (strict and lenient error codes, the validator's issue codes, a size
+    /// class) that the mutational fuzzer, which has no coverage feedback, uses to tell an input that behaves differently from the ones it has.
+    /// </summary>
+    public static long ParseOutcome(byte[] data)
     {
-        byte[] data = input.ToArray();
         var strict = StrictDocument.Open(data, Limits);
         var lenient = LenientDocument.Open(data, Limits);
         var report = StructureValidator.Validate(data, Limits);
+        long signature = 29;
+        signature = MutationalFuzzer.Mix(signature, strict.TryGetError(out var strictError) ? (long)strictError.Code : -1);
+        signature = MutationalFuzzer.Mix(signature, lenient.TryGetError(out var lenientError) ? (long)lenientError.Code : -1);
+        foreach (var code in report.Issues.Select(i => i.Code).Distinct().Order())
+            signature = MutationalFuzzer.Mix(signature, 100 + (long)code);
+        if (strict.TryGetValue(out var parsed))
+            signature = MutationalFuzzer.Mix(signature, 1000 + System.Numerics.BitOperations.Log2((uint)parsed.XrefEntryCount + 1));
 
         if (lenient.TryGetValue(out var lenientDoc))
         {
@@ -36,7 +50,7 @@ internal static class FuzzTargets
         if (!strict.TryGetValue(out var doc))
         {
             Check(!report.IsValid, "a file the strict parser refused was reported valid");
-            return;
+            return signature;
         }
 
         Check(lenient.IsSuccess, "lenient refused a file strict accepted");
@@ -49,18 +63,22 @@ internal static class FuzzTargets
         }
 
         Check(StructureValidator.Validate(doc).IsValid == report.IsValid, "validator verdicts differ between entry points");
+        return signature;
     }
 
     /// <summary>Strict parse, then an incremental append that rewrites a few parsed objects; the output must reopen strictly and keep the input as a prefix.</summary>
-    public static void AppendRoundTrip(ReadOnlySpan<byte> input)
+    public static void AppendRoundTrip(ReadOnlySpan<byte> input) => _ = AppendOutcome(input.ToArray());
+
+    /// <summary><see cref="AppendRoundTrip"/>, returning a summary of the verdicts for the mutational fuzzer.</summary>
+    public static long AppendOutcome(byte[] data)
     {
-        byte[] data = input.ToArray();
-        if (!StrictDocument.Open(data, Limits).TryGetValue(out var doc))
-            return;
+        var opened = StrictDocument.Open(data, Limits);
+        if (!opened.TryGetValue(out var doc))
+            return 1 + (100_000 * (long)opened.Error.Code);
 
         var update = new IncrementalUpdate(doc);
         if (update.Add(new PdfDictionary([new(new PdfName("Fuzz"), new PdfInteger(1))])).TryGetError(out _))
-            return;
+            return 2;
 
         int taken = 0;
         foreach (var entry in doc.Latest.EnumerateEffectiveEntries())
@@ -80,12 +98,14 @@ internal static class FuzzTargets
         {
             // Only these are legitimate for a base the strict parser accepted: a malformed trailer /ID or a size limit.
             Check(error.Code is PdfErrorCode.InvalidTrailer or PdfErrorCode.LimitExceeded, $"writer self-check failed on a strictly valid base: {error}");
-            return;
+            return 3 + 10 * (long)error.Code;
         }
 
         byte[] output = built.Value;
         Check(output.AsSpan(0, data.Length).SequenceEqual(data), "original bytes are not a prefix of the output");
         Check(StrictDocument.Open(output, Limits).IsSuccess, "output does not reopen strictly");
+        // A valid document that was appended to: tell apart by how many objects were rewritten, how big the file and its xref are, and the xref form.
+        return MutationalFuzzer.Mix(4 + (1000L * taken), (System.Numerics.BitOperations.Log2((uint)doc.XrefEntryCount + 1) * 64L) + System.Numerics.BitOperations.Log2((uint)data.Length + 1) + (doc.Latest.Form == PdfXrefForm.Table ? 0 : 5000));
     }
 
     private static void Check(bool condition, string message)
