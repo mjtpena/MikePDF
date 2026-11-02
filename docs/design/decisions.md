@@ -35,7 +35,7 @@
 | Insert from file | Not incremental: the result is a full rewrite by the assembler |
 | `/DR` resource-name clashes in merges | Rename the clashing resources and rewrite their references |
 
-The ADR-0005, ADR-0008 and spec amendments proposed in the S10 and S11 reports are applied by the save-pipeline and page-organiser work packages, as part of their first change.
+The ADR-0005, ADR-0008 and spec amendments proposed in the S10 and S11 reports are applied by the save-pipeline and page-organiser work packages, as part of their first change. The S10 ones (ADR-0005 A3, ADR-0008 A1, save-pipeline 3.3 to 3.8, SP-16, SP-17, SP-38 to SP-41) were applied by W3-save-core on 2026-11-03; the S11 ones are the page-organiser work package's.
 
 ## After the S6b spike (2026-11-03)
 | Item | Decision |
