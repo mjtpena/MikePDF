@@ -77,6 +77,9 @@ internal sealed class SandboxedEngineHost : IAsyncDisposable
         return list;
     }
 
+    /// <summary>Test seam: awaited before a new engine is started, so a test can make starting one as slow as it is on a busy machine.</summary>
+    internal Func<CancellationToken, Task>? BeforeStart { get; set; }
+
     /// <summary>The live supervisor, or a new one when there is none or it gave up. Throws <see cref="EngineStartException"/> if no engine can be started.</summary>
     public async Task<EngineSupervisor> GetSupervisorAsync(CancellationToken cancellationToken)
     {
@@ -89,6 +92,11 @@ internal sealed class SandboxedEngineHost : IAsyncDisposable
         {
             await _supervisor.DisposeAsync().ConfigureAwait(false);
             _supervisor = null;
+        }
+
+        if (BeforeStart is { } before)
+        {
+            await before(cancellationToken).ConfigureAwait(false);
         }
 
         var supervisor = await EngineSupervisor.StartAsync(
@@ -129,6 +137,17 @@ internal sealed class SandboxedEngineHost : IAsyncDisposable
         Interlocked.Increment(ref _generation);
         _supervisor = supervisor;
         return supervisor;
+    }
+
+    /// <summary>Ends the current engine (and its documents) so the next call starts a new one. For after a file was cut off while the engine was still busy with it.</summary>
+    public async Task RecycleAsync()
+    {
+        if (_supervisor is not null)
+        {
+            var old = _supervisor;
+            _supervisor = null;
+            await old.DisposeAsync().ConfigureAwait(false);
+        }
     }
 
     public async ValueTask DisposeAsync()

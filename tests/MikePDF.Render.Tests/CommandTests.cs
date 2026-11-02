@@ -66,15 +66,15 @@ public sealed class CommandTests
 
             Assert.Equal((RenderCommand.Passed, ""), (code, error));
             Assert.Contains("Gate: PASSED", output, StringComparison.Ordinal);
-            Assert.Contains("12 pages: 12 Ok", output, StringComparison.Ordinal);
-            Assert.Contains("SSIM: 12 of 12 compared pages at or above 0.98", output, StringComparison.Ordinal);
+            Assert.Contains("14 pages: 14 Ok", output, StringComparison.Ordinal);
+            Assert.Contains("SSIM: 14 of 14 compared pages at or above 0.98", output, StringComparison.Ordinal);
 
             using var json = JsonDocument.Parse(await File.ReadAllTextAsync(Path.Combine(scratch, "out", "report.json")));
             Assert.True(json.RootElement.GetProperty("gate").GetProperty("passed").GetBoolean());
-            Assert.Equal(5, json.RootElement.GetProperty("summary").GetProperty("files").GetInt32());
+            Assert.Equal(6, json.RootElement.GetProperty("summary").GetProperty("files").GetInt32()); // the five PDFium files and acroform_filled.pdf
             Assert.Equal(1.0, json.RootElement.GetProperty("summary").GetProperty("ssimMean").GetDouble());
             Assert.Contains("**Gate: PASSED**", await File.ReadAllTextAsync(Path.Combine(scratch, "out", "report.md")), StringComparison.Ordinal);
-            Assert.Equal(12, Directory.GetFiles(Path.Combine(scratch, "out", "png"), "*.png", SearchOption.AllDirectories).Length);
+            Assert.Equal(14, Directory.GetFiles(Path.Combine(scratch, "out", "png"), "*.png", SearchOption.AllDirectories).Length);
             Assert.False(Directory.Exists(Path.Combine(scratch, "out", "diff"))); // nothing failed, so no failure images
             Assert.Empty(Directory.GetDirectories(Path.Combine(scratch, "work"), "engine-*")); // the deployed engine copy was removed
         }
