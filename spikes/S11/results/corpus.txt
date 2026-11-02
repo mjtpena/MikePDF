@@ -1,0 +1,23 @@
+343 files in C:\Users\mjtpe\dev\Orqentis\QuirePDF\.claude\worktrees\agent-a8d6a2995cfad5b38\spikes\_shared\corpus\pdfium-resources
+  100/343
+  200/343
+  300/343
+files: 343; opened and measured: 314; did not open or skipped: 29; crashed/timeout: 0
+files with an outline: 7; after copying all pages to a new doc: outline kept (any) in 0
+files with named destinations: 8; kept after copy: 0
+files with page-to-page links: 4; links still resolving to a page after copy (all of them): 1; some: 2
+files with form widgets: 40; widgets still recognised as fields after copy: all in 38
+files with page labels: 2; labels kept after copy: 0
+assembler prototype, copy every page: tried 314; strict parser refused 71; threw 0; produced output 243
+    12 x strict parse refused: InvalidXrefEntry
+    12 x strict parse refused: InvalidTrailer
+    8 x strict parse refused: ObjectHeaderMismatch
+    6 x strict parse refused: InvalidXref
+    6 x strict parse refused: MissingStartXref
+    6 x strict parse refused: InvalidHeader
+    6 x strict parse refused: UnsupportedFilter
+    5 x strict parse refused: MissingEndObj
+  of those 243: page count equals PDFium's source count: 236; outline kept: 7 of 7; named dests kept: 5 of 6; page labels kept: 2 of 2; all page links still resolving: 3 of 4; widgets recognised: 31 of 32; output qpdf exit 0: 152 (source exit 0 in 120), exit 2 (errors): 5
+  clean sources (classic xref: strict parse OK and qpdf exit 0): 10; after delete-last-page + incremental: qpdf exit 0 in 10, warnings (3) in 0, errors (2) in 0; PdfWriter validator valid in 10
+  clean sources (xref stream: strict parse OK and qpdf exit 0): 0; after delete-last-page + incremental: qpdf exit 0 in 0, warnings (3) in 0, errors (2) in 0; PdfWriter validator valid in 0
+delete-last-page + incremental save: 41 files; original is exact prefix: 41; qpdf --check exit 0: 14, 3 (warnings): 26, 2 (errors): 1; PdfWriter validator valid: 26; of those whose SOURCE strict-parses: 37 -> still strict-parse after: 35

@@ -1,0 +1,17 @@
+# matrix root=\\localhost\C$\Users\mjtpe\AppData\Local\Temp\mikepdf-s10-smb\matrix label=smb A=E2794A57DFF2 B=46F934C71D41
+none                                                 | ReplaceFileW                               | OK   | ReplaceFileW OK | target=B viewSees=n/a leftovers=-
+none                                                 | MoveFileEx(REPLACE_EXISTING)               | OK   | MoveFileEx OK | target=B viewSees=n/a leftovers=-
+none                                                 | RenameEx(REPLACE|POSIX)                    | FAIL | SetFileInformationByHandle 87 (The parameter is incorrect.) | target=A viewSees=n/a leftovers=tmp
+none                                                 | swap: rename target away, rename temp in   | OK   | target->.old OK; .tmp->target OK; delete .old OK | target=B viewSees=n/a leftovers=-
+broker R + engine view (ADR-0005 as built)           | ReplaceFileW                               | FAIL | ReplaceFileW 32 (The process cannot access the file because it is being used by another process.) | target=A viewSees=A(old, intact) leftovers=tmp
+broker R + engine view (ADR-0005 as built)           | MoveFileEx(REPLACE_EXISTING)               | FAIL | MoveFileEx 5 (Access is denied.) | target=A viewSees=A(old, intact) leftovers=tmp
+broker R + engine view (ADR-0005 as built)           | RenameEx(REPLACE|POSIX)                    | FAIL | SetFileInformationByHandle 87 (The parameter is incorrect.) | target=A viewSees=A(old, intact) leftovers=tmp
+broker R + engine view (ADR-0005 as built)           | swap: rename target away, rename temp in   | FAIL | target->.old 32 (The process cannot access the file because it is being used by another process.) | target=A viewSees=A(old, intact) leftovers=tmp
+broker R|D + engine view                             | ReplaceFileW                               | OK   | ReplaceFileW OK | target=B viewSees=A(old, intact) leftovers=doc.pdf~RF33ea4c77.TMP
+broker R|D + engine view                             | MoveFileEx(REPLACE_EXISTING)               | FAIL | MoveFileEx 5 (Access is denied.) | target=A viewSees=A(old, intact) leftovers=tmp
+broker R|D + engine view                             | RenameEx(REPLACE|POSIX)                    | FAIL | SetFileInformationByHandle 87 (The parameter is incorrect.) | target=A viewSees=A(old, intact) leftovers=tmp
+broker R|D + engine view                             | swap: rename target away, rename temp in   | OK   | target->.old OK; .tmp->target OK; delete .old 5 (Access is denied.); POSIX delete .old 87 (The parameter is incorrect.) | target=B viewSees=A(old, intact) leftovers=doc.pdf.old
+broker R|D + view in ENGINE PROCESS                  | ReplaceFileW                               | OK   | ReplaceFileW OK | target=B viewSees=A(old, intact) leftovers=doc.pdf~RF33ea4db0.TMP
+broker R|D + view in ENGINE PROCESS                  | MoveFileEx(REPLACE_EXISTING)               | FAIL | MoveFileEx 5 (Access is denied.) | target=A viewSees=A(old, intact) leftovers=tmp
+broker R|D + view in ENGINE PROCESS                  | RenameEx(REPLACE|POSIX)                    | FAIL | SetFileInformationByHandle 87 (The parameter is incorrect.) | target=A viewSees=A(old, intact) leftovers=tmp
+broker R|D + view in ENGINE PROCESS                  | swap: rename target away, rename temp in   | OK   | target->.old OK; .tmp->target OK; delete .old 5 (Access is denied.); POSIX delete .old 87 (The parameter is incorrect.) | target=B viewSees=A(old, intact) leftovers=doc.pdf.old

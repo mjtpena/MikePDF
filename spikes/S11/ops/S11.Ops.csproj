@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <AssemblyName>S11.Ops</AssemblyName>
+    <RootNamespace>S11</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <!-- Reused from the S4 spike: the PDFium P/Invoke surface and the in-memory document wrapper (namespace S4). -->
+    <Compile Include="..\..\S4\common\*.cs" LinkBase="s4common" />
+    <Compile Include="..\..\S4\check\Qpdf.cs" LinkBase="s4common" />
+    <!-- The production strict parser and structure validator, used as an oracle and as the base of the assembler prototype. -->
+    <ProjectReference Include="..\..\..\src\MikePDF.PdfWriter\MikePDF.PdfWriter.csproj" />
+  </ItemGroup>
+</Project>

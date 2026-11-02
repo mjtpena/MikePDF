@@ -1,0 +1,72 @@
+literal  release-then-ReplaceFileW                  0 before anything                            crash:[target=A(old)] recover:none -> [target=A(old)] clean
+literal  release-then-ReplaceFileW                  1 after SaveIntent record                    crash:[target=A(old)] recover:none -> [target=A(old)] clean
+literal  release-then-ReplaceFileW                  2 temp created (empty)                       crash:[target=A(old) +tmp] recover:tmp NOT recorded: left (rule: never delete unrecorded files) -> [target=A(old) +tmp] LEAK: .doc.pdf.mikepdf-0a1b2c3d.tmp
+literal  release-then-ReplaceFileW                  3 temp half written                          crash:[target=A(old) +tmp] recover:tmp NOT recorded: left (rule: never delete unrecorded files) -> [target=A(old) +tmp] LEAK: .doc.pdf.mikepdf-0a1b2c3d.tmp
+literal  release-then-ReplaceFileW                  4 temp complete + flushed                    crash:[target=A(old) +tmp] recover:tmp NOT recorded: left (rule: never delete unrecorded files) -> [target=A(old) +tmp] LEAK: .doc.pdf.mikepdf-0a1b2c3d.tmp
+literal  release-then-ReplaceFileW                  5 validated, SaveBegin record flushed        crash:[target=A(old) +tmp] recover:deleted recorded tmp -> [target=A(old)] clean
+literal  release-then-ReplaceFileW                  6 engines released / target renamed away     crash:[target=A(old) +tmp] recover:deleted recorded tmp -> [target=A(old)] clean
+literal  release-then-ReplaceFileW                  7 replace done, before cleanup               crash:[target=B(new)] recover:replace had completed -> [target=B(new)] clean
+literal  release-then-ReplaceFileW                  8 SaveCommitted + cleanup done               crash:[target=B(new)] recover:none -> [target=B(new)] clean
+literal  release-then-MoveFileEx                    0 before anything                            crash:[target=A(old)] recover:none -> [target=A(old)] clean
+literal  release-then-MoveFileEx                    1 after SaveIntent record                    crash:[target=A(old)] recover:none -> [target=A(old)] clean
+literal  release-then-MoveFileEx                    2 temp created (empty)                       crash:[target=A(old) +tmp] recover:tmp NOT recorded: left (rule: never delete unrecorded files) -> [target=A(old) +tmp] LEAK: .doc.pdf.mikepdf-0a1b2c3d.tmp
+literal  release-then-MoveFileEx                    3 temp half written                          crash:[target=A(old) +tmp] recover:tmp NOT recorded: left (rule: never delete unrecorded files) -> [target=A(old) +tmp] LEAK: .doc.pdf.mikepdf-0a1b2c3d.tmp
+literal  release-then-MoveFileEx                    4 temp complete + flushed                    crash:[target=A(old) +tmp] recover:tmp NOT recorded: left (rule: never delete unrecorded files) -> [target=A(old) +tmp] LEAK: .doc.pdf.mikepdf-0a1b2c3d.tmp
+literal  release-then-MoveFileEx                    5 validated, SaveBegin record flushed        crash:[target=A(old) +tmp] recover:deleted recorded tmp -> [target=A(old)] clean
+literal  release-then-MoveFileEx                    6 engines released / target renamed away     crash:[target=A(old) +tmp] recover:deleted recorded tmp -> [target=A(old)] clean
+literal  release-then-MoveFileEx                    7 replace done, before cleanup               crash:[target=B(new)] recover:replace had completed -> [target=B(new)] clean
+literal  release-then-MoveFileEx                    8 SaveCommitted + cleanup done               crash:[target=B(new)] recover:none -> [target=B(new)] clean
+literal  release-then-RenameEx(POSIX)               0 before anything                            crash:[target=A(old)] recover:none -> [target=A(old)] clean
+literal  release-then-RenameEx(POSIX)               1 after SaveIntent record                    crash:[target=A(old)] recover:none -> [target=A(old)] clean
+literal  release-then-RenameEx(POSIX)               2 temp created (empty)                       crash:[target=A(old) +tmp] recover:tmp NOT recorded: left (rule: never delete unrecorded files) -> [target=A(old) +tmp] LEAK: .doc.pdf.mikepdf-0a1b2c3d.tmp
+literal  release-then-RenameEx(POSIX)               3 temp half written                          crash:[target=A(old) +tmp] recover:tmp NOT recorded: left (rule: never delete unrecorded files) -> [target=A(old) +tmp] LEAK: .doc.pdf.mikepdf-0a1b2c3d.tmp
+literal  release-then-RenameEx(POSIX)               4 temp complete + flushed                    crash:[target=A(old) +tmp] recover:tmp NOT recorded: left (rule: never delete unrecorded files) -> [target=A(old) +tmp] LEAK: .doc.pdf.mikepdf-0a1b2c3d.tmp
+literal  release-then-RenameEx(POSIX)               5 validated, SaveBegin record flushed        crash:[target=A(old) +tmp] recover:deleted recorded tmp -> [target=A(old)] clean
+literal  release-then-RenameEx(POSIX)               6 engines released / target renamed away     crash:[target=A(old) +tmp] recover:deleted recorded tmp -> [target=A(old)] clean
+literal  release-then-RenameEx(POSIX)               7 replace done, before cleanup               crash:[target=B(new)] recover:replace had completed -> [target=B(new)] clean
+literal  release-then-RenameEx(POSIX)               8 SaveCommitted + cleanup done               crash:[target=B(new)] recover:none -> [target=B(new)] clean
+literal  hold-view: swap(rename away, rename in)    0 before anything                            crash:[target=A(old)] recover:none -> [target=A(old)] clean
+literal  hold-view: swap(rename away, rename in)    1 after SaveIntent record                    crash:[target=A(old)] recover:none -> [target=A(old)] clean
+literal  hold-view: swap(rename away, rename in)    2 temp created (empty)                       crash:[target=A(old) +tmp] recover:tmp NOT recorded: left (rule: never delete unrecorded files) -> [target=A(old) +tmp] LEAK: .doc.pdf.mikepdf-0a1b2c3d.tmp
+literal  hold-view: swap(rename away, rename in)    3 temp half written                          crash:[target=A(old) +tmp] recover:tmp NOT recorded: left (rule: never delete unrecorded files) -> [target=A(old) +tmp] LEAK: .doc.pdf.mikepdf-0a1b2c3d.tmp
+literal  hold-view: swap(rename away, rename in)    4 temp complete + flushed                    crash:[target=A(old) +tmp] recover:tmp NOT recorded: left (rule: never delete unrecorded files) -> [target=A(old) +tmp] LEAK: .doc.pdf.mikepdf-0a1b2c3d.tmp
+literal  hold-view: swap(rename away, rename in)    5 validated, SaveBegin record flushed        crash:[target=A(old) +tmp] recover:deleted recorded tmp -> [target=A(old)] clean
+literal  hold-view: swap(rename away, rename in)    6 engines released / target renamed away     crash:[target MISSING +old+tmp] recover:roll forward (temp->target), deleted recorded old -> [target=B(new)] clean
+literal  hold-view: swap(rename away, rename in)    7 replace done, before cleanup               crash:[target=B(new) +old] recover:replace had completed, deleted recorded old -> [target=B(new)] clean
+literal  hold-view: swap(rename away, rename in)    8 SaveCommitted + cleanup done               crash:[target=B(new)] recover:none -> [target=B(new)] clean
+intent   release-then-ReplaceFileW                  0 before anything                            crash:[target=A(old)] recover:none -> [target=A(old)] clean
+intent   release-then-ReplaceFileW                  1 after SaveIntent record                    crash:[target=A(old)] recover:none -> [target=A(old)] clean
+intent   release-then-ReplaceFileW                  2 temp created (empty)                       crash:[target=A(old) +tmp] recover:deleted recorded tmp -> [target=A(old)] clean
+intent   release-then-ReplaceFileW                  3 temp half written                          crash:[target=A(old) +tmp] recover:deleted recorded tmp -> [target=A(old)] clean
+intent   release-then-ReplaceFileW                  4 temp complete + flushed                    crash:[target=A(old) +tmp] recover:deleted recorded tmp -> [target=A(old)] clean
+intent   release-then-ReplaceFileW                  5 validated, SaveBegin record flushed        crash:[target=A(old) +tmp] recover:deleted recorded tmp -> [target=A(old)] clean
+intent   release-then-ReplaceFileW                  6 engines released / target renamed away     crash:[target=A(old) +tmp] recover:deleted recorded tmp -> [target=A(old)] clean
+intent   release-then-ReplaceFileW                  7 replace done, before cleanup               crash:[target=B(new)] recover:replace had completed -> [target=B(new)] clean
+intent   release-then-ReplaceFileW                  8 SaveCommitted + cleanup done               crash:[target=B(new)] recover:none -> [target=B(new)] clean
+intent   release-then-MoveFileEx                    0 before anything                            crash:[target=A(old)] recover:none -> [target=A(old)] clean
+intent   release-then-MoveFileEx                    1 after SaveIntent record                    crash:[target=A(old)] recover:none -> [target=A(old)] clean
+intent   release-then-MoveFileEx                    2 temp created (empty)                       crash:[target=A(old) +tmp] recover:deleted recorded tmp -> [target=A(old)] clean
+intent   release-then-MoveFileEx                    3 temp half written                          crash:[target=A(old) +tmp] recover:deleted recorded tmp -> [target=A(old)] clean
+intent   release-then-MoveFileEx                    4 temp complete + flushed                    crash:[target=A(old) +tmp] recover:deleted recorded tmp -> [target=A(old)] clean
+intent   release-then-MoveFileEx                    5 validated, SaveBegin record flushed        crash:[target=A(old) +tmp] recover:deleted recorded tmp -> [target=A(old)] clean
+intent   release-then-MoveFileEx                    6 engines released / target renamed away     crash:[target=A(old) +tmp] recover:deleted recorded tmp -> [target=A(old)] clean
+intent   release-then-MoveFileEx                    7 replace done, before cleanup               crash:[target=B(new)] recover:replace had completed -> [target=B(new)] clean
+intent   release-then-MoveFileEx                    8 SaveCommitted + cleanup done               crash:[target=B(new)] recover:none -> [target=B(new)] clean
+intent   release-then-RenameEx(POSIX)               0 before anything                            crash:[target=A(old)] recover:none -> [target=A(old)] clean
+intent   release-then-RenameEx(POSIX)               1 after SaveIntent record                    crash:[target=A(old)] recover:none -> [target=A(old)] clean
+intent   release-then-RenameEx(POSIX)               2 temp created (empty)                       crash:[target=A(old) +tmp] recover:deleted recorded tmp -> [target=A(old)] clean
+intent   release-then-RenameEx(POSIX)               3 temp half written                          crash:[target=A(old) +tmp] recover:deleted recorded tmp -> [target=A(old)] clean
+intent   release-then-RenameEx(POSIX)               4 temp complete + flushed                    crash:[target=A(old) +tmp] recover:deleted recorded tmp -> [target=A(old)] clean
+intent   release-then-RenameEx(POSIX)               5 validated, SaveBegin record flushed        crash:[target=A(old) +tmp] recover:deleted recorded tmp -> [target=A(old)] clean
+intent   release-then-RenameEx(POSIX)               6 engines released / target renamed away     crash:[target=A(old) +tmp] recover:deleted recorded tmp -> [target=A(old)] clean
+intent   release-then-RenameEx(POSIX)               7 replace done, before cleanup               crash:[target=B(new)] recover:replace had completed -> [target=B(new)] clean
+intent   release-then-RenameEx(POSIX)               8 SaveCommitted + cleanup done               crash:[target=B(new)] recover:none -> [target=B(new)] clean
+intent   hold-view: swap(rename away, rename in)    0 before anything                            crash:[target=A(old)] recover:none -> [target=A(old)] clean
+intent   hold-view: swap(rename away, rename in)    1 after SaveIntent record                    crash:[target=A(old)] recover:none -> [target=A(old)] clean
+intent   hold-view: swap(rename away, rename in)    2 temp created (empty)                       crash:[target=A(old) +tmp] recover:deleted recorded tmp -> [target=A(old)] clean
+intent   hold-view: swap(rename away, rename in)    3 temp half written                          crash:[target=A(old) +tmp] recover:deleted recorded tmp -> [target=A(old)] clean
+intent   hold-view: swap(rename away, rename in)    4 temp complete + flushed                    crash:[target=A(old) +tmp] recover:deleted recorded tmp -> [target=A(old)] clean
+intent   hold-view: swap(rename away, rename in)    5 validated, SaveBegin record flushed        crash:[target=A(old) +tmp] recover:deleted recorded tmp -> [target=A(old)] clean
+intent   hold-view: swap(rename away, rename in)    6 engines released / target renamed away     crash:[target MISSING +old+tmp] recover:roll forward (temp->target), deleted recorded old -> [target=B(new)] clean
+intent   hold-view: swap(rename away, rename in)    7 replace done, before cleanup               crash:[target=B(new) +old] recover:replace had completed, deleted recorded old -> [target=B(new)] clean
+intent   hold-view: swap(rename away, rename in)    8 SaveCommitted + cleanup done               crash:[target=B(new)] recover:none -> [target=B(new)] clean

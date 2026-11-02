@@ -1,0 +1,4 @@
+{"mechanism":"ReplaceFileW","rounds":600,"targetA":272,"targetB":311,"targetMissing":17,"targetTorn":0,"strayTmpFiles":510,"strayOldFiles":0}
+{"mechanism":"MoveFileEx","rounds":600,"targetA":307,"targetB":293,"targetMissing":0,"targetTorn":0,"strayTmpFiles":438,"strayOldFiles":0}
+{"mechanism":"RenameEx(POSIX)","rounds":600,"targetA":298,"targetB":302,"targetMissing":0,"targetTorn":0,"strayTmpFiles":561,"strayOldFiles":0}
+{"mechanism":"swap(rename away, rename in)","rounds":600,"targetA":200,"targetB":189,"targetMissing":211,"targetTorn":0,"strayTmpFiles":515,"strayOldFiles":594}

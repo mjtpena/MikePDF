@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <AssemblyName>S10.RealEngine</AssemblyName>
+    <RootNamespace>S10</RootNamespace>
+    <TargetFramework>net10.0-windows10.0.26100.0</TargetFramework>
+  </PropertyGroup>
+  <ItemGroup>
+    <!-- The production broker, compiled into this spike so internals are reachable, with ONE line patched (the sharing flags passed to File.OpenHandle in
+         EngineSupervisor.OpenDocumentAsync). The patched copy is generated into out/gen by run-real-engine.ps1; nothing under src/ is edited. -->
+    <Compile Include="..\..\..\src\MikePDF.Broker\**\*.cs" Exclude="..\..\..\src\MikePDF.Broker\obj\**;..\..\..\src\MikePDF.Broker\bin\**;..\..\..\src\MikePDF.Broker\EngineSupervisor.cs" LinkBase="broker" />
+    <Compile Include="..\out\gen\EngineSupervisor.cs" LinkBase="broker" />
+    <Compile Include="..\Probe\Native.cs" LinkBase="probe" />
+    <AdditionalFiles Include="..\..\..\src\MikePDF.Broker\NativeMethods.txt" />
+    <AdditionalFiles Include="..\..\..\src\MikePDF.Broker\NativeMethods.json" />
+    <!-- Already a repo dependency (Directory.Packages.props: Microsoft.Windows.CsWin32 0.3.367, MIT); used here only because the broker sources need it. -->
+    <PackageReference Include="Microsoft.Windows.CsWin32" Version="0.3.367" PrivateAssets="all" />
+    <ProjectReference Include="..\..\..\src\MikePDF.Protocol\MikePDF.Protocol.csproj" />
+  </ItemGroup>
+</Project>

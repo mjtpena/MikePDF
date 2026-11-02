@@ -1,0 +1,34 @@
+﻿[    0.0s] test folder: C:\Users\mjtpe\OneDrive\MikePDF-S10-test-6af108db
+[    0.0s] folder attributes: plain local file
+[    0.0s] created doc.pdf, attributes right after: plain local file
+[  120.1s] doc.pdf did NOT become a placeholder within 120s: plain local file (OneDrive may be paused or offline)
+[  120.2s] --- R|D + mapped view, POSIX rename
+[  120.2s] temp created: hidden
+[  120.2s] replace: OK
+[  120.2s] after replace: new content; attributes hidden; folder: [doc.pdf]
+[  210.2s] new doc.pdf did not become a placeholder in 90s
+[  210.2s] folder after sync: [doc.pdf]  (a conflict copy would be named like doc-<COMPUTERNAME>.pdf)
+[  210.2s] --- R|D + mapped view, ReplaceFileW
+[  210.2s] temp created: hidden
+[  210.2s] replace: OK
+[  210.2s] after replace: new content; attributes hidden; folder: [doc.pdf]
+[  300.2s] new doc.pdf did not become a placeholder in 90s
+[  300.2s] folder after sync: [doc.pdf]  (a conflict copy would be named like doc-<COMPUTERNAME>.pdf)
+[  300.2s] --- R (ADR-0005 as built) + mapped view, POSIX rename
+[  300.2s] temp created: hidden
+[  300.2s] replace: FAILED 32 (The process cannot access the file because it is being used by another process.)
+[  300.2s] --- no holder, MoveFileEx
+[  300.3s] temp created: hidden
+[  300.3s] replace: OK
+[  300.3s] after replace: new content; attributes hidden; folder: [doc.pdf]
+[  390.4s] new doc.pdf did not become a placeholder in 90s
+[  390.4s] folder after sync: [doc.pdf]  (a conflict copy would be named like doc-<COMPUTERNAME>.pdf)
+[  390.4s] --- burst: 40 saves, 150 ms apart, POSIX rename, no holder
+[  398.0s] burst failures: 5 (Access is denied.) x1
+[  398.0s] folder after burst: [doc.pdf]
+[  398.0s] --- online-only file
+[  460.3s] after attrib +U -P: unpinned+recall-on-data-access(online-only)
+[  460.3s] ReplaceFileW over an online-only placeholder: OK; now unpinned
+[  460.3s] folder: [doc.pdf]
+[  460.3s] --- cleanup
+[  463.3s] cleanup failed: Access to the path '\\?\C:\Users\mjtpe\OneDrive\MikePDF-S10-test-6af108db' is denied.
