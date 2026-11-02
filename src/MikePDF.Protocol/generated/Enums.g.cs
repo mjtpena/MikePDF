@@ -10,7 +10,7 @@ namespace MikePDF.Protocol;
 /// <summary>Constants taken from the schema.</summary>
 public static class ProtocolInfo
 {
-    public const uint SchemaVersion = 4u;
+    public const uint SchemaVersion = 5u;
     public const int MaxFrameBytes = 65536;
     public const uint MaxDeadlineMs = 86400000u;
 }
@@ -56,13 +56,14 @@ public enum ProcessKind : ushort
     Broker = 0,
     Engine = 1,
     WriterHost = 2,
+    ShellHandler = 3,
 }
 
 public static class ProcessKindInfo
 {
     public static bool IsDefined(ProcessKind value) => value switch
     {
-        ProcessKind.Broker or ProcessKind.Engine or ProcessKind.WriterHost => true,
+        ProcessKind.Broker or ProcessKind.Engine or ProcessKind.WriterHost or ProcessKind.ShellHandler => true,
         _ => false,
     };
 
@@ -92,9 +93,14 @@ public enum MessageType : ushort
     GetPageText = 24,
     SearchPage = 25,
     GetDocumentDetails = 26,
+    GetViewerPreferences = 28,
     RenderTile = 32,
     CancelBefore = 33,
+    RenderBand = 34,
     ValidateStructure = 1024,
+    ShellOpen = 2048,
+    ShellRenderPage = 2049,
+    ShellClose = 2050,
 }
 
 public enum DocumentIdRule
@@ -110,7 +116,7 @@ public static class MessageTypeInfo
 {
     public static bool IsDefined(MessageType value) => value switch
     {
-        MessageType.Hello or MessageType.Ping or MessageType.Shutdown or MessageType.AttachSlotRing or MessageType.OpenDocument or MessageType.CloseDocument or MessageType.GetDocumentInfo or MessageType.GetPageSizes or MessageType.GetOutline or MessageType.GetPageLinks or MessageType.GetLinkUri or MessageType.GetPageBoxes or MessageType.GetPageText or MessageType.SearchPage or MessageType.GetDocumentDetails or MessageType.RenderTile or MessageType.CancelBefore or MessageType.ValidateStructure => true,
+        MessageType.Hello or MessageType.Ping or MessageType.Shutdown or MessageType.AttachSlotRing or MessageType.OpenDocument or MessageType.CloseDocument or MessageType.GetDocumentInfo or MessageType.GetPageSizes or MessageType.GetOutline or MessageType.GetPageLinks or MessageType.GetLinkUri or MessageType.GetPageBoxes or MessageType.GetPageText or MessageType.SearchPage or MessageType.GetDocumentDetails or MessageType.GetViewerPreferences or MessageType.RenderTile or MessageType.CancelBefore or MessageType.RenderBand or MessageType.ValidateStructure or MessageType.ShellOpen or MessageType.ShellRenderPage or MessageType.ShellClose => true,
         _ => false,
     };
 
@@ -131,9 +137,14 @@ public static class MessageTypeInfo
         MessageType.GetPageText => DocumentIdRule.Required,
         MessageType.SearchPage => DocumentIdRule.Required,
         MessageType.GetDocumentDetails => DocumentIdRule.Required,
+        MessageType.GetViewerPreferences => DocumentIdRule.Required,
         MessageType.RenderTile => DocumentIdRule.Required,
         MessageType.CancelBefore => DocumentIdRule.Required,
+        MessageType.RenderBand => DocumentIdRule.Required,
         MessageType.ValidateStructure => DocumentIdRule.None,
+        MessageType.ShellOpen => DocumentIdRule.None,
+        MessageType.ShellRenderPage => DocumentIdRule.None,
+        MessageType.ShellClose => DocumentIdRule.None,
         _ => throw new ArgumentOutOfRangeException(nameof(value)),
     };
 }

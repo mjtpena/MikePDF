@@ -181,6 +181,34 @@ FPDF_BOOL NeedToPauseNow(IFSDK_PAUSE* self) {
     return state->reason != RenderInterrupt::None ? 1 : 0;
 }
 
+// Draws a page into a bitmap in slices, asking `interrupt` between them (PDFium polls it about every 100 drawing operations). Ok, Cancelled / Timeout (the check
+// stopped it) or PartiallyRendered (PDFium gave up part-way).
+Status render_progressive(FPDF_BITMAP bitmap, FPDF_PAGE page, int start_x, int start_y, int size_x, int size_y, int rotate, int flags,
+                          const InterruptCheck& interrupt) {
+    PauseState state{&interrupt, RenderInterrupt::None};
+    IFSDK_PAUSE pause{};
+    pause.version = 1;
+    pause.NeedToPauseNow = NeedToPauseNow;
+    pause.user = &state;
+
+    int progress = FPDF_RenderPageBitmap_Start(bitmap, page, start_x, start_y, size_x, size_y, rotate, flags, &pause);
+    while (progress == FPDF_RENDER_TOBECONTINUED && state.reason == RenderInterrupt::None) {
+        progress = FPDF_RenderPage_Continue(page, &pause);
+    }
+    FPDF_RenderPage_Close(page);
+
+    if (progress == FPDF_RENDER_DONE) {
+        return Status::Ok;
+    }
+    if (state.reason == RenderInterrupt::Cancel) {
+        return Status::Cancelled;
+    }
+    if (state.reason == RenderInterrupt::Timeout) {
+        return Status::Timeout;
+    }
+    return Status::PartiallyRendered;
+}
+
 // ---- fonts (GetDocumentDetails) ------------------------------------------------------------------------------------------------------
 
 // A font's base name as printable ASCII: names are PDF names, whose bytes can be anything, and the schema wants text.
@@ -415,31 +443,101 @@ Status Document::render_tile(const TileRequest& request, std::span<std::uint8_t>
     }
     FPDFBitmap_FillRect(bitmap.bitmap, 0, 0, static_cast<int>(request.tile_width), static_cast<int>(request.tile_height), 0xFFFFFFFFu);
 
-    PauseState state{&interrupt, RenderInterrupt::None};
-    IFSDK_PAUSE pause{};
-    pause.version = 1;
-    pause.NeedToPauseNow = NeedToPauseNow;
-    pause.user = &state;
-
     const int flags = (request.flags & kRenderAnnotations) != 0 ? FPDF_ANNOT : 0;
-    int progress = FPDF_RenderPageBitmap_Start(bitmap.bitmap, page.page, -request.tile_x, -request.tile_y,
-                                               static_cast<int>(device_width), static_cast<int>(device_height),
-                                               request.rotation, flags, &pause);
-    while (progress == FPDF_RENDER_TOBECONTINUED && state.reason == RenderInterrupt::None) {
-        progress = FPDF_RenderPage_Continue(page.page, &pause);
-    }
-    FPDF_RenderPage_Close(page.page);
+    return render_progressive(bitmap.bitmap, page.page, -request.tile_x, -request.tile_y, static_cast<int>(device_width),
+                              static_cast<int>(device_height), request.rotation, flags, interrupt);
+}
 
-    if (progress == FPDF_RENDER_DONE) {
-        return Status::Ok;
+Status Document::render_band(const BandRequest& request, std::span<std::uint8_t> destination, std::uint32_t stride,
+                             const InterruptCheck& interrupt) {
+    constexpr std::uint32_t kMaxBandPageSide = 65536;
+    constexpr std::uint32_t kMaxBandHeight = 16384;
+    constexpr std::uint32_t kKnownFlags = kRenderAnnotations | kRenderFormFields | kRenderPrinting;
+    if (handle_ == nullptr || request.page >= page_count_ || request.rotation > 3 || request.page_width_px == 0 ||
+        request.page_width_px > kMaxBandPageSide || request.page_height_px == 0 || request.page_height_px > kMaxBandPageSide ||
+        request.band_height == 0 || request.band_height > kMaxBandHeight ||
+        std::uint64_t{request.band_top} + request.band_height > request.page_height_px || (request.flags & ~kKnownFlags) != 0) {
+        return Status::InvalidArgument;
     }
-    if (state.reason == RenderInterrupt::Cancel) {
-        return Status::Cancelled;
+    if ((request.flags & kRenderFormFields) != 0) {
+        return Status::Unsupported;  // no form-fill environment until forms arrive
     }
-    if (state.reason == RenderInterrupt::Timeout) {
-        return Status::Timeout;
+    const std::uint64_t row_bytes = std::uint64_t{request.page_width_px} * 4;
+    if (stride != row_bytes || stride > static_cast<std::uint32_t>(std::numeric_limits<int>::max()) ||
+        std::uint64_t{stride} * request.band_height > destination.size()) {
+        return Status::InvalidArgument;
     }
-    return Status::PartiallyRendered;
+
+    PageHandle page(handle_, static_cast<int>(request.page));
+    if (page.page == nullptr) {
+        return Status::Damaged;
+    }
+    BitmapHandle bitmap{FPDFBitmap_CreateEx(static_cast<int>(request.page_width_px), static_cast<int>(request.band_height), FPDFBitmap_BGRA,
+                                            destination.data(), static_cast<int>(stride))};
+    if (bitmap.bitmap == nullptr) {
+        return Status::InvalidArgument;
+    }
+    FPDFBitmap_FillRect(bitmap.bitmap, 0, 0, static_cast<int>(request.page_width_px), static_cast<int>(request.band_height), 0xFFFFFFFFu);
+
+    int flags = (request.flags & kRenderAnnotations) != 0 ? FPDF_ANNOT : 0;
+    if ((request.flags & kRenderPrinting) != 0) {
+        flags |= FPDF_PRINTING;
+    }
+    return render_progressive(bitmap.bitmap, page.page, 0, -static_cast<int>(request.band_top), static_cast<int>(request.page_width_px),
+                              static_cast<int>(request.page_height_px), request.rotation, flags, interrupt);
+}
+
+// ---- schema 5: /ViewerPreferences -------------------------------------------------------------------------------------------
+
+namespace {
+
+// The value of a name entry of /ViewerPreferences ("R2L"), empty when the entry is absent or not a name. Names longer than 32 bytes are not any we look for.
+std::string viewer_pref_name(FPDF_DOCUMENT doc, const char* key) {
+    char buffer[33]{};
+    const unsigned long needed = FPDF_VIEWERREF_GetName(doc, key, nullptr, 0);
+    if (needed <= 1 || needed > sizeof(buffer) || FPDF_VIEWERREF_GetName(doc, key, buffer, sizeof(buffer)) != needed) {
+        return {};
+    }
+    return std::string(buffer, needed - 1);
+}
+
+}  // namespace
+
+Result<protocol::GetViewerPreferencesReply> Document::viewer_preferences() {
+    constexpr std::size_t kMaxRanges = 64;
+    constexpr int kMaxCopies = 99;
+    if (handle_ == nullptr) {
+        return failure<protocol::GetViewerPreferencesReply>(Status::InvalidArgument, "no document");
+    }
+    protocol::GetViewerPreferencesReply reply;
+
+    const std::string direction = viewer_pref_name(handle_, "Direction");
+    reply.direction = direction == "L2R" ? 0 : direction == "R2L" ? 1 : 2;
+
+    // GetPrintScaling cannot tell an entry that says AppDefault from none at all; the name can.
+    const std::string scaling = viewer_pref_name(handle_, "PrintScaling");
+    reply.print_scaling = scaling == "None" ? 1 : scaling == "AppDefault" ? 2 : 0;
+
+    // PDFium answers 1 for an absent entry, so 1 is "nothing asked for" here too; an absurd value is the most the dialog may take, never more.
+    const int copies = FPDF_VIEWERREF_GetNumCopies(handle_);
+    reply.num_copies = copies >= 2 ? static_cast<std::uint16_t>(std::min(copies, kMaxCopies)) : std::uint16_t{0};
+
+    const int duplex = static_cast<int>(FPDF_VIEWERREF_GetDuplex(handle_));
+    reply.duplex = duplex >= 1 && duplex <= 3 ? static_cast<std::uint16_t>(duplex) : std::uint16_t{0};
+
+    // /PrintPageRange counts pages from 1 (ISO 32000-1, table 150); the reply counts from 0, and a pair that does not describe pages of this document is dropped.
+    if (const FPDF_PAGERANGE range = FPDF_VIEWERREF_GetPrintPageRange(handle_); range != nullptr) {
+        const std::size_t count = std::min<std::size_t>(FPDF_VIEWERREF_GetPrintPageRangeCount(range), kMaxRanges * 2);
+        for (std::size_t i = 0; i + 1 < count && reply.range_firsts.size() < kMaxRanges; i += 2) {
+            const int first = FPDF_VIEWERREF_GetPrintPageRangeElement(range, i);
+            const int last = FPDF_VIEWERREF_GetPrintPageRangeElement(range, i + 1);
+            if (first >= 1 && last >= first && static_cast<std::uint32_t>(last) <= page_count_) {
+                reply.range_firsts.push_back(static_cast<std::uint32_t>(first) - 1);
+                reply.range_lasts.push_back(static_cast<std::uint32_t>(last) - 1);
+            }
+        }
+    }
+    return {Status::Ok, std::move(reply), ""};
 }
 
 // ---- reading services (WP-S2) ----------------------------------------------------------------------------------------------

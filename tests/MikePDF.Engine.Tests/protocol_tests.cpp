@@ -248,6 +248,66 @@ std::vector<RequestSample> request_samples() {
         v.push_back({"req_search_page", 19, 7, 1000, m});
     }
     v.push_back({"req_get_document_details", 20, 7, 1500, GetDocumentDetails{}});
+
+    // Schema 5.
+    v.push_back({"req_get_viewer_preferences", 21, 7, 1000, GetViewerPreferences{}});
+    {
+        RenderBand m;
+        m.page = 3;
+        m.dpi = 600;
+        m.rotation = 1;
+        m.page_width_px = 65536;
+        m.page_height_px = 65536;
+        m.band_top = 49152;
+        m.band_height = 16384;
+        m.flags = 7;
+        m.slot_index = 12;
+        m.generation = 9'000'000'000ull;
+        v.push_back({"req_render_band", 22, 7, 30000, m});
+    }
+    {
+        RenderBand m;
+        m.page = 0;
+        m.dpi = 150;
+        m.rotation = 0;
+        m.page_width_px = 1275;
+        m.page_height_px = 1650;
+        m.band_top = 0;
+        m.band_height = 256;
+        m.flags = 5;
+        m.slot_index = 1;
+        m.generation = 1;
+        v.push_back({"req_render_band_typical", 23, 7, 30000, m});
+    }
+    {
+        Hello m;
+        m.schema_version = kSchemaVersion;
+        m.process_kind = ProcessKind::ShellHandler;
+        m.pid = 4242;
+        v.push_back({"req_hello_shell_handler", 24, 0, 5000, m});
+    }
+    {
+        ShellOpen m;
+        m.file_handle = 0x3A8;
+        m.file_size = 1'099'511'627'776ull;
+        v.push_back({"req_shell_open", 25, 0, 2000, m});
+    }
+    {
+        ShellRenderPage m;
+        m.session_id = 1;
+        m.page = 9999999;
+        m.max_width = 4096;
+        m.max_height = 4096;
+        m.flags = 1;
+        m.section = 0x3B0;
+        m.section_bytes = 67'108'864;
+        v.push_back({"req_shell_render_page", 26, 0, 1500, m});
+    }
+    {
+        ShellClose m;
+        m.session_id = 4'294'967'295u;
+        v.push_back({"req_shell_close", 27, 0, 500, m});
+    }
     return v;
 }
 
@@ -262,7 +322,14 @@ std::vector<ResponseSample> response_samples() {
     {
         Pong m;
         m.nonce = 0x1122334455667788ull;
+        m.progress = 0xFEDCBA9876543210ull;
         v.push_back({"rsp_pong", 2, Status::Ok, MessageType::Ping, m});
+    }
+    {
+        Pong m;
+        m.nonce = 1;
+        m.progress = 0;
+        v.push_back({"rsp_pong_idle", 28, Status::Ok, MessageType::Ping, m});
     }
     v.push_back({"rsp_shutdown", 3, Status::Ok, MessageType::Shutdown, ShutdownReply{}});
     {
@@ -407,6 +474,57 @@ std::vector<ResponseSample> response_samples() {
         m.font_pages_scanned = 0;
         v.push_back({"rsp_get_document_details_empty", 21, Status::Ok, MessageType::GetDocumentDetails, m});
     }
+
+    // Schema 5.
+    {
+        GetViewerPreferencesReply m;
+        m.direction = 1;
+        m.print_scaling = 1;
+        m.num_copies = 3;
+        m.duplex = 3;
+        m.range_firsts = {0, 9999999};
+        m.range_lasts = {2, 9999999};
+        v.push_back({"rsp_get_viewer_preferences", 21, Status::Ok, MessageType::GetViewerPreferences, m});
+    }
+    {
+        GetViewerPreferencesReply m;
+        m.direction = 2;
+        v.push_back({"rsp_get_viewer_preferences_absent", 29, Status::Ok, MessageType::GetViewerPreferences, m});
+    }
+    {
+        RenderBandReply m;
+        m.slot_index = 12;
+        m.width = 65536;
+        m.height = 16384;
+        m.stride = 262144;
+        m.generation = 9'000'000'000ull;
+        v.push_back({"rsp_render_band", 22, Status::Ok, MessageType::RenderBand, m});
+    }
+    {
+        RenderBandReply m;
+        m.slot_index = 1;
+        m.width = 1275;
+        m.height = 256;
+        m.stride = 5100;
+        m.generation = 1;
+        v.push_back({"rsp_render_band_partial", 23, Status::PartiallyRendered, MessageType::RenderBand, m});
+    }
+    {
+        ShellOpenReply m;
+        m.session_id = 1;
+        m.page_count = 342;
+        m.first_width_pt = 612.0f;
+        m.first_height_pt = 792.0f;
+        v.push_back({"rsp_shell_open", 25, Status::Ok, MessageType::ShellOpen, m});
+    }
+    {
+        ShellRenderPageReply m;
+        m.width = 4096;
+        m.height = 3072;
+        m.stride = 16384;
+        v.push_back({"rsp_shell_render_page", 26, Status::Ok, MessageType::ShellRenderPage, m});
+    }
+    v.push_back({"rsp_shell_close", 27, Status::Ok, MessageType::ShellClose, ShellCloseReply{}});
     v.push_back({"rsp_error_password_required", 4, Status::PasswordRequired, MessageType::OpenDocument, std::nullopt});
     v.push_back({"rsp_error_timeout", 9, Status::Timeout, MessageType::RenderTile, std::nullopt});
     return v;
@@ -804,7 +922,7 @@ TEST(ProtocolRoundTrip, EveryStatusIsCarriedAsItsOwnValue) {
 
 TEST(ProtocolRoundTrip, TheSchemaConstantsAreWhatTheDocsSay) {
     EXPECT_EQ(kMaxFrameBytes, 65536u);
-    EXPECT_EQ(kSchemaVersion, 4u);
+    EXPECT_EQ(kSchemaVersion, 5u);
     EXPECT_EQ(kMaxDeadlineMs, 86400000u);
 }
 
@@ -957,7 +1075,7 @@ TEST(ProtocolEnvelope, HeaderRules) {
 }
 
 TEST(ProtocolEnvelope, ResponseRules) {
-    const Raw pong = Raw().arr(1).u(3);
+    const Raw pong = Raw().arr(2).u(3).u(17);
     EXPECT_EQ(response_status(response_frame(&pong, MessageType::Ping)), Status::Ok);
     EXPECT_EQ(response_status(response_frame(nullptr, MessageType::Ping)), Status::ProtocolError);                     // Ok needs a payload
     EXPECT_EQ(response_status(response_frame(&pong, MessageType::Ping, Status::Timeout)), Status::ProtocolError);      // error has none
@@ -1060,9 +1178,10 @@ TEST(ProtocolLimits, HelloAndEnums) {
     const auto status = [](const Raw& r) { return request_status(request_frame(r, MessageType::Hello)); };
     EXPECT_EQ(status(Raw().arr(3).u(1).u(0).u(0)), Status::Ok);
     EXPECT_EQ(status(Raw().arr(3).u(65535).u(2).u(0xFFFFFFFFu)), Status::Ok);
+    EXPECT_EQ(status(Raw().arr(3).u(1).u(3).u(0)), Status::Ok);                   // ProcessKind 3 is the shell handler since schema 5
     EXPECT_EQ(status(Raw().arr(3).u(0).u(0).u(0)), Status::InvalidArgument);      // version >= 1
     EXPECT_EQ(status(Raw().arr(3).u(65536).u(0).u(0)), Status::InvalidArgument);  // version <= 65535
-    EXPECT_EQ(status(Raw().arr(3).u(1).u(3).u(0)), Status::InvalidArgument);      // ProcessKind 3 is undefined
+    EXPECT_EQ(status(Raw().arr(3).u(1).u(4).u(0)), Status::InvalidArgument);      // ProcessKind 4 is undefined
     EXPECT_EQ(status(Raw().arr(3).u(1).u(65535).u(0)), Status::InvalidArgument);
     EXPECT_EQ(status(Raw().arr(3).u(1).u(65536).u(0)), Status::ProtocolError);    // does not fit the u16 an enum is
     EXPECT_EQ(status(Raw().arr(3).u(1).i(-1).u(0)), Status::ProtocolError);
@@ -1171,6 +1290,147 @@ TEST(ProtocolLimits, OtherReplies) {
     Raw not_bool;
     not_bool.arr(13).u(1).u(17).str("").str("").str("").str("").str("").str("").u(0).u(1).b(true).b(true).u(0);
     EXPECT_EQ(status(not_bool, MessageType::GetDocumentInfo), Status::ProtocolError);
+}
+
+// ---- schema 5: print bands, viewer preferences, the shell handler ---------------------------------
+
+namespace {
+Raw band(std::uint64_t page, std::uint64_t dpi, std::uint64_t rotation, std::uint64_t width, std::uint64_t height, std::uint64_t top,
+         std::uint64_t band_height, std::uint64_t flags, std::uint64_t slot) {
+    Raw r;
+    r.arr(10).u(page).u(dpi).u(rotation).u(width).u(height).u(top).u(band_height).u(flags).u(slot).u(1);
+    return r;
+}
+Status band_status(const Raw& r, std::uint32_t document = 7) { return request_status(request_frame(r, MessageType::RenderBand, 22, document, 1000)); }
+}  // namespace
+
+TEST(ProtocolLimits, RenderBandRequest) {
+    EXPECT_EQ(band_status(band(9999999, 1200, 3, 65536, 65536, 65535, 16384, 7, 1023)), Status::Ok);  // every limit at its edge
+    EXPECT_EQ(band_status(band(0, 72, 0, 1, 1, 0, 1, 0, 0)), Status::Ok);
+    EXPECT_EQ(band_status(band(10000000, 150, 0, 1275, 1650, 0, 256, 5, 1)), Status::InvalidArgument);
+    EXPECT_EQ(band_status(band(0, 71, 0, 1275, 1650, 0, 256, 5, 1)), Status::InvalidArgument);
+    EXPECT_EQ(band_status(band(0, 1201, 0, 1275, 1650, 0, 256, 5, 1)), Status::InvalidArgument);
+    EXPECT_EQ(band_status(band(0, 150, 4, 1275, 1650, 0, 256, 5, 1)), Status::InvalidArgument);
+    EXPECT_EQ(band_status(band(0, 150, 0, 0, 1650, 0, 256, 5, 1)), Status::InvalidArgument);
+    EXPECT_EQ(band_status(band(0, 150, 0, 65537, 1650, 0, 256, 5, 1)), Status::InvalidArgument);
+    EXPECT_EQ(band_status(band(0, 150, 0, 1275, 0, 0, 256, 5, 1)), Status::InvalidArgument);
+    EXPECT_EQ(band_status(band(0, 150, 0, 1275, 65537, 0, 256, 5, 1)), Status::InvalidArgument);
+    EXPECT_EQ(band_status(band(0, 150, 0, 1275, 1650, 65536, 256, 5, 1)), Status::InvalidArgument);
+    EXPECT_EQ(band_status(band(0, 150, 0, 1275, 1650, 0, 0, 5, 1)), Status::InvalidArgument);
+    EXPECT_EQ(band_status(band(0, 150, 0, 1275, 1650, 0, 16385, 5, 1)), Status::InvalidArgument);
+    EXPECT_EQ(band_status(band(0, 150, 0, 1275, 1650, 0, 256, 8, 1)), Status::InvalidArgument);  // the reserved flag bit
+    EXPECT_EQ(band_status(band(0, 150, 0, 1275, 1650, 0, 256, 5, 1024)), Status::InvalidArgument);
+    EXPECT_EQ(band_status(band(0, 150, 0, 1275, 1650, 0, 256, 5, 1), 0), Status::InvalidArgument);  // a band belongs to a document
+    Raw dpi_float;
+    dpi_float.arr(10).u(0).f(150.5f).u(0).u(1275).u(1650).u(0).u(256).u(5).u(1).u(1);
+    EXPECT_EQ(band_status(dpi_float), Status::ProtocolError);
+}
+
+TEST(ProtocolLimits, RenderBandReplyAndViewerPreferencesReply) {
+    const auto reply = [](const Raw& r, MessageType t) { return response_status(response_frame(&r, t)); };
+    EXPECT_EQ(reply(Raw().arr(5).u(1023).u(65536).u(16384).u(262144).u(0), MessageType::RenderBand), Status::Ok);
+    EXPECT_EQ(reply(Raw().arr(5).u(1024).u(1).u(1).u(4).u(0), MessageType::RenderBand), Status::InvalidArgument);
+    EXPECT_EQ(reply(Raw().arr(5).u(0).u(0).u(1).u(4).u(0), MessageType::RenderBand), Status::InvalidArgument);
+    EXPECT_EQ(reply(Raw().arr(5).u(0).u(65537).u(1).u(4).u(0), MessageType::RenderBand), Status::InvalidArgument);
+    EXPECT_EQ(reply(Raw().arr(5).u(0).u(1).u(16385).u(4).u(0), MessageType::RenderBand), Status::InvalidArgument);
+    EXPECT_EQ(reply(Raw().arr(5).u(0).u(1).u(1).u(3).u(0), MessageType::RenderBand), Status::InvalidArgument);
+    EXPECT_EQ(reply(Raw().arr(5).u(0).u(1).u(1).u(262145).u(0), MessageType::RenderBand), Status::InvalidArgument);
+
+    const auto prefs = [&reply](std::uint64_t direction, std::uint64_t scaling, std::uint64_t copies, std::uint64_t duplex, std::size_t firsts, std::size_t lasts,
+                                std::uint64_t last_value = 0) {
+        Raw r;
+        r.arr(6).u(direction).u(scaling).u(copies).u(duplex).arr(firsts);
+        for (std::size_t i = 0; i < firsts; ++i) r.u(0);
+        r.arr(lasts);
+        for (std::size_t i = 0; i < lasts; ++i) r.u(last_value);
+        return reply(r, MessageType::GetViewerPreferences);
+    };
+    EXPECT_EQ(prefs(2, 2, 99, 3, 64, 64, 9999999), Status::Ok);
+    EXPECT_EQ(prefs(3, 0, 0, 0, 0, 0), Status::InvalidArgument);
+    EXPECT_EQ(prefs(0, 3, 0, 0, 0, 0), Status::InvalidArgument);
+    EXPECT_EQ(prefs(0, 0, 100, 0, 0, 0), Status::InvalidArgument);
+    EXPECT_EQ(prefs(0, 0, 0, 4, 0, 0), Status::InvalidArgument);
+    EXPECT_EQ(prefs(0, 0, 0, 0, 65, 65), Status::InvalidArgument);
+    EXPECT_EQ(prefs(0, 0, 0, 0, 2, 1), Status::InvalidArgument);          // the two arrays differ in length
+    EXPECT_EQ(prefs(0, 0, 0, 0, 1, 1, 10000000), Status::InvalidArgument);  // a page past the schema's last
+}
+
+TEST(ProtocolClient, AShellHandlerSpeaksTheShellMessagesWithTheClientHalfOfTheCodec) {
+    // The handler DLL is a client: it encodes requests and decodes replies, the opposite of the engine. One session as the handler would run it.
+    Hello hello;
+    hello.schema_version = kSchemaVersion;
+    hello.process_kind = ProcessKind::ShellHandler;
+    hello.pid = 77;
+    auto sent = encode_request_frame(1, 0, 2000, hello);
+    ASSERT_TRUE(sent.ok());
+    const auto host_sees = decode_request_frame(sent.value);  // what ShellHost reads
+    ASSERT_TRUE(host_sees.ok());
+    EXPECT_EQ(std::get<Hello>(host_sees.value.payload).process_kind, ProcessKind::ShellHandler);
+
+    const auto exchange = [](const RequestPayload& request, MessageType type, const ReplyPayload& reply) {
+        auto out = encode_request_frame(7, 0, 1500, request);
+        ASSERT_TRUE(out.ok()) << out.detail;
+        ASSERT_TRUE(decode_request_frame(out.value).ok());
+        auto in = encode_response_frame(7, Status::Ok, type, &reply);  // what ShellHost answers
+        ASSERT_TRUE(in.ok()) << in.detail;
+        const auto decoded = decode_response_frame(in.value);          // what the handler reads
+        ASSERT_TRUE(decoded.ok()) << decoded.detail;
+        EXPECT_EQ(decoded.value.message_type, type);
+        EXPECT_EQ(decoded.value.request_id, 7u);
+        EXPECT_TRUE(decoded.value.payload == reply);
+    };
+    ShellOpen open;
+    open.file_handle = 5;
+    open.file_size = 1234;
+    ShellOpenReply opened;
+    opened.session_id = 3;
+    opened.page_count = 9;
+    opened.first_width_pt = 612.0f;
+    opened.first_height_pt = 792.0f;
+    exchange(open, MessageType::ShellOpen, opened);
+    ShellRenderPage render;
+    render.session_id = 3;
+    render.max_width = 256;
+    render.max_height = 256;
+    render.section = 9;
+    render.section_bytes = 262144;
+    ShellRenderPageReply rendered;
+    rendered.width = 198;
+    rendered.height = 256;
+    rendered.stride = 792;
+    exchange(render, MessageType::ShellRenderPage, rendered);
+    ShellClose close;
+    close.session_id = 3;
+    exchange(close, MessageType::ShellClose, ShellCloseReply{});
+
+    // The client refuses to send what the host would refuse: a picture bigger than the section, a flag that does not exist, a document id.
+    render.max_width = 4097;
+    EXPECT_EQ(encode_request_frame(8, 0, 0, render).status, Status::InvalidArgument);
+    render.max_width = 256;
+    render.flags = 2;
+    EXPECT_EQ(encode_request_frame(8, 0, 0, render).status, Status::InvalidArgument);
+    render.flags = 0;
+    EXPECT_EQ(encode_request_frame(8, 5, 0, render).status, Status::InvalidArgument);
+    // And it refuses a reply that lies: a stride that is not a row of pixels.
+    rendered.stride = 3;
+    const ReplyPayload lie = rendered;
+    EXPECT_EQ(encode_response_frame(7, Status::Ok, MessageType::ShellRenderPage, &lie).status, Status::InvalidArgument);
+}
+
+TEST(ProtocolPong, CarriesTheProgressCounterAndOnlyAsAnUnsignedInteger) {
+    Pong pong;
+    pong.nonce = 9;
+    pong.progress = ~0ull;  // wraps; compared for change only
+    const ReplyPayload payload = pong;
+    auto frame = encode_response_frame(1, Status::Ok, MessageType::Ping, &payload);
+    ASSERT_TRUE(frame.ok());
+    const auto decoded = decode_response_frame(frame.value);
+    ASSERT_TRUE(decoded.ok());
+    EXPECT_EQ(std::get<Pong>(*decoded.value.payload).progress, ~0ull);
+    // The schema 4 layout, one field, is no longer a Pong.
+    Raw old_layout;
+    old_layout.arr(1).u(9);
+    EXPECT_EQ(response_status(response_frame(&old_layout, MessageType::Ping)), Status::ProtocolError);
 }
 
 // ---- golden vectors shared with the C# tests ---------------------------------------------------

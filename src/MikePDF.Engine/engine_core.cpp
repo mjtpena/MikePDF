@@ -78,6 +78,12 @@ Reply EngineCore::cancel_before(std::uint32_t document_id, std::uint64_t generat
 }
 
 Reply EngineCore::execute(protocol::RequestEnvelope& request, Clock::time_point deadline) {
+    // A request that starts and a request that ends are progress; so is every poll for an interrupt in between (see progress()).
+    struct EndTick {
+        EngineCore& core;
+        ~EndTick() { core.tick(); }
+    } end_tick{*this};
+    tick();
     switch (request.message_type) {
         case protocol::MessageType::OpenDocument:
             return open_document(std::get<protocol::OpenDocument>(request.payload), deadline);
@@ -92,6 +98,8 @@ Reply EngineCore::execute(protocol::RequestEnvelope& request, Clock::time_point 
         case protocol::MessageType::GetPageText:
         case protocol::MessageType::SearchPage:
         case protocol::MessageType::GetDocumentDetails:
+        case protocol::MessageType::GetViewerPreferences:
+        case protocol::MessageType::RenderBand:
         case protocol::MessageType::RenderTile: {
             if (Clock::now() >= deadline) {
                 return status_only(Status::Timeout);
@@ -102,6 +110,13 @@ Reply EngineCore::execute(protocol::RequestEnvelope& request, Clock::time_point 
             }
             if (request.message_type == protocol::MessageType::GetDocumentInfo) {
                 return get_info(*entry);
+            }
+            if (request.message_type == protocol::MessageType::GetViewerPreferences) {
+                auto preferences = entry->document.viewer_preferences();
+                return preferences.ok() ? ok_with(std::move(preferences.value)) : status_only(preferences.status);
+            }
+            if (request.message_type == protocol::MessageType::RenderBand) {
+                return render_band(*entry, std::get<protocol::RenderBand>(request.payload), deadline);
             }
             if (request.message_type == protocol::MessageType::GetDocumentDetails) {
                 return get_details(*entry, deadline);
@@ -196,7 +211,10 @@ Reply EngineCore::get_info(Entry& entry) {
 Reply EngineCore::get_details(Entry& entry, Clock::time_point deadline) {
     constexpr std::uint32_t kFontPages = 100;
     const Clock::time_point stop = std::min(deadline, Clock::now() + std::chrono::milliseconds(1500));
-    auto details = entry.document.details(kFontPages, [stop] { return Clock::now() >= stop; });
+    auto details = entry.document.details(kFontPages, [this, stop] {
+        tick();
+        return Clock::now() >= stop;
+    });
     if (!details.ok()) {
         return status_only(details.status);
     }
@@ -240,7 +258,10 @@ Reply EngineCore::read_page_data(Entry& entry, protocol::RequestEnvelope& reques
         }
         case protocol::MessageType::SearchPage: {
             const auto& r = std::get<protocol::SearchPage>(request.payload);
-            auto result = entry.document.search_page(r.page, r.query, r.flags, [deadline] { return Clock::now() >= deadline; });
+            auto result = entry.document.search_page(r.page, r.query, r.flags, [this, deadline] {
+                tick();
+                return Clock::now() >= deadline;
+            });
             return result.ok() ? ok_with(std::move(result.value)) : status_only(result.status);
         }
         default:
@@ -250,6 +271,7 @@ Reply EngineCore::read_page_data(Entry& entry, protocol::RequestEnvelope& reques
 
 Reply EngineCore::render_tile(Entry& entry, const protocol::RenderTile& request, Clock::time_point deadline) {
     const auto interrupt = [&]() noexcept {
+        tick();  // PDFium is alive and polling
         if (request.generation < entry.cancel_before.load(std::memory_order_acquire)) {
             return pdfium::RenderInterrupt::Cancel;
         }
@@ -283,6 +305,47 @@ Reply EngineCore::render_tile(Entry& entry, const protocol::RenderTile& request,
     reply.slot_index = request.slot_index;
     reply.width = request.tile_width;
     reply.height = request.tile_height;
+    reply.stride = static_cast<std::uint32_t>(stride);
+    reply.generation = request.generation;
+    return {status, protocol::ReplyPayload{reply}};
+}
+
+// A band for printing (schema 5). Like a tile, it is cancelled by generation and by its deadline, and written straight into a slot the broker reads.
+Reply EngineCore::render_band(Entry& entry, const protocol::RenderBand& request, Clock::time_point deadline) {
+    const auto interrupt = [&]() noexcept {
+        tick();
+        if (request.generation < entry.cancel_before.load(std::memory_order_acquire)) {
+            return pdfium::RenderInterrupt::Cancel;
+        }
+        return Clock::now() >= deadline ? pdfium::RenderInterrupt::Timeout : pdfium::RenderInterrupt::None;
+    };
+    if (interrupt() == pdfium::RenderInterrupt::Cancel) {
+        return status_only(Status::Cancelled);
+    }
+
+    // The same rule as for a tile: the slot is memory the broker reads, so the whole band must fit before PDFium is given a pointer.
+    const std::span<std::uint8_t> slot = slots().slot(request.slot_index);
+    const std::uint64_t stride = std::uint64_t{request.page_width_px} * 4;
+    if (slot.empty() || stride * request.band_height > slot.size()) {
+        return status_only(Status::InvalidArgument);
+    }
+
+    pdfium::BandRequest band;
+    band.page = request.page;
+    band.rotation = request.rotation;
+    band.page_width_px = request.page_width_px;
+    band.page_height_px = request.page_height_px;
+    band.band_top = request.band_top;
+    band.band_height = request.band_height;
+    band.flags = request.flags;
+    const Status status = entry.document.render_band(band, slot, static_cast<std::uint32_t>(stride), interrupt);
+    if (status != Status::Ok && status != Status::PartiallyRendered) {
+        return status_only(status);
+    }
+    protocol::RenderBandReply reply;
+    reply.slot_index = request.slot_index;
+    reply.width = request.page_width_px;
+    reply.height = request.band_height;
     reply.stride = static_cast<std::uint32_t>(stride);
     reply.generation = request.generation;
     return {status, protocol::ReplyPayload{reply}};

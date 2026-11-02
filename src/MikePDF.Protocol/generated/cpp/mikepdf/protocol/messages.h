@@ -68,6 +68,8 @@ struct Ping {
 struct Pong {
     static constexpr MessageType kMessageType = MessageType::Ping;
     std::uint64_t nonce{};
+    /// Units of work the peer's work thread has done so far: it counts up, wraps at 2^64, and is compared for change only. 0 and a constant mean nothing happened; hosts that do all their work on the I/O thread report 0.
+    std::uint64_t progress{};
 
     /// Checks every schema limit.
     [[nodiscard]] Status validate() const;
@@ -550,6 +552,40 @@ struct GetDocumentDetailsReply {
     bool operator==(const GetDocumentDetailsReply&) const = default;
 };
 
+/// Request payload of GetViewerPreferences (message type 28).
+struct GetViewerPreferences {
+    static constexpr MessageType kMessageType = MessageType::GetViewerPreferences;
+
+    /// Checks every schema limit.
+    [[nodiscard]] Status validate() const;
+    /// Validates, then writes the payload array. Writes nothing if validation fails.
+    [[nodiscard]] Status encode(Writer& writer) const;
+    /// Reads and fully validates one payload. The value is default-constructed on failure.
+    [[nodiscard]] static Result<GetViewerPreferences> decode(Reader& reader);
+
+    bool operator==(const GetViewerPreferences&) const = default;
+};
+
+/// Reply payload of GetViewerPreferences (message type 28).
+struct GetViewerPreferencesReply {
+    static constexpr MessageType kMessageType = MessageType::GetViewerPreferences;
+    std::uint16_t direction{};
+    std::uint16_t print_scaling{};
+    std::uint16_t num_copies{};
+    std::uint16_t duplex{};
+    std::vector<std::uint32_t> range_firsts{};
+    std::vector<std::uint32_t> range_lasts{};
+
+    /// Checks every schema limit.
+    [[nodiscard]] Status validate() const;
+    /// Validates, then writes the payload array. Writes nothing if validation fails.
+    [[nodiscard]] Status encode(Writer& writer) const;
+    /// Reads and fully validates one payload. The value is default-constructed on failure.
+    [[nodiscard]] static Result<GetViewerPreferencesReply> decode(Reader& reader);
+
+    bool operator==(const GetViewerPreferencesReply&) const = default;
+};
+
 /// Request payload of RenderTile (message type 32).
 struct RenderTile {
     static constexpr MessageType kMessageType = MessageType::RenderTile;
@@ -623,6 +659,50 @@ struct CancelBeforeReply {
     bool operator==(const CancelBeforeReply&) const = default;
 };
 
+/// Request payload of RenderBand (message type 34).
+struct RenderBand {
+    static constexpr MessageType kMessageType = MessageType::RenderBand;
+    std::uint32_t page{};
+    std::uint32_t dpi{};
+    std::uint16_t rotation{};
+    std::uint32_t page_width_px{};
+    std::uint32_t page_height_px{};
+    std::uint32_t band_top{};
+    std::uint32_t band_height{};
+    /// Bit 0 annotations, bit 1 form fields, bit 2 printing mode.
+    std::uint32_t flags{};
+    std::uint32_t slot_index{};
+    std::uint64_t generation{};
+
+    /// Checks every schema limit.
+    [[nodiscard]] Status validate() const;
+    /// Validates, then writes the payload array. Writes nothing if validation fails.
+    [[nodiscard]] Status encode(Writer& writer) const;
+    /// Reads and fully validates one payload. The value is default-constructed on failure.
+    [[nodiscard]] static Result<RenderBand> decode(Reader& reader);
+
+    bool operator==(const RenderBand&) const = default;
+};
+
+/// Reply payload of RenderBand (message type 34).
+struct RenderBandReply {
+    static constexpr MessageType kMessageType = MessageType::RenderBand;
+    std::uint32_t slot_index{};
+    std::uint32_t width{};
+    std::uint32_t height{};
+    std::uint32_t stride{};
+    std::uint64_t generation{};
+
+    /// Checks every schema limit.
+    [[nodiscard]] Status validate() const;
+    /// Validates, then writes the payload array. Writes nothing if validation fails.
+    [[nodiscard]] Status encode(Writer& writer) const;
+    /// Reads and fully validates one payload. The value is default-constructed on failure.
+    [[nodiscard]] static Result<RenderBandReply> decode(Reader& reader);
+
+    bool operator==(const RenderBandReply&) const = default;
+};
+
 /// Request payload of ValidateStructure (message type 1024).
 struct ValidateStructure {
     static constexpr MessageType kMessageType = MessageType::ValidateStructure;
@@ -657,8 +737,109 @@ struct ValidateStructureReply {
     bool operator==(const ValidateStructureReply&) const = default;
 };
 
-using RequestPayload = std::variant<Hello, Ping, Shutdown, AttachSlotRing, OpenDocument, CloseDocument, GetDocumentInfo, GetPageSizes, GetOutline, GetPageLinks, GetLinkUri, GetPageBoxes, GetPageText, SearchPage, GetDocumentDetails, RenderTile, CancelBefore, ValidateStructure>;
-using ReplyPayload = std::variant<HelloReply, Pong, ShutdownReply, AttachSlotRingReply, OpenDocumentReply, CloseDocumentReply, GetDocumentInfoReply, GetPageSizesReply, GetOutlineReply, GetPageLinksReply, GetLinkUriReply, GetPageBoxesReply, GetPageTextReply, SearchPageReply, GetDocumentDetailsReply, RenderTileReply, CancelBeforeReply, ValidateStructureReply>;
+/// Request payload of ShellOpen (message type 2048).
+struct ShellOpen {
+    static constexpr MessageType kMessageType = MessageType::ShellOpen;
+    std::uint64_t file_handle{};
+    std::uint64_t file_size{};
+
+    /// Checks every schema limit.
+    [[nodiscard]] Status validate() const;
+    /// Validates, then writes the payload array. Writes nothing if validation fails.
+    [[nodiscard]] Status encode(Writer& writer) const;
+    /// Reads and fully validates one payload. The value is default-constructed on failure.
+    [[nodiscard]] static Result<ShellOpen> decode(Reader& reader);
+
+    bool operator==(const ShellOpen&) const = default;
+};
+
+/// Reply payload of ShellOpen (message type 2048).
+struct ShellOpenReply {
+    static constexpr MessageType kMessageType = MessageType::ShellOpen;
+    std::uint32_t session_id{};
+    std::uint32_t page_count{};
+    float first_width_pt{};
+    float first_height_pt{};
+
+    /// Checks every schema limit.
+    [[nodiscard]] Status validate() const;
+    /// Validates, then writes the payload array. Writes nothing if validation fails.
+    [[nodiscard]] Status encode(Writer& writer) const;
+    /// Reads and fully validates one payload. The value is default-constructed on failure.
+    [[nodiscard]] static Result<ShellOpenReply> decode(Reader& reader);
+
+    bool operator==(const ShellOpenReply&) const = default;
+};
+
+/// Request payload of ShellRenderPage (message type 2049).
+struct ShellRenderPage {
+    static constexpr MessageType kMessageType = MessageType::ShellRenderPage;
+    std::uint32_t session_id{};
+    std::uint32_t page{};
+    std::uint32_t max_width{};
+    std::uint32_t max_height{};
+    std::uint32_t flags{};
+    std::uint64_t section{};
+    std::uint32_t section_bytes{};
+
+    /// Checks every schema limit.
+    [[nodiscard]] Status validate() const;
+    /// Validates, then writes the payload array. Writes nothing if validation fails.
+    [[nodiscard]] Status encode(Writer& writer) const;
+    /// Reads and fully validates one payload. The value is default-constructed on failure.
+    [[nodiscard]] static Result<ShellRenderPage> decode(Reader& reader);
+
+    bool operator==(const ShellRenderPage&) const = default;
+};
+
+/// Reply payload of ShellRenderPage (message type 2049).
+struct ShellRenderPageReply {
+    static constexpr MessageType kMessageType = MessageType::ShellRenderPage;
+    std::uint32_t width{};
+    std::uint32_t height{};
+    std::uint32_t stride{};
+
+    /// Checks every schema limit.
+    [[nodiscard]] Status validate() const;
+    /// Validates, then writes the payload array. Writes nothing if validation fails.
+    [[nodiscard]] Status encode(Writer& writer) const;
+    /// Reads and fully validates one payload. The value is default-constructed on failure.
+    [[nodiscard]] static Result<ShellRenderPageReply> decode(Reader& reader);
+
+    bool operator==(const ShellRenderPageReply&) const = default;
+};
+
+/// Request payload of ShellClose (message type 2050).
+struct ShellClose {
+    static constexpr MessageType kMessageType = MessageType::ShellClose;
+    std::uint32_t session_id{};
+
+    /// Checks every schema limit.
+    [[nodiscard]] Status validate() const;
+    /// Validates, then writes the payload array. Writes nothing if validation fails.
+    [[nodiscard]] Status encode(Writer& writer) const;
+    /// Reads and fully validates one payload. The value is default-constructed on failure.
+    [[nodiscard]] static Result<ShellClose> decode(Reader& reader);
+
+    bool operator==(const ShellClose&) const = default;
+};
+
+/// Reply payload of ShellClose (message type 2050).
+struct ShellCloseReply {
+    static constexpr MessageType kMessageType = MessageType::ShellClose;
+
+    /// Checks every schema limit.
+    [[nodiscard]] Status validate() const;
+    /// Validates, then writes the payload array. Writes nothing if validation fails.
+    [[nodiscard]] Status encode(Writer& writer) const;
+    /// Reads and fully validates one payload. The value is default-constructed on failure.
+    [[nodiscard]] static Result<ShellCloseReply> decode(Reader& reader);
+
+    bool operator==(const ShellCloseReply&) const = default;
+};
+
+using RequestPayload = std::variant<Hello, Ping, Shutdown, AttachSlotRing, OpenDocument, CloseDocument, GetDocumentInfo, GetPageSizes, GetOutline, GetPageLinks, GetLinkUri, GetPageBoxes, GetPageText, SearchPage, GetDocumentDetails, GetViewerPreferences, RenderTile, CancelBefore, RenderBand, ValidateStructure, ShellOpen, ShellRenderPage, ShellClose>;
+using ReplyPayload = std::variant<HelloReply, Pong, ShutdownReply, AttachSlotRingReply, OpenDocumentReply, CloseDocumentReply, GetDocumentInfoReply, GetPageSizesReply, GetOutlineReply, GetPageLinksReply, GetLinkUriReply, GetPageBoxesReply, GetPageTextReply, SearchPageReply, GetDocumentDetailsReply, GetViewerPreferencesReply, RenderTileReply, CancelBeforeReply, RenderBandReply, ValidateStructureReply, ShellOpenReply, ShellRenderPageReply, ShellCloseReply>;
 
 /// Decode the payload of a request or reply of the given type. An unknown type is a ProtocolError.
 [[nodiscard]] Result<RequestPayload> decode_request_payload(MessageType type, Reader& reader);

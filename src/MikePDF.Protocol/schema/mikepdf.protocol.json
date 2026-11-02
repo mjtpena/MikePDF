@@ -9,7 +9,7 @@
     "Messages have no nesting: variable-size collections are parallel arrays tied together with sameLengthAs.",
     "Every variable-size field has a limit and the generator rejects a schema in which any legal message cannot fit in one frame."
   ],
-  "schemaVersion": 4,
+  "schemaVersion": 5,
   "envelope": { "maxFrameBytes": 65536, "maxDeadlineMs": 86400000 },
 
   "enums": [
@@ -37,7 +37,8 @@
       "values": [
         { "name": "Broker", "value": 0 },
         { "name": "Engine", "value": 1 },
-        { "name": "WriterHost", "value": 2 }
+        { "name": "WriterHost", "value": 2 },
+        { "name": "ShellHandler", "value": 3, "$comment": "The native thumbnail provider or preview handler DLL in Explorer's process (docs/features/shell-extensions.md). It is only ever a client: it sends Hello to ShellHost and no peer sends it a request, so no engine or host serves this kind." }
       ]
     }
   ],
@@ -63,8 +64,15 @@
     },
     {
       "id": 2, "name": "Ping", "documentId": "none",
+      "$comment": "Pong carries the peer's progress counter (schema 5). It is answered by the I/O thread, so it keeps coming while the thread that does the work is busy or stuck; what moves is the counter, which that thread bumps whenever it makes progress. The broker kills an engine on a missed pong (the I/O thread is gone) or on a request that is overdue while the counter has stood still for the stall timeout (the work thread is stuck), never on a request that is merely slow while the counter moves. See docs/adr/0004 amendment A3.",
       "request": { "type": "Ping", "fields": [ { "key": 0, "name": "nonce", "type": "u64" } ] },
-      "reply": { "type": "Pong", "fields": [ { "key": 0, "name": "nonce", "type": "u64" } ] }
+      "reply": {
+        "type": "Pong",
+        "fields": [
+          { "key": 0, "name": "nonce", "type": "u64" },
+          { "key": 1, "name": "progress", "type": "u64", "doc": "Units of work the peer's work thread has done so far: it counts up, wraps at 2^64, and is compared for change only. 0 and a constant mean nothing happened; hosts that do all their work on the I/O thread report 0." }
+        ]
+      }
     },
     {
       "id": 3, "name": "Shutdown", "documentId": "none",
@@ -294,6 +302,22 @@
       }
     },
     {
+      "id": 28, "name": "GetViewerPreferences", "documentId": "required",
+      "$comment": "The /ViewerPreferences the reader and the print dialog use (schema 5). docs/features/print.md calls it id 26, which GetDocumentDetails took in schema 4. Every value is a clamped, bounded reading of what the file says, never the raw entry: a hostile or ill-typed entry reads as absent. direction: the reading direction (/Direction), 0 left to right, 1 right to left, 2 absent. printScaling: 0 absent, 1 none (/PrintScaling /None), 2 the application default (/AppDefault). numCopies: /NumCopies from 1 to 99, 0 when absent or outside that. duplex: 0 absent, 1 simplex, 2 flip short edge, 3 flip long edge. The print page ranges are zero-based inclusive pairs (/PrintPageRange is 1-based in the file) in file order, at most 64, each first <= last and inside the document.",
+      "request": { "type": "GetViewerPreferences", "fields": [] },
+      "reply": {
+        "type": "GetViewerPreferencesReply",
+        "fields": [
+          { "key": 0, "name": "direction", "type": "u16", "max": 2 },
+          { "key": 1, "name": "printScaling", "type": "u16", "max": 2 },
+          { "key": 2, "name": "numCopies", "type": "u16", "max": 99 },
+          { "key": 3, "name": "duplex", "type": "u16", "max": 3 },
+          { "key": 4, "name": "rangeFirsts", "type": "array", "of": "u32", "maxCount": 64, "max": 9999999 },
+          { "key": 5, "name": "rangeLasts", "type": "array", "of": "u32", "maxCount": 64, "max": 9999999, "sameLengthAs": "rangeFirsts" }
+        ]
+      }
+    },
+    {
       "id": 32, "name": "RenderTile", "documentId": "required",
       "request": {
         "type": "RenderTile",
@@ -327,6 +351,35 @@
       "reply": { "type": "CancelBeforeReply", "fields": [] }
     },
     {
+      "id": 34, "name": "RenderBand", "documentId": "required",
+      "$comment": "A horizontal band of a page for printing (ADR-0011, docs/features/print.md 11). RenderTile stays limited to 1024 px for the viewing path; a band is as wide as the page at the printer's resolution, so it has its own limits, its own semantic checks and its own fuzz target. The page is laid out at pageWidthPx x pageHeightPx device pixels (the broker computed them from dpi, the page size and the rotation) and the band is the rows bandTop to bandTop + bandHeight of that, drawn into the slot as BGRA over white with stride 4 x pageWidthPx. The engine and the broker both check that pageWidthPx x bandHeight x 4 fits the slot and that the band lies inside the page. flags: bit 0 annotations, bit 1 form fields, bit 2 printing mode (PDFium's FPDF_PRINTING: no screen-only annotations, no LCD text). The reserved bit 3 is not allowed: max 7.",
+      "request": {
+        "type": "RenderBand",
+        "fields": [
+          { "key": 0, "name": "page", "type": "u32", "max": 9999999 },
+          { "key": 1, "name": "dpi", "type": "u32", "min": 72, "max": 1200 },
+          { "key": 2, "name": "rotation", "type": "u16", "max": 3 },
+          { "key": 3, "name": "pageWidthPx", "type": "u32", "min": 1, "max": 65536 },
+          { "key": 4, "name": "pageHeightPx", "type": "u32", "min": 1, "max": 65536 },
+          { "key": 5, "name": "bandTop", "type": "u32", "max": 65535 },
+          { "key": 6, "name": "bandHeight", "type": "u32", "min": 1, "max": 16384 },
+          { "key": 7, "name": "flags", "type": "u32", "max": 7, "doc": "Bit 0 annotations, bit 1 form fields, bit 2 printing mode." },
+          { "key": 8, "name": "slotIndex", "type": "u32", "max": 1023 },
+          { "key": 9, "name": "generation", "type": "u64" }
+        ]
+      },
+      "reply": {
+        "type": "RenderBandReply",
+        "fields": [
+          { "key": 0, "name": "slotIndex", "type": "u32", "max": 1023 },
+          { "key": 1, "name": "width", "type": "u32", "min": 1, "max": 65536 },
+          { "key": 2, "name": "height", "type": "u32", "min": 1, "max": 16384 },
+          { "key": 3, "name": "stride", "type": "u32", "min": 4, "max": 262144 },
+          { "key": 4, "name": "generation", "type": "u64" }
+        ]
+      }
+    },
+    {
       "id": 1024, "name": "ValidateStructure", "documentId": "none",
       "$comment": "MikePDF.WriterHost only. 256 issues of at most 192 message bytes fit one frame (512-byte messages would not).",
       "request": {
@@ -342,6 +395,55 @@
           { "key": 3, "name": "issueMessages", "type": "array", "of": "string", "maxCount": 256, "maxBytes": 192, "sameLengthAs": "issueCodes" }
         ]
       }
+    },
+    {
+      "id": 2048, "name": "ShellOpen", "documentId": "none",
+      "$comment": "MikePDF.ShellHost only (schema 5), and only if spike S6b chooses its candidate A: a pipe between the thumbnail provider or preview handler DLL (ProcessKind ShellHandler) and an on-demand ShellHost. The three Shell messages are in the schema now because the handler's C++ client codecs come from the generator; they say nothing about the transport, and if S6b picks a different one they are removed or changed under the next schema version, which nothing else depends on. Field limits are docs/features/shell-extensions.md 11. fileHandle is a handle value valid in ShellHost, duplicated there by the handler; fileSize is informational and checked against the handle.",
+      "request": {
+        "type": "ShellOpen",
+        "fields": [
+          { "key": 0, "name": "fileHandle", "type": "u64", "min": 1 },
+          { "key": 1, "name": "fileSize", "type": "u64", "max": 1099511627776 }
+        ]
+      },
+      "reply": {
+        "type": "ShellOpenReply",
+        "fields": [
+          { "key": 0, "name": "sessionId", "type": "u32", "min": 1 },
+          { "key": 1, "name": "pageCount", "type": "u32", "max": 10000000 },
+          { "key": 2, "name": "firstWidthPt", "type": "f32", "exclusiveMin": 0, "max": 14400 },
+          { "key": 3, "name": "firstHeightPt", "type": "f32", "exclusiveMin": 0, "max": 14400 }
+        ]
+      }
+    },
+    {
+      "id": 2049, "name": "ShellRenderPage", "documentId": "none",
+      "$comment": "Renders one page to fit maxWidth x maxHeight into a section the handler made and duplicated into ShellHost. flags: bit 0 draw annotations, nothing else is allowed (max 1). sectionBytes is at most maxWidth x maxHeight x 4 and at most 64 MiB; ShellHost checks that against the section. The pixels are in the section; the reply says how much of it is the picture (stride is 4 x width).",
+      "request": {
+        "type": "ShellRenderPage",
+        "fields": [
+          { "key": 0, "name": "sessionId", "type": "u32", "min": 1 },
+          { "key": 1, "name": "page", "type": "u32", "max": 9999999 },
+          { "key": 2, "name": "maxWidth", "type": "u32", "min": 1, "max": 4096 },
+          { "key": 3, "name": "maxHeight", "type": "u32", "min": 1, "max": 4096 },
+          { "key": 4, "name": "flags", "type": "u32", "max": 1 },
+          { "key": 5, "name": "section", "type": "u64", "min": 1 },
+          { "key": 6, "name": "sectionBytes", "type": "u32", "min": 4, "max": 67108864 }
+        ]
+      },
+      "reply": {
+        "type": "ShellRenderPageReply",
+        "fields": [
+          { "key": 0, "name": "width", "type": "u32", "min": 1, "max": 4096 },
+          { "key": 1, "name": "height", "type": "u32", "min": 1, "max": 4096 },
+          { "key": 2, "name": "stride", "type": "u32", "min": 4, "max": 16384 }
+        ]
+      }
+    },
+    {
+      "id": 2050, "name": "ShellClose", "documentId": "none",
+      "request": { "type": "ShellClose", "fields": [ { "key": 0, "name": "sessionId", "type": "u32", "min": 1 } ] },
+      "reply": { "type": "ShellCloseReply", "fields": [] }
     }
   ]
 }
