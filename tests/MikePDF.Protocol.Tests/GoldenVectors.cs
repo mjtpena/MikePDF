@@ -342,6 +342,43 @@ public static class GoldenVectors
         Rsp("search_start_200000", Reply(new SearchPageReply { Truncated = false, Starts = [200000], Lengths = [1] }, MessageType.SearchPage), Invalid);
         Rsp("search_2049_matches", Reply(new SearchPageReply { Truncated = true, Starts = new uint[2049], Lengths = Enumerable.Repeat(1u, 2049).ToArray() }, MessageType.SearchPage), Invalid);
 
+        // GetDocumentDetails (schema 4).
+        Req("document_details_without_a_document", RawFrame.Request(Items(), MessageType.GetDocumentDetails, 20, 0), Invalid);
+        Req("document_details_with_a_field", RawFrame.Request(Items(1u), MessageType.GetDocumentDetails, 20, 7), Protocol);
+        Rsp("details_date_65_bytes", Reply(new GetDocumentDetailsReply { CreationDate = new string('d', 65), ModificationDate = "", FontNames = [], FontFlags = [] }, MessageType.GetDocumentDetails), Invalid);
+        Rsp("details_modification_date_65_bytes", Reply(new GetDocumentDetailsReply { CreationDate = "", ModificationDate = new string('d', 65), FontNames = [], FontFlags = [] }, MessageType.GetDocumentDetails), Invalid);
+        Rsp("details_revision_256", Reply(new GetDocumentDetailsReply { CreationDate = "", ModificationDate = "", SecurityRevision = 256, FontNames = [], FontFlags = [] }, MessageType.GetDocumentDetails), Invalid);
+        Rsp("details_form_type_4", Reply(new GetDocumentDetailsReply { CreationDate = "", ModificationDate = "", FormType = 4, FontNames = [], FontFlags = [] }, MessageType.GetDocumentDetails), Invalid);
+        Rsp("details_65_fonts", Reply(new GetDocumentDetailsReply
+        {
+            CreationDate = "", ModificationDate = "", FontNames = [.. Enumerable.Repeat("F", 65)], FontFlags = new ushort[65],
+        }, MessageType.GetDocumentDetails), Invalid);
+        Rsp("details_font_name_129_bytes", Reply(new GetDocumentDetailsReply { CreationDate = "", ModificationDate = "", FontNames = [new string('f', 129)], FontFlags = [0] }, MessageType.GetDocumentDetails), Invalid);
+        Rsp("details_font_flags_2", Reply(new GetDocumentDetailsReply { CreationDate = "", ModificationDate = "", FontNames = ["F"], FontFlags = [2] }, MessageType.GetDocumentDetails), Invalid);
+        Rsp("details_font_arrays_differ_in_length", Reply(new GetDocumentDetailsReply { CreationDate = "", ModificationDate = "", FontNames = ["A", "B"], FontFlags = [0] }, MessageType.GetDocumentDetails), Invalid);
+        Rsp("details_pages_scanned_10000001", Reply(new GetDocumentDetailsReply { CreationDate = "", ModificationDate = "", FontNames = [], FontFlags = [], FontPagesScanned = 10000001 }, MessageType.GetDocumentDetails), Invalid);
+        Rsp("details_date_invalid_utf8", RawFrame.Response(
+            (ref MessagePackWriter w) =>
+            {
+                w.WriteArrayHeader(9);
+                w.WriteRaw(RawString(0xFF, 0xFE)); w.Write("");
+                w.Write(0u); w.Write(0u); w.Write(0u);
+                w.WriteArrayHeader(0); w.WriteArrayHeader(0);
+                w.Write(true); w.Write(0u);
+            },
+            MessageType.GetDocumentDetails), Protocol);
+        Rsp("details_font_name_nil", RawFrame.Response(
+            (ref MessagePackWriter w) =>
+            {
+                w.WriteArrayHeader(9);
+                w.Write(""); w.Write("");
+                w.Write(0u); w.Write(0u); w.Write(0u);
+                w.WriteArrayHeader(1); w.WriteNil();
+                w.WriteArrayHeader(1); w.Write((ushort)0);
+                w.Write(true); w.Write(0u);
+            },
+            MessageType.GetDocumentDetails), Protocol);
+
         return v;
     }
 }

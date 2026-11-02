@@ -233,9 +233,11 @@ internal sealed partial class DocumentSession
             return;
         }
 
+        var before = HistoryMark.Take(this);
         if (destination.Kind == DestinationKind.Page || _readingStore is null)
         {
             GoToPage(destination.Page);
+            RecordJump(before, null);
             return;
         }
 
@@ -248,6 +250,7 @@ internal sealed partial class DocumentSession
         if (!geometry.IsOk)
         {
             GoToPage(destination.Page);
+            RecordJump(before, null);
             return;
         }
 
@@ -255,6 +258,7 @@ internal sealed partial class DocumentSession
         var x = destination.HasX ? destination.X : g.Box.Left;
         var point = g.PdfToPage(new PointD(x, destination.Y));
         Change(() => Controller.GoToPoint(destination.Page, point, destination.HasX));
+        RecordJump(before, null);
     }
 
     /// <summary>Scrolls just enough to bring a box of a page (page space) into view: not at all if it is already there, otherwise to the middle of the viewport.</summary>
@@ -370,8 +374,22 @@ internal sealed partial class DocumentSession
     public FindSession StartFind(SearchOptions options)
     {
         CancelFind();
+        _history.ResetKey();
         var store = _readingStore ?? throw new InvalidOperationException("No document is open.");
-        var session = new FindSession(store.Reader, store.PageCount, options, Math.Max(0, Controller.CurrentPage));
+        ISearchSource source = store.Reader;
+        if (options.UseRegex)
+        {
+            // A regular expression is matched here, over the characters already read for each page (the engine never sees it).
+            var compiled = RegexQuery.TryCompile(options.Query, options.MatchCase);
+            if (!compiled.IsOk)
+            {
+                throw new ArgumentException("The pattern is not one that can be searched for: " + compiled.Problem, nameof(options));
+            }
+
+            source = new RegexSearchSource((page, token) => store.Characters.GetAsync(page, token), compiled.Regex!);
+        }
+
+        var session = new FindSession(source, store.PageCount, options, Math.Max(0, Controller.CurrentPage));
         session.Changed += () => _ui.TryEnqueue(() =>
         {
             if (ReferenceEquals(_find, session) && !_disposed)
@@ -407,6 +425,7 @@ internal sealed partial class DocumentSession
         }
 
         FoundMatch? match;
+        var before = HistoryMark.Take(this);
         try
         {
             match = forward ? await find.NextAsync().ConfigureAwait(true) : find.Previous();
@@ -440,8 +459,20 @@ internal sealed partial class DocumentSession
             GoToPage(found.Page);
         }
 
+        RecordJump(before, "find:" + System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(find).ToString(System.Globalization.CultureInfo.InvariantCulture));
         OverlaysChanged?.Invoke();
         return true;
+    }
+
+    /// <summary>The properties dialog's data from the document (the file size and page size are the window's to add).</summary>
+    public async Task<ReadReply<DocumentProperties>> GetPropertiesAsync(CancellationToken cancellationToken)
+    {
+        if (_readingStore is not { } store || _disposed)
+        {
+            return ReadReply.Fail<DocumentProperties>(MikePDF.Protocol.Status.InvalidArgument, "No document is open.");
+        }
+
+        return await store.Reader.GetPropertiesAsync(cancellationToken).ConfigureAwait(true);
     }
 
     /// <summary>The boxes of every match on a page (page space), empty until the page's characters and geometry are loaded (then <see cref="OverlaysChanged"/> is raised).</summary>

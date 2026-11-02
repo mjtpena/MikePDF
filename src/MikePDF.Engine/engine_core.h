@@ -47,7 +47,7 @@ public:
     [[nodiscard]] Reply attach_slot_ring(const protocol::AttachSlotRing& request);
 
     /// OpenDocument, CloseDocument, GetDocumentInfo, GetPageSizes, RenderTile and the reading services (GetOutline, GetPageLinks,
-    /// GetLinkUri, GetPageBoxes, GetPageText, SearchPage). Anything else is InvalidArgument.
+    /// GetLinkUri, GetPageBoxes, GetPageText, SearchPage) and GetDocumentDetails. Anything else is InvalidArgument.
     /// `deadline` is when the request's budget runs out (time_point::max() for none). The OpenDocument password is wiped
     /// from `request` once it has been used.
     [[nodiscard]] Reply execute(protocol::RequestEnvelope& request, Clock::time_point deadline);
@@ -70,6 +70,7 @@ private:
     [[nodiscard]] Reply open_document(protocol::OpenDocument& request, Clock::time_point deadline);
     [[nodiscard]] Reply close_document(std::uint32_t id);
     [[nodiscard]] Reply get_info(Entry& entry);
+    [[nodiscard]] Reply get_details(Entry& entry, Clock::time_point deadline);
     [[nodiscard]] Reply get_page_sizes(Entry& entry, const protocol::GetPageSizes& request);
     [[nodiscard]] Reply read_page_data(Entry& entry, protocol::RequestEnvelope& request, Clock::time_point deadline);
     [[nodiscard]] Reply render_tile(Entry& entry, const protocol::RenderTile& request, Clock::time_point deadline);

@@ -18,7 +18,7 @@ public sealed class SandboxTests(SandboxFixture sandbox)
         using var runner = new ProbeRunner(sandbox);
         var control = await runner.RunControlAsync();
         var sandboxed = await runner.RunSandboxedAsync();
-        WriteReport(control, sandboxed, runner.LanEndpoint is not null);
+        WriteReport(control, sandboxed);
 
         ProbeAssertions.AssertEverythingIsDenied(control, sandboxed);
     }
@@ -145,7 +145,7 @@ public sealed class SandboxTests(SandboxFixture sandbox)
         b!.Dispose();
     }
 
-    private void WriteReport(ProbeReport control, ProbeReport sandboxed, bool lanChecked)
+    private void WriteReport(ProbeReport control, ProbeReport sandboxed)
     {
         var table = new StringBuilder();
         table.AppendLine("# Sandbox probe results");
@@ -161,7 +161,7 @@ public sealed class SandboxTests(SandboxFixture sandbox)
         }
 
         table.AppendLine();
-        table.AppendLine(CultureInfo.InvariantCulture, $"LAN-address TCP check ran: {lanChecked}. Token: AppContainer={sandboxed.Info.GetValueOrDefault("isAppContainer")}, integrity RID={sandboxed.Info.GetValueOrDefault("integrityRid")}, capabilities={sandboxed.Info.GetValueOrDefault("capabilityCount")}, privileges={sandboxed.Info.GetValueOrDefault("privilegeCount")}, runtime signature policy={sandboxed.Info.GetValueOrDefault("runtimeSignaturePolicy")}.");
+        table.AppendLine(CultureInfo.InvariantCulture, $"Off-machine TCP check ({ProbeRunner.LanEndpoint}, a documentation address): the sandbox answers 10013, the control does not. Token: AppContainer={sandboxed.Info.GetValueOrDefault("isAppContainer")}, integrity RID={sandboxed.Info.GetValueOrDefault("integrityRid")}, capabilities={sandboxed.Info.GetValueOrDefault("capabilityCount")}, privileges={sandboxed.Info.GetValueOrDefault("privilegeCount")}, runtime signature policy={sandboxed.Info.GetValueOrDefault("runtimeSignaturePolicy")}.");
         table.AppendLine();
         table.AppendLine("| Mitigation | At creation | After the runtime policy |");
         table.AppendLine("|---|---|---|");

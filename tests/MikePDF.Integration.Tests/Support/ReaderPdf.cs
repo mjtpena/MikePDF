@@ -25,7 +25,7 @@ internal sealed class PdfAssembly
 
     public int AddStream(string content) => Add($"<< /Length {content.Length} >>\nstream\n{content}\nendstream");
 
-    public byte[] Build(int root)
+    public byte[] Build(int root, string trailerExtra = "")
     {
         var pdf = new StringBuilder("%PDF-1.7\n");
         var offsets = new List<int>();
@@ -42,7 +42,7 @@ internal sealed class PdfAssembly
             pdf.Append(offset.ToString("D10", CultureInfo.InvariantCulture)).Append(" 00000 n \n");
         }
 
-        pdf.Append("trailer\n<< /Size ").Append(_bodies.Count + 1).Append(" /Root ").Append(root).Append(" 0 R >>\nstartxref\n").Append(xref).Append("\n%%EOF\n");
+        pdf.Append("trailer\n<< /Size ").Append(_bodies.Count + 1).Append(" /Root ").Append(root).Append(" 0 R ").Append(trailerExtra).Append(" >>\nstartxref\n").Append(xref).Append("\n%%EOF\n");
         return Encoding.Latin1.GetBytes(pdf.ToString());
     }
 }

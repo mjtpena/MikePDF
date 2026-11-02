@@ -5,7 +5,12 @@ internal static class ProbeAssertions
 {
     // Rows that cannot be shown to succeed unsandboxed on an ordinary developer machine: an administrative share, and a clipboard
     // that a non-interactive session may refuse. They are still required to be denied in the sandbox.
-    private static readonly HashSet<string> NotDiscriminating = ["fs.read.unc", "ui.clipboard.read"];
+    private static readonly HashSet<string> NotDiscriminating = ["fs.read.unc", "ui.clipboard.read", LanRow];
+
+    private const string LanRow = "net.tcp.connect-lan-address";
+
+    /// <summary>WSAEACCES: what a connect blocked by the AppContainer fails with.</summary>
+    public const int WsaAccessDenied = 10013;
 
     public static void AssertEverythingIsDenied(ProbeReport control, ProbeReport sandboxed)
     {
@@ -36,7 +41,26 @@ internal static class ProbeAssertions
             Assert.True(row.Outcome == "ALLOWED", $"control: {row.Name} was {row.Outcome} outside the sandbox (Win32 {row.Win32}), so denying it proves nothing: {row.Detail}");
         }
 
+        AssertLanRowTellsTheSandboxFromAClosedPort(control, sandboxed);
         Assert.Equal(control.Rows.Select(r => r.Name), sandboxed.Rows.Select(r => r.Name));
+    }
+
+    // The target is a documentation address that nothing answers (the tests never listen beyond loopback), so a connect fails everywhere. What
+    // differs is why: the sandbox blocks it at once (WSAEACCES, 10013), while an unsandboxed process gets no answer, a refusal or "unreachable",
+    // never 10013. That is the control: the same connect outside the sandbox must not give 10013, or the sandboxed 10013 would prove nothing.
+    private static void AssertLanRowTellsTheSandboxFromAClosedPort(ProbeReport control, ProbeReport sandboxed)
+    {
+        var inSandbox = sandboxed.Rows.SingleOrDefault(r => r.Name == LanRow);
+        var outside = control.Rows.SingleOrDefault(r => r.Name == LanRow);
+        Assert.Equal(inSandbox is null, outside is null);
+        if (inSandbox is null || outside is null)
+        {
+            return; // no LAN address on this machine: the row did not run in either
+        }
+
+        Assert.True(inSandbox.Outcome == "DENIED" && inSandbox.Win32 == WsaAccessDenied, $"{LanRow} in the sandbox: {inSandbox.Outcome}, Win32 {inSandbox.Win32} (wanted DENIED with 10013): {inSandbox.Detail}");
+        Assert.NotEqual(WsaAccessDenied, outside.Win32);
+        Assert.True(outside.Win32 is 0 or 10060 or 10061 or 10051 or 10065, $"{LanRow} outside the sandbox: Win32 {outside.Win32}"); // connected, no answer, refused or unreachable: the network's answer, not a block
     }
 
     public static void AssertMitigations(ProbeReport report, bool dynamicCodeProhibited)

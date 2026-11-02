@@ -6,6 +6,7 @@ using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
 using MikePDF.App.Services;
 using MikePDF.Core.Reading;
+using MikePDF.Core.Search;
 using DispatcherQueueTimer = Microsoft.UI.Dispatching.DispatcherQueueTimer;
 using Windows.System;
 
@@ -60,7 +61,23 @@ public sealed partial class MainWindow
             return;
         }
 
-        session.StartFind(new SearchOptions(FindBox.Text, MatchCase: FindMatchCaseToggle.IsChecked == true));
+        var regex = FindRegexToggle.IsChecked == true;
+        var matchCase = FindMatchCaseToggle.IsChecked == true;
+        if (regex && RegexQuery.TryCompile(FindBox.Text, matchCase).Problem is var problem and not RegexProblem.None)
+        {
+            // Never started: a pattern that cannot be searched for is said so, in the live region, and nothing is highlighted.
+            session.CancelFind();
+            AutomationProperties.SetLiveSetting(FindStatus, AutomationLiveSetting.Polite);
+            FindStatus.Text = Strings.Get(problem switch
+            {
+                RegexProblem.TooComplex => "Find_RegexTooComplex",
+                RegexProblem.Unsupported => "Find_RegexUnsupported",
+                _ => "Find_RegexInvalid",
+            });
+            return;
+        }
+
+        session.StartFind(new SearchOptions(FindBox.Text, MatchCase: matchCase, WholeWord: !regex && FindWholeWordToggle.IsChecked == true, UseRegex: regex));
         UpdateFindStatus();
         _ = MoveToMatchAsync(forward: true);
     }
@@ -92,6 +109,7 @@ public sealed partial class MainWindow
 
         var progress = find.Progress;
         var ordinal = find.CurrentOrdinal;
+        var incomplete = progress is { IsComplete: true, PagesFailed: > 0 } && !progress.QueryRefused; // some pages could not be searched: say so, don't claim "no matches"
         string text;
         if (progress.QueryRefused)
         {
@@ -99,15 +117,15 @@ public sealed partial class MainWindow
         }
         else if (progress.MatchCount == 0)
         {
-            text = progress.IsComplete ? Strings.Get("Find_None") : Strings.Format("Find_SearchingPercent", (int)Math.Round(progress.Fraction * 100));
+            text = progress.IsComplete ? Strings.Get(incomplete ? "Find_NoneFailed" : "Find_None") : Strings.Format("Find_SearchingPercent", (int)Math.Round(progress.Fraction * 100));
         }
         else if (ordinal > 0)
         {
-            text = Strings.Format(progress.IsComplete ? "Find_Count" : "Find_CountMore", ordinal, progress.MatchCount);
+            text = Strings.Format(progress.IsComplete ? (incomplete ? "Find_CountFailed" : "Find_Count") : "Find_CountMore", ordinal, progress.MatchCount);
         }
         else
         {
-            text = Strings.Format(progress.IsComplete ? "Find_Matches" : "Find_MatchesMore", progress.MatchCount);
+            text = Strings.Format(progress.IsComplete ? (incomplete ? "Find_MatchesFailed" : "Find_Matches") : "Find_MatchesMore", progress.MatchCount);
         }
 
         AutomationProperties.SetLiveSetting(FindStatus, progress.IsComplete ? AutomationLiveSetting.Polite : AutomationLiveSetting.Off);
@@ -165,7 +183,25 @@ public sealed partial class MainWindow
 
     private void OnFindTimer(DispatcherQueueTimer sender, object args) => StartFind();
 
-    private void OnFindOptionChanged(object sender, RoutedEventArgs e) => StartFind();
+    private void OnFindOptionChanged(object sender, RoutedEventArgs e)
+    {
+        if (FindBar is not null && FindWholeWordToggle is not null)
+        {
+            StartFind();
+        }
+    }
+
+    // A pattern writes \b where it wants word edges, so whole word is set aside while patterns are on.
+    private void OnFindRegexChanged(object sender, RoutedEventArgs e)
+    {
+        if (FindBar is null || FindWholeWordToggle is null)
+        {
+            return;
+        }
+
+        FindWholeWordToggle.IsEnabled = FindRegexToggle.IsChecked != true;
+        StartFind();
+    }
 
     private void OnFindNextClick(object sender, RoutedEventArgs e) => _ = MoveToMatchAsync(forward: true);
 

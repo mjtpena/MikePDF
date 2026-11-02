@@ -61,6 +61,7 @@ public sealed partial class MainWindow : Window
         };
         Closed += OnClosed;
         AppWindow.Changed += OnAppWindowChanged;
+        InitializeReaderGaps();
         RefreshRecent();
         UpdateChrome();
         Title = Strings.Get("AppName");
@@ -95,6 +96,7 @@ public sealed partial class MainWindow : Window
 
     private void OnAppWindowChanged(AppWindow sender, AppWindowChangedEventArgs args)
     {
+        SyncFullScreen(args);
         // Minimised: keep only what is on screen (master prompt 7.1 rule 5).
         if (args.DidPresenterChange && sender.Presenter is OverlappedPresenter { State: OverlappedPresenterState.Minimized })
         {
@@ -296,6 +298,7 @@ public sealed partial class MainWindow : Window
     {
         var session = _session;
         var open = session is { IsOpen: true };
+        UpdateReaderChrome(session);
         foreach (var button in new Control[] { ZoomOutButton, ZoomInButton, ZoomButton, FitWidthButton, FitPageButton, RotateLeftButton, RotateRightButton, PageIndicator })
         {
             button.IsEnabled = open;
@@ -455,7 +458,7 @@ public sealed partial class MainWindow : Window
         dialog.Opened += (_, _) => box.Focus(FocusState.Programmatic);
         if (await dialog.ShowAsync() == ContentDialogResult.Primary && !double.IsNaN(box.Value) && _session is { IsOpen: true } current)
         {
-            current.GoToPage((int)Math.Clamp(box.Value, 1, total) - 1);
+            current.JumpToPage((int)Math.Clamp(box.Value, 1, total) - 1);
         }
 
         Pages.FocusPages();

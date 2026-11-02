@@ -123,4 +123,104 @@
   <data name="Link_ExternalHostAscii" xml:space="preserve"><value>The site's name is also written {0}. Look-alike letters can make one site pass for another.</value></data>
   <data name="Link_AddressName" xml:space="preserve"><value>Link address: {0}</value></data>
   <data name="Link_Copy" xml:space="preserve"><value>Copy address</value></data>
+  <data name="BackButton.Label" xml:space="preserve"><value>Back</value></data>
+  <data name="BackButton.ToolTipService.ToolTip" xml:space="preserve"><value>Back to where you were (Alt+Left)</value></data>
+  <data name="ForwardButton.Label" xml:space="preserve"><value>Forward</value></data>
+  <data name="ForwardButton.ToolTipService.ToolTip" xml:space="preserve"><value>Forward (Alt+Right)</value></data>
+  <data name="ZoomActualSize.Text" xml:space="preserve"><value>Actual size</value></data>
+  <data name="ZoomActualSize.KeyboardAcceleratorTextOverride" xml:space="preserve"><value>Ctrl+Alt+0</value></data>
+  <data name="PageColourButton.Label" xml:space="preserve"><value>Page colour</value></data>
+  <data name="PageColourButton.ToolTipService.ToolTip" xml:space="preserve"><value>Page colour: normal, dark pages or sepia. The file is not changed.</value></data>
+  <data name="PageColourNormal.Text" xml:space="preserve"><value>Normal</value></data>
+  <data name="PageColourInverted.Text" xml:space="preserve"><value>Dark pages</value></data>
+  <data name="PageColourSepia.Text" xml:space="preserve"><value>Sepia</value></data>
+  <data name="PropertiesButton.Label" xml:space="preserve"><value>Properties</value></data>
+  <data name="PropertiesButton.ToolTipService.ToolTip" xml:space="preserve"><value>Document properties (Ctrl+D)</value></data>
+  <data name="FullScreenButton.Label" xml:space="preserve"><value>Full screen</value></data>
+  <data name="FullScreenButton.ToolTipService.ToolTip" xml:space="preserve"><value>Full screen (F11). Esc leaves it.</value></data>
+  <data name="FindWholeWordToggle.Content" xml:space="preserve"><value>[ab]</value></data>
+  <data name="FindWholeWordToggle.AutomationProperties.Name" xml:space="preserve"><value>Whole word</value></data>
+  <data name="FindWholeWordToggle.ToolTipService.ToolTip" xml:space="preserve"><value>Whole word: not inside a longer word</value></data>
+  <data name="FindRegexToggle.Content" xml:space="preserve"><value>.*</value></data>
+  <data name="FindRegexToggle.AutomationProperties.Name" xml:space="preserve"><value>Regular expression</value></data>
+  <data name="FindRegexToggle.ToolTipService.ToolTip" xml:space="preserve"><value>Regular expression</value></data>
+  <data name="Find_RegexInvalid" xml:space="preserve"><value>That pattern isn't valid</value></data>
+  <data name="Find_RegexTooComplex" xml:space="preserve"><value>That pattern is too complex</value></data>
+  <data name="Find_RegexUnsupported" xml:space="preserve"><value>That pattern uses features that aren't supported</value></data>
+  <data name="Find_NoneFailed" xml:space="preserve"><value>No matches. Some pages could not be searched.</value></data>
+  <data name="Find_CountFailed" xml:space="preserve"><value>{0} of {1}. Some pages could not be searched.</value></data>
+  <data name="Find_MatchesFailed" xml:space="preserve"><value>{0} matches. Some pages could not be searched.</value></data>
+  <data name="Banner_CopyBlocked_Title" xml:space="preserve"><value>Copying isn't allowed</value></data>
+  <data name="Banner_CopyBlocked_Message" xml:space="preserve"><value>This document's owner has not allowed copying text from it.</value></data>
+  <data name="Banner_FullScreen_Title" xml:space="preserve"><value>Full screen</value></data>
+  <data name="Banner_FullScreen_Message" xml:space="preserve"><value>Press Esc or F11 to leave.</value></data>
+  <data name="Properties_Title" xml:space="preserve"><value>Document properties</value></data>
+  <data name="Properties_Loading" xml:space="preserve"><value>Reading document details...</value></data>
+  <data name="Properties_Failed" xml:space="preserve"><value>The document's details could not be read.</value></data>
+  <data name="Properties_DetailsMissing" xml:space="preserve"><value>Some details could not be read.</value></data>
+  <data name="Properties_RowName" xml:space="preserve"><value>{0}: {1}</value></data>
+  <data name="Properties_Unknown" xml:space="preserve"><value>Not available</value></data>
+  <data name="Properties_Yes" xml:space="preserve"><value>Yes</value></data>
+  <data name="Properties_No" xml:space="preserve"><value>No</value></data>
+  <data name="Properties_Section_Description" xml:space="preserve"><value>Description</value></data>
+  <data name="Properties_Section_Document" xml:space="preserve"><value>Document</value></data>
+  <data name="Properties_Section_Security" xml:space="preserve"><value>Security</value></data>
+  <data name="Properties_Section_Fonts" xml:space="preserve"><value>Fonts</value></data>
+  <data name="Properties_Title_Label" xml:space="preserve"><value>Title</value></data>
+  <data name="Properties_Author" xml:space="preserve"><value>Author</value></data>
+  <data name="Properties_Subject" xml:space="preserve"><value>Subject</value></data>
+  <data name="Properties_Keywords" xml:space="preserve"><value>Keywords</value></data>
+  <data name="Properties_FileName" xml:space="preserve"><value>File name</value></data>
+  <data name="Properties_FileSize" xml:space="preserve"><value>File size</value></data>
+  <data name="Properties_FileSizeValue" xml:space="preserve"><value>{0} ({1} bytes)</value></data>
+  <data name="Properties_Unit_B" xml:space="preserve"><value>{0} bytes</value></data>
+  <data name="Properties_Unit_KB" xml:space="preserve"><value>{0} KB</value></data>
+  <data name="Properties_Unit_MB" xml:space="preserve"><value>{0} MB</value></data>
+  <data name="Properties_Unit_GB" xml:space="preserve"><value>{0} GB</value></data>
+  <data name="Properties_Pages" xml:space="preserve"><value>Pages</value></data>
+  <data name="Properties_PageSize" xml:space="preserve"><value>Page size</value></data>
+  <data name="Properties_PageSizeIn" xml:space="preserve"><value>{0} x {1} pt ({2} x {3} in)</value></data>
+  <data name="Properties_PageSizeMm" xml:space="preserve"><value>{0} x {1} pt ({2} x {3} mm)</value></data>
+  <data name="Properties_PageSizeInNamed" xml:space="preserve"><value>{4}, {0} x {1} pt ({2} x {3} in)</value></data>
+  <data name="Properties_PageSizeMmNamed" xml:space="preserve"><value>{4}, {0} x {1} pt ({2} x {3} mm)</value></data>
+  <data name="Properties_PageSizeVaries" xml:space="preserve"><value>The pages differ in size. The first is {0}</value></data>
+  <data name="Properties_Version" xml:space="preserve"><value>PDF version</value></data>
+  <data name="Properties_Tagged" xml:space="preserve"><value>Tagged PDF</value></data>
+  <data name="Properties_Created" xml:space="preserve"><value>Created</value></data>
+  <data name="Properties_Modified" xml:space="preserve"><value>Modified</value></data>
+  <data name="Properties_Creator" xml:space="preserve"><value>Created with</value></data>
+  <data name="Properties_Producer" xml:space="preserve"><value>PDF producer</value></data>
+  <data name="Properties_Scripts" xml:space="preserve"><value>Contains scripts</value></data>
+  <data name="Properties_Signatures" xml:space="preserve"><value>Signatures</value></data>
+  <data name="Properties_Form" xml:space="preserve"><value>Form</value></data>
+  <data name="Properties_Form_None" xml:space="preserve"><value>No form</value></data>
+  <data name="Properties_Form_AcroForm" xml:space="preserve"><value>Form fields</value></data>
+  <data name="Properties_Form_Xfa" xml:space="preserve"><value>XFA form (MikePDF shows its fallback pages)</value></data>
+  <data name="Properties_Form_XfaForeground" xml:space="preserve"><value>XFA form (MikePDF shows its fallback pages)</value></data>
+  <data name="Properties_Encryption" xml:space="preserve"><value>Encryption</value></data>
+  <data name="Properties_Enc_None" xml:space="preserve"><value>None</value></data>
+  <data name="Properties_Enc_R2" xml:space="preserve"><value>Password security, RC4 40-bit (revision 2)</value></data>
+  <data name="Properties_Enc_R3" xml:space="preserve"><value>Password security, RC4 128-bit (revision 3)</value></data>
+  <data name="Properties_Enc_R4" xml:space="preserve"><value>Password security, 128-bit RC4 or AES (revision 4)</value></data>
+  <data name="Properties_Enc_Aes256" xml:space="preserve"><value>Password security, AES 256-bit (revision {0})</value></data>
+  <data name="Properties_Enc_Other" xml:space="preserve"><value>Password security (revision {0})</value></data>
+  <data name="Properties_OwnerPassword" xml:space="preserve"><value>Opened with</value></data>
+  <data name="Properties_OwnerOpened" xml:space="preserve"><value>The owner password: no restrictions apply</value></data>
+  <data name="Properties_Allowed" xml:space="preserve"><value>Allowed</value></data>
+  <data name="Properties_NotAllowed" xml:space="preserve"><value>Not allowed</value></data>
+  <data name="Properties_Perm_Print" xml:space="preserve"><value>Print</value></data>
+  <data name="Properties_Perm_PrintHighQuality" xml:space="preserve"><value>Print in high quality</value></data>
+  <data name="Properties_Perm_Copy" xml:space="preserve"><value>Copy text</value></data>
+  <data name="Properties_Perm_Modify" xml:space="preserve"><value>Modify the document</value></data>
+  <data name="Properties_Perm_Annotate" xml:space="preserve"><value>Add or change annotations</value></data>
+  <data name="Properties_Perm_FillForms" xml:space="preserve"><value>Fill in forms</value></data>
+  <data name="Properties_Perm_Assemble" xml:space="preserve"><value>Assemble pages</value></data>
+  <data name="Properties_Fonts" xml:space="preserve"><value>Fonts</value></data>
+  <data name="Properties_FontsPartial" xml:space="preserve"><value>Fonts so far</value></data>
+  <data name="Properties_Note" xml:space="preserve"><value>Note</value></data>
+  <data name="Properties_FontsPartialNote" xml:space="preserve"><value>Only the first {0} pages were checked.</value></data>
+  <data name="Properties_NoFonts" xml:space="preserve"><value>No text fonts found</value></data>
+  <data name="Properties_Font_Embedded" xml:space="preserve"><value>{0}, embedded</value></data>
+  <data name="Properties_Font_EmbeddedSubset" xml:space="preserve"><value>{0}, embedded subset</value></data>
+  <data name="Properties_Font_NotEmbedded" xml:space="preserve"><value>{0}, not embedded</value></data>
 </root>

@@ -242,7 +242,7 @@ public sealed partial class MainWindow
     {
         if (e.ClickedItem is ThumbnailItem item && _session is { IsOpen: true } session)
         {
-            session.GoToPage(item.Page);
+            session.JumpToPage(item.Page);
         }
     }
 

@@ -1649,6 +1649,135 @@ public sealed class SearchPageReply : IReplyMessage
     }
 }
 
+/// <summary>The request payload of GetDocumentDetails (message type 26).</summary>
+public sealed class GetDocumentDetails : IRequestMessage
+{
+    public MessageType MessageType => MessageType.GetDocumentDetails;
+
+    /// <summary>
+    /// The only decoder for this type. Reads exactly the declared fields, enforcing wire types and every limit as it goes;
+    /// there is no other decoder (see StrictReader).
+    /// </summary>
+    internal static GetDocumentDetails Read(ref MessagePackReader reader)
+    {
+        StrictReader.ExpectArray(ref reader, 0);
+        var message = new GetDocumentDetails();
+        return message;
+    }
+
+    /// <summary>Writes the payload array. Does not validate; the codec validates before it writes.</summary>
+    public void Write(ref MessagePackWriter writer)
+    {
+        writer.WriteArrayHeader(0);
+    }
+
+    /// <summary>Checks every schema limit. Returns null when the message is valid.</summary>
+    public ProtocolFailure? Validate()
+    {
+        return null;
+    }
+}
+
+/// <summary>The reply payload of GetDocumentDetails (message type 26).</summary>
+public sealed class GetDocumentDetailsReply : IReplyMessage
+{
+    public string CreationDate { get; set; } = "";
+    public string ModificationDate { get; set; } = "";
+    public uint SecurityRevision { get; set; }
+    public uint UserPermissions { get; set; }
+    public uint FormType { get; set; }
+    public string[] FontNames { get; set; } = [];
+    /// <summary>Bit 0: the font program is embedded in the file.</summary>
+    public ushort[] FontFlags { get; set; } = [];
+    public bool FontsComplete { get; set; }
+    public uint FontPagesScanned { get; set; }
+
+    public MessageType MessageType => MessageType.GetDocumentDetails;
+
+    /// <summary>
+    /// The only decoder for this type. Reads exactly the declared fields, enforcing wire types and every limit as it goes;
+    /// there is no other decoder (see StrictReader).
+    /// </summary>
+    internal static GetDocumentDetailsReply Read(ref MessagePackReader reader)
+    {
+        StrictReader.ExpectArray(ref reader, 9);
+        var message = new GetDocumentDetailsReply();
+        message.CreationDate = StrictReader.ReadString(ref reader, 64);
+        message.ModificationDate = StrictReader.ReadString(ref reader, 64);
+        message.SecurityRevision = StrictReader.ReadU32(ref reader, 0u, 255u);
+        message.UserPermissions = StrictReader.ReadU32(ref reader, 0u, uint.MaxValue);
+        message.FormType = StrictReader.ReadU32(ref reader, 0u, 3u);
+        var fontNamesCount = StrictReader.ReadArrayHeader(ref reader, 64);
+        var fontNames = new string[fontNamesCount];
+        for (var i = 0; i < fontNames.Length; i++)
+        {
+            fontNames[i] = StrictReader.ReadString(ref reader, 128);
+        }
+
+        message.FontNames = fontNames;
+        var fontFlagsCount = StrictReader.ReadArrayHeader(ref reader, 64);
+        var fontFlags = new ushort[fontFlagsCount];
+        for (var i = 0; i < fontFlags.Length; i++)
+        {
+            fontFlags[i] = StrictReader.ReadU16(ref reader, 0, 1);
+        }
+
+        message.FontFlags = fontFlags;
+        message.FontsComplete = StrictReader.ReadBool(ref reader);
+        message.FontPagesScanned = StrictReader.ReadU32(ref reader, 0u, 10000000u);
+        return message;
+    }
+
+    /// <summary>Writes the payload array. Does not validate; the codec validates before it writes.</summary>
+    public void Write(ref MessagePackWriter writer)
+    {
+        writer.WriteArrayHeader(9);
+        writer.Write(CreationDate);
+        writer.Write(ModificationDate);
+        writer.Write(SecurityRevision);
+        writer.Write(UserPermissions);
+        writer.Write(FormType);
+        writer.WriteArrayHeader(FontNames.Length);
+        foreach (var v in FontNames)
+        {
+            writer.Write(v);
+        }
+
+        writer.WriteArrayHeader(FontFlags.Length);
+        foreach (var v in FontFlags)
+        {
+            writer.Write(v);
+        }
+
+        writer.Write(FontsComplete);
+        writer.Write(FontPagesScanned);
+    }
+
+    /// <summary>Checks every schema limit. Returns null when the message is valid.</summary>
+    public ProtocolFailure? Validate()
+    {
+        if (!ProtocolText.IsValid(CreationDate, 64)) return ProtocolFailure.Invalid("GetDocumentDetailsReply.creationDate violates its limit");
+        if (!ProtocolText.IsValid(ModificationDate, 64)) return ProtocolFailure.Invalid("GetDocumentDetailsReply.modificationDate violates its limit");
+        if (SecurityRevision > 255u) return ProtocolFailure.Invalid("GetDocumentDetailsReply.securityRevision violates its limit");
+        if (FormType > 3u) return ProtocolFailure.Invalid("GetDocumentDetailsReply.formType violates its limit");
+        if (FontNames is null || FontNames.Length > 64) return ProtocolFailure.Invalid("GetDocumentDetailsReply.fontNames is null or has more than 64 elements");
+        for (var i = 0; i < FontNames.Length; i++)
+        {
+            if (!ProtocolText.IsValid(FontNames[i], 128)) return ProtocolFailure.Invalid("GetDocumentDetailsReply.fontNames[" + i + "] violates its limit");
+        }
+
+        if (FontFlags is null || FontFlags.Length > 64) return ProtocolFailure.Invalid("GetDocumentDetailsReply.fontFlags is null or has more than 64 elements");
+        for (var i = 0; i < FontFlags.Length; i++)
+        {
+            if (FontFlags[i] > 1) return ProtocolFailure.Invalid("GetDocumentDetailsReply.fontFlags[" + i + "] violates its limit");
+        }
+
+        if (FontPagesScanned > 10000000u) return ProtocolFailure.Invalid("GetDocumentDetailsReply.fontPagesScanned violates its limit");
+        if (FontFlags.Length != FontNames.Length) return ProtocolFailure.Invalid("GetDocumentDetailsReply.fontFlags must have as many elements as fontNames");
+        return null;
+    }
+}
+
 /// <summary>The request payload of RenderTile (message type 32).</summary>
 public sealed class RenderTile : IRequestMessage
 {

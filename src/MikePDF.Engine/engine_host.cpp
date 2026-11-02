@@ -132,6 +132,7 @@ void EngineHost::handle_frame(protocol::RequestEnvelope request, Clock::time_poi
         case MessageType::GetPageBoxes:
         case MessageType::GetPageText:
         case MessageType::SearchPage:
+        case MessageType::GetDocumentDetails:
         case MessageType::RenderTile: {
             {
                 std::lock_guard lock(mutex_);

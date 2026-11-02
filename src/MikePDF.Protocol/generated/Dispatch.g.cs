@@ -26,6 +26,7 @@ internal static class ProtocolDispatch
         MessageType.GetPageBoxes => GetPageBoxes.Read(ref reader),
         MessageType.GetPageText => GetPageText.Read(ref reader),
         MessageType.SearchPage => SearchPage.Read(ref reader),
+        MessageType.GetDocumentDetails => GetDocumentDetails.Read(ref reader),
         MessageType.RenderTile => RenderTile.Read(ref reader),
         MessageType.CancelBefore => CancelBefore.Read(ref reader),
         MessageType.ValidateStructure => ValidateStructure.Read(ref reader),
@@ -78,6 +79,9 @@ internal static class ProtocolDispatch
             case SearchPage m:
                 m.Write(ref writer);
                 break;
+            case GetDocumentDetails m:
+                m.Write(ref writer);
+                break;
             case RenderTile m:
                 m.Write(ref writer);
                 break;
@@ -108,6 +112,7 @@ internal static class ProtocolDispatch
         MessageType.GetPageBoxes => GetPageBoxesReply.Read(ref reader),
         MessageType.GetPageText => GetPageTextReply.Read(ref reader),
         MessageType.SearchPage => SearchPageReply.Read(ref reader),
+        MessageType.GetDocumentDetails => GetDocumentDetailsReply.Read(ref reader),
         MessageType.RenderTile => RenderTileReply.Read(ref reader),
         MessageType.CancelBefore => CancelBeforeReply.Read(ref reader),
         MessageType.ValidateStructure => ValidateStructureReply.Read(ref reader),
@@ -158,6 +163,9 @@ internal static class ProtocolDispatch
                 m.Write(ref writer);
                 break;
             case SearchPageReply m:
+                m.Write(ref writer);
+                break;
+            case GetDocumentDetailsReply m:
                 m.Write(ref writer);
                 break;
             case RenderTileReply m:

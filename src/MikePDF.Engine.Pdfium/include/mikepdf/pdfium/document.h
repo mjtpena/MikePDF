@@ -91,6 +91,13 @@ public:
     [[nodiscard]] protocol::Result<protocol::SearchPageReply> search_page(std::uint32_t page, std::string_view query, std::uint32_t flags,
                                                                           const std::function<bool()>& expired);
 
+    // ---- the properties dialog (schema 4) ----------------------------------------------------------------------
+
+    /// Dates, the security handler revision, the user permissions, the form type and the fonts of the first pages. PDFium has no document-level font
+    /// list, so the fonts are found by walking the page objects of up to `max_font_pages` pages, stopping when `expired` says the time is up (checked
+    /// between pages and every few hundred objects); `fonts_complete` says whether every page was walked. Never fails for a document that opened.
+    [[nodiscard]] protocol::Result<protocol::GetDocumentDetailsReply> details(std::uint32_t max_font_pages, const std::function<bool()>& expired);
+
 private:
     struct PageCache;
     struct PageCacheDeleter {

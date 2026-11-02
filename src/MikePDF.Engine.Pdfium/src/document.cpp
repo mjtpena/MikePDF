@@ -12,6 +12,7 @@
 #include <fpdf_catalog.h>
 #include <fpdf_doc.h>
 #include <fpdf_edit.h>
+#include <fpdf_formfill.h>
 #include <fpdf_javascript.h>
 #include <fpdf_progressive.h>
 #include <fpdf_signature.h>
@@ -31,6 +32,12 @@ constexpr float kMinPageSide = 1.0f;
 constexpr float kMaxPageSide = 14400.0f;              // schema limit of GetPageSizesReply
 constexpr std::size_t kMaxMetaStringBytes = 1024;     // schema limit of the info strings
 constexpr unsigned long kMaxMetaRawBytes = 64 * 1024;  // refuse to copy a larger raw string out of PDFium
+constexpr std::size_t kMaxDateBytes = 64;             // schema limit of the two dates in GetDocumentDetailsReply
+constexpr std::size_t kMaxFonts = 64;
+constexpr std::size_t kMaxFontNameBytes = 128;
+constexpr int kMaxFormDepth = 4;                      // forms inside forms: a hostile file can nest them far deeper than any real one
+constexpr std::uint32_t kMaxObjectsPerPage = 50'000;  // page objects visited per page, nested ones included
+constexpr std::uint32_t kExpiredPollEvery = 256;
 constexpr std::uint32_t kMaxSignatures = 65535;
 constexpr std::int64_t kMaxDeviceSide = std::int64_t{1} << 24;
 constexpr std::uint32_t kMaxTileSide = 1024;
@@ -117,7 +124,7 @@ std::string utf16_to_utf8(const std::vector<char16_t>& units, std::size_t max_by
     return out;
 }
 
-std::string meta_text(FPDF_DOCUMENT doc, const char* tag) {
+std::string meta_text(FPDF_DOCUMENT doc, const char* tag, std::size_t max_bytes = kMaxMetaStringBytes) {
     const unsigned long needed = FPDF_GetMetaText(doc, tag, nullptr, 0);  // bytes, including the 2-byte terminator
     if (needed <= 2 || needed > kMaxMetaRawBytes || needed % 2 != 0) {
         return {};
@@ -126,7 +133,7 @@ std::string meta_text(FPDF_DOCUMENT doc, const char* tag) {
     if (FPDF_GetMetaText(doc, tag, buffer.data(), needed) != needed) {
         return {};
     }
-    return utf16_to_utf8(buffer, kMaxMetaStringBytes);
+    return utf16_to_utf8(buffer, max_bytes);
 }
 
 float clamp_page_side(float value) {
@@ -172,6 +179,77 @@ FPDF_BOOL NeedToPauseNow(IFSDK_PAUSE* self) {
         }
     }
     return state->reason != RenderInterrupt::None ? 1 : 0;
+}
+
+// ---- fonts (GetDocumentDetails) ------------------------------------------------------------------------------------------------------
+
+// A font's base name as printable ASCII: names are PDF names, whose bytes can be anything, and the schema wants text.
+std::string font_name(FPDF_FONT font) {
+    const std::size_t needed = FPDFFont_GetBaseFontName(font, nullptr, 0);  // bytes, with the terminator
+    if (needed <= 1 || needed > 4096) {
+        return {};
+    }
+    std::string buffer(needed, '\0');
+    if (FPDFFont_GetBaseFontName(font, buffer.data(), needed) != needed) {
+        return {};
+    }
+    std::string name;
+    for (std::size_t i = 0; i + 1 < needed && name.size() < kMaxFontNameBytes; ++i) {
+        const auto c = static_cast<unsigned char>(buffer[i]);
+        name += (c >= 0x20 && c < 0x7F) ? static_cast<char>(c) : '?';
+    }
+    return name;
+}
+
+struct FontCollector {
+    std::vector<std::string> names;
+    std::vector<std::uint16_t> flags;
+    bool overflowed{false};  // more fonts than the reply holds
+
+    void add(FPDF_FONT font) {
+        if (font == nullptr) {
+            return;
+        }
+        std::string name = font_name(font);
+        if (name.empty()) {
+            return;
+        }
+        const std::uint16_t embedded = FPDFFont_GetIsEmbedded(font) == 1 ? 1 : 0;
+        for (std::size_t i = 0; i < names.size(); ++i) {
+            if (names[i] == name) {
+                flags[i] |= embedded;
+                return;
+            }
+        }
+        if (names.size() >= kMaxFonts) {
+            overflowed = true;
+            return;
+        }
+        names.push_back(std::move(name));
+        flags.push_back(embedded);
+    }
+};
+
+// Walks the objects of a page (or of a form inside it) for text. False when it stopped early: out of time, or out of objects.
+bool collect_fonts(FPDF_PAGE page, FPDF_PAGEOBJECT form, int depth, std::uint32_t& visited, FontCollector& fonts, const std::function<bool()>& expired) {
+    const int count = form == nullptr ? FPDFPage_CountObjects(page) : FPDFFormObj_CountObjects(form);
+    for (int i = 0; i < count; ++i) {
+        if (++visited > kMaxObjectsPerPage || (visited % kExpiredPollEvery == 0 && expired && expired())) {
+            return false;
+        }
+        FPDF_PAGEOBJECT object = form == nullptr ? FPDFPage_GetObject(page, i) : FPDFFormObj_GetObject(form, static_cast<unsigned long>(i));
+        if (object == nullptr) {
+            continue;
+        }
+        const int type = FPDFPageObj_GetType(object);
+        if (type == FPDF_PAGEOBJ_TEXT) {
+            fonts.add(FPDFTextObj_GetFont(object));
+        } else if (type == FPDF_PAGEOBJ_FORM && depth < kMaxFormDepth && !collect_fonts(page, object, depth + 1, visited, fonts, expired)) {
+            return false;
+        }
+    }
+
+    return true;
 }
 
 }  // namespace
@@ -455,6 +533,14 @@ Destination describe_action(FPDF_DOCUMENT doc, FPDF_ACTION action, std::uint32_t
 }
 
 Destination describe_link(FPDF_DOCUMENT doc, FPDF_LINK link, std::uint32_t page_count) {
+    // PDFium's FPDFLink_GetDest looks through the link's action as well, and resolves a go-to in ANOTHER file (GoToR, GoToE) against this document's
+    // own names: a link to "alpha" in other.pdf would land on this file's "alpha". Those actions name a place MikePDF cannot show, so they stay actions.
+    if (FPDF_ACTION action = FPDFLink_GetAction(link); action != nullptr) {
+        const auto type = FPDFAction_GetType(action);
+        if (type == PDFACTION_REMOTEGOTO || type == PDFACTION_EMBEDDEDGOTO) {
+            return describe_action(doc, action, page_count);
+        }
+    }
     if (FPDF_DEST dest = FPDFLink_GetDest(doc, link); dest != nullptr) {
         return describe_dest(doc, dest, page_count);
     }
@@ -818,6 +904,47 @@ Result<protocol::SearchPageReply> Document::search_page(std::uint32_t page, std:
     if (status != Status::Ok) {
         return failure<Reply>(status, "the search ran out of time");
     }
+    return {Status::Ok, std::move(reply), ""};
+}
+
+Result<protocol::GetDocumentDetailsReply> Document::details(std::uint32_t max_font_pages, const std::function<bool()>& expired) {
+    using Reply = protocol::GetDocumentDetailsReply;
+    if (handle_ == nullptr) {
+        return failure<Reply>(Status::InvalidArgument, "no document");
+    }
+    Reply reply;
+    reply.creation_date = meta_text(handle_, "CreationDate", kMaxDateBytes);
+    reply.modification_date = meta_text(handle_, "ModDate", kMaxDateBytes);
+    const int revision = FPDF_GetSecurityHandlerRevision(handle_);
+    reply.security_revision = revision < 0 ? 0 : static_cast<std::uint32_t>(std::min(revision, 255));
+    reply.user_permissions = static_cast<std::uint32_t>(FPDF_GetDocUserPermissions(handle_));
+    const int form = FPDF_GetFormType(handle_);
+    reply.form_type = form < 0 ? 0 : static_cast<std::uint32_t>(std::min(form, 3));
+
+    FontCollector fonts;
+    const std::uint32_t pages = std::min(page_count_, max_font_pages);
+    bool complete = true;
+    std::uint32_t scanned = 0;
+    for (; scanned < pages; ++scanned) {
+        if (expired && expired()) {
+            complete = false;
+            break;
+        }
+        PageHandle page(handle_, static_cast<int>(scanned));
+        if (page.page == nullptr) {
+            continue;  // a page that cannot be loaded has no fonts to list; the page itself reports its damage when drawn
+        }
+        std::uint32_t visited = 0;
+        if (!collect_fonts(page.page, nullptr, 0, visited, fonts, expired)) {
+            complete = false;
+            break;
+        }
+    }
+
+    reply.fonts_complete = complete && !fonts.overflowed && scanned >= page_count_;
+    reply.font_pages_scanned = scanned;
+    reply.font_names = std::move(fonts.names);
+    reply.font_flags = std::move(fonts.flags);
     return {Status::Ok, std::move(reply), ""};
 }
 

@@ -4,6 +4,7 @@ using MikePDF.Broker;
 using MikePDF.Core.Errors;
 using MikePDF.Core.Geometry;
 using MikePDF.Core.Layout;
+using MikePDF.Core.Navigation;
 using MikePDF.Core.Persistence;
 using MikePDF.Core.Tiles;
 using MikePDF.Protocol;
@@ -71,7 +72,9 @@ internal sealed partial class DocumentSession : IAsyncDisposable
     private bool _zoomPending;
     private bool _framePending;
     private bool _disposed;
+    private bool _sizesComplete;
     private string? _password;
+    private readonly NavigationHistory _history = new();
 
     public DocumentSession(EngineHost host, DocumentStore store, ITilePresenter presenter, DispatcherQueue ui)
     {
@@ -122,6 +125,23 @@ internal sealed partial class DocumentSession : IAsyncDisposable
     public string Title { get; private set; } = string.Empty;
 
     public bool IsOpen => _document is not null && !_disposed;
+
+    /// <summary>Back and forward have somewhere to go (the toolbar buttons follow these). Changes are announced through <see cref="ViewChanged"/>.</summary>
+    public bool CanGoBack => _history.CanGoBack;
+
+    public bool CanGoForward => _history.CanGoForward;
+
+    /// <summary>The permission bits that apply to this session: the file's /P, or all ones for an unprotected document or after the owner password.</summary>
+    public uint Permissions { get; private set; } = uint.MaxValue;
+
+    /// <summary>The owner has not forbidden copying text (bit 5 of /P). Screen readers are served either way (PDF 2.0 ignores the accessibility bit).</summary>
+    public bool CanCopy => (Permissions & 0x10) != 0;
+
+    /// <summary>The displayed size in points of every page whose size is known (pages not yet read carry the first page's size).</summary>
+    public IReadOnlyList<SizeD> PageSizes => _sizes;
+
+    /// <summary>Every page's size has been read, so "the pages differ in size" can be said truthfully.</summary>
+    public bool PageSizesComplete => _sizesComplete;
 
     /// <summary>The newest frame handed to the presenter (diagnostics and tests).</summary>
     public FrameComposition? LastFrame { get; private set; }
@@ -174,6 +194,7 @@ internal sealed partial class DocumentSession : IAsyncDisposable
 
             var info = await _document.GetInfoAsync(token).ConfigureAwait(true);
             Title = info.Value is { Title.Length: > 0 } reply ? reply.Title : System.IO.Path.GetFileNameWithoutExtension(Path);
+            Permissions = info.Value?.Permissions ?? uint.MaxValue;
             if (await LoadFirstSizesAsync(token).ConfigureAwait(true) is { } sizeError)
             {
                 return new OpenOutcome(OpenOutcomeKind.Failed, sizeError);
@@ -276,6 +297,7 @@ internal sealed partial class DocumentSession : IAsyncDisposable
         }
 
         Controller.SetPageSizes(_sizes);
+        _sizesComplete = count <= first;
         return null;
     }
 
@@ -324,6 +346,7 @@ internal sealed partial class DocumentSession : IAsyncDisposable
                     }
 
                     _sizes = copy;
+                    _sizesComplete |= last;
                     Controller.SetPageSizes(_sizes);
                     Publish();
                     RequestFrame();
@@ -367,6 +390,9 @@ internal sealed partial class DocumentSession : IAsyncDisposable
 
     public void ActualSize() => Change(() => Controller.ActualSize());
 
+    /// <summary>The zoom at which a page's inch is the monitor's inch, given the monitor's physical density (see <see cref="ZoomMath.ActualSizeZoom"/>).</summary>
+    public void PhysicalSize(double rawMonitorDpi) => Change(() => Controller.PhysicalSize(rawMonitorDpi));
+
     public void FitWidth() => Change(() => Controller.FitWidth());
 
     public void FitPage() => Change(() => Controller.FitPage());
@@ -374,6 +400,60 @@ internal sealed partial class DocumentSession : IAsyncDisposable
     public void Rotate(int quarterTurns) => Change(() => Controller.Rotate(quarterTurns));
 
     public void GoToPage(int zeroBasedPage) => Change(() => Controller.GoToPage(zeroBasedPage));
+
+    /// <summary>Go to page as a jump: the place the view was at is remembered for Back (Go to page, a thumbnail).</summary>
+    public void JumpToPage(int zeroBasedPage)
+    {
+        var before = HistoryMark.Take(this);
+        GoToPage(zeroBasedPage);
+        RecordJump(before, null);
+    }
+
+    /// <summary>Back: returns to where the view was before the last jump. False when there is nowhere to go.</summary>
+    public bool GoBack() => GoTo(_history.Back(Here()));
+
+    public bool GoForward() => GoTo(_history.Forward(Here()));
+
+    private bool GoTo(ViewLocation? target)
+    {
+        if (target is not { } place || _disposed)
+        {
+            return false;
+        }
+
+        Change(() => Controller.GoToPage(place.Page, place.Fraction));
+        return true;
+    }
+
+    private ViewLocation Here()
+    {
+        var (page, fraction) = Controller.TopPosition;
+        return new ViewLocation(Math.Max(0, page), fraction);
+    }
+
+    /// <summary>Where the view was just before a jump: the place for Back, and the scroll offsets to tell whether the jump moved the view at all.</summary>
+    private readonly record struct HistoryMark(ViewLocation Place, double ScrollX, double ScrollY)
+    {
+        public static HistoryMark Take(DocumentSession session) => new(session.Here(), session.Controller.ScrollX, session.Controller.ScrollY);
+    }
+
+    // A jump that left the view where it was (the destination was already in view) records nothing, so Back never "goes" nowhere.
+    private void RecordJump(HistoryMark before, string? key)
+    {
+        if (_disposed || (Math.Abs(Controller.ScrollY - before.ScrollY) < 2 && Math.Abs(Controller.ScrollX - before.ScrollX) < 2))
+        {
+            return;
+        }
+
+        if (_history.Record(before.Place, key))
+        {
+            ViewChanged?.Invoke();
+        }
+    }
+
+    public void PageDown() => Change(Controller.PageDown, trackVelocity: true);
+
+    public void PageUp() => Change(Controller.PageUp, trackVelocity: true);
 
     public void NextPage() => Change(Controller.NextPage);
 

@@ -1879,6 +1879,158 @@ Result<SearchPageReply> SearchPageReply::decode(Reader& reader) {
     return {Status::Ok, std::move(m), ""};
 }
 
+Status GetDocumentDetails::validate() const {
+    return Status::Ok;
+}
+
+Status GetDocumentDetails::encode(Writer& writer) const {
+    if (const Status valid = validate(); valid != Status::Ok) {
+        return valid;
+    }
+    writer.write_array_header(0);
+    return writer.status();
+}
+
+Result<GetDocumentDetails> GetDocumentDetails::decode(Reader& reader) {
+    GetDocumentDetails m;
+    Status s = reader.expect_array(0);
+    if (s == Status::Ok) {
+        s = m.validate();
+        if (s != Status::Ok) {
+            reader.fail(s, "message violates a schema limit");
+        }
+    }
+    if (s != Status::Ok) {
+        return {s, GetDocumentDetails{}, reader.detail()};
+    }
+    return {Status::Ok, std::move(m), ""};
+}
+
+Status GetDocumentDetailsReply::validate() const {
+    if (creation_date.size() > 64u || !is_valid_text(creation_date)) {
+        return Status::InvalidArgument;
+    }
+    if (modification_date.size() > 64u || !is_valid_text(modification_date)) {
+        return Status::InvalidArgument;
+    }
+    if (security_revision > 255u) {
+        return Status::InvalidArgument;
+    }
+    if (form_type > 3u) {
+        return Status::InvalidArgument;
+    }
+    if (font_names.size() > 64u) {
+        return Status::InvalidArgument;
+    }
+    for (const auto& v : font_names) {
+        if (v.size() > 128u || !is_valid_text(v)) {
+            return Status::InvalidArgument;
+        }
+    }
+    if (font_flags.size() > 64u) {
+        return Status::InvalidArgument;
+    }
+    for (const auto& v : font_flags) {
+        if (v > 1) {
+            return Status::InvalidArgument;
+        }
+    }
+    if (font_pages_scanned > 10000000u) {
+        return Status::InvalidArgument;
+    }
+    if (font_flags.size() != font_names.size()) {
+        return Status::InvalidArgument;
+    }
+    return Status::Ok;
+}
+
+Status GetDocumentDetailsReply::encode(Writer& writer) const {
+    if (const Status valid = validate(); valid != Status::Ok) {
+        return valid;
+    }
+    writer.write_array_header(9);
+    writer.write_string(creation_date);
+    writer.write_string(modification_date);
+    writer.write_uint(security_revision);
+    writer.write_uint(user_permissions);
+    writer.write_uint(form_type);
+    writer.write_array_header(font_names.size());
+    for (const auto& v : font_names) {
+        writer.write_string(v);
+    }
+    writer.write_array_header(font_flags.size());
+    for (const auto& v : font_flags) {
+        writer.write_uint(v);
+    }
+    writer.write_bool(fonts_complete);
+    writer.write_uint(font_pages_scanned);
+    return writer.status();
+}
+
+Result<GetDocumentDetailsReply> GetDocumentDetailsReply::decode(Reader& reader) {
+    GetDocumentDetailsReply m;
+    Status s = reader.expect_array(9);
+    if (s == Status::Ok) {
+        s = reader.read_string(m.creation_date, 64);
+    }
+    if (s == Status::Ok) {
+        s = reader.read_string(m.modification_date, 64);
+    }
+    if (s == Status::Ok) {
+        s = reader.read_u32(m.security_revision, 0u, 255u);
+    }
+    if (s == Status::Ok) {
+        s = reader.read_u32(m.user_permissions, 0u, 4294967295u);
+    }
+    if (s == Status::Ok) {
+        s = reader.read_u32(m.form_type, 0u, 3u);
+    }
+    if (s == Status::Ok) {
+        std::size_t count = 0;
+        s = reader.read_array_header(count, 64);
+        if (s == Status::Ok) {
+            m.font_names.reserve(count);
+            for (std::size_t i = 0; i < count && s == Status::Ok; ++i) {
+                std::string v{};
+                s = reader.read_string(v, 128);
+                if (s == Status::Ok) {
+                    m.font_names.push_back(std::move(v));
+                }
+            }
+        }
+    }
+    if (s == Status::Ok) {
+        std::size_t count = 0;
+        s = reader.read_array_header(count, 64);
+        if (s == Status::Ok) {
+            m.font_flags.reserve(count);
+            for (std::size_t i = 0; i < count && s == Status::Ok; ++i) {
+                std::uint16_t v{};
+                s = reader.read_u16(v, 0, 1);
+                if (s == Status::Ok) {
+                    m.font_flags.push_back(std::move(v));
+                }
+            }
+        }
+    }
+    if (s == Status::Ok) {
+        s = reader.read_bool(m.fonts_complete);
+    }
+    if (s == Status::Ok) {
+        s = reader.read_u32(m.font_pages_scanned, 0u, 10000000u);
+    }
+    if (s == Status::Ok) {
+        s = m.validate();
+        if (s != Status::Ok) {
+            reader.fail(s, "message violates a schema limit");
+        }
+    }
+    if (s != Status::Ok) {
+        return {s, GetDocumentDetailsReply{}, reader.detail()};
+    }
+    return {Status::Ok, std::move(m), ""};
+}
+
 Status RenderTile::validate() const {
     if (page > 9999999u) {
         return Status::InvalidArgument;
@@ -2256,6 +2408,8 @@ Result<RequestPayload> decode_request_payload(MessageType type, Reader& reader) 
             return lift<RequestPayload>(GetPageText::decode(reader));
         case MessageType::SearchPage:
             return lift<RequestPayload>(SearchPage::decode(reader));
+        case MessageType::GetDocumentDetails:
+            return lift<RequestPayload>(GetDocumentDetails::decode(reader));
         case MessageType::RenderTile:
             return lift<RequestPayload>(RenderTile::decode(reader));
         case MessageType::CancelBefore:
@@ -2296,6 +2450,8 @@ Result<ReplyPayload> decode_reply_payload(MessageType type, Reader& reader) {
             return lift<ReplyPayload>(GetPageTextReply::decode(reader));
         case MessageType::SearchPage:
             return lift<ReplyPayload>(SearchPageReply::decode(reader));
+        case MessageType::GetDocumentDetails:
+            return lift<ReplyPayload>(GetDocumentDetailsReply::decode(reader));
         case MessageType::RenderTile:
             return lift<ReplyPayload>(RenderTileReply::decode(reader));
         case MessageType::CancelBefore:

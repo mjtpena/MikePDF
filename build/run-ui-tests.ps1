@@ -22,6 +22,21 @@ param(
 )
 $ErrorActionPreference = 'Stop'
 $root = Resolve-Path (Join-Path $PSScriptRoot '..')
+
+# Ends the MikePDF apps and the engines they started (their descendants), never a MikePDF.Engine that belongs to anything else: another
+# agent's integration test, the render tool, a person's own reader.
+function Stop-MikePDF {
+    $all = Get-CimInstance Win32_Process | Select-Object ProcessId, ParentProcessId, Name
+    foreach ($app in (Get-Process MikePDF -ErrorAction SilentlyContinue)) {
+        $queue = [System.Collections.Generic.Queue[int]]::new(); $queue.Enqueue($app.Id); $descendants = @()
+        while ($queue.Count -gt 0) {
+            $at = $queue.Dequeue()
+            foreach ($c in ($all | Where-Object { $_.ParentProcessId -eq $at -and $_.ProcessId -ne $at })) { $descendants += $c; $queue.Enqueue([int]$c.ProcessId) }
+        }
+        foreach ($d in ($descendants | Where-Object { $_.Name -eq 'MikePDF.Engine.exe' })) { Stop-Process -Id $d.ProcessId -Force -ErrorAction SilentlyContinue }
+        Stop-Process -Id $app.Id -Force -ErrorAction SilentlyContinue
+    }
+}
 Set-Location $root
 
 if (-not $SkipBuild -and -not $SkipNativeBuild) {
@@ -29,7 +44,7 @@ if (-not $SkipBuild -and -not $SkipNativeBuild) {
     if ($LASTEXITCODE -ne 0) { throw 'native build failed' }
 }
 
-Get-Process MikePDF, MikePDF.Engine -ErrorAction SilentlyContinue | Stop-Process -Force
+Stop-MikePDF
 if (-not $SkipBuild) {
     dotnet build (Join-Path $root 'src/MikePDF.App') -c Release "-p:MikePDFArch=$Arch" -nologo -v q
     if ($LASTEXITCODE -ne 0) { throw 'app build failed' }
@@ -56,7 +71,7 @@ try {
 }
 finally {
     Remove-Item Env:MIKEPDF_UI_TESTS, Env:MIKEPDF_SHOTS_DIR -ErrorAction SilentlyContinue
-    Get-Process MikePDF, MikePDF.Engine -ErrorAction SilentlyContinue | Stop-Process -Force
+    Stop-MikePDF
     if (-not $KeepInstalled) { Get-AppxPackage -Name $identity | Remove-AppxPackage }
 }
 Write-Host "Screenshots: $shots"

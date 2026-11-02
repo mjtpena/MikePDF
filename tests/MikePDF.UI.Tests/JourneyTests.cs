@@ -23,8 +23,9 @@ public sealed class JourneyTests : IDisposable
                 Directory.Delete(_work, recursive: true);
             }
         }
-        catch (IOException)
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException)
         {
+            // The decoy engine's executable can stay locked for a moment after its process ends.
         }
     }
 
@@ -212,16 +213,16 @@ public sealed class JourneyTests : IDisposable
         app.Press(VirtualKeyShort.RIGHT);
         app.WaitFor("page 4", () => app.CurrentPage == 4);
 
-        var before = Process.GetProcessesByName("MikePDF.Engine").Select(p => p.Id).ToHashSet();
+        // Only this MikePDF's own engines are killed. A MikePDF.Engine that is someone else's (here a decoy of that name) must survive.
+        using var decoy = DecoyEngine.Start(_work);
+        var before = app.EngineIds();
         Assert.NotEmpty(before);
-        foreach (var engine in Process.GetProcessesByName("MikePDF.Engine"))
-        {
-            engine.Kill();
-            engine.Dispose();
-        }
+        Assert.DoesNotContain(decoy.Id, before);
+        Assert.Equal(before.Count, app.KillEngines());
+        Assert.False(decoy.HasExited, "an engine that is not this app's was killed");
 
         // A new engine appears, a banner says it is back, and the page indicator never moved.
-        app.WaitFor("a new engine process", () => Process.GetProcessesByName("MikePDF.Engine").Any(p => !before.Contains(p.Id)));
+        app.WaitFor("a new engine process", () => app.EngineIds().Any(id => !before.Contains(id)));
         app.WaitFor("the banner saying the viewer is back", () => app.Window.FindFirstDescendant(cf => cf.ByName("Back to normal")) is not null, TimeSpan.FromSeconds(20));
         app.Capture("10-engine-restored-banner");
         Assert.Equal(4, app.CurrentPage);

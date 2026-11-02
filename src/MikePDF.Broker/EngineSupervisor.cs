@@ -635,6 +635,9 @@ public sealed class SupervisedDocument : IAsyncDisposable
     public Task<EngineResult<GetDocumentInfoReply>> GetInfoAsync(CancellationToken cancellationToken = default) =>
         CallAsync((client, id, deadline) => client.GetDocumentInfoAsync(id, deadline, cancellationToken), cancellationToken);
 
+    public Task<EngineResult<GetDocumentDetailsReply>> GetDocumentDetailsAsync(CancellationToken cancellationToken = default) =>
+        CallAsync((client, id, _) => client.GetDocumentDetailsAsync(id, TimeSpan.FromSeconds(10), cancellationToken), cancellationToken);
+
     public Task<EngineResult<GetPageSizesReply>> GetPageSizesAsync(uint first, uint count, CancellationToken cancellationToken = default) =>
         CallAsync((client, id, deadline) => client.GetPageSizesAsync(id, first, count, deadline, cancellationToken), cancellationToken);
 

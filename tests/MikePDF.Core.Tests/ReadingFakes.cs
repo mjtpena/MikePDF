@@ -65,6 +65,10 @@ internal static class TextFixtures
 /// <summary>An engine whose answers a test writes. Anything not set answers InvalidArgument.</summary>
 internal sealed class ScriptedEngine : IReadingEngine
 {
+    public Func<ReadReply<GetDocumentInfoReply>>? Info { get; set; }
+
+    public Func<ReadReply<GetDocumentDetailsReply>>? Details { get; set; }
+
     public Func<IReadOnlyList<uint>, uint, uint, ReadReply<GetOutlineReply>>? Outline { get; set; }
 
     public Func<uint, uint, uint, ReadReply<GetPageLinksReply>>? Links { get; set; }
@@ -78,6 +82,18 @@ internal sealed class ScriptedEngine : IReadingEngine
     public Func<uint, string, uint, CancellationToken, Task<ReadReply<SearchPageReply>>>? Search { get; set; }
 
     public int Calls;
+
+    public Task<ReadReply<GetDocumentInfoReply>> GetDocumentInfoAsync(CancellationToken cancellationToken)
+    {
+        Interlocked.Increment(ref Calls);
+        return Task.FromResult(Info?.Invoke() ?? ReadReply.Fail<GetDocumentInfoReply>(Status.InvalidArgument));
+    }
+
+    public Task<ReadReply<GetDocumentDetailsReply>> GetDocumentDetailsAsync(CancellationToken cancellationToken)
+    {
+        Interlocked.Increment(ref Calls);
+        return Task.FromResult(Details?.Invoke() ?? ReadReply.Fail<GetDocumentDetailsReply>(Status.InvalidArgument));
+    }
 
     public Task<ReadReply<GetOutlineReply>> GetOutlineAsync(IReadOnlyList<uint> path, uint first, uint count, CancellationToken cancellationToken)
     {

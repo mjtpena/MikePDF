@@ -22,6 +22,10 @@ public static class ReadReply
 /// </summary>
 public interface IReadingEngine
 {
+    Task<ReadReply<GetDocumentInfoReply>> GetDocumentInfoAsync(CancellationToken cancellationToken);
+
+    Task<ReadReply<GetDocumentDetailsReply>> GetDocumentDetailsAsync(CancellationToken cancellationToken);
+
     Task<ReadReply<GetOutlineReply>> GetOutlineAsync(IReadOnlyList<uint> path, uint first, uint count, CancellationToken cancellationToken);
 
     Task<ReadReply<GetPageLinksReply>> GetPageLinksAsync(uint page, uint first, uint count, CancellationToken cancellationToken);
@@ -83,7 +87,11 @@ public readonly record struct PageMatch(int Start, int Length);
 
 public sealed record PageMatches(IReadOnlyList<PageMatch> Matches, bool Truncated);
 
-public readonly record struct SearchOptions(string Query, bool MatchCase = false, bool WholeWord = false)
+/// <summary>
+/// What to look for. With <see cref="UseRegex"/> the query is a regular expression the broker matches itself (<see cref="Search.RegexSearchSource"/>);
+/// otherwise the engine searches for the phrase, honouring <see cref="MatchCase"/> and <see cref="WholeWord"/>.
+/// </summary>
+public readonly record struct SearchOptions(string Query, bool MatchCase = false, bool WholeWord = false, bool UseRegex = false)
 {
     public bool IsEmpty => string.IsNullOrWhiteSpace(Query);
 

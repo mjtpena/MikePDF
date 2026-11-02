@@ -247,6 +247,7 @@ std::vector<RequestSample> request_samples() {
         m.flags = 3;
         v.push_back({"req_search_page", 19, 7, 1000, m});
     }
+    v.push_back({"req_get_document_details", 20, 7, 1500, GetDocumentDetails{}});
     return v;
 }
 
@@ -381,6 +382,30 @@ std::vector<ResponseSample> response_samples() {
         m.starts = {0, 199000};
         m.lengths = {5, 1000};
         v.push_back({"rsp_search_page", 19, Status::Ok, MessageType::SearchPage, m});
+    }
+    {
+        GetDocumentDetailsReply m;
+        m.creation_date = "D:20240115103000+10'00'";
+        m.modification_date = "D:20240201";
+        m.security_revision = 4;
+        m.user_permissions = 0xFFFFF2C0u;
+        m.form_type = 1;
+        m.font_names = {"ABCDEF+Arial-BoldMT", "Helvetica", "TimesNewRomanPSMT"};
+        m.font_flags = {1, 0, 1};
+        m.fonts_complete = false;
+        m.font_pages_scanned = 100;
+        v.push_back({"rsp_get_document_details", 20, Status::Ok, MessageType::GetDocumentDetails, m});
+    }
+    {
+        GetDocumentDetailsReply m;
+        m.creation_date = "";
+        m.modification_date = "";
+        m.security_revision = 0;
+        m.user_permissions = 0xFFFFFFFFu;
+        m.form_type = 0;
+        m.fonts_complete = true;
+        m.font_pages_scanned = 0;
+        v.push_back({"rsp_get_document_details_empty", 21, Status::Ok, MessageType::GetDocumentDetails, m});
     }
     v.push_back({"rsp_error_password_required", 4, Status::PasswordRequired, MessageType::OpenDocument, std::nullopt});
     v.push_back({"rsp_error_timeout", 9, Status::Timeout, MessageType::RenderTile, std::nullopt});
@@ -779,7 +804,7 @@ TEST(ProtocolRoundTrip, EveryStatusIsCarriedAsItsOwnValue) {
 
 TEST(ProtocolRoundTrip, TheSchemaConstantsAreWhatTheDocsSay) {
     EXPECT_EQ(kMaxFrameBytes, 65536u);
-    EXPECT_EQ(kSchemaVersion, 3u);
+    EXPECT_EQ(kSchemaVersion, 4u);
     EXPECT_EQ(kMaxDeadlineMs, 86400000u);
 }
 
@@ -910,7 +935,7 @@ TEST(ProtocolFraming, MapsExtensionsAndBinaryAreRejected) {
 TEST(ProtocolEnvelope, HeaderRules) {
     EXPECT_EQ(request_status(request_frame(Raw().arr(1).u(1), MessageType::Ping)), Status::Ok);
     EXPECT_EQ(request_status(request_frame(Raw().arr(1).u(1), static_cast<MessageType>(0))), Status::ProtocolError);
-    for (const int type : {4, 15, 26, 1023, 1025, 65535}) {
+    for (const int type : {4, 15, 27, 1023, 1025, 65535}) {
         EXPECT_EQ(request_status(request_frame(Raw().arr(0), static_cast<MessageType>(type))), Status::ProtocolError) << type;
     }
     // Four elements instead of five.

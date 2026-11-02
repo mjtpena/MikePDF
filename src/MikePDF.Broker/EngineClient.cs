@@ -140,6 +140,12 @@ public sealed class EngineClient : IAsyncDisposable
             ? CallAsync<GetDocumentInfoReply>(new GetDocumentInfo(), documentId, deadline, WithGrace(deadline), new Pending { EngineQueue = true }, cancellationToken)
             : Task.FromResult(EngineResult<GetDocumentInfoReply>.Fail(Status.InvalidArgument, "unknown document"));
 
+    /// <summary>Dates, security, form type and fonts for the properties dialog (schema 4). The engine walks pages for the fonts, so this can take a second or two.</summary>
+    public Task<EngineResult<GetDocumentDetailsReply>> GetDocumentDetailsAsync(uint documentId, TimeSpan deadline, CancellationToken cancellationToken = default) =>
+        TryGetPageCount(documentId, out _)
+            ? ReadAsync<GetDocumentDetailsReply>(new GetDocumentDetails(), documentId, deadline, cancellationToken)
+            : Task.FromResult(EngineResult<GetDocumentDetailsReply>.Fail(Status.InvalidArgument, "unknown document"));
+
     public async Task<EngineResult<GetPageSizesReply>> GetPageSizesAsync(uint documentId, uint first, uint count, TimeSpan deadline, CancellationToken cancellationToken = default)
     {
         if (!TryGetPageCount(documentId, out var pageCount) || count == 0 || (ulong)first + count > pageCount)
@@ -531,7 +537,7 @@ public sealed class EngineClient : IAsyncDisposable
         MessageType.OpenDocument => status is Status.Ok or Status.InvalidArgument or Status.Unsupported or Status.PasswordRequired
             or Status.PasswordIncorrect or Status.UnsupportedEncryption or Status.Damaged or Status.Timeout or Status.PermissionDenied,
         MessageType.GetDocumentInfo or MessageType.GetPageSizes or MessageType.GetOutline or MessageType.GetPageLinks or MessageType.GetPageBoxes
-            or MessageType.GetPageText or MessageType.SearchPage => status is Status.Ok or Status.InvalidArgument or Status.Damaged or Status.Timeout,
+            or MessageType.GetPageText or MessageType.SearchPage or MessageType.GetDocumentDetails => status is Status.Ok or Status.InvalidArgument or Status.Damaged or Status.Timeout,
         MessageType.GetLinkUri => status is Status.Ok or Status.InvalidArgument or Status.Unsupported or Status.Damaged or Status.Timeout,
         MessageType.RenderTile => status is Status.Ok or Status.PartiallyRendered or Status.Cancelled or Status.InvalidArgument
             or Status.Unsupported or Status.Damaged or Status.Timeout,
@@ -565,6 +571,8 @@ public sealed class EngineClient : IAsyncDisposable
                 return ValidateText(pending, text);
             case SearchPageReply search:
                 return ReplyChecks.CheckMatches(search.Starts, search.Lengths);
+            case GetDocumentDetailsReply details:
+                return ReplyChecks.CheckDetails(details, _documents.TryGetValue(pending.DocumentId, out var pages) ? pages : 0);
             default:
                 return null;
         }
