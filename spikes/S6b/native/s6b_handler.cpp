@@ -92,7 +92,11 @@ static void LogEnvironmentOnce() {
     wchar_t pkg[PACKAGE_FULL_NAME_MAX_LENGTH + 1] = L"(none)";
     UINT32 pl = PACKAGE_FULL_NAME_MAX_LENGTH + 1;
     if (GetCurrentPackageFullName(&pl, pkg) != ERROR_SUCCESS) wcscpy_s(pkg, L"(none)");
-    Log("host exe=%ls integrity=%s appcontainer=%lu package=%ls", exe, token ? IntegrityName(token) : "?", isAc, pkg);
+    // The calling thread's own token, if it is impersonating (a host could run handler threads at a lower level than its process).
+    HANDLE tt = nullptr;
+    const char* threadIl = OpenThreadToken(GetCurrentThread(), TOKEN_QUERY, TRUE, &tt) ? IntegrityName(tt) : "no impersonation";
+    Log("host exe=%ls integrity=%s appcontainer=%lu package=%ls thread-token=%s", exe, token ? IntegrityName(token) : "?", isAc, pkg, threadIl);
+    if (tt) CloseHandle(tt);
     if (token) CloseHandle(token);
 }
 

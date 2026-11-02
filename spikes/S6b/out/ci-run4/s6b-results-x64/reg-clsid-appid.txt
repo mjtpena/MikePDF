@@ -1,0 +1,81 @@
+##### CLSID {6B7C2D10-5A1E-4F3B-9C11-0A5B6D6B0001}
+reg : ERROR: The system was unable to find the specified registry key or value.
+At D:\a\MikePDF\MikePDF\spikes\S6b\ci\install-and-run.ps1:62 char:148
++ ... 6B$g}"; "##### CLSID $id"; reg query "HKCR\CLSID\$id" /s 2>&1; "##### ...
++                                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (ERROR: The syst...y key or value.:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+##### AppID {6B7C2D10-5A1E-4F3B-9C11-0A5B6D6B0001}
+reg : ERROR: The system was unable to find the specified registry key or value.
+At D:\a\MikePDF\MikePDF\spikes\S6b\ci\install-and-run.ps1:62 char:203
++ ... d" /s 2>&1; "##### AppID $id"; reg query "HKCR\AppID\$id" /s 2>&1 } }
++                                    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (ERROR: The syst...y key or value.:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+##### CLSID {6B7C2D10-5A1E-4F3B-9C11-0A5B6D6B0002}
+reg : ERROR: The system was unable to find the specified registry key or value.
+At D:\a\MikePDF\MikePDF\spikes\S6b\ci\install-and-run.ps1:62 char:148
++ ... 6B$g}"; "##### CLSID $id"; reg query "HKCR\CLSID\$id" /s 2>&1; "##### ...
++                                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (ERROR: The syst...y key or value.:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+##### AppID {6B7C2D10-5A1E-4F3B-9C11-0A5B6D6B0002}
+reg : ERROR: The system was unable to find the specified registry key or value.
+At D:\a\MikePDF\MikePDF\spikes\S6b\ci\install-and-run.ps1:62 char:203
++ ... d" /s 2>&1; "##### AppID $id"; reg query "HKCR\AppID\$id" /s 2>&1 } }
++                                    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (ERROR: The syst...y key or value.:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+##### CLSID {6B7C2D10-5A1E-4F3B-9C11-0A5B6D6B0003}
+reg : ERROR: The system was unable to find the specified registry key or value.
+At D:\a\MikePDF\MikePDF\spikes\S6b\ci\install-and-run.ps1:62 char:148
++ ... 6B$g}"; "##### CLSID $id"; reg query "HKCR\CLSID\$id" /s 2>&1; "##### ...
++                                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (ERROR: The syst...y key or value.:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+##### AppID {6B7C2D10-5A1E-4F3B-9C11-0A5B6D6B0003}
+reg : ERROR: The system was unable to find the specified registry key or value.
+At D:\a\MikePDF\MikePDF\spikes\S6b\ci\install-and-run.ps1:62 char:203
++ ... d" /s 2>&1; "##### AppID $id"; reg query "HKCR\AppID\$id" /s 2>&1 } }
++                                    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (ERROR: The syst...y key or value.:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+##### CLSID {6B7C2D10-5A1E-4F3B-9C11-0A5B6D6B0010}
+reg : ERROR: The system was unable to find the specified registry key or value.
+At D:\a\MikePDF\MikePDF\spikes\S6b\ci\install-and-run.ps1:62 char:148
++ ... 6B$g}"; "##### CLSID $id"; reg query "HKCR\CLSID\$id" /s 2>&1; "##### ...
++                                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (ERROR: The syst...y key or value.:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+##### AppID {6B7C2D10-5A1E-4F3B-9C11-0A5B6D6B0010}
+reg : ERROR: The system was unable to find the specified registry key or value.
+At D:\a\MikePDF\MikePDF\spikes\S6b\ci\install-and-run.ps1:62 char:203
++ ... d" /s 2>&1; "##### AppID $id"; reg query "HKCR\AppID\$id" /s 2>&1 } }
++                                    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (ERROR: The syst...y key or value.:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+##### CLSID {6B7C2D10-5A1E-4F3B-9C11-0A5B6D6B0011}
+reg : ERROR: The system was unable to find the specified registry key or value.
+At D:\a\MikePDF\MikePDF\spikes\S6b\ci\install-and-run.ps1:62 char:148
++ ... 6B$g}"; "##### CLSID $id"; reg query "HKCR\CLSID\$id" /s 2>&1; "##### ...
++                                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (ERROR: The syst...y key or value.:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+##### AppID {6B7C2D10-5A1E-4F3B-9C11-0A5B6D6B0011}
+reg : ERROR: The system was unable to find the specified registry key or value.
+At D:\a\MikePDF\MikePDF\spikes\S6b\ci\install-and-run.ps1:62 char:203
++ ... d" /s 2>&1; "##### AppID $id"; reg query "HKCR\AppID\$id" /s 2>&1 } }
++                                    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (ERROR: The syst...y key or value.:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+

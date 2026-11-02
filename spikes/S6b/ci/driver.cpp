@@ -377,18 +377,22 @@ static int Experiment(const std::wstring& name, const std::wstring& dir, const s
     if (name == L"ext-level") SetDefaultValue(extKey, competitor);
     if (name == L"progid-level") SetDefaultValue(progKey, competitor);
     if (name == L"both") { SetDefaultValue(extKey, competitor); SetDefaultValue(progKey, competitor); }
+    // The control: the competitor registered as the ONLY handler of a made-up extension. If it does not draw its checkerboard here, it is not a usable competitor.
+    const bool control = name == L"control";
+    if (control) SetDefaultValue(std::wstring(L"Software\\Classes\\.s6bcomp\\ShellEx\\") + thumbIid, competitor);
     if (name != L"none") { AssocChanged(); P("  SHChangeNotify(SHCNE_ASSOCCHANGED) sent, waited 1.5 s"); }
     wchar_t file[MAX_PATH];
-    swprintf_s(file, L"%ls\\exp-%ls-%lu.pdf", dir.c_str(), name.c_str(), GetCurrentProcessId());
+    swprintf_s(file, L"%ls\\exp-%ls-%lu%ls", dir.c_str(), name.c_str(), GetCurrentProcessId(), control ? L".s6bcomp" : L".pdf");
     CopyFixture(pdf, file);
-    const int ours0 = CountIn("C:\\s6b-log\\handler.log", "GetThumbnail cx="), theirs0 = CountIn("C:\\s6b-log\\comserver.log", "GetThumbnail cx=");
+    const int ours0 = CountIn("C:\\s6b-log\\handler.log", "GetThumbnail cx="), theirs0 = CountIn("C:\\s6b-log\\comserver.log", "GetThumbnail cx="), init0 = CountIn("C:\\s6b-log\\comserver.log", "Initialize: stream size"), start0 = CountIn("C:\\s6b-log\\comserver.log", "env:");
     HRESULT hr;
     int w = 0, h = 0, nw = 0;
     double ms = GetThumb(file, 256, &hr, &w, &h, &nw);
     P("  GetImage(.pdf): %s hr=0x%08lx %.1f ms %dx%d non-white %d%%", ms >= 0 ? "ok" : "FAILED", (unsigned long)hr, ms, w, h, nw);
-    P("  served by: MikePDF packaged handler +%d, competitor (ExeServer) +%d", CountIn("C:\\s6b-log\\handler.log", "GetThumbnail cx=") - ours0, CountIn("C:\\s6b-log\\comserver.log", "GetThumbnail cx=") - theirs0);
+    P("  served by: MikePDF packaged handler +%d, competitor (ExeServer) +%d GetThumbnail; the competitor was started %d time(s) and initialised %d time(s)", CountIn("C:\\s6b-log\\handler.log", "GetThumbnail cx=") - ours0, CountIn("C:\\s6b-log\\comserver.log", "GetThumbnail cx=") - theirs0, CountIn("C:\\s6b-log\\comserver.log", "env:") - start0, CountIn("C:\\s6b-log\\comserver.log", "Initialize: stream size") - init0);
     if (name == L"ext-level" || name == L"both") RegDeleteTreeW(HKEY_CURRENT_USER, extKey.c_str());
     if (name == L"progid-level" || name == L"both") RegDeleteTreeW(HKEY_CURRENT_USER, progKey.c_str());
+    if (control) RegDeleteTreeW(HKEY_CURRENT_USER, L"Software\\Classes\\.s6bcomp");
     if (name != L"none") AssocChanged();
     return 0;
 }

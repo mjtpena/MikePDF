@@ -1,0 +1,24 @@
+##### HKCR\.s6bpdf
+
+HKEY_CLASSES_ROOT\.s6bpdf\OpenWithProgids
+    AppX8cdpzjtj2j9zk2pc8p2fya1jwkpnrqva    REG_NONE    
+
+##### HKCR\.pdf
+
+HKEY_CLASSES_ROOT\.pdf
+    Content Type    REG_SZ    application/pdf
+
+HKEY_CLASSES_ROOT\.pdf\OpenWithProgids
+    AppXc3tc6f9npav80ca6sa5kqk8vagggaejq    REG_NONE    
+    ChromePDF    REG_SZ    
+    MSEdgePDF    REG_SZ    
+
+HKEY_CLASSES_ROOT\.pdf\PersistentHandler
+    (Default)    REG_SZ    {1AA9BF05-9A97-48c1-BA28-D9DCE795E93C}
+
+HKEY_CLASSES_ROOT\.pdf\ShellEx
+
+HKEY_CLASSES_ROOT\.pdf\ShellEx\{8895b1c6-b41f-4c1c-a562-0d564250836f}
+    (Default)    REG_SZ    {3A84F9C2-6164-485C-A7D9-4B27F8AC009E}
+
+

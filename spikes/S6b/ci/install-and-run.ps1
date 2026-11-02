@@ -68,6 +68,12 @@ Dump 'reg-progids' {
     reg query 'HKCU\Software\Classes\Extensions\ContractId\Windows.File\PackageId' /f 'S6bProbe' /k 2>&1 | Select-Object -First 20
     reg query 'HKLM\SOFTWARE\Classes\Extensions\ContractId\Windows.File\PackageId' /f 'S6bProbe' /k 2>&1 | Select-Object -First 20
 }
+Dump 'reg-appx-progids' {
+    "##### the AppX ProgIDs the package's file types registered, and everything under them"
+    foreach ($e in '.s6bpdf', '.pdf') {
+        reg query "HKCR\$e\OpenWithProgids" 2>&1 | Select-String 'AppX' | ForEach-Object { $_.Line.Trim().Split(' ')[0] } | ForEach-Object { "##### HKCR\$_"; reg query "HKCR\$_" /s 2>&1 }
+    }
+}
 Dump 'reg-shellex' {
     "##### where the thumbnail (E357FCCD) and preview (8895b1c6) handler keys live for our file types"
     foreach ($iid in '{E357FCCD-A995-4576-B01F-234630154E96}', '{8895b1c6-b41f-4c1c-a562-0d564250836f}') {
@@ -128,7 +134,7 @@ if (Test-Path (Join-Path $o 'driver.log')) { Copy-Item (Join-Path $o 'driver.log
 Mark 'precedence experiments (High, unpackaged)'
 $expOut = Join-Path $logDir 'out-experiments'
 New-Item -ItemType Directory -Force $expOut, (Join-Path $logDir 'work-exp') | Out-Null
-foreach ($name in 'none', 'ext-level', 'progid-level', 'both') {
+foreach ($name in 'none', 'control', 'ext-level', 'progid-level', 'both') {
     & $driverExe --experiment $name $expOut $fx2 (Join-Path $logDir 'work-exp') 2>&1 | Out-Null
 }
 if (Test-Path (Join-Path $expOut 'experiment.log')) { Copy-Item (Join-Path $expOut 'experiment.log') (Join-Path $OutDir 'experiment.log') }
