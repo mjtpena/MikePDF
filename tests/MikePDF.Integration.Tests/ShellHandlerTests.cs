@@ -223,9 +223,10 @@ public sealed class ShellHandlerTests(SandboxFixture sandbox)
         Console.WriteLine("preview, DEV, x64, cold ShellHost: " + opened + "; first page " + first);
 
         // SHELL-22: the window is named and says where it is.
-        var (name, value) = await preview.StateAsync();
+        // The value is set after the first ink, so it may still say "Loading..." here: wait for it.
+        Assert.True(await preview.UntilValueAsync("Page 1 of 200"), "after the first page the value says " + (await preview.StateAsync()).Value);
+        var (name, _) = await preview.StateAsync();
         Assert.Equal("PDF preview", name);
-        Assert.Equal("Page 1 of 200", value);
 
         // SHELL-19: scroll through the whole document with Page Down; the value follows and the handler never holds more than a handful of GDI objects.
         var baseline = await preview.GdiObjectsAsync();
