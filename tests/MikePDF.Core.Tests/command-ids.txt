@@ -78,3 +78,16 @@ tab.last
 tab.moveLeft
 tab.moveRight
 tab.moveToNewWindow
+view.layoutSingle
+view.layoutTwo
+view.layoutTwoCover
+view.continuous
+view.coverPage
+view.directionAuto
+view.directionLtr
+view.directionRtl
+view.presentation
+present.next
+present.previous
+present.black
+present.white

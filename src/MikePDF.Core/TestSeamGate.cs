@@ -11,8 +11,9 @@ public static class TestSeamGate
     public const string Restore = "MIKEPDF_TEST_RESTORE";
     public const string FakeDirty = "MIKEPDF_TEST_FAKE_DIRTY";
     public const string JumpListDump = "MIKEPDF_TEST_JUMPLIST_DUMP";
+    public const string PresentationDump = "MIKEPDF_TEST_PRESENT_DUMP";
 
-    public static IReadOnlyList<string> All { get; } = [PolicyKey, Restore, FakeDirty, JumpListDump];
+    public static IReadOnlyList<string> All { get; } = [PolicyKey, Restore, FakeDirty, JumpListDump, PresentationDump];
 
     /// <summary>
     /// The value of a seam, or null when it is not set, is empty, is not one of <see cref="All"/>, or the package is Store-signed.

@@ -67,6 +67,12 @@ public sealed class PageSurface : Control
     private PageColourMode _pageColour = PageColourMode.Normal;
     private TextModel _accessibleModel = TextModel.Empty;
     private string _accessiblePages = string.Empty;
+    private bool _presentation;
+    private bool _pointerHidden;
+    private DispatcherQueueTimer? _pointerIdle;
+
+    /// <summary>The pointer is hidden after it has rested this long in presentation mode (design 03: 2 s; the feature spec says 3 s, the longer is kept).</summary>
+    private static readonly TimeSpan PointerIdle = TimeSpan.FromSeconds(3);
 
     public PageSurface()
     {
@@ -75,7 +81,11 @@ public sealed class PageSurface : Control
         ManipulationMode = ManipulationModes.TranslateX | ManipulationModes.TranslateY | ManipulationModes.TranslateInertia | ManipulationModes.Scale;
         SizeChanged += (_, _) => PushViewport();
         Loaded += OnLoaded;
-        Unloaded += (_, _) => _uiSettings.ColorValuesChanged -= OnColorValuesChanged;
+        Unloaded += (_, _) =>
+        {
+            _uiSettings.ColorValuesChanged -= OnColorValuesChanged;
+            ShowPointer();
+        };
         ActualThemeChanged += (_, _) => ApplyColors();
         PointerPressed += OnPointerPressed;
         PointerMoved += OnPointerMoved;
@@ -86,6 +96,8 @@ public sealed class PageSurface : Control
         PointerWheelChanged += OnPointerWheelChanged;
         ManipulationDelta += OnManipulationDelta;
         KeyDown += OnKeyDown;
+        Tapped += OnTapped;
+        ManipulationCompleted += OnManipulationCompleted;
         ProtectedCursor = _arrow;
     }
 
@@ -113,6 +125,79 @@ public sealed class PageSurface : Control
             ApplyColors();
         }
     }
+
+    /// <summary>
+    /// Presentation mode is on (docs/features/page-view-modes.md 3.6): a black surround, no selecting, a click turns the page, and the pointer hides itself when it rests. The window
+    /// turns it on and off with the session's own presentation state.
+    /// </summary>
+    internal bool Presentation
+    {
+        get => _presentation;
+        set
+        {
+            if (_presentation == value)
+            {
+                return;
+            }
+
+            _presentation = value;
+            EndPress();
+            if (value)
+            {
+                _session?.Selection?.Clear();
+                RestartPointerIdle();
+            }
+            else
+            {
+                _pointerIdle?.Stop();
+                ShowPointer();
+            }
+
+            ApplyColors();
+        }
+    }
+
+    /// <summary>Hides the pointer now (a page was turned from the keyboard); it comes back when it moves.</summary>
+    internal void HidePointer()
+    {
+        if (_presentation && !_pointerHidden)
+        {
+            _pointerHidden = true;
+            _ = ShowCursor(false);
+        }
+    }
+
+    private void ShowPointer()
+    {
+        if (_pointerHidden)
+        {
+            _pointerHidden = false;
+            _ = ShowCursor(true);
+        }
+    }
+
+    private void RestartPointerIdle()
+    {
+        ShowPointer();
+        _pointerIdle ??= DispatcherQueue.CreateTimer();
+        _pointerIdle.Interval = PointerIdle;
+        _pointerIdle.IsRepeating = false;
+        _pointerIdle.Tick -= OnPointerIdle;
+        _pointerIdle.Tick += OnPointerIdle;
+        _pointerIdle.Stop();
+        _pointerIdle.Start();
+    }
+
+    private void OnPointerIdle(DispatcherQueueTimer sender, object args)
+    {
+        if (_presentation)
+        {
+            HidePointer();
+        }
+    }
+
+    [System.Runtime.InteropServices.DllImport("user32.dll")]
+    private static extern int ShowCursor([System.Runtime.InteropServices.MarshalAs(System.Runtime.InteropServices.UnmanagedType.Bool)] bool show);
 
     internal DocumentSession? Session
     {
@@ -193,6 +278,12 @@ public sealed class PageSurface : Control
             background = _uiSettings.GetColorValue(UIColorType.Background);
             border = _uiSettings.GetColorValue(UIColorType.Foreground);
             paper = background;
+        }
+        else if (_presentation)
+        {
+            // Presentation: the page on black, with nothing round it (the surround is the room's dark, not the app's grey).
+            background = Color.FromArgb(255, 0, 0, 0);
+            border = Color.FromArgb(0, 0, 0, 0);
         }
         else if (ActualTheme == ElementTheme.Dark)
         {
@@ -328,7 +419,15 @@ public sealed class PageSurface : Control
         var point = e.GetCurrentPoint(this);
         var notches = point.Properties.MouseWheelDelta / 120.0;
         var scale = RasterScale;
-        if (IsDown(VirtualKey.Control))
+        if (_session.Presenting)
+        {
+            // A talk: a notch down is the next page, up the one before (once per debounce, so one flick is one page). Nothing zooms.
+            if (notches != 0)
+            {
+                _session.WheelNotch(-Math.Sign(notches) * WheelStepDip * scale, Environment.TickCount64);
+            }
+        }
+        else if (IsDown(VirtualKey.Control))
         {
             _session.ZoomBy(Math.Pow(ZoomPerNotch, notches), new PointD(point.Position.X * scale, point.Position.Y * scale));
         }
@@ -342,7 +441,7 @@ public sealed class PageSurface : Control
         }
         else
         {
-            _session.ScrollBy(0, -notches * WheelStepDip * scale);
+            _session.WheelNotch(-notches * WheelStepDip * scale, Environment.TickCount64);
         }
 
         e.Handled = true;
@@ -350,9 +449,9 @@ public sealed class PageSurface : Control
 
     private void OnManipulationDelta(object sender, ManipulationDeltaRoutedEventArgs e)
     {
-        if (_session is null)
+        if (_session is null || _session.Presenting)
         {
-            return;
+            return; // in a talk a drag or a pinch moves nothing; a swipe turns the page when it ends
         }
 
         var scale = RasterScale;
@@ -362,6 +461,40 @@ public sealed class PageSurface : Control
         }
 
         _session.ScrollBy(-e.Delta.Translation.X * scale, -e.Delta.Translation.Y * scale);
+        e.Handled = true;
+    }
+
+    /// <summary>A swipe is this far (device-independent pixels) before it turns a page.</summary>
+    private const double SwipeDip = 80;
+
+    // A swipe across a page turns it: in presentation always, in the paged flow when the spread fits the window (otherwise the same movement is a pan).
+    private void OnManipulationCompleted(object sender, ManipulationCompletedRoutedEventArgs e)
+    {
+        if (_session is not { IsOpen: true } session || !(session.Presenting || (session.Mode.IsPaged && session.Controller.SpreadFitsWindow)))
+        {
+            return;
+        }
+
+        var dx = e.Cumulative.Translation.X;
+        var dy = e.Cumulative.Translation.Y;
+        if (Math.Abs(dx) >= SwipeDip && Math.Abs(dx) > Math.Abs(dy) && Math.Abs(e.Cumulative.Scale - 1.0) < 0.05)
+        {
+            var forward = dx < 0 != (session.Controller.RightToLeft && !session.Presenting);
+            session.Turn(forward ? +1 : -1);
+            e.Handled = true;
+        }
+    }
+
+    // A tap by finger or pen in presentation: the right two-thirds of the page well go forward, the left third back.
+    private void OnTapped(object sender, TappedRoutedEventArgs e)
+    {
+        if (_session is not { IsOpen: true } session || !session.Presenting || e.PointerDeviceType == Microsoft.UI.Input.PointerDeviceType.Mouse)
+        {
+            return;
+        }
+
+        var x = e.GetPosition(this).X;
+        session.Turn(x < ActualWidth / 3 ? -1 : +1);
         e.Handled = true;
     }
 
@@ -379,6 +512,12 @@ public sealed class PageSurface : Control
         }
 
         var point = e.GetCurrentPoint(this);
+        if (session.Presenting)
+        {
+            OnPresentationPressed(session, e, point);
+            return;
+        }
+
         if (!point.Properties.IsLeftButtonPressed)
         {
             return;
@@ -434,10 +573,63 @@ public sealed class PageSurface : Control
         e.Handled = true;
     }
 
+    // Presentation: the left button follows a link it pressed on (and lets go), anything else it presses turns the page forward when released; the right button goes back at once.
+    private void OnPresentationPressed(DocumentSession session, PointerRoutedEventArgs e, PointerPoint point)
+    {
+        if (point.Properties.IsRightButtonPressed)
+        {
+            session.Turn(-1);
+            e.Handled = true;
+            return;
+        }
+
+        if (!point.Properties.IsLeftButtonPressed)
+        {
+            return;
+        }
+
+        var hit = session.HitTest(ToPixels(point.Position));
+        CapturePointer(e.Pointer);
+        _pressed = true;
+        _dragged = false;
+        _pressedLink = hit?.Link;
+        _pressedLinkPage = hit?.Page ?? -1;
+        e.Handled = true;
+    }
+
+    private void OnPresentationReleased(DocumentSession session, PointerRoutedEventArgs e)
+    {
+        var wasPressed = _pressed;
+        var link = _pressedLink;
+        var page = _pressedLinkPage;
+        var releasedAt = ToPixels(e.GetCurrentPoint(this).Position);
+        EndPress();
+        ReleasePointerCaptures();
+        if (!wasPressed)
+        {
+            return;
+        }
+
+        if (link is not null && session.HitTest(releasedAt) is { Link: { } under } && under.Index == link.Index)
+        {
+            LinkActivated?.Invoke(page, link);
+        }
+        else
+        {
+            session.Turn(+1);
+        }
+    }
+
     private void OnPointerMoved(object sender, PointerRoutedEventArgs e)
     {
         if (_session is not { IsOpen: true } session)
         {
+            return;
+        }
+
+        if (session.Presenting)
+        {
+            RestartPointerIdle(); // the pointer is back; it hides again after it has rested
             return;
         }
 
@@ -477,6 +669,12 @@ public sealed class PageSurface : Control
 
     private void OnPointerReleased(object sender, PointerRoutedEventArgs e)
     {
+        if (_session is { IsOpen: true, Presenting: true } presenting)
+        {
+            OnPresentationReleased(presenting, e);
+            return;
+        }
+
         var wasClick = _pressed && !_dragged;
         var link = _pressedLink;
         var page = _pressedLinkPage;
@@ -565,9 +763,9 @@ public sealed class PageSurface : Control
     // works and there is one list of them. What is left here is what is not a command: Esc clears the selection, and Shift with the arrows (and Ctrl for words) moves it.
     private void OnKeyDown(object sender, KeyRoutedEventArgs e)
     {
-        if (_session is null || IsDown(VirtualKey.Menu))
+        if (_session is null || _session.Presenting || IsDown(VirtualKey.Menu))
         {
-            return; // Alt+Left and Alt+Right are Back and Forward (commands), not Left and Right
+            return; // Alt+Left and Alt+Right are Back and Forward (commands), not Left and Right; a talk selects nothing
         }
 
         var ctrl = IsDown(VirtualKey.Control);

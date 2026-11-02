@@ -1,6 +1,7 @@
 using System.Runtime.InteropServices.WindowsRuntime;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Data;
 using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media.Imaging;
 using MikePDF.App.Services;
@@ -17,6 +18,7 @@ public sealed partial class MainWindow
     private ThumbnailPages? _thumbnailPages;
     private DocumentSession? _sidebarSession;
     private int _lastSyncedPage = -1;
+    private int _lastSyncedLast = -1;
     private bool _outlineLoaded;
     private CancellationTokenSource? _outlineLoad;
 
@@ -38,6 +40,7 @@ public sealed partial class MainWindow
         session.ViewChanged += OnSidebarViewChanged;
         _outlineLoaded = false;
         _lastSyncedPage = -1;
+        _lastSyncedLast = -1;
         OutlineTree.RootNodes.Clear();
         OutlineMessage.Visibility = Visibility.Collapsed;
         SidebarButton.IsEnabled = true;
@@ -233,14 +236,27 @@ public sealed partial class MainWindow
             return;
         }
 
-        var page = _sidebarSession.Controller.CurrentPage;
-        if (page < 0 || (page == _lastSyncedPage && !force))
+        var (page, lastPage) = _sidebarSession.Controller.CurrentPages;
+        if (page < 0 || lastPage < page || (page == _lastSyncedPage && lastPage == _lastSyncedLast && !force))
         {
             return;
         }
 
         _lastSyncedPage = page;
-        ThumbnailList.SelectedIndex = page;
+        _lastSyncedLast = lastPage;
+        if (lastPage > page)
+        {
+            // A spread: both of its pages are marked (docs/features/page-view-modes.md 3.4).
+            ThumbnailList.SelectionMode = ListViewSelectionMode.Extended;
+            ThumbnailList.SelectedItems.Clear();
+            ThumbnailList.SelectRange(new ItemIndexRange(page, (uint)(lastPage - page + 1)));
+        }
+        else
+        {
+            ThumbnailList.SelectionMode = ListViewSelectionMode.Single;
+            ThumbnailList.SelectedIndex = page;
+        }
+
         if (!ThumbnailList.IsLoaded || FocusManager.GetFocusedElement(Root.XamlRoot) is not ListViewItem)
         {
             ThumbnailList.ScrollIntoView(_thumbnailPages.Get(page), ScrollIntoViewAlignment.Leading);

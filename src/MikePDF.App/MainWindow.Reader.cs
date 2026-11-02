@@ -107,7 +107,7 @@ public sealed partial class MainWindow
 
     // ---- full screen -----------------------------------------------------------------------------------------------------------------
 
-        private void SetFullScreen(bool on)
+    private void SetFullScreen(bool on, bool quiet = false)
     {
         if (on == _fullScreen)
         {
@@ -117,7 +117,11 @@ public sealed partial class MainWindow
         _fullScreen = on;
         AppWindow.SetPresenter(on ? AppWindowPresenterKind.FullScreen : AppWindowPresenterKind.Default);
         ApplyFullScreenChrome(on);
-        if (on)
+        if (on && quiet)
+        {
+            Banner.IsOpen = false;
+        }
+        else if (on)
         {
             ShowBanner(InfoBarSeverity.Informational, "Banner_FullScreen_Title", "Banner_FullScreen_Message", closable: true);
             _bannerTimer.Interval = TimeSpan.FromSeconds(4);
@@ -159,6 +163,11 @@ public sealed partial class MainWindow
         {
             _fullScreen = false;
             ApplyFullScreenChrome(false);
+            if (_presenting)
+            {
+                _presentationFullScreenBefore = false; // the system took the full screen away: the presentation ends with it, and the window stays as it is now
+                ExitPresentation();
+            }
         }
     }
 

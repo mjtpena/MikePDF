@@ -120,6 +120,16 @@ public sealed partial class MainWindow
         Bind(FindNextButton, "find.next", Parts.Click | Parts.Accelerator);
         Bind(FindCloseButton, "find.close", Parts.Click | Parts.Accelerator);
         Bind(NewTabButton, "file.newTab", Parts.Click | Parts.Tooltip | Parts.Accelerator);
+        Bind(LayoutSingleItem, "view.layoutSingle");
+        Bind(LayoutTwoItem, "view.layoutTwo");
+        Bind(LayoutTwoCoverItem, "view.layoutTwoCover");
+        Bind(LayoutContinuousItem, "view.continuous");
+        Bind(LayoutCoverPageItem, "view.coverPage");
+        Bind(DirectionAutoItem, "view.directionAuto");
+        Bind(DirectionLtrItem, "view.directionLtr");
+        Bind(DirectionRtlItem, "view.directionRtl");
+        Bind(PresentationItem, "view.presentation");
+        Bind(PresentationExit, "view.presentation", Parts.Click);
         Bind(LocateButton, "file.locate", Parts.Click | Parts.Accelerator);
         Bind(MissingCloseButton, "file.close", Parts.Click | Parts.Accelerator);
         RefreshCommands();
@@ -248,6 +258,8 @@ public sealed partial class MainWindow
             HasCustomShortcuts = _services.Commands.HasCustomShortcuts,
             CanUndoImport = _canUndoImport,
             PageColour = Pages.PageColour,
+            ViewMode = open ? session!.Mode : default,
+            Presentation = _presenting,
             ImportExportAllowed = policy.ImportExportAllowed,
             PrintingAllowed = policy.PrintingAllowed,
         };
@@ -342,7 +354,14 @@ public sealed partial class MainWindow
     // Esc is not a command: it is "cancel and close" for whatever is on top, and no chord can take it (reserved). Everything else goes through the dispatcher.
     private void OnRootPreviewKeyDown(object sender, KeyRoutedEventArgs e)
     {
-        if (e.Key == VirtualKey.Escape && _fullScreen && !FindOpen && !Palette.IsOpen && SettingsPage.Visibility != Visibility.Visible)
+        if (e.Key == VirtualKey.Escape && _presenting && !Palette.IsOpen && _modalDepth == 0)
+        {
+            e.Handled = true;
+            EscapeInPresentation();
+            return;
+        }
+
+        if (e.Key == VirtualKey.Escape && _fullScreen && !_presenting && !FindOpen && !Palette.IsOpen && SettingsPage.Visibility != Visibility.Visible)
         {
             e.Handled = true;
             SetFullScreen(false);
@@ -352,6 +371,11 @@ public sealed partial class MainWindow
         if (IsModifier(e.Key) || (int)e.Key == ImeProcessKey || IsKeyDown(VirtualKey.LeftWindows) || IsKeyDown(VirtualKey.RightWindows))
         {
             return; // a modifier alone is not a chord; an input method is composing; the Windows key is never part of one
+        }
+
+        if (_presenting && _modalDepth == 0 && HandlePresentationKey(e))
+        {
+            return; // a digit of a page number, or a key that brings the page back from a blank screen
         }
 
         var modifiers = (IsKeyDown(VirtualKey.Control) ? ChordModifiers.Control : 0) | (IsKeyDown(VirtualKey.Menu) ? ChordModifiers.Alt : 0) | (IsKeyDown(VirtualKey.Shift) ? ChordModifiers.Shift : 0);
@@ -370,7 +394,12 @@ public sealed partial class MainWindow
         {
             case DispatchKind.Execute:
                 e.Handled = true;
-                _ = RunCommandAsync(result.Command!.Id);
+                _ = RunCommandAsync(MirroredArrow(result.Command!.Id, modifiers, e.Key));
+                if (_presenting)
+                {
+                    Pages.HidePointer(); // a page turned from the keyboard: the pointer is not wanted on the slide
+                }
+
                 break;
             case DispatchKind.Disabled:
                 e.Handled = true;
@@ -383,6 +412,14 @@ public sealed partial class MainWindow
                 break;
         }
     }
+
+    // Right to left, one spread at a time: the Right arrow goes to the previous spread and the Left arrow to the next, as the pages are laid (docs/features/page-view-modes.md 3.7).
+    private string MirroredArrow(string commandId, ChordModifiers modifiers, VirtualKey key) =>
+        modifiers == ChordModifiers.None && key is VirtualKey.Left or VirtualKey.Right && _session is { IsOpen: true } session && session.Controller.ArrowsAreMirrored && commandId is "nav.nextPage" or "nav.previousPage"
+            ? (commandId == "nav.nextPage" ? "nav.previousPage" : "nav.nextPage")
+            : commandId;
+
+    private double ArrowStepPx() => ArrowStepDip * (Root.XamlRoot?.RasterizationScale ?? 1.0);
 
     // ---- the actions ------------------------------------------------------------------------------------------------------------------------
 
@@ -425,14 +462,14 @@ public sealed partial class MainWindow
         Sync("nav.back", GoBack);
         Sync("nav.forward", GoForward);
         Async("nav.goToPage", GoToPageAsync);
-        Sync("nav.nextPage", () => _session?.NextPage());
-        Sync("nav.previousPage", () => _session?.PreviousPage());
+        Sync("nav.nextPage", () => _session?.ArrowHorizontal(+1, ArrowStepPx()));
+        Sync("nav.previousPage", () => _session?.ArrowHorizontal(-1, ArrowStepPx()));
         Sync("nav.firstPage", () => _session?.FirstPage());
         Sync("nav.lastPage", () => _session?.LastPage());
         Sync("nav.scrollScreenDown", () => _session?.PageDown());
         Sync("nav.scrollScreenUp", () => _session?.PageUp());
-        Sync("nav.scrollDown", () => _session?.ScrollBy(0, ArrowStepDip * (Root.XamlRoot?.RasterizationScale ?? 1.0)));
-        Sync("nav.scrollUp", () => _session?.ScrollBy(0, -ArrowStepDip * (Root.XamlRoot?.RasterizationScale ?? 1.0)));
+        Sync("nav.scrollDown", () => _session?.ArrowVertical(+1, ArrowStepPx()));
+        Sync("nav.scrollUp", () => _session?.ArrowVertical(-1, ArrowStepPx()));
         Sync("view.zoomIn", () => _session?.ZoomStep(+1));
         Sync("view.zoomOut", () => _session?.ZoomStep(-1));
         Sync("view.zoomActual", () => _session?.ActualSize());
@@ -452,7 +489,18 @@ public sealed partial class MainWindow
         };
         Sync("view.rotateRight", () => _session?.Rotate(+1));
         Sync("view.rotateLeft", () => _session?.Rotate(-1));
-        Sync("view.readingMode", () => SetFullScreen(!_fullScreen));
+        Sync("view.readingMode", () =>
+        {
+            if (_presenting)
+            {
+                ExitPresentation(); // F11 leaves a presentation, as Esc does
+            }
+            else
+            {
+                SetFullScreen(!_fullScreen);
+            }
+        });
+        RegisterViewActions(Sync);
         Sync("view.pageColors", () => SetPageColour((PageColourMode)(((int)Pages.PageColour + 1) % Enum.GetValues<PageColourMode>().Length)));
         Sync("view.pageColorsNormal", () => SetPageColour(PageColourMode.Normal));
         Sync("view.pageColorsDark", () => SetPageColour(PageColourMode.Inverted));

@@ -171,7 +171,8 @@ internal sealed partial class DocumentSession : IAsyncDisposable
     public TabViewState CaptureView()
     {
         var (page, fraction) = Controller.TopPosition;
-        return new TabViewState(Math.Max(0, page), Math.Clamp(fraction, 0, 1), Controller.Zoom, Controller.Fit, Controller.ViewTurns);
+        var (zoom, fit, mode) = Controller.PersistedView;
+        return new TabViewState(Math.Max(0, page), Math.Clamp(fraction, 0, 1), zoom, fit, Controller.ViewTurns, mode);
     }
 
     // ---- moving between windows ------------------------------------------------------------------------------------------------
@@ -242,6 +243,7 @@ internal sealed partial class DocumentSession : IAsyncDisposable
             var info = await _document.GetInfoAsync(token).ConfigureAwait(true);
             Title = info.Value is { Title.Length: > 0 } reply ? reply.Title : System.IO.Path.GetFileNameWithoutExtension(Path);
             Permissions = info.Value?.Permissions ?? uint.MaxValue;
+            await ReadDirectionAsync(token).ConfigureAwait(true);
             if (await LoadFirstSizesAsync(token).ConfigureAwait(true) is { } sizeError)
             {
                 return new OpenOutcome(OpenOutcomeKind.Failed, sizeError);
@@ -271,6 +273,21 @@ internal sealed partial class DocumentSession : IAsyncDisposable
         PrefetchVisible();
         _ = LoadRemainingSizesAsync(token);
         return new OpenOutcome(OpenOutcomeKind.Opened);
+    }
+
+    // The binding side the file asks for (/ViewerPreferences /Direction, schema 5). The engine answers 0 left to right, 1 right to left, 2 absent; an engine that cannot answer leaves it automatic.
+    private async Task ReadDirectionAsync(CancellationToken token)
+    {
+        var reply = await _document!.GetViewerPreferencesAsync(token).ConfigureAwait(true);
+        if (reply.IsOk && reply.Value is { } preferences)
+        {
+            Controller.SetDocumentDirection(preferences.Direction switch
+            {
+                0 => ReadingDirection.LeftToRight,
+                1 => ReadingDirection.RightToLeft,
+                _ => ReadingDirection.Auto,
+            });
+        }
     }
 
     /// <summary>The document's own engine, from the budget: it counts against the cap on document engines.</summary>
@@ -421,11 +438,11 @@ internal sealed partial class DocumentSession : IAsyncDisposable
     {
         if (initial is not null)
         {
-            Controller.Restore(Math.Clamp(initial.Page, 0, Math.Max(0, Controller.PageCount - 1)), initial.PageFraction, initial.Zoom, initial.Fit, initial.ViewTurns);
+            Controller.Restore(Math.Clamp(initial.Page, 0, Math.Max(0, Controller.PageCount - 1)), initial.PageFraction, initial.Zoom, initial.Fit, initial.ViewTurns, initial.Mode);
         }
         else if (_store.GetPosition(Path) is { } saved && saved.Page < Controller.PageCount)
         {
-            Controller.Restore(saved.Page, saved.PageFraction, saved.Zoom, saved.Fit, saved.ViewTurns);
+            Controller.Restore(saved.Page, saved.PageFraction, saved.Zoom, saved.Fit, saved.ViewTurns, saved.Mode);
         }
     }
 
@@ -507,6 +524,38 @@ internal sealed partial class DocumentSession : IAsyncDisposable
             ViewChanged?.Invoke();
         }
     }
+
+    // ---- view modes (docs/features/page-view-modes.md) ---------------------------------------------------------------------------------
+
+    /// <summary>How pages are arranged and turned now, and the user's reading-direction choice.</summary>
+    public ViewMode Mode => Controller.Mode;
+
+    public bool Presenting => Controller.Presenting;
+
+    public void SetMode(ViewMode mode) => Change(() => Controller.SetMode(mode));
+
+    public void EnterPresentation() => Change(Controller.EnterPresentation);
+
+    public void ExitPresentation() => Change(Controller.ExitPresentation);
+
+    /// <summary>The next (above 0) or previous spread in the paged flow; the page in the continuous flow. False at either end.</summary>
+    public bool Turn(int direction)
+    {
+        var turned = false;
+        Change(() => turned = Controller.Turn(direction));
+        return turned;
+    }
+
+    public bool WheelNotch(double dyPx, long tickMs)
+    {
+        var turned = false;
+        Change(() => turned = Controller.WheelNotch(dyPx, tickMs), trackVelocity: true);
+        return turned;
+    }
+
+    public void ArrowVertical(int direction, double stepPx) => Change(() => Controller.ArrowVertical(direction, stepPx), trackVelocity: true);
+
+    public void ArrowHorizontal(int direction, double stepPx) => Change(() => Controller.ArrowHorizontal(direction, stepPx));
 
     public void PageDown() => Change(Controller.PageDown, trackVelocity: true);
 
@@ -632,7 +681,8 @@ internal sealed partial class DocumentSession : IAsyncDisposable
         }
 
         var (page, fraction) = Controller.TopPosition;
-        _store.SavePosition(Path, page, fraction, Controller.Zoom, Controller.Fit, Controller.ViewTurns);
+        var (zoom, fit, mode) = Controller.PersistedView;
+        _store.SavePosition(Path, page, fraction, zoom, fit, Controller.ViewTurns, mode);
     }
 
     public async ValueTask DisposeAsync()

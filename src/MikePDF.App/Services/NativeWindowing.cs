@@ -132,6 +132,35 @@ internal static class NativeWindowing
 
     private static readonly List<SubclassProc> Procedures = [];
 
+    private const uint WmDisplayChange = 0x007E;
+
+    /// <summary>Calls <paramref name="onChange"/> when the displays change (one is plugged in or taken away, a resolution changes). On the window's thread.</summary>
+    public static void WatchDisplayChange(nint hwnd, Action onChange)
+    {
+        SubclassProc procedure = (window, message, wParam, lParam, id, data) =>
+        {
+            if (message == WmDisplayChange)
+            {
+                try
+                {
+                    onChange();
+                }
+                catch (Exception e) when (e is not OutOfMemoryException)
+                {
+                    // A display change must never reach the window procedure as an exception.
+                }
+            }
+
+            return DefSubclassProc(window, message, wParam, lParam);
+        };
+        Procedures.Add(procedure);
+        SetWindowSubclass(hwnd, procedure, 2, 0);
+    }
+
+    /// <summary>The id of the display the window is on, in the form <see cref="Monitors"/> lists them.</summary>
+    public static string DisplayOf(AppWindow window) =>
+        DisplayArea.GetFromWindowId(window.Id, DisplayAreaFallback.Nearest).DisplayId.Value.ToString(System.Globalization.CultureInfo.InvariantCulture);
+
     /// <summary>Calls <paramref name="onEndSession"/> when Windows asks the window whether it may end the session (shutdown, sign-out). The answer is always "yes": there is no dialog.</summary>
     public static void WatchEndSession(nint hwnd, Action onEndSession)
     {
