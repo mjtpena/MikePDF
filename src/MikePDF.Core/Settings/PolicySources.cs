@@ -72,13 +72,17 @@ public sealed class RegistryPolicySource : IPolicySource
     private readonly string _machinePath;
     private readonly RegistryKey _userHive;
     private readonly string _userPath;
+    private readonly IReadOnlyList<string> _extraUserPaths;
 
-    public RegistryPolicySource(RegistryKey machineHive, string machinePath, RegistryKey userHive, string userPath)
+    // extraUserPaths: more keys in the user hive, read as part of the user scope for names the main user key does not have. The user scope can only make behaviour stricter, so
+    // an extra key can never loosen anything. Only tests use it: Windows keeps a standard user from writing under Software\Policies, so a test cannot write the real key.
+    public RegistryPolicySource(RegistryKey machineHive, string machinePath, RegistryKey userHive, string userPath, IReadOnlyList<string>? extraUserPaths = null)
     {
         _machineHive = machineHive;
         _machinePath = machinePath;
         _userHive = userHive;
         _userPath = userPath;
+        _extraUserPaths = extraUserPaths ?? [];
     }
 
     /// <summary>The real thing: HKLM and HKCU, <c>Software\Policies\MikePDF</c>.</summary>
@@ -88,18 +92,22 @@ public sealed class RegistryPolicySource : IPolicySource
     {
         try
         {
-            using var key = (scope == PolicyScope.Machine ? _machineHive : _userHive).OpenSubKey(scope == PolicyScope.Machine ? _machinePath : _userPath, writable: false);
-            if (key is null)
-            {
-                return PolicyRead.Empty;
-            }
-
             var values = new List<RawPolicyValue>();
-            foreach (var name in names)
+            var paths = scope == PolicyScope.Machine ? [_machinePath] : (IReadOnlyList<string>)[_userPath, .. _extraUserPaths];
+            foreach (var path in paths)
             {
-                if (ReadValue(key, name) is { } value)
+                using var key = (scope == PolicyScope.Machine ? _machineHive : _userHive).OpenSubKey(path, writable: false);
+                if (key is null)
                 {
-                    values.Add(value);
+                    continue;
+                }
+
+                foreach (var name in names.Where(n => !values.Any(v => string.Equals(v.Name, n, StringComparison.OrdinalIgnoreCase))))
+                {
+                    if (ReadValue(key, name) is { } value)
+                    {
+                        values.Add(value);
+                    }
                 }
             }
 

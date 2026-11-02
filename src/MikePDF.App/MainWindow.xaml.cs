@@ -104,6 +104,8 @@ public sealed partial class MainWindow : Window
     private async void OnClosed(object sender, WindowEventArgs args)
     {
         _closed = true;
+        _policyTimer?.Stop();
+        _services.Settings.Flush(); // a change in the last half second is written now, not lost
         await CloseDocumentAsync();
     }
 

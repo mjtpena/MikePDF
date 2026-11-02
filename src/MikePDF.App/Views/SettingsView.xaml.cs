@@ -94,10 +94,7 @@ internal sealed partial class SettingsView : UserControl
 
     internal void FocusFirst()
     {
-        if (Nav.SelectedItem is NavigationViewItem item)
-        {
-            item.Focus(FocusState.Programmatic);
-        }
+        BackButton.Focus(FocusState.Programmatic); // the first stop of the page; Tab goes on to the sections
     }
 
     internal void Announce(string message)

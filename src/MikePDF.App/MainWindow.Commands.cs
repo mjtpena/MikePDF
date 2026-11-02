@@ -126,7 +126,7 @@ public sealed partial class MainWindow
     private void Bind(DependencyObject target, string commandId, Parts parts = Parts.All, object? parameter = null)
     {
         var command = _services.Commands.Find(commandId) ?? throw new InvalidOperationException("No command " + commandId);
-        var effective = target is AppBarButton or AppBarToggleButton ? parts : parts & ~Parts.Label; // only toolbar buttons are named from the command; others keep their own wording
+        var effective = target is AppBarButton or AppBarToggleButton or MenuFlyoutItem ? parts : parts & ~Parts.Label; // only toolbar buttons and menu items are named from the command; others keep their own wording
 
         if (effective.HasFlag(Parts.Click))
         {
@@ -182,6 +182,9 @@ public sealed partial class MainWindow
                         break;
                     case AppBarToggleButton toggle:
                         toggle.Label = LabelOf(command);
+                        break;
+                    case MenuFlyoutItem item:
+                        item.Text = LabelOf(command);
                         break;
                     default:
                         break;

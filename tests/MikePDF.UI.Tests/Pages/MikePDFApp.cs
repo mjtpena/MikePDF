@@ -181,6 +181,41 @@ public sealed class MikePDFApp : IDisposable
         }
     }
 
+    public PalettePage Palette => new(this);
+
+    public SettingsPage Settings => new(this);
+
+    /// <summary>The shortcut text a control announces (UIA AcceleratorKey), for example "Ctrl+2".</summary>
+    public string AcceleratorKey(string automationId) => Require(automationId).Properties.AcceleratorKey.ValueOrDefault ?? string.Empty;
+
+    public string HelpText(string automationId) => Require(automationId).Properties.HelpText.ValueOrDefault ?? string.Empty;
+
+    public bool HasFocus(string automationId) => Find(automationId)?.Properties.HasKeyboardFocus.ValueOrDefault ?? false;
+
+    /// <summary>Subscribes to the notifications screen readers hear (UIA Notification events) for the whole window; dispose to stop.</summary>
+    public IDisposable ListenForNotifications(List<(string Text, string Activity)> into)
+    {
+        var listening = new Listening();
+        Window.RegisterNotificationEvent(TreeScope.Subtree, (_, _, _, text, activity) =>
+        {
+            if (listening.Active)
+            {
+                lock (into)
+                {
+                    into.Add((text, activity));
+                }
+            }
+        });
+        return listening; // the registration itself ends with the app, which each journey closes
+    }
+
+    private sealed class Listening : IDisposable
+    {
+        public volatile bool Active = true;
+
+        public void Dispose() => Active = false;
+    }
+
     public string PageIndicatorName => Find("PageIndicator")?.Name ?? string.Empty;
 
     public string ZoomName => Find("ZoomButton")?.Name ?? string.Empty;
