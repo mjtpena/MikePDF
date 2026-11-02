@@ -120,7 +120,7 @@ public sealed class TabsWindowsJourneyTests : IDisposable
         WaitForSelected(app, "alpha");
         app.WaitForDocument(3);
         Assert.Equal(2, app.TabItems().Count);
-        Assert.Single(Process.GetProcessesByName("MikePDF"));
+        app.WaitFor("only the one process left (the launch that handed over ends)", () => Process.GetProcessesByName("MikePDF").Length == 1);
         Assert.Single(app.AllWindows());
         Assert.Equal(engines.Count, app.EngineIds().Count); // no second session, no new engine
     }
@@ -244,7 +244,7 @@ public sealed class TabsWindowsJourneyTests : IDisposable
         MikePDFApp.OpenInRunningApp(@"\\.\pipe\mikepdf-never-opened", folder, Path.Combine(_work, "a.pdf") + ":stream", @"C:\Windows\NUL.pdf");
         app.WaitFor("a notice", () => app.Window.FindFirstDescendant(cf => cf.ByName("This location can't be opened.")) is not null);
         Assert.Equal(["New tab"], app.TabNames());
-        Assert.Single(Process.GetProcessesByName("MikePDF"));
+        app.WaitFor("only the one process left (the launch that handed over ends)", () => Process.GetProcessesByName("MikePDF").Length == 1);
         app.Press(VirtualKeyShort.ESCAPE);
         app.PressWithControl(VirtualKeyShort.KEY_T); // still answers the keyboard
         WaitForTabs(app, 2);
@@ -620,8 +620,19 @@ public sealed class TabsWindowsJourneyTests : IDisposable
         var dump = "jumplist-" + Guid.NewGuid().ToString("N")[..6] + ".txt";
         using var app = MikePDFApp.Launch(environment: new Dictionary<string, string> { ["MIKEPDF_TEST_JUMPLIST_DUMP"] = dump });
         var path = Path.Combine(AppData.PrivateFolder() ?? throw new InvalidOperationException("no private folder"), dump);
-        app.WaitFor("the Jump List saved", () => File.Exists(path));
-        var lines = File.ReadAllLines(path);
+        string[] lines = [];
+        app.WaitFor("the Jump List saved", () =>
+        {
+            try
+            {
+                lines = File.Exists(path) ? File.ReadAllLines(path) : [];
+                return lines.Length >= 2;
+            }
+            catch (IOException)
+            {
+                return false; // the app is still writing it
+            }
+        });
         File.Delete(path);
         Assert.Contains("--open-dialog|Open a PDF...|", lines);
         Assert.Contains("--new-window|New window|", lines);
