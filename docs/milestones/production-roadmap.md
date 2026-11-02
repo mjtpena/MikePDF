@@ -76,4 +76,6 @@ The following gate v1.0, and agents can't do them:
 - Manual Acrobat Reader and Edge fidelity passes, unless the Acrobat EULA permits automation (R-15)
 - Manual Narrator, NVDA and JAWS passes. JAWS needs a licence
 - Partner Center, Store submissions, and the decision to go public
+- Explorer thumbnails and preview on a standard-user (non-elevated) session, and on a machine with Acrobat installed (ADR-0018, OQ-SHELL-10 and -11)
+- Whether MikePDF's thumbnails should replace another default PDF app's (OQ-SHELL-14)
 - Budget for a long-running fuzz machine (R-19). GitHub-hosted jobs stop at 6 hours
