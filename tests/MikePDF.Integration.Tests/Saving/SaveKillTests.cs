@@ -73,6 +73,34 @@ public sealed class SaveKillTests
         await coordinator.SaveSessionAsync(session, document, document, SaveMode.Save, 2, held);
     }
 
+    private static async Task WaitUntilNothingIsHeldAsync(string directory)
+    {
+        var deadline = DateTime.UtcNow.AddSeconds(30);
+        while (true)
+        {
+            var held = false;
+            foreach (var file in Directory.EnumerateFiles(directory, "*", SearchOption.AllDirectories))
+            {
+                try
+                {
+                    using var probe = new FileStream(file, FileMode.Open, FileAccess.Read, FileShare.None);
+                }
+                catch (IOException)
+                {
+                    held = true;
+                    break;
+                }
+            }
+
+            if (!held || DateTime.UtcNow > deadline)
+            {
+                return;
+            }
+
+            await Task.Delay(50);
+        }
+    }
+
     [Theory]
     [MemberData(nameof(Cases))]
     public async Task AProcessKilledAtAStepOfASaveLeavesTheOldFileOrTheNewOneAndRecoveryCleansUp(SaveStep step, string mechanism)
@@ -104,6 +132,10 @@ public sealed class SaveKillTests
         Assert.True(File.Exists(reached), "the child never reached the step; it exited with " + (child.HasExited ? child.ExitCode.ToString(System.Globalization.CultureInfo.InvariantCulture) : "(still running)"));
         child.Kill(entireProcessTree: true);
         await child.WaitForExitAsync();
+
+        // The system closes a dead process's handles a moment after the process object is signalled, and a virus scanner may hold a file it just saw
+        // created. The next start of the app is seconds away at the least; wait here until nothing the save made is held by anyone.
+        await WaitUntilNothingIsHeldAsync(workspace.Directory);
 
         // The next start.
         var store = new JournalStore(workspace.Journals);
