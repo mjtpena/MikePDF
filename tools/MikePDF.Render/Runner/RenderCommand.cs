@@ -189,11 +189,16 @@ internal static class RenderCommand
                     {
                         Status = item.Entry.Expect.Status,
                         Pages = item.Entry.Expect.Pages,
-                        AllowsEngineCrash = item.Entry.Expect.AllowsEngineCrash,
+                        AllowsEngineCrash = item.Entry.Expect.AllowsEngineCrash || item.Entry.Expect.EngineEvent is not null,
                         AllowsPartialRender = item.Entry.Expect.AllowsPartialRender,
+                        AllowsDamagedPages = item.Entry.Expect.AllowsDamagedPages,
+                        EngineEvent = item.Entry.Expect.EngineEvent,
+                        KnownIssue = item.Entry.Expect.KnownIssue,
                     },
                     pages,
-                    item.Entry.Tags));
+                    item.Entry.Tags,
+                    item.Entry.Render?.TileDeadlineMs is { } deadlineMs ? TimeSpan.FromMilliseconds(deadlineMs) : null,
+                    item.Entry.Render?.Reference != false));
             }
         }
 
