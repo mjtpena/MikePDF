@@ -41,7 +41,7 @@ MikePDF reads `HKEY_LOCAL_MACHINE\Software\Policies\MikePDF` first and `HKEY_CUR
 
 ## What turning the shell handlers off shows
 
-MikePDF's thumbnail and preview handlers are registered by the package, so they apply to every PDF in File Explorer for as long as the package is installed, whichever app is the default for `.pdf` (measured in spike S6b, docs/spikes/S6b-shell-transport.md). The policies and the settings do not unregister them: they make the handlers decline. Whether Explorer then falls through to the next handler registered for `.pdf` or shows the generic icon is tested by the integration workflow (docs/features/shell-extensions.md section 3.5, OQ-SHELL-14). Until that result is recorded here, Settings says that Explorer shows the generic icon.
+MikePDF's thumbnail and preview handlers are registered by the package, so they apply to every PDF in File Explorer for as long as the package is installed, whichever app is the default for `.pdf` (measured in spike S6b, docs/spikes/S6b-shell-transport.md). The policies and the settings do not unregister them: they make the handlers decline. Explorer does not fall through to another handler when ours declines: it shows the generic PDF icon (measured by the Shell integration workflow on x64 and ARM64 runners with a classic `.pdf` thumbnail handler registered; docs/features/shell-extensions.md section 3.5, OQ-SHELL-14). Settings says so. Thumbnails Windows already cached stay until Windows discards them.
 
 ## Example: scenario 9 (JavaScript off, AI local only, telemetry off)
 

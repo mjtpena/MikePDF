@@ -132,7 +132,7 @@ public sealed class ShellSwitchesTests : IDisposable
             Assert.True(ResourceText.Has(definition.DescriptionKey), definition.DescriptionKey);
         }
 
-        // Until the integration workflow records that the shell falls through to the next handler, the words say what a declined request shows.
+        // The shell does not fall through to the next handler when ours declines (measured on hosted runners, OQ-SHELL-14), so the words say what a declined request shows.
         Assert.Contains("generic PDF icon", ResourceText.Get(SettingsRegistry.Find("shell.thumbnails")!.DescriptionKey), StringComparison.Ordinal);
         Assert.Contains("doesn't delete thumbnails Windows already saved", ResourceText.Get(SettingsRegistry.Find("shell.thumbnails")!.DescriptionKey), StringComparison.Ordinal);
     }

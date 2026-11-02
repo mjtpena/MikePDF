@@ -89,7 +89,7 @@ Interfaces: `IPreviewHandler`, `IOleWindow`, `IObjectWithSite` (for `IPreviewHan
 | `shell.preview` (user, default on) | `settings.json` | Same for previews. |
 | `ShellThumbnailsEnabled`, `ShellPreviewEnabled` (policy, DWORD) | `HKLM\Software\Policies\MikePDF` | 0 forces off and the user setting is locked ([settings-policies](settings-policies.md)). The **handler reads the policy itself** from HKLM (a cheap read), so a policy-off machine never launches ShellHost. |
 
-Turning thumbnails off in MikePDF does **not** delete thumbnails Windows already cached; the Settings text says so. Registration is part of the package, so these switches cannot unregister the handlers; they make them decline. **What a declined request shows** depends on whether the shell falls through to the next registered handler (the one that would serve `.pdf` without us) or shows the generic icon; W2-shell tests this on a hosted runner and records the result in the work package's report. Until a result says the shell falls through, the Settings text says that "off" shows the generic icon (OQ-SHELL-14). The `ShellMaxEngines` policy (DWORD 1 to 6, default 3, the lower value is stricter) sets `shell.maxEngines`.
+Turning thumbnails off in MikePDF does **not** delete thumbnails Windows already cached; the Settings text says so. Registration is part of the package, so these switches cannot unregister the handlers; they make them decline. **What a declined request shows** depends on whether the shell falls through to the next registered handler (the one that would serve `.pdf` without us) or shows the generic icon. **Measured (W2-shell, Shell integration run 41472808524, x64 and ARM64 hosted runners, with a classic handler registered for `.pdf`): the shell does not fall through.** A declined request fails and Explorer shows the generic icon, so the Settings text says that "off" shows the generic icon (OQ-SHELL-14). The `ShellMaxEngines` policy (DWORD 1 to 6, default 3, the lower value is stricter) sets `shell.maxEngines`.
 
 ### 3.6 Failure behaviour
 
@@ -195,7 +195,7 @@ Telemetry: none.
 | OQ-SHELL-11 | Handler precedence on a machine with Acrobat's real registration, and against another packaged app. | User |
 | OQ-SHELL-12 | Does Explorer's block on previewing downloaded files apply before a third-party handler is created? | Real Explorer run |
 | OQ-SHELL-13 | A section source in `OpenDocument`. **Answered: not for v1.0** (ADR-0018); revisit if reference-hardware runs show the staging matters. | Done |
-| OQ-SHELL-14 | MikePDF's thumbnails replace the user's other PDF app's for every PDF once the package is installed. Is that wanted, and what do the "off" switches show (the shell's fall-through is tested in W2-shell)? Default until decided: on, with a setting and a policy to turn them off. | User (product) |
+| OQ-SHELL-14 | MikePDF's thumbnails replace the user's other PDF app's for every PDF once the package is installed. Is that wanted, and what do the "off" switches show (measured: the shell does not fall through, a declined request shows the generic icon)? Default until decided: on, with a setting and a policy to turn them off. | User (product) |
 
 ## 14. Acceptance criteria
 
@@ -203,7 +203,7 @@ Telemetry: none.
 |---|---|---|
 | SHELL-01 | The manifest declares the thumbnail handler, preview handler and the Application-level surrogate with real CLSIDs (not the S6 placeholders); a build check validates the XML and that each `Clsid` resolves. | Unit (build check) |
 | SHELL-02 | Handler registration works on an installed package: `CoCreateInstance` of each CLSID from a test host returns a working object on x64 and ARM64. | Integration (packaged) |
-| SHELL-03 | `IThumbnailProvider.GetThumbnail` returns a correctly sized premultiplied BGRA bitmap for a text fixture at `cx` 32, 96, 256 and 1024; the longer side equals `cx`; aspect ratio within 1 pixel. | Integration |
+| SHELL-03 | `IThumbnailProvider.GetThumbnail` returns a correctly sized premultiplied BGRA bitmap for a text fixture at `cx` 32, 96, 256 and 1024; the longer side equals `cx`, or twice the page's natural size when that is smaller (a page is never scaled above 2x, section 3.3); aspect ratio within 1 pixel. | Integration |
 | SHELL-04 | Thumbnail content matches the viewer render of page 1 scaled down: SSIM >= 0.95 on 20 fixtures including rotated pages and a CropBox with a non-zero origin (threshold proposed, not measured). | Integration (visual) |
 | SHELL-05 | Latency: over 200 corpus files, thumbnail p95 <= 2.0 s cold ShellHost and a warm p95 no worse than the S6b baseline until R1 and R2 runs set a number (S6b, through the shell on the hosted runners: warm p95 at most 56.5 ms, cold at most 474 ms with a JIT ShellHost; DEV Native AOT cold p95 139 ms); every call that exceeds 2 s fails rather than returning late. | Integration (perf) |
 | SHELL-06 | Preview page 1 is shown within 1.0 s for the typical 20-page fixture on R1 (target; recorded as measured or not measured; S6b first pixel: warm 26 to 52 ms, cold 207 to 292 ms, plus 30 to 50 ms for the new `prevhost.exe`). | Integration (perf) |

@@ -215,7 +215,8 @@ bool FourCorners(const Thumb& t) {
     if (t.width < 16 || t.height < 16) {
         return false;
     }
-    const int inset = std::max(2, t.height / 80);
+    // The corner squares are 10 x 10 points of a 200 x 300 page: sample the middle of each (the page is never drawn above twice its size).
+    const int inset = std::max(1, static_cast<int>(5.0 * t.height / 300.0));
     const auto tl = Px(t, inset, inset), tr = Px(t, t.width - 1 - inset, inset), br = Px(t, t.width - 1 - inset, t.height - 1 - inset), bl = Px(t, inset, t.height - 1 - inset);
     return Red(tl) < 90 && Green(tl) < 90 && Blue(tl) < 90 && Blue(tr) > 180 && Red(tr) < 90 && Green(tr) < 90 && Green(br) > 180 && Red(br) < 90 && Blue(br) < 90 && Red(bl) > 180 &&
            Green(bl) < 90 && Blue(bl) < 90;
@@ -323,15 +324,35 @@ PreviewRun RunPreview(const std::wstring& file, const std::wstring& expected, in
         if (ink_found != nullptr && show_and_capture && run.ms_to_value >= 0) {
             // Best effort: whatever is on the screen in the pane's rectangle after the first page had time to be drawn. A runner without a desktop shows nothing.
             Sleep(1500);
+            // One BitBlt and one GetDIBits: GetPixel per sample took 16 ms each on a hosted runner (6.5 minutes for the 24,050 samples of the first attempt).
             HDC screen = GetDC(nullptr);
             int dark = 0, total = 0;
-            for (int y = 40; y < 780; y += 4) {
-                for (int x = 40; x < 560; x += 4) {
-                    const COLORREF c = GetPixel(screen, x, y);
-                    dark += (GetRValue(c) < 80 && GetGValue(c) < 80 && GetBValue(c) < 80) ? 1 : 0;
-                    ++total;
+            HDC memory = CreateCompatibleDC(screen);
+            HBITMAP bitmap = CreateCompatibleBitmap(screen, 640, 820);
+            if (memory != nullptr && bitmap != nullptr) {
+                HGDIOBJ old = SelectObject(memory, bitmap);
+                BitBlt(memory, 0, 0, 640, 820, screen, 0, 0, SRCCOPY);
+                SelectObject(memory, old);
+                BITMAPINFO bi{};
+                bi.bmiHeader.biSize = sizeof(bi.bmiHeader);
+                bi.bmiHeader.biWidth = 640;
+                bi.bmiHeader.biHeight = -820;
+                bi.bmiHeader.biPlanes = 1;
+                bi.bmiHeader.biBitCount = 32;
+                bi.bmiHeader.biCompression = BI_RGB;
+                std::vector<std::uint32_t> shot(640u * 820u);
+                if (GetDIBits(memory, bitmap, 0, 820, shot.data(), &bi, DIB_RGB_COLORS) == 820) {
+                    for (int y = 40; y < 780; y += 4) {
+                        for (int x = 40; x < 560; x += 4) {
+                            const std::uint32_t c = shot[static_cast<std::size_t>(y) * 640 + x];
+                            dark += (((c >> 16) & 0xFF) < 80 && ((c >> 8) & 0xFF) < 80 && (c & 0xFF) < 80) ? 1 : 0;
+                            ++total;
+                        }
+                    }
                 }
             }
+            if (bitmap != nullptr) DeleteObject(bitmap);
+            if (memory != nullptr) DeleteDC(memory);
             ReleaseDC(nullptr, screen);
             *ink_found = dark > 20;
             P("  screen capture of the pane: %d of %d sampled pixels are dark", dark, total);
@@ -419,7 +440,9 @@ void PhaseThumbnails() {
     for (const int cx : {32, 96, 256, 1024}) {
         const Thumb t = GetThumb(UniqueCopy(L"rectangles.pdf", L"size"), cx);
         const int longer = std::max(t.width, t.height);
-        const bool sized = SUCCEEDED(t.hr) && std::abs(longer - cx) <= 1 && std::abs(static_cast<double>(t.width) / std::max(t.height, 1) - 200.0 / 300.0) <= 1.0 / std::max(t.height, 1) + 0.01;
+        // The longer side is cx, or twice the page's natural size (600 points) when that is smaller: a page is never scaled above 2x.
+        const int expected_longer = std::min(cx, 600);
+        const bool sized = SUCCEEDED(t.hr) && std::abs(longer - expected_longer) <= 1 && std::abs(static_cast<double>(t.width) / std::max(t.height, 1) - 200.0 / 300.0) <= 1.0 / std::max(t.height, 1) + 0.01;
         Check("SHELL-03", sized, "cx=%d: %dx%d hr=0x%08lx", cx, t.width, t.height, static_cast<unsigned long>(t.hr));
         if (cx >= 96) {
             Check("SHELL-04", FourCorners(t), "cx=%d: the page content is right (corner colours)", cx);
@@ -552,7 +575,7 @@ void PhasePipeSecurity() {
             if (ConvertSecurityDescriptorToStringSecurityDescriptorW(descriptor, SDDL_REVISION_1, DACL_SECURITY_INFORMATION | LABEL_SECURITY_INFORMATION, &text, nullptr)) {
                 const std::wstring sddl = text;
                 LocalFree(text);
-                Check("SHELL-17", sddl.rfind(L"D:P", 0) == 0 && sddl.find(L";;;" + sid + L")") != std::wstring::npos && sddl.find(L";;;SY)") != std::wstring::npos && sddl.find(L"(ML;;NW;;;LW)") != std::wstring::npos &&
+                Check("SHELL-17", sddl.rfind(L"D:P", 0) == 0 && (sddl.find(L";;;" + sid + L")") != std::wstring::npos || sddl.find(L";;;LA)") != std::wstring::npos) && sddl.find(L";;;SY)") != std::wstring::npos && sddl.find(L"(ML;;NW;;;LW)") != std::wstring::npos &&
                                       sddl.find(L";;;WD)") == std::wstring::npos,
                       "the pipe's security descriptor is %ls", sddl.c_str());
             }

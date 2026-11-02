@@ -29,7 +29,7 @@ Decided with this ADR:
 ## Consequences
 - No PDF parsing in any shell host, one copy of the sandbox code, and the handler path is testable without registering anything.
 - A second package executable and a C++ client codec to maintain, and a cold start of about 0.1 to 0.3 s after an idle minute.
-- **A packaged handler applies whenever the package is installed,** not only while MikePDF is the default PDF app, and it won over classic registrations in the spike. What the "off" switches do is a product decision (OQ-SHELL-14). Until the product owner decides, the default is: thumbnails and preview on, with a setting and a policy to turn them off. The shell work package first tests whether the shell falls through to the next handler when ours declines; if it doesn't, the settings text says that "off" shows the generic icon.
+- **A packaged handler applies whenever the package is installed,** not only while MikePDF is the default PDF app, and it won over classic registrations in the spike. What the "off" switches do is a product decision (OQ-SHELL-14). Until the product owner decides, the default is: thumbnails and preview on, with a setting and a policy to turn them off. Measured on hosted x64 and ARM64 runners in the shell work package: the shell does not fall through to the next handler when ours declines, so "off" shows the generic icon and the settings text says so.
 - **A handler host at Low integrity can't start ShellHost** (OQ-SHELL-10). The runners only showed High hosts, so the standard-user case needs a real Explorer run.
 
 ## Verification

@@ -257,7 +257,8 @@ public sealed class ShellHostServerTests
         var sddl = PipeSecurityText(client.Pipe.SafePipeHandle.DangerousGetHandle());
         var sid = ShellPipe.CurrentUserSid();
         Assert.StartsWith("D:P", sddl, StringComparison.Ordinal); // protected: nothing inherited
-        Assert.Contains(";;;" + sid + ")", sddl, StringComparison.Ordinal);
+        // The kernel writes a well-known SID as its alias: the built-in Administrator account that a hosted runner uses reads back as LA, not as its S-1-5-21-... text.
+        Assert.True(sddl.Contains(";;;" + sid + ")", StringComparison.Ordinal) || sddl.Contains(";;;LA)", StringComparison.Ordinal), "the current user is not in the DACL: " + sddl);
         Assert.Contains(";;;SY)", sddl, StringComparison.Ordinal);
         Assert.Equal(2, System.Text.RegularExpressions.Regex.Count(sddl[..sddl.IndexOf("S:", StringComparison.Ordinal)], @"\(A;")); // exactly two entries: the user and SYSTEM
         Assert.Contains("(ML;;NW;;;LW)", sddl, StringComparison.Ordinal); // a Low-integrity host may connect
