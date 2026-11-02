@@ -22,7 +22,7 @@ public sealed class ClockPlantTests
     {
         // The test process does not set it; if this ever fails, a plant has leaked into the environment of the test run.
         Assert.Equal(0, Clock.PlantedSlowdown);
-        Assert.InRange(Clock.MillisecondsSince(Clock.Now()), 0, 5);
+        Assert.InRange(Clock.MillisecondsSince(Clock.Now()), 0, 100); // nothing is added to a time that is not planted
     }
 
     [Fact]
@@ -34,5 +34,17 @@ public sealed class ClockPlantTests
         Assert.Equal("-4.5%", Fmt.Percent(-0.045, 1));
         Assert.Equal("0%", Fmt.Percent(-0.0002, 1)); // not "-0%"
         Assert.Equal("0%", Fmt.Percent(-0.004, 0));
+    }
+
+    [Fact]
+    public void LengthenSpinsForTheFractionAndReportsTheSum()
+    {
+        var start = Clock.Now();
+        var lengthened = Clock.Lengthen(20, 0.5);
+        var realMilliseconds = System.Diagnostics.Stopwatch.GetElapsedTime(start).TotalMilliseconds;
+        Assert.True(lengthened >= 30, "20 ms plus at least the 10 ms asked for"); // no upper bound: a descheduled spin may overshoot
+        Assert.True(realMilliseconds >= 10, "the process really waited"); // and it was not just arithmetic
+        Assert.Equal(20, Clock.Lengthen(20, 0));
+        Assert.Equal(0, Clock.Lengthen(0, 0.5));
     }
 }

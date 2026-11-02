@@ -123,30 +123,43 @@ jobs:
           "head_label=$(& $label $head)" | Add-Content $env:GITHUB_OUTPUT
 
       # A bundle is the built engine and harness of one commit (tools/MikePDF.Perf/build-bundle.ps1), about 37 MB. Main saves the bundle of every commit it
-      # builds, so the next pull request, whose base is that commit, finds its base already built.
+      # builds, so the next pull request, whose base is that commit, finds its base already built. A cache entry is only found by a step with the same path
+      # (the path is part of its version), so every restore and save goes through the same folder, perf/bundle, and the bundle is moved to or from perf/head or perf/base.
       - name: Restore the cached head build
         id: head-cache
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
-          path: ${{ runner.temp }}/perf/head
+          path: ${{ runner.temp }}/perf/bundle
           key: perf-bundle-v1-${{ matrix.arch }}-${{ steps.choose.outputs.head_sha }}
+      - name: Use the cached head build
+        if: steps.head-cache.outputs.cache-hit == 'true'
+        shell: pwsh
+        run: Move-Item "$env:RUNNER_TEMP/perf/bundle" "$env:RUNNER_TEMP/perf/head"
       - name: Restore the cached base build
         id: base-cache
         if: steps.choose.outputs.mode == 'ab'
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
-          path: ${{ runner.temp }}/perf/base
+          path: ${{ runner.temp }}/perf/bundle
           key: perf-bundle-v1-${{ matrix.arch }}-${{ steps.choose.outputs.base_sha }}
+      - name: Use the cached base build
+        if: steps.choose.outputs.mode == 'ab' && steps.base-cache.outputs.cache-hit == 'true'
+        shell: pwsh
+        run: Move-Item "$env:RUNNER_TEMP/perf/bundle" "$env:RUNNER_TEMP/perf/base"
 
       - name: Build the head (engine and harness)
         if: steps.head-cache.outputs.cache-hit != 'true'
         shell: pwsh
         run: ./tools/MikePDF.Perf/build-bundle.ps1 -Source . -Out "$env:RUNNER_TEMP/perf/head" -Arch ${{ matrix.arch }}
+      - name: Stage the head build for the cache
+        if: steps.head-cache.outputs.cache-hit != 'true' && github.event_name != 'pull_request'
+        shell: pwsh
+        run: Copy-Item -Recurse "$env:RUNNER_TEMP/perf/head" "$env:RUNNER_TEMP/perf/bundle"
       - name: Cache the head build
         if: steps.head-cache.outputs.cache-hit != 'true' && github.event_name != 'pull_request'
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
-          path: ${{ runner.temp }}/perf/head
+          path: ${{ runner.temp }}/perf/bundle
           key: perf-bundle-v1-${{ matrix.arch }}-${{ steps.choose.outputs.head_sha }}
 
       - name: Build the base (engine and harness)

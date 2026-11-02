@@ -94,15 +94,18 @@ public static class Clock
     public static double ReadPlant(string? text) =>
         double.TryParse(text, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var value) && value is > 0 and <= 2 ? value : 0;
 
-    private static double Planted(double milliseconds)
+    private static double Planted(double milliseconds) => PlantedSlowdown <= 0 ? milliseconds : Lengthen(milliseconds, PlantedSlowdown);
+
+    /// <summary>Spins for <paramref name="fraction"/> of <paramref name="milliseconds"/> and returns the elapsed time plus the time really spent spinning.</summary>
+    internal static double Lengthen(double milliseconds, double fraction)
     {
-        if (PlantedSlowdown <= 0 || milliseconds <= 0)
+        if (fraction <= 0 || milliseconds <= 0)
         {
             return milliseconds;
         }
 
         var spinStart = System.Diagnostics.Stopwatch.GetTimestamp();
-        var extra = milliseconds * PlantedSlowdown;
+        var extra = milliseconds * fraction;
         double spun;
         do
         {
