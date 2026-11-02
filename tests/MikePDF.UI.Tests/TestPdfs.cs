@@ -6,13 +6,13 @@ namespace MikePDF.UI.Tests;
 internal static class TestPdfs
 {
     /// <summary>A PDF of <paramref name="pages"/> US Letter pages, each with its number in large type, so a screenshot shows which page it is.</summary>
-    public static string Numbered(string directory, string name, int pages, string size = "0 0 612 792", string? info = null)
+    public static string Numbered(string directory, string name, int pages, string size = "0 0 612 792", string? info = null, string catalogExtra = "")
     {
         Directory.CreateDirectory(directory);
         var path = Path.Combine(directory, name);
         var objects = new List<string>();
         // 1 catalog, 2 pages, 3 font, then (page, content) pairs.
-        objects.Add("<< /Type /Catalog /Pages 2 0 R >>");
+        objects.Add("<< /Type /Catalog /Pages 2 0 R " + catalogExtra + " >>");
         var kids = string.Join(' ', Enumerable.Range(0, pages).Select(i => $"{4 + (2 * i)} 0 R"));
         objects.Add($"<< /Type /Pages /Kids [{kids}] /Count {pages} >>");
         objects.Add("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>");
