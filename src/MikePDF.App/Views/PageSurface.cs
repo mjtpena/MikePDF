@@ -29,16 +29,14 @@ namespace MikePDF.App.Views;
 /// <para>
 /// Input: wheel scrolls, Shift+wheel or a horizontal wheel scrolls sideways, Ctrl+wheel zooms about the pointer, touch drags and pinches (with
 /// inertia). The mouse and the pen select text: drag, double click for a word, triple click for a line, and a click on a link follows it.
-/// Page Up, Page Down, Home, End, the arrow keys and Space navigate; Shift with the arrow keys (and Ctrl for words) moves the selection;
-/// Ctrl+A selects all, Ctrl+C copies, Esc clears the selection. Window-level shortcuts (Ctrl+O, Ctrl+G, Ctrl+F, zoom keys) are accelerators on
-/// the window.
+/// Page Up, Page Down, Home, End, the arrow keys and Space navigate, and Ctrl+A and Ctrl+C select and copy, as commands the window's dispatcher runs;
+/// Shift with the arrow keys (and Ctrl for words) moves the selection and Esc clears it, here.
 /// </para>
 /// </summary>
 public sealed class PageSurface : Control
 {
     /// <summary>Scroll per wheel notch, in device-independent pixels.</summary>
     private const double WheelStepDip = 100;
-    private const double ArrowStepDip = 48;
     private const double ZoomPerNotch = 1.1;
 
     /// <summary>The pointer must move this far (device-independent pixels) between press and release for a click to become a drag.</summary>
@@ -563,35 +561,17 @@ public sealed class PageSurface : Control
 
     // ---- the keyboard ---------------------------------------------------------------------------------------------------------------
 
+    // The keys of the page (Page Up and Down, Home, End, the arrows, Space, Ctrl+A, Ctrl+C) are commands, run by the window's dispatcher from the registry, so that remapping them
+    // works and there is one list of them. What is left here is what is not a command: Esc clears the selection, and Shift with the arrows (and Ctrl for words) moves it.
     private void OnKeyDown(object sender, KeyRoutedEventArgs e)
     {
-        if (_session is null)
+        if (_session is null || IsDown(VirtualKey.Menu))
         {
-            return;
+            return; // Alt+Left and Alt+Right are Back and Forward (commands), not Left and Right
         }
 
-        var scale = RasterScale;
         var ctrl = IsDown(VirtualKey.Control);
         var shift = IsDown(VirtualKey.Shift);
-        if (IsDown(VirtualKey.Menu))
-        {
-            return; // Alt+Left and Alt+Right are Back and Forward (window accelerators), not Left and Right
-        }
-
-        if (ctrl && !shift && e.Key == VirtualKey.A)
-        {
-            SelectAll();
-            e.Handled = true;
-            return;
-        }
-
-        if (ctrl && !shift && e.Key is VirtualKey.C or VirtualKey.Insert)
-        {
-            _ = CopyAsync();
-            e.Handled = true;
-            return;
-        }
-
         if (e.Key == VirtualKey.Escape && _session.Selection is { HasSelection: true } active)
         {
             active.Clear();
@@ -605,43 +585,7 @@ public sealed class PageSurface : Control
             var direction = e.Key is VirtualKey.Right or VirtualKey.Down ? +1 : -1;
             _ = _session.ExtendSelectionAsync(kind, direction);
             e.Handled = true;
-            return;
         }
-
-        switch (e.Key)
-        {
-            case VirtualKey.PageDown:
-                _session.PageDown();
-                break;
-            case VirtualKey.PageUp:
-                _session.PageUp();
-                break;
-            case VirtualKey.Space:
-                _session.ScrollScreen(shift ? -1 : +1);
-                break;
-            case VirtualKey.Home:
-                _session.FirstPage();
-                break;
-            case VirtualKey.End:
-                _session.LastPage();
-                break;
-            case VirtualKey.Down when !ctrl:
-                _session.ScrollBy(0, ArrowStepDip * scale);
-                break;
-            case VirtualKey.Up when !ctrl:
-                _session.ScrollBy(0, -ArrowStepDip * scale);
-                break;
-            case VirtualKey.Right when !ctrl:
-                _session.NextPage();
-                break;
-            case VirtualKey.Left when !ctrl:
-                _session.PreviousPage();
-                break;
-            default:
-                return; // not ours: accelerators and the system get it
-        }
-
-        e.Handled = true;
     }
 
     /// <summary>Selects all the text of the document. The pages in view are read first so there is something to see.</summary>

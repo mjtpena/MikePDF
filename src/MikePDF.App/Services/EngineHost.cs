@@ -14,20 +14,21 @@ internal sealed class EngineHost
     private readonly AppContainerProfile _profile;
     private readonly string _enginePath;
 
-    private EngineHost(AppContainerProfile profile, string enginePath)
+    private EngineHost(AppContainerProfile profile, string enginePath, int maxDocumentEngines)
     {
         _profile = profile;
         _enginePath = enginePath;
-        Budget = new EngineBudget(new EngineBudgetOptions { Document = DocumentOptions(), Pool = PoolOptions() });
+        Budget = new EngineBudget(new EngineBudgetOptions { Document = DocumentOptions(), Pool = PoolOptions(), MaxDocumentEngines = Math.Max(1, maxDocumentEngines) });
     }
 
     /// <summary>
-    /// The engines the app may have at once (ADR-0004 amendment A3): one shared pool engine and at most six document engines, the least recently used suspended over the cap.
-    /// Every <see cref="DocumentSession"/> takes its engines from here; the app opens one document at a time today, and tabs will open several.
+    /// The engines the app may have at once (ADR-0004 amendment A3): one shared pool engine and at most <c>engines.maxLiveTabs</c> document engines (6 by default, set by policy), the least
+    /// recently used suspended over the cap. Every <see cref="DocumentSession"/>, in every window, takes its engines from here.
     /// </summary>
     public EngineBudget Budget { get; }
 
-    public static EngineHost Create()
+    /// <param name="maxDocumentEngines">The cap on document engines at start-up (<c>engines.maxLiveTabs</c>, after policy); the app changes it later with <see cref="EngineBudget.SetMaxDocumentEngines"/>.</param>
+    public static EngineHost Create(int maxDocumentEngines = 6)
     {
         if (!AppPaths.IsPackaged)
         {
@@ -51,7 +52,7 @@ internal sealed class EngineHost
             throw new EngineStartException("The sandbox could not be set up: " + e.Message, e);
         }
 
-        return new EngineHost(profile, enginePath);
+        return new EngineHost(profile, enginePath, maxDocumentEngines);
     }
 
     /// <summary>The engine for a document: renders sharp tiles.</summary>

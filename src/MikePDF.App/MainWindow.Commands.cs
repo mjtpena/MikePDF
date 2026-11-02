@@ -11,6 +11,7 @@ using MikePDF.App.Services;
 using MikePDF.Core.Colour;
 using MikePDF.Core.Commands;
 using MikePDF.Core.Settings;
+using MikePDF.Core.Windowing;
 using Windows.System;
 using DispatcherQueueTimer = Microsoft.UI.Dispatching.DispatcherQueueTimer;
 
@@ -118,6 +119,9 @@ public sealed partial class MainWindow
         Bind(FindPreviousButton, "find.previous", Parts.Click | Parts.Accelerator);
         Bind(FindNextButton, "find.next", Parts.Click | Parts.Accelerator);
         Bind(FindCloseButton, "find.close", Parts.Click | Parts.Accelerator);
+        Bind(NewTabButton, "file.newTab", Parts.Click | Parts.Tooltip | Parts.Accelerator);
+        Bind(LocateButton, "file.locate", Parts.Click | Parts.Accelerator);
+        Bind(MissingCloseButton, "file.close", Parts.Click | Parts.Accelerator);
         RefreshCommands();
     }
 
@@ -233,7 +237,11 @@ public sealed partial class MainWindow
             FullScreen = _fullScreen,
             SidebarOpen = Sidebar.IsPaneOpen,
             Busy = Busy.IsActive,
-            SettingsOpen = SettingsPage.Visibility == Visibility.Visible,
+            SettingsOpen = _active?.Model.Kind == TabKind.Settings,
+            TabCount = Model.Tabs.Count,
+            ActiveTabIndex = Math.Max(0, Model.ActiveIndex),
+            CanReopenClosed = _app.Model.Closed.Count > 0,
+            TabMissing = _active?.Missing == true,
             ModalOpen = _modalDepth > 0,
             HasRecent = _hasRecent,
             HasUsageHistory = !_services.History.IsEmpty,
@@ -388,6 +396,30 @@ public sealed partial class MainWindow
         void Async(string id, Func<Task> action) => _actions[id] = _ => action();
 
         Async("file.open", PickAndOpenAsync);
+        Sync("file.newTab", NewTab);
+        Sync("file.newWindow", () => _app.CreateWindow(like: this));
+        Async("file.close", CloseActiveTabAsync);
+        Async("file.closeOthers", CloseOthersAsync);
+        Async("file.closeToRight", CloseToTheRightAsync);
+        Async("file.reopenClosed", () => _app.ReopenClosedAsync(this));
+        Sync("file.closeWindow", Close);
+        Sync("file.copyPath", CopyPath);
+        Async("file.showInFolder", ShowInFolderAsync);
+        Async("file.locate", LocateAsync);
+        Sync("tab.next", () => GoToTab(Model.Next(+1)));
+        Sync("tab.previous", () => GoToTab(Model.Next(-1)));
+        Sync("tab.goto1", () => GoToTab(Model.ByNumber(1)));
+        Sync("tab.goto2", () => GoToTab(Model.ByNumber(2)));
+        Sync("tab.goto3", () => GoToTab(Model.ByNumber(3)));
+        Sync("tab.goto4", () => GoToTab(Model.ByNumber(4)));
+        Sync("tab.goto5", () => GoToTab(Model.ByNumber(5)));
+        Sync("tab.goto6", () => GoToTab(Model.ByNumber(6)));
+        Sync("tab.goto7", () => GoToTab(Model.ByNumber(7)));
+        Sync("tab.goto8", () => GoToTab(Model.ByNumber(8)));
+        Sync("tab.last", () => GoToTab(Model.Last));
+        Sync("tab.moveLeft", () => MoveActiveTab(-1));
+        Sync("tab.moveRight", () => MoveActiveTab(+1));
+        Sync("tab.moveToNewWindow", MoveActiveToNewWindow);
         Async("file.reload", ReloadAsync);
         Async("file.properties", ShowPropertiesAsync);
         Sync("nav.back", GoBack);
@@ -443,12 +475,19 @@ public sealed partial class MainWindow
         RegisterSettingsActions(Sync, Async);
     }
 
+    // Reload opens the same file again in the same tab, where it was.
     private async Task ReloadAsync()
     {
-        if (_session is { IsOpen: true } session)
+        if (_active is { Session: { IsOpen: true } session } entry)
         {
             Banner.IsOpen = false;
-            await OpenPathAsync(session.Path);
+            var view = session.CaptureView();
+            entry.SetSession(null);
+            entry.ShownLease?.Dispose();
+            entry.ShownLease = null;
+            DeactivateEntryView();
+            await session.DisposeAsync();
+            await LoadEntryAsync(entry, view, removeOnFailure: false);
         }
     }
 
@@ -543,6 +582,7 @@ public sealed partial class MainWindow
     private async Task<ContentDialogResult> ShowDialogAsync(ContentDialog dialog)
     {
         _modalDepth++;
+        _app.ModalChanged(+1);
         try
         {
             for (var attempt = 1; ; attempt++)
@@ -560,6 +600,7 @@ public sealed partial class MainWindow
         finally
         {
             _modalDepth--;
+            _app.ModalChanged(-1);
         }
     }
 }

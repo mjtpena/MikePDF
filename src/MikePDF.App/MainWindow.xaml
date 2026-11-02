@@ -12,7 +12,7 @@
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
-        <!-- Title bar: the app owns the strip, Windows draws the caption buttons on the right. -->
+        <!-- Title bar: the tabs live in it (master prompt 7.6). The app owns the strip, Windows draws the caption buttons on the right; only the empty part after the tabs drags the window. -->
         <Grid x:Name="AppTitleBar" Grid.Row="0" Height="40">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="Auto" />
@@ -21,8 +21,23 @@
             </Grid.ColumnDefinitions>
             <Image Grid.Column="0" Width="16" Height="16" Margin="14,0,10,0" Source="ms-appx:///Assets/Square44x44Logo.targetsize-24.png"
                    AutomationProperties.AccessibilityView="Raw" />
-            <TextBlock x:Name="TitleText" Grid.Column="1" VerticalAlignment="Center" Style="{StaticResource CaptionTextBlockStyle}"
-                       TextTrimming="CharacterEllipsis" AutomationProperties.AutomationId="TitleText" />
+            <TabView x:Name="Tabs" Grid.Column="1" AutomationProperties.AutomationId="DocumentTabs" Background="Transparent" VerticalAlignment="Bottom"
+                     IsAddTabButtonVisible="False" CanReorderTabs="True" CanDragTabs="True" AllowDropTabs="True" CanTearOutTabs="True"
+                     TabWidthMode="Equal" CloseButtonOverlayMode="Auto">
+                <TabView.TabStripFooter>
+                    <Grid x:Name="TabStripFooter" MinWidth="40" ColumnSpacing="2">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <Button x:Name="NewTabButton" AutomationProperties.AutomationId="NewTabButton" Width="32" Height="32" Padding="0" VerticalAlignment="Center"
+                                Background="Transparent" BorderThickness="0">
+                            <FontIcon Glyph="&#xE710;" FontSize="12" />
+                        </Button>
+                        <Grid x:Name="TitleDragRegion" Grid.Column="1" MinWidth="24" Background="Transparent" AutomationProperties.AccessibilityView="Raw" />
+                    </Grid>
+                </TabView.TabStripFooter>
+            </TabView>
         </Grid>
 
         <CommandBar x:Name="Commands" Grid.Row="1" DefaultLabelPosition="Collapsed" Background="Transparent" IsOpen="False">
@@ -214,6 +229,22 @@
                     </ListView>
                 </StackPanel>
             </ScrollViewer>
+
+            <!-- A restored tab whose file could not be found (or could not be opened): the file name, why, and the two things to do. -->
+            <StackPanel x:Name="MissingPanel" Visibility="Collapsed" MaxWidth="560" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="12" Margin="24"
+                        AutomationProperties.AutomationId="MissingPanel">
+                <FontIcon Glyph="&#xE7BA;" FontSize="40" HorizontalAlignment="Left" AutomationProperties.AccessibilityView="Raw" />
+                <TextBlock x:Name="MissingName" Style="{StaticResource TitleTextBlockStyle}" TextWrapping="Wrap" AutomationProperties.AutomationId="MissingName"
+                           AutomationProperties.HeadingLevel="Level1" />
+                <TextBlock x:Name="MissingText" TextWrapping="Wrap" AutomationProperties.AutomationId="MissingText" />
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <Button x:Name="LocateButton" AutomationProperties.AutomationId="LocateButton" Style="{StaticResource AccentButtonStyle}" />
+                    <Button x:Name="MissingCloseButton" AutomationProperties.AutomationId="MissingCloseButton" />
+                </StackPanel>
+            </StackPanel>
+
+            <!-- The element a tab move or close is announced from, as a UIA notification (docs/features/tabs-windows-session.md 5): one announcement each, no live region that would say it twice. -->
+            <TextBlock x:Name="TabAnnouncement" Width="1" Height="1" Opacity="0" AutomationProperties.AutomationId="TabAnnouncement" />
 
             <!-- Settings (Ctrl+,): a page over the document area. -->
             <views:SettingsView x:Name="SettingsPage" Visibility="Collapsed" AutomationProperties.AutomationId="SettingsPage" />
