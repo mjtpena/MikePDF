@@ -128,6 +128,24 @@ public static class SettingsRegistry
         },
         new SettingDefinition
         {
+            Key = "startup.restore",
+            Kind = SettingKind.Enum,
+            Default = "Ask",
+            Values = ["Always", "Ask", "Never"],
+            Owner = "tabs",
+            Section = SettingSection.General,
+        },
+        new SettingDefinition
+        {
+            Key = "windows.openFromShell",
+            Kind = SettingKind.Enum,
+            Default = "LastActiveWindow",
+            Values = ["LastActiveWindow", "NewWindow"],
+            Owner = "tabs",
+            Section = SettingSection.General,
+        },
+        new SettingDefinition
+        {
             Key = "view.pageColour",
             Kind = SettingKind.Enum,
             Default = "Normal",
@@ -151,6 +169,14 @@ public static class SettingsRegistry
             Min = 0,
             Max = 50,
             Owner = "settings",
+            Section = SettingSection.Privacy,
+        },
+        new SettingDefinition
+        {
+            Key = "privacy.addToWindowsRecent",
+            Kind = SettingKind.Bool,
+            Default = true,
+            Owner = "file association",
             Section = SettingSection.Privacy,
         },
         new SettingDefinition

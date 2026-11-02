@@ -427,6 +427,94 @@
   <data name="Dialog_Ok" xml:space="preserve"><value>OK</value></data>
   <data name="Dialog_Apply" xml:space="preserve"><value>Apply</value></data>
   <!-- Individual settings -->
+  <data name="Cmd_file_newTab_Name" xml:space="preserve"><value>New tab</value></data>
+  <data name="Cmd_file_newTab_Keywords" xml:space="preserve"><value>add blank empty</value></data>
+  <data name="Cmd_file_newWindow_Name" xml:space="preserve"><value>New window</value></data>
+  <data name="Cmd_file_newWindow_Keywords" xml:space="preserve"><value>second another</value></data>
+  <data name="Cmd_file_close_Name" xml:space="preserve"><value>Close tab</value></data>
+  <data name="Cmd_file_close_Keywords" xml:space="preserve"><value>shut document</value></data>
+  <data name="Cmd_file_closeOthers_Name" xml:space="preserve"><value>Close other tabs</value></data>
+  <data name="Cmd_file_closeToRight_Name" xml:space="preserve"><value>Close tabs to the right</value></data>
+  <data name="Cmd_file_reopenClosed_Name" xml:space="preserve"><value>Reopen closed tab</value></data>
+  <data name="Cmd_file_reopenClosed_Keywords" xml:space="preserve"><value>undo close restore</value></data>
+  <data name="Cmd_file_closeWindow_Name" xml:space="preserve"><value>Close window</value></data>
+  <data name="Cmd_file_copyPath_Name" xml:space="preserve"><value>Copy file path</value></data>
+  <data name="Cmd_file_showInFolder_Name" xml:space="preserve"><value>Show in File Explorer</value></data>
+  <data name="Cmd_file_showInFolder_Keywords" xml:space="preserve"><value>reveal folder location</value></data>
+  <data name="Cmd_file_locate_Name" xml:space="preserve"><value>Locate file...</value></data>
+  <data name="Cmd_tab_next_Name" xml:space="preserve"><value>Next tab</value></data>
+  <data name="Cmd_tab_previous_Name" xml:space="preserve"><value>Previous tab</value></data>
+  <data name="Cmd_tab_goto1_Name" xml:space="preserve"><value>Go to tab 1</value></data>
+  <data name="Cmd_tab_goto2_Name" xml:space="preserve"><value>Go to tab 2</value></data>
+  <data name="Cmd_tab_goto3_Name" xml:space="preserve"><value>Go to tab 3</value></data>
+  <data name="Cmd_tab_goto4_Name" xml:space="preserve"><value>Go to tab 4</value></data>
+  <data name="Cmd_tab_goto5_Name" xml:space="preserve"><value>Go to tab 5</value></data>
+  <data name="Cmd_tab_goto6_Name" xml:space="preserve"><value>Go to tab 6</value></data>
+  <data name="Cmd_tab_goto7_Name" xml:space="preserve"><value>Go to tab 7</value></data>
+  <data name="Cmd_tab_goto8_Name" xml:space="preserve"><value>Go to tab 8</value></data>
+  <data name="Cmd_tab_last_Name" xml:space="preserve"><value>Go to the last tab</value></data>
+  <data name="Cmd_tab_moveLeft_Name" xml:space="preserve"><value>Move tab left</value></data>
+  <data name="Cmd_tab_moveRight_Name" xml:space="preserve"><value>Move tab right</value></data>
+  <data name="Cmd_tab_moveToNewWindow_Name" xml:space="preserve"><value>Move tab to a new window</value></data>
+  <data name="Cmd_tab_moveToNewWindow_Keywords" xml:space="preserve"><value>tear out detach</value></data>
+  <data name="Reason_OneTab" xml:space="preserve"><value>There is only one tab</value></data>
+  <data name="Reason_NoSuchTab" xml:space="preserve"><value>There is no tab with that number</value></data>
+  <data name="Reason_FirstTab" xml:space="preserve"><value>This is the first tab</value></data>
+  <data name="Reason_LastTab" xml:space="preserve"><value>There is no tab to the right</value></data>
+  <data name="Reason_NothingClosed" xml:space="preserve"><value>No tab was closed lately</value></data>
+  <data name="Reason_NotMissing" xml:space="preserve"><value>This file was found</value></data>
+  <data name="Tabs_Strip_Name" xml:space="preserve"><value>Open documents</value></data>
+  <data name="Tab_Empty_Title" xml:space="preserve"><value>New tab</value></data>
+  <data name="Tab_Settings_Title" xml:space="preserve"><value>Settings</value></data>
+  <data name="Tab_WithFolder" xml:space="preserve"><value>{0} ({1})</value></data>
+  <data name="Tab_Modified_Suffix" xml:space="preserve"><value>, unsaved changes</value></data>
+  <data name="Tab_Missing_Suffix" xml:space="preserve"><value>, can&apos;t be found</value></data>
+  <data name="Tab_Loading_Suffix" xml:space="preserve"><value>, opening</value></data>
+  <data name="Tab_Moved_Announce" xml:space="preserve"><value>{0} moved to position {1} of {2}</value></data>
+  <data name="Tab_MovedWindow_Announce" xml:space="preserve"><value>{0} moved to a new window</value></data>
+  <data name="Tab_Closed_Announce" xml:space="preserve"><value>{0} closed. Now showing {1}</value></data>
+  <data name="Tab_ClosedLast_Announce" xml:space="preserve"><value>{0} closed. No documents open</value></data>
+  <data name="Suspended_Resuming" xml:space="preserve"><value>Opening {0}</value></data>
+  <data name="Resume_Failed" xml:space="preserve"><value>MikePDF couldn&apos;t bring this document back because every viewer is in use. Close a tab or a window and try again.</value></data>
+  <data name="Missing_Text" xml:space="preserve"><value>This file couldn&apos;t be found. It may have been moved or deleted.</value></data>
+  <data name="Missing_TooMany" xml:space="preserve"><value>Too many documents are open. Close a tab to open this one.</value></data>
+  <data name="Missing_Locate" xml:space="preserve"><value>Locate file</value></data>
+  <data name="Missing_Close" xml:space="preserve"><value>Close tab</value></data>
+  <data name="Close_Dirty_Title" xml:space="preserve"><value>Save changes?</value></data>
+  <data name="Close_Dirty_One" xml:space="preserve"><value>{0} has changes that aren&apos;t saved.</value></data>
+  <data name="Close_Dirty_Many" xml:space="preserve"><value>These documents have changes that aren&apos;t saved:</value></data>
+  <data name="Close_Dirty_Save" xml:space="preserve"><value>Save</value></data>
+  <data name="Close_Dirty_Discard" xml:space="preserve"><value>Don&apos;t save</value></data>
+  <data name="Open_Many_Title" xml:space="preserve"><value>Open many files?</value></data>
+  <data name="Open_Many_Body_One" xml:space="preserve"><value>Open 1 file?</value></data>
+  <data name="Open_Many_Body_Other" xml:space="preserve"><value>Open all {0} files?</value></data>
+  <data name="Open_Many_Open" xml:space="preserve"><value>Open</value></data>
+  <data name="Open_TooMany" xml:space="preserve"><value>MikePDF keeps up to {0} documents open at once. Close a tab to open another.</value></data>
+  <data name="Restore_Title" xml:space="preserve"><value>Restore your last session?</value></data>
+  <data name="Restore_Body_One" xml:space="preserve"><value>You had 1 document open.</value></data>
+  <data name="Restore_Body_Other" xml:space="preserve"><value>You had {0} documents open.</value></data>
+  <data name="Restore_Yes" xml:space="preserve"><value>Restore</value></data>
+  <data name="Restore_No" xml:space="preserve"><value>Start fresh</value></data>
+  <data name="Restore_Failed" xml:space="preserve"><value>MikePDF couldn&apos;t restore your last session.</value></data>
+  <data name="ShowInFolder_Failed" xml:space="preserve"><value>MikePDF couldn&apos;t show this file in File Explorer.</value></data>
+  <data name="Activation_NotFound" xml:space="preserve"><value>{0} couldn&apos;t be found.</value></data>
+  <data name="Activation_IsFolder" xml:space="preserve"><value>{0} is a folder, not a PDF file.</value></data>
+  <data name="Activation_NotAllowed" xml:space="preserve"><value>This location can&apos;t be opened.</value></data>
+  <data name="Activation_NoPath" xml:space="preserve"><value>This location can&apos;t be opened directly. Copy the file to your PC and open it there.</value></data>
+  <data name="Activation_ThisPath" xml:space="preserve"><value>That file</value></data>
+  <data name="JumpList_OpenFile" xml:space="preserve"><value>Open a PDF...</value></data>
+  <data name="JumpList_NewWindow" xml:space="preserve"><value>New window</value></data>
+  <data name="Setting_privacy_addToWindowsRecent_Name" xml:space="preserve"><value>Show opened files in Windows recent lists</value></data>
+  <data name="Setting_privacy_addToWindowsRecent_Description" xml:space="preserve"><value>Lets Windows list the PDFs you open in the Jump List and in File Explorer's recent files. Windows' own setting for recent items still applies.</value></data>
+  <data name="Setting_startup_restore_Name" xml:space="preserve"><value>Reopen documents on startup</value></data>
+  <data name="Setting_startup_restore_Description" xml:space="preserve"><value>Ask: after MikePDF closed unexpectedly, ask first; after a normal close, reopen your documents only when you had more than one open. Never also stops MikePDF from keeping the list of open documents.</value></data>
+  <data name="Setting_startup_restore_Value_Always" xml:space="preserve"><value>Always reopen the last documents</value></data>
+  <data name="Setting_startup_restore_Value_Ask" xml:space="preserve"><value>Ask after an unexpected close</value></data>
+  <data name="Setting_startup_restore_Value_Never" xml:space="preserve"><value>Never</value></data>
+  <data name="Setting_windows_openFromShell_Name" xml:space="preserve"><value>Open files from other programs in</value></data>
+  <data name="Setting_windows_openFromShell_Description" xml:space="preserve"><value>Where a PDF opens when you double-click it in File Explorer or open it from the Jump List.</value></data>
+  <data name="Setting_windows_openFromShell_Value_LastActiveWindow" xml:space="preserve"><value>A tab in the window you used last</value></data>
+  <data name="Setting_windows_openFromShell_Value_NewWindow" xml:space="preserve"><value>A new window</value></data>
   <data name="Setting_general_theme_Name" xml:space="preserve"><value>Theme</value></data>
   <data name="Setting_general_theme_Description" xml:space="preserve"><value>Light, dark, or follow Windows.</value></data>
   <data name="Setting_general_theme_Value_Dark" xml:space="preserve"><value>Dark</value></data>

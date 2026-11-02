@@ -426,15 +426,19 @@ public sealed class CommandTests
     }
 
     [Fact]
-    public void CMD17_ChordsTheSurfaceHandlesItselfAreKeptFromItOnceNoCommandHoldsThem()
+    public void CMD17_TheNavigationKeysAreCommandsLikeAnyOtherSoUnbindingOneFreesItsKeyForGood()
     {
+        // The page surface no longer has a key handler for them (it was moved into the dispatcher), so a key that no command holds is simply not handled by anything.
         var registry = new CommandRegistry();
+        var dispatcher = new ChordDispatcher(registry);
         var right = ChordParser.Parse("Right");
-        Assert.DoesNotContain(right, registry.FreedSurfaceChords);
+        var onSurface = new DispatchInput { Context = CommandContext.Empty with { HasDocument = true, PageCount = 5 }, SurfaceFocused = true };
+        Assert.Equal(DispatchKind.Execute, dispatcher.Dispatch(right, onSurface).Kind);
+        Assert.Equal("nav.nextPage", dispatcher.Dispatch(right, onSurface).Command!.Id);
         registry.SetChords("nav.nextPage", [ChordParser.Parse("Ctrl+Alt+N")], reassign: false);
-        Assert.Contains(right, registry.FreedSurfaceChords);
+        Assert.Equal(DispatchKind.NotHandled, dispatcher.Dispatch(right, onSurface).Kind);
         registry.Reset("nav.nextPage");
-        Assert.DoesNotContain(right, registry.FreedSurfaceChords);
+        Assert.Equal(DispatchKind.Execute, dispatcher.Dispatch(right, onSurface).Kind);
     }
 
     // ---- CMD-22 ------------------------------------------------------------------------------------------------------------------------

@@ -124,11 +124,11 @@ public sealed class DispatcherTests
     }
 
     [Fact]
-    public void CMD05_AKeyTheSurfaceHandlesItselfIsKeptFromItOnceTheCommandIsUnbound()
+    public void CMD05_ANavigationKeyIsLeftForTheFocusedControlOnceTheCommandIsUnbound()
     {
         var (dispatcher, registry) = Make();
         registry.SetChords("nav.nextPage", [], reassign: false);
-        Assert.Equal(DispatchKind.Swallow, Press(dispatcher, "Right").Kind);
+        Assert.Equal(DispatchKind.NotHandled, Press(dispatcher, "Right").Kind); // the surface has no key handler of its own for it any more
         Assert.Equal(DispatchKind.NotHandled, Press(dispatcher, "Right", new DispatchInput { Context = Doc, SurfaceFocused = false }).Kind);
         registry.Reset("nav.nextPage");
         Assert.Equal(DispatchKind.Execute, Press(dispatcher, "Right").Kind);

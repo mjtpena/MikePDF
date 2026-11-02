@@ -236,7 +236,7 @@ public sealed partial class TraceAnalysisTests
         string Source(string relative) => File.ReadAllText(Path.Combine(app, relative));
         Assert.Contains("AppTrace.ProcessMain();", Source("Program.cs"), StringComparison.Ordinal);
         Assert.Contains("AppTrace.WindowLoaded(DispatcherQueue);", Source("MainWindow.xaml.cs"), StringComparison.Ordinal);
-        Assert.Contains("AppTrace.OpenRequested();", Source("MainWindow.xaml.cs"), StringComparison.Ordinal);
+        Assert.Contains("AppTrace.OpenRequested();", Source(Path.Combine("Services", "AppHost.cs")), StringComparison.Ordinal); // every open goes through the one place that decides where it opens
         Assert.Contains("AppTrace.ScrollInput();", Source(Path.Combine("Services", "DocumentSession.cs")), StringComparison.Ordinal);
         var presenter = Source(Path.Combine("Views", "Win2DTilePresenter.cs"));
         Assert.Contains("AppTrace.FrameBegin();", presenter, StringComparison.Ordinal);

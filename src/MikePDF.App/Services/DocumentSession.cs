@@ -7,6 +7,7 @@ using MikePDF.Core.Layout;
 using MikePDF.Core.Navigation;
 using MikePDF.Core.Persistence;
 using MikePDF.Core.Tiles;
+using MikePDF.Core.Windowing;
 using MikePDF.Protocol;
 
 namespace MikePDF.App.Services;
@@ -58,7 +59,7 @@ internal sealed partial class DocumentSession : IAsyncDisposable
 
     private readonly EngineHost _host;
     private readonly DocumentStore _store;
-    private readonly ITilePresenter _presenter;
+    private readonly PresenterProxy _presenter;
     private readonly DispatcherQueue _ui;
     private readonly DispatcherQueueTimer _zoomTimer;
     private readonly DispatcherQueueTimer _idleTimer;
@@ -84,7 +85,7 @@ internal sealed partial class DocumentSession : IAsyncDisposable
     {
         _host = host;
         _store = store;
-        _presenter = presenter;
+        _presenter = new PresenterProxy(presenter);
         _ui = ui;
         Cache = new TileCache(TileCache.DefaultBudget(GC.GetGCMemoryInfo().TotalAvailableMemoryBytes));
         _zoomTimer = ui.CreateTimer();
@@ -157,8 +158,50 @@ internal sealed partial class DocumentSession : IAsyncDisposable
 
     public event Action<EngineBanner>? EngineStateChanged;
 
+    /// <summary>The document engine was suspended by the budget, is resuming, runs again or failed (docs/features/tabs-windows-session.md 3.8). Raised on the UI thread.</summary>
+    public event Action<DocumentEngineState>? EngineLifeChanged;
+
     /// <summary>A page could not be drawn completely (zero-based page index).</summary>
     public event Action<int>? PageIncomplete;
+
+    /// <summary>The state of the document engine under the budget: running, suspended to make room for another document, resuming, or failed.</summary>
+    public DocumentEngineState EngineState => _main?.State ?? DocumentEngineState.Running;
+
+    /// <summary>The page, zoom, fit and rotation as a tab keeps them (session file, closed-tab history).</summary>
+    public TabViewState CaptureView()
+    {
+        var (page, fraction) = Controller.TopPosition;
+        return new TabViewState(Math.Max(0, page), Math.Clamp(fraction, 0, 1), Controller.Zoom, Controller.Fit, Controller.ViewTurns);
+    }
+
+    // ---- moving between windows ------------------------------------------------------------------------------------------------
+
+    /// <summary>
+    /// Shows this document in another window's page surface (docs/features/tabs-windows-session.md 3.4). Nothing reloads: the engines, the tile cache, the selection, the find state and the view
+    /// stay as they are; the tiles are GPU bitmaps on the app's one shared device, so they draw in any window. Call <see cref="DetachPresenter"/> on the old window first.
+    /// </summary>
+    public void AttachPresenter(ITilePresenter presenter)
+    {
+        _presenter.Attach(presenter);
+        RequestFrame();
+    }
+
+    /// <summary>The window stopped showing this document (another tab is shown, or the tab is moving): frames are dropped, tiles keep arriving into the cache.</summary>
+    public void DetachPresenter() => _presenter.Detach();
+
+    /// <summary>Keeps the document engine from being suspended until the lease is disposed (a tab on screen, a save or print job). Null before the document is open.</summary>
+    public IDisposable? PinEngine() => _main?.Pin();
+
+    /// <summary>Resumes a suspended engine now, ahead of the first call that would (a tab about to be shown). <c>Timeout</c> when every slot stayed busy or pinned.</summary>
+    public async Task<Status> ResumeEngineAsync()
+    {
+        if (_main is not { IsSuspended: true } engine || _disposed)
+        {
+            return Status.Ok;
+        }
+
+        return await engine.ResumeAsync(_cts.Token).ConfigureAwait(true);
+    }
 
     // ---- opening -----------------------------------------------------------------------------
 
@@ -166,7 +209,7 @@ internal sealed partial class DocumentSession : IAsyncDisposable
     /// Opens the document, or reports why not. Call again with a password after <see cref="OpenOutcomeKind.PasswordRequired"/> or
     /// <see cref="OpenOutcomeKind.PasswordIncorrect"/>: the engines stay up.
     /// </summary>
-    public async Task<OpenOutcome> OpenAsync(string path, string? password)
+    public async Task<OpenOutcome> OpenAsync(string path, string? password, TabViewState? initialView = null)
     {
         Path = System.IO.Path.GetFullPath(path);
         if (!File.Exists(Path))
@@ -221,7 +264,7 @@ internal sealed partial class DocumentSession : IAsyncDisposable
         StartScheduler();
         StartReading();
         _store.AddRecent(Path);
-        ApplySavedPosition();
+        ApplySavedPosition(initialView);
         Publish();
         RequestFrame();
         ViewChanged?.Invoke();
@@ -242,6 +285,7 @@ internal sealed partial class DocumentSession : IAsyncDisposable
             RequestFrame();
         });
         engine.Failed += (_, _) => _ui.TryEnqueue(() => EngineStateChanged?.Invoke(EngineBanner.Failed));
+        engine.StateChanged += state => _ui.TryEnqueue(() => EngineLifeChanged?.Invoke(state));
         return engine;
     }
 
@@ -372,9 +416,14 @@ internal sealed partial class DocumentSession : IAsyncDisposable
         }
     }
 
-    private void ApplySavedPosition()
+    // A view handed over (a restored session, a reopened tab) wins over the position remembered for the file; its page is clamped when the file has fewer pages now.
+    private void ApplySavedPosition(TabViewState? initial)
     {
-        if (_store.GetPosition(Path) is { } saved && saved.Page < Controller.PageCount)
+        if (initial is not null)
+        {
+            Controller.Restore(Math.Clamp(initial.Page, 0, Math.Max(0, Controller.PageCount - 1)), initial.PageFraction, initial.Zoom, initial.Fit, initial.ViewTurns);
+        }
+        else if (_store.GetPosition(Path) is { } saved && saved.Page < Controller.PageCount)
         {
             Controller.Restore(saved.Page, saved.PageFraction, saved.Zoom, saved.Fit, saved.ViewTurns);
         }
@@ -547,7 +596,7 @@ internal sealed partial class DocumentSession : IAsyncDisposable
     /// <summary>Asks for a repaint; coalesced to one per UI-thread turn.</summary>
     public void RequestFrame()
     {
-        if (_framePending || _disposed)
+        if (_framePending || _disposed || !_presenter.IsAttached)
         {
             return;
         }
@@ -559,6 +608,11 @@ internal sealed partial class DocumentSession : IAsyncDisposable
             if (_disposed)
             {
                 return;
+            }
+
+            if (!_presenter.IsAttached)
+            {
+                return; // the window moved on to another tab since this frame was asked for
             }
 
             var frame = FrameComposer.Compose(Controller.Snapshot(_velocity), Cache);
@@ -623,4 +677,28 @@ internal sealed partial class DocumentSession : IAsyncDisposable
         Cache.DisposeEvicted();
         _cts.Dispose();
     }
+}
+
+/// <summary>
+/// The presenter a session draws through, which can change: the session survives a move to another window (a tab torn out, a tab merged), and the scheduler holds this proxy, not a window's
+/// presenter. Uploads (<see cref="CreateSurface"/>) are independent of the window (the app's one shared GPU device), so they go on while no window shows the session.
+/// </summary>
+internal sealed class PresenterProxy(ITilePresenter first) : ITilePresenter
+{
+    private ITilePresenter _creator = first;
+    private volatile ITilePresenter? _target = first;
+
+    public bool IsAttached => _target is not null;
+
+    public void Attach(ITilePresenter presenter)
+    {
+        _creator = presenter;
+        _target = presenter;
+    }
+
+    public void Detach() => _target = null;
+
+    public ITileSurface CreateSurface(IPixelBuffer pixels) => (_target ?? _creator).CreateSurface(pixels);
+
+    public void Present(FrameComposition frame) => _target?.Present(frame);
 }
