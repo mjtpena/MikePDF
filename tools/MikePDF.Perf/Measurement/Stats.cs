@@ -60,8 +60,11 @@ public static class Stats
 public static class Fmt
 {
     /// <summary>A fraction as a percentage with <paramref name="decimals"/> decimals: 0.1234 is "12.3%".</summary>
-    public static string Percent(double fraction, int decimals = 1) =>
-        (fraction * 100).ToString("0." + new string('#', decimals) + "'%'", System.Globalization.CultureInfo.InvariantCulture);
+    public static string Percent(double fraction, int decimals = 1)
+    {
+        var value = Math.Round(fraction * 100, decimals);
+        return (value == 0 ? 0.0 : value).ToString(decimals == 0 ? "0'%'" : "0." + new string('#', decimals) + "'%'", System.Globalization.CultureInfo.InvariantCulture); // no "-0%"
+    }
 }
 
 /// <summary>

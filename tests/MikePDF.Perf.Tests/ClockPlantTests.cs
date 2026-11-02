@@ -32,5 +32,7 @@ public sealed class ClockPlantTests
         Assert.Equal("10%", Fmt.Percent(0.1, 0));
         Assert.Equal("96.9%", Fmt.Percent(0.96875, 1));
         Assert.Equal("-4.5%", Fmt.Percent(-0.045, 1));
+        Assert.Equal("0%", Fmt.Percent(-0.0002, 1)); // not "-0%"
+        Assert.Equal("0%", Fmt.Percent(-0.004, 0));
     }
 }
