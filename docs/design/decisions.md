@@ -37,6 +37,17 @@
 
 The ADR-0005, ADR-0008 and spec amendments proposed in the S10 and S11 reports are applied by the save-pipeline and page-organiser work packages, as part of their first change. The S10 ones (ADR-0005 A3, ADR-0008 A1, save-pipeline 3.3 to 3.8, SP-16, SP-17, SP-38 to SP-41) were applied by W3-save-core on 2026-11-03; the S11 ones are the page-organiser work package's.
 
+## Taken while building the save core (W3-save-core, 2026-11-03): for Opus to confirm
+| Item | Decision as built |
+|---|---|
+| Journal write failure (OQ-SP-1) | Degraded by default: the command applies and the chip says changes can't be backed up. `Strict` (refuse the command) is built and one constructor argument away |
+| Edit blob (OQ-SP-3) | A second MessagePack format read from a file handle, hand-written on the strict primitives with every limit a constant, not generated. ADR-0005 A4 |
+| Stage 5 validation | A baseline comparison: the output may have no structure error the original did not have. A clean bill would have refused PDFium's own `hello_world.pdf`. ADR-0008 A2 |
+| Flattened copy and whole-file rewrite | Done in `MikePDF.PdfWriter`, not by PDFium's `FPDFPage_Flatten`: no engine message, one parser-differential argument. ADR-0008 A2 |
+| After the replace | A journal that cannot be written (the commit record, the delete) does not turn a replaced file into a failed save; the next start's recovery finishes it |
+| A journal another instance has open | Skipped by recovery (it is that instance's live session), not offered for discard |
+| Forms and page changes | Refused with `UnsupportedEdits` until the forms and page-organiser packages bring the engine's PDFium save and `NormalizeTail` |
+
 ## After the S6b spike (2026-11-03)
 | Item | Decision |
 |---|---|
