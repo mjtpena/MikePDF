@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <!-- WinExe: no console. The host is launched detached inside an AppContainer with no inherited handles, so there is no stdout either. -->
+    <OutputType>WinExe</OutputType>
+    <Description>Sandboxed host for MikePDF.PdfWriter. Receives handles only, never paths (ADR-0008).</Description>
+    <RuntimeIdentifier>$(MikePDFRuntimeIdentifier)</RuntimeIdentifier>
+    <SelfContained>true</SelfContained>
+    <InvariantGlobalization>true</InvariantGlobalization>
+    <!-- LibraryImport (source-generated P/Invoke) emits unsafe code. -->
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\MikePDF.PdfWriter\MikePDF.PdfWriter.csproj" />
+    <ProjectReference Include="..\MikePDF.Protocol\MikePDF.Protocol.csproj" />
+  </ItemGroup>
+</Project>

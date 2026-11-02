@@ -18,7 +18,7 @@
 4. Newer Appium drivers (appium-wincore-driver, NovaWindows). Untested on WinUI 3.
 
 ## Decision
-- **FlaUI.UIA3 5.0.0 for UI journeys**, behind a Quire page-object layer (`tests/Quire.UI.Tests/Pages/*`) so the driver can be swapped without rewriting the journeys.
+- **FlaUI.UIA3 5.0.0 for UI journeys**, behind a MikePDF page-object layer (`tests/MikePDF.UI.Tests/Pages/*`) so the driver can be swapped without rewriting the journeys.
 - **Raw `IUIAutomation` for accessibility assertions** (TextPattern walking, events), reusing S7's `UiaNative` approach, so a11y tests don't depend on how FlaUI wraps those patterns.
 - UI tests need an interactive desktop session. Locally they run in Developer Mode against an unsigned MSIX. In CI they run on a self-hosted runner with auto-logon (hosted runners: whether the desktop is available is to be verified in M1).
 

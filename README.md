@@ -1,4 +1,4 @@
-# Quire
+# MikePDF
 
 A Windows-native PDF reader built on WinUI 3 and PDFium, designed so that a malicious PDF can't reach your files. Licensed under [Apache-2.0](LICENSE).
 
@@ -7,26 +7,26 @@ A Windows-native PDF reader built on WinUI 3 and PDFium, designed so that a mali
 ## Why another PDF reader
 - **Sandboxed by design.** PDF parsing never happens in the app's UI process. PDFium runs in a separate process inside an AppContainer that requests no capabilities: no user files beyond the document it was handed, no network, no child processes. A crash there is contained and recovered from. In an installed package, Windows also gives it the package's own identity, so anything the app must keep from it lives in a directory it can't open ([ADR-0004](docs/adr/0004-process-model-and-sandbox.md), amendment A2).
 - **Native.** WinUI 3, Fluent design, pen and touch, and accessibility through UI Automation.
-- **Honest saves.** Quire writes its own annotation objects and appearance streams, so other viewers see what you saw, and saves are atomic.
+- **Honest saves.** MikePDF writes its own annotation objects and appearance streams, so other viewers see what you saw, and saves are atomic.
 - **Private by default.** No telemetry without opt-in, and no account.
 
 ## Architecture
 ```text
-Quire.App (UI + broker, medium integrity)  never parses PDF bytes
+MikePDF.App (UI + broker, medium integrity)  never parses PDF bytes
    |  named pipe (MessagePack, every response validated)
    |  shared-memory slots (tiles, read-only in the UI)
-   +-- Quire.Engine      C++20 + PDFium, AppContainer, one per document
-   +-- Quire.WriterHost  .NET + Quire.PdfWriter, AppContainer, for saves and validation
+   +-- MikePDF.Engine      C++20 + PDFium, AppContainer, one per document
+   +-- MikePDF.WriterHost  .NET + MikePDF.PdfWriter, AppContainer, for saves and validation
 ```
 
 | Path | What it is |
 |---|---|
-| `src/Quire.App` | WinUI 3 application |
-| `src/Quire.Core` | View, layout and tile logic with no UI dependency |
-| `src/Quire.Broker` | Sandbox launcher, pipe server, response validation, watchdog |
-| `src/Quire.Engine`, `src/Quire.Engine.Pdfium` | Sandboxed C++ engine host and the PDFium wrapper |
-| `src/Quire.Protocol` | IPC schema and generated C#/C++ codecs |
-| `src/Quire.PdfWriter`, `src/Quire.WriterHost` | Strict PDF parser, incremental writer, and its sandboxed host |
+| `src/MikePDF.App` | WinUI 3 application |
+| `src/MikePDF.Core` | View, layout and tile logic with no UI dependency |
+| `src/MikePDF.Broker` | Sandbox launcher, pipe server, response validation, watchdog |
+| `src/MikePDF.Engine`, `src/MikePDF.Engine.Pdfium` | Sandboxed C++ engine host and the PDFium wrapper |
+| `src/MikePDF.Protocol` | IPC schema and generated C#/C++ codecs |
+| `src/MikePDF.PdfWriter`, `src/MikePDF.WriterHost` | Strict PDF parser, incremental writer, and its sandboxed host |
 | `docs/adr` | Architecture decisions |
 | `docs/spikes` | Feasibility spike reports, with raw numbers |
 | `docs/threat-model` | Threat model |

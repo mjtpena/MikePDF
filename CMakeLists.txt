@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.28)
-project(Quire LANGUAGES CXX)
+project(MikePDF LANGUAGES CXX)
 
-# Native half of Quire: the sandboxed engine host and its tests (ADR-0002, ADR-0004).
+# Native half of MikePDF: the sandboxed engine host and its tests (ADR-0002, ADR-0004).
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
@@ -9,19 +9,19 @@ set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
-include(QuireHardening)
+include(MikePDFHardening)
 include(Pdfium)
 
-option(QUIRE_BUILD_TESTS "Build native tests" ON)
+option(MIKEPDF_BUILD_TESTS "Build native tests" ON)
 
-# Generated protocol code (tools/Quire.ProtocolGen) lands here.
-set(QUIRE_PROTOCOL_CPP_DIR "${CMAKE_SOURCE_DIR}/src/Quire.Protocol/generated/cpp")
+# Generated protocol code (tools/MikePDF.ProtocolGen) lands here.
+set(MIKEPDF_PROTOCOL_CPP_DIR "${CMAKE_SOURCE_DIR}/src/MikePDF.Protocol/generated/cpp")
 
-add_subdirectory(src/Quire.Protocol)
-add_subdirectory(src/Quire.Engine.Pdfium)
-add_subdirectory(src/Quire.Engine)
+add_subdirectory(src/MikePDF.Protocol)
+add_subdirectory(src/MikePDF.Engine.Pdfium)
+add_subdirectory(src/MikePDF.Engine)
 
-if(QUIRE_BUILD_TESTS)
+if(MIKEPDF_BUILD_TESTS)
   include(FetchContent)
   FetchContent_Declare(googletest
     URL https://github.com/google/googletest/archive/refs/tags/v1.18.0.tar.gz
@@ -31,6 +31,6 @@ if(QUIRE_BUILD_TESTS)
   set(INSTALL_GTEST OFF CACHE BOOL "" FORCE)
   FetchContent_MakeAvailable(googletest)
   enable_testing()
-  add_subdirectory(tests/Quire.Engine.Tests)
-  add_subdirectory(tests/Quire.Engine.SandboxProbe)
+  add_subdirectory(tests/MikePDF.Engine.Tests)
+  add_subdirectory(tests/MikePDF.Engine.SandboxProbe)
 endif()

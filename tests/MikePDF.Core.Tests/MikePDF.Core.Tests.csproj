@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\MikePDF.Core\MikePDF.Core.csproj" />
+    <ProjectReference Include="..\..\src\MikePDF.Protocol\MikePDF.Protocol.csproj" />
+  </ItemGroup>
+  <PropertyGroup>
+    <!-- Scheduler tests wait on tasks with explicit timeouts. -->
+    <NoWarn>$(NoWarn);xUnit1051</NoWarn>
+  </PropertyGroup>
+</Project>

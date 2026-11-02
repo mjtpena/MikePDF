@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <Description>Viewer logic with no UI and no PDF parsing: coordinate maths, layout, zoom, tile scheduling and caching (master prompt 6.3, 7.1; ADR-0006).</Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <!-- Only for the Status enum (typed errors, 6.4). -->
+    <ProjectReference Include="..\MikePDF.Protocol\MikePDF.Protocol.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="MikePDF.Core.Tests" />
+  </ItemGroup>
+</Project>

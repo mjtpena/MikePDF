@@ -34,9 +34,9 @@ $packageName = $manifest.Package.Identity.Name
 # Sign a copy, so the unsigned package the Store needs is never replaced by a test-signed one.
 $signed = Join-Path $env:RUNNER_TEMP ('signed-' + (Split-Path $Msix -Leaf))
 Copy-Item $Msix $signed -Force
-$cert = New-SelfSignedCertificate -Type Custom -Subject $publisher -KeyUsage DigitalSignature -FriendlyName 'Quire CI (ephemeral)' `
+$cert = New-SelfSignedCertificate -Type Custom -Subject $publisher -KeyUsage DigitalSignature -FriendlyName 'MikePDF CI (ephemeral)' `
     -CertStoreLocation 'Cert:\CurrentUser\My' -TextExtension @('2.5.29.37={text}1.3.6.1.5.5.7.3.3', '2.5.29.19={text}')
-$cer = Join-Path $env:RUNNER_TEMP 'quire-ci.cer'
+$cer = Join-Path $env:RUNNER_TEMP 'mikepdf-ci.cer'
 Export-Certificate -Cert $cert -FilePath $cer | Out-Null
 Import-Certificate -FilePath $cer -CertStoreLocation 'Cert:\LocalMachine\TrustedPeople' | Out-Null
 $hostArch = if ($env:PROCESSOR_ARCHITECTURE -eq 'ARM64') { 'arm64' } else { 'x64' }
@@ -65,7 +65,7 @@ if ($Mode -eq 'Wack') {
     if (-not (Test-Path $report)) { throw 'appcert wrote no report.' }
     $xml = [xml](Get-Content $report -Raw)
     Write-Host "Overall result: $($xml.REPORT.OVERALL_RESULT)"
-    # "Blocked executables" is optional, and Quire must fail it: the broker has to start the engine, and .NET's own files reference CreateProcess.
+    # "Blocked executables" is optional, and MikePDF must fail it: the broker has to start the engine, and .NET's own files reference CreateProcess.
     # Every other failure stops the release, optional or not.
     $failed = @($xml.SelectNodes('//TEST[RESULT="FAIL"]') | Where-Object { $_.NAME -ne 'Blocked executables' })
     foreach ($t in $xml.SelectNodes('//TEST[RESULT="FAIL"]')) { Write-Host "FAIL: $($t.NAME) (optional: $($t.OPTIONAL))" }
@@ -80,7 +80,7 @@ Write-Host ("installed: {0} at {1}, signature {2}" -f $installed.PackageFullName
 if ($installed.InstallLocation -notlike '*\WindowsApps\*') { throw 'The package is not installed under WindowsApps.' }
 
 $result = Join-Path $OutDir "selftest-$Arch.json"
-$alias = Join-Path $env:LOCALAPPDATA 'Microsoft\WindowsApps\quire.exe'
+$alias = Join-Path $env:LOCALAPPDATA 'Microsoft\WindowsApps\mikepdf.exe'
 $process = Start-Process -FilePath $alias -ArgumentList '--selftest', "`"$Pdf`"", "`"$result`"" -Wait -PassThru
 Write-Host "self-test exit code: $($process.ExitCode)"
 if (Test-Path $result) { Get-Content $result | Write-Host } else { throw 'The self-test wrote no result.' }

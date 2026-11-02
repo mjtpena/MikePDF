@@ -11,7 +11,7 @@ M1 work can start before the M0 gate passes, **limited to**:
 2. CI workflow
 3. IPC schema and code generation (ADR-0005)
 4. Engine host (C++20, ADR-0004 sandbox profile, ADR-0005 IPC), plus the broker-side launcher and watchdog it needs
-5. `Quire.PdfWriter` core and `Quire.WriterHost` (ADR-0008)
+5. `MikePDF.PdfWriter` core and `MikePDF.WriterHost` (ADR-0008)
 
 ## What stays closed
 - **Every performance gate** (§11; S2, S3, S6 numbers on R1/R2/R3) and **every fidelity gate** (S4/S8 Acrobat and Edge manual passes; §12.4).
@@ -20,4 +20,4 @@ M1 work can start before the M0 gate passes, **limited to**:
 - ADR-0001 (24H2 minimum) and ADR-0003 (licence) stay Proposed. M1 code follows ADR-0003's interim policy.
 
 ## Risks accepted with this waiver
-- If R1/R2 numbers or the manual passes overturn an ADR (for example, Acrobat rejecting Quire-written xref streams), some M1 code gets reworked. That's mitigated by ADRs 0004, 0005 and 0008 resting on correctness evidence that is already in, not on performance numbers.
+- If R1/R2 numbers or the manual passes overturn an ADR (for example, Acrobat rejecting MikePDF-written xref streams), some M1 code gets reworked. That's mitigated by ADRs 0004, 0005 and 0008 resting on correctness evidence that is already in, not on performance numbers.

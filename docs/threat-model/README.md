@@ -1,4 +1,4 @@
-# Quire threat model (skeleton)
+# MikePDF threat model (skeleton)
 
 - Status: Skeleton, M0. Owner: Opus. Full STRIDE review due at M5 (§13.1, §17)
 - Method: STRIDE per trust boundary. Each mitigation links to the ADR or spike that provides it
@@ -9,7 +9,7 @@
 2. The user's account context: files, network identity (NTLM), credentials, clipboard
 3. Signing keys in the Windows certificate store, smart cards, and Windows Hello (P1)
 4. Local data: edit journals (§7.4), session state, the AI index (P1)
-5. The integrity of Quire's update channel and binaries
+5. The integrity of MikePDF's update channel and binaries
 
 ## Trust boundaries
 | # | Boundary | Untrusted side | Trusted side | Primary control |

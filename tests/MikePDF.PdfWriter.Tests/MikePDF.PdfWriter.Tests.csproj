@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <!-- LibraryImport (PDFium differential test) generates unsafe marshalling code. -->
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\MikePDF.PdfWriter\MikePDF.PdfWriter.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- BSD-3-Clause PDFium test resources, see Fixtures/pdfium/MANIFEST.md -->
+    <Content Include="Fixtures\pdfium\*.pdf" CopyToOutputDirectory="PreserveNewest" LinkBase="Fixtures\pdfium" />
+    <Content Include="Fixtures\pdfium\MANIFEST.md" CopyToOutputDirectory="PreserveNewest" LinkBase="Fixtures\pdfium" />
+  </ItemGroup>
+</Project>

@@ -1,4 +1,4 @@
-# Publishing Quire to the Microsoft Store
+# Publishing MikePDF to the Microsoft Store
 
 This is the runbook. Everything an agent can do is done or scripted; the steps marked **You** need your Microsoft account and can't be delegated.
 
@@ -23,7 +23,7 @@ Merge the open PR. The privacy policy URL and the licence detection both depend 
 ### 2. Developer account and name (You)
 1. Create the account from **https://storedeveloper.microsoft.com**. It's free from there; other entry points show the older paid flow.
 2. **Choose the account type carefully.** Individual accounts are for distribution not tied to a business, and they can't convert to Company later. If this will be published under a business, use a Company account: it needs a business email and D-U-N-S or documents, and can take 2–5 business days. Individual verification uses government ID and a selfie.
-3. **Reserve the app name.** It's held for 3 months. "Quire" may be a problem: a Chrome extension called **Quire PDF** covers the same ground, and **Quire** (quire.io) is a project-management product. Store policy asks for a unique name, and this isn't legal advice, so check before you commit to it. The display name is one setting, so changing it costs nothing now.
+3. **Reserve the app name.** It's held for 3 months. The project is called MikePDF. Web searches on 2026-11-02 found no app with that name, but they aren't a trademark search and this isn't legal advice, so Partner Center decides whether the name is free. The display name is one setting, so changing it costs nothing now.
 4. In Partner Center, open **Product management > Product identity** and copy these into `build/store/identity.json` (they're case-sensitive): `Package/Identity/Name`, `Package/Identity/Publisher`, `Package/Properties/PublisherDisplayName`. Also set `DisplayName` to the reserved name, and commit.
 
 ### 3. Build the upload
@@ -43,6 +43,7 @@ Install from the private listing **as a standard (non-administrator) user**, on 
 - **ARM64**, which has only run on CI runners so far.
 - **A machine with Smart App Control on.** The engine has no signature of its own, and nothing official confirms that the Store's package signature is enough ([R-43](../risks.md)). If documents won't open there, don't go public.
 - **Narrator**, using `spikes/S7/narrator-script.md`, before you tick "accessible" in the listing.
+- **Light and high-contrast themes**, which have never been seen running. Add them to the listing if they look right.
 
 Going public is a separate decision.
 

@@ -69,7 +69,7 @@ Every version here is a point in time. Re-check before M1 starts and at every mi
 | Item | Pin | Status | Source |
 |---|---|---|---|
 | Visual Studio | **VS 2026 (18.x)**, currently 18.11.2 (2026-10-25). Required by Chromium/PDFium builds | VERIFIED | [VS 2026 release notes](https://learn.microsoft.com/en-us/visualstudio/releases/2026/release-notes), [Chromium Windows build](https://chromium.googlesource.com/chromium/src/+/main/docs/windows_build_instructions.md) |
-| MSVC for Quire-owned C++ | **MSVC 14.50 (LTS, supported to Nov 2028)**, `/std:c++20`. The current default 14.51 is supported only to Feb 2027 | VERIFIED (lifecycle). Which toolset 18.11 installs by default is UNVERIFIED | [Compiler versions](https://learn.microsoft.com/en-us/cpp/overview/compiler-versions) |
+| MSVC for MikePDF-owned C++ | **MSVC 14.50 (LTS, supported to Nov 2028)**, `/std:c++20`. The current default 14.51 is supported only to Feb 2027 | VERIFIED (lifecycle). Which toolset 18.11 installs by default is UNVERIFIED | [Compiler versions](https://learn.microsoft.com/en-us/cpp/overview/compiler-versions) |
 | Windows SDK | **10.0.28000.2957** (Chromium needs ≥ 10.0.28000.2270) | VERIFIED | [Windows SDK](https://learn.microsoft.com/en-us/windows/apps/windows-sdk/downloads) |
 | Engine fuzzing compiler | **clang-cl `-fsanitize=fuzzer,address`**, matching PDFium. MSVC `/fsanitize=fuzzer` is still "experimental" | VERIFIED | [/fsanitize](https://learn.microsoft.com/en-us/cpp/build/reference/fsanitize) |
 | C# fuzzing | SharpFuzz **2.3.0** (NuGet. GitHub releases lag at 2.2.0) | VERIFIED | [NuGet](https://www.nuget.org/packages/SharpFuzz) |

@@ -5,10 +5,10 @@
   Brings the window to the front, then copies its screen rectangle. The window must be visible on an unlocked, interactive desktop.
   Nothing is sent anywhere. Output goes to build/out/shots/ unless -Path is given.
 .EXAMPLE
-  ./build/capture-window.ps1 -Name Quire -Label 01-empty
+  ./build/capture-window.ps1 -Name MikePDF -Label 01-empty
 #>
 param(
-    [string] $Name = 'Quire',
+    [string] $Name = 'MikePDF',
     [int] $ProcessId = 0,
     [string] $Label = 'window',
     [string] $Path

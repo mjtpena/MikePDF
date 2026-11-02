@@ -1,0 +1,328 @@
+{
+  "$comment": [
+    "Single source of truth for the MikePDF IPC protocol (ADR-0005). tools/MikePDF.ProtocolGen turns this into the C# and C++ codecs.",
+    "Wire format. A frame is a 4-byte little-endian body length followed by a MessagePack body of at most maxFrameBytes.",
+    "Request body:  [requestId:u64, documentId:u32, deadlineMs:u32, messageType:u16, payload:array]",
+    "Response body: [requestId:u64, status:u16, messageType:u16, payload:array|nil]  (payload is an array exactly when the status carries one)",
+    "A payload is a MessagePack array of exactly the declared fields, in key order. The key IS the array index, so keys are contiguous from 0.",
+    "Stability: a message id, a field key, a field type and an enum value are never reused or changed within a schemaVersion. Any layout change bumps schemaVersion; Hello and HelloReply keep their layout in every version so that the version check itself can always be decoded. On a mismatch the peer is killed, not accommodated.",
+    "Messages have no nesting: variable-size collections are parallel arrays tied together with sameLengthAs.",
+    "Every variable-size field has a limit and the generator rejects a schema in which any legal message cannot fit in one frame."
+  ],
+  "schemaVersion": 3,
+  "envelope": { "maxFrameBytes": 65536, "maxDeadlineMs": 86400000 },
+
+  "enums": [
+    {
+      "name": "Status",
+      "$comment": "Response status. Values with payload=true carry a reply payload, all others carry nil. Codes are master prompt 6.4. ProtocolError is also what a decoder reports for a malformed frame and InvalidArgument for a well-formed frame that breaks a schema limit.",
+      "values": [
+        { "name": "Ok", "value": 0, "payload": true },
+        { "name": "Cancelled", "value": 1 },
+        { "name": "InvalidArgument", "value": 2 },
+        { "name": "ProtocolError", "value": 3 },
+        { "name": "Unsupported", "value": 4 },
+        { "name": "PasswordRequired", "value": 5 },
+        { "name": "PasswordIncorrect", "value": 6 },
+        { "name": "UnsupportedEncryption", "value": 7 },
+        { "name": "Damaged", "value": 8 },
+        { "name": "PartiallyRendered", "value": 9, "payload": true },
+        { "name": "Timeout", "value": 10 },
+        { "name": "EngineCrashed", "value": 11 },
+        { "name": "PermissionDenied", "value": 12 }
+      ]
+    },
+    {
+      "name": "ProcessKind",
+      "values": [
+        { "name": "Broker", "value": 0 },
+        { "name": "Engine", "value": 1 },
+        { "name": "WriterHost", "value": 2 }
+      ]
+    }
+  ],
+
+  "messages": [
+    {
+      "id": 1, "name": "Hello", "documentId": "none",
+      "request": {
+        "type": "Hello",
+        "fields": [
+          { "key": 0, "name": "schemaVersion", "type": "u32", "min": 1, "max": 65535 },
+          { "key": 1, "name": "processKind", "type": "enum", "enum": "ProcessKind", "doc": "Kind of the sending process." },
+          { "key": 2, "name": "pid", "type": "u32" }
+        ]
+      },
+      "reply": {
+        "type": "HelloReply",
+        "fields": [
+          { "key": 0, "name": "schemaVersion", "type": "u32", "min": 1, "max": 65535 },
+          { "key": 1, "name": "pdfiumVersion", "type": "string", "maxBytes": 64, "doc": "Empty for hosts without PDFium." }
+        ]
+      }
+    },
+    {
+      "id": 2, "name": "Ping", "documentId": "none",
+      "request": { "type": "Ping", "fields": [ { "key": 0, "name": "nonce", "type": "u64" } ] },
+      "reply": { "type": "Pong", "fields": [ { "key": 0, "name": "nonce", "type": "u64" } ] }
+    },
+    {
+      "id": 3, "name": "Shutdown", "documentId": "none",
+      "request": { "type": "Shutdown", "fields": [] },
+      "reply": { "type": "ShutdownReply", "fields": [] }
+    },
+    {
+      "id": 4, "name": "AttachSlotRing", "documentId": "none",
+      "$comment": "Sent once, right after Hello, to an engine. The section handle is duplicated into the engine by the broker (no handle is ever inherited), so its value arrives here, not on the command line. RenderTile is refused until the ring is attached. slotCount and slotSize mirror SlotRing: at most 1024 slots (the slotIndex limit) of a multiple of 4096 bytes up to 64 MiB; the engine also checks that the section is at least slotCount x slotSize and that the total is at most 1 GiB.",
+      "request": {
+        "type": "AttachSlotRing",
+        "fields": [
+          { "key": 0, "name": "handle", "type": "u64", "min": 1, "doc": "Value of the section handle duplicated into the engine, with write access." },
+          { "key": 1, "name": "slotCount", "type": "u32", "min": 1, "max": 1024 },
+          { "key": 2, "name": "slotSize", "type": "u32", "min": 4096, "max": 67108864, "doc": "Bytes per slot." }
+        ]
+      },
+      "reply": { "type": "AttachSlotRingReply", "fields": [] }
+    },
+    {
+      "id": 16, "name": "OpenDocument", "documentId": "none",
+      "request": {
+        "type": "OpenDocument",
+        "fields": [
+          { "key": 0, "name": "handle", "type": "u64", "min": 1, "doc": "Value of the file handle duplicated into the engine." },
+          { "key": 1, "name": "password", "type": "string", "optional": true, "maxBytes": 1024 }
+        ]
+      },
+      "reply": {
+        "type": "OpenDocumentReply",
+        "fields": [
+          { "key": 0, "name": "documentId", "type": "u32", "min": 1 },
+          { "key": 1, "name": "pageCount", "type": "u32", "max": 10000000 }
+        ]
+      }
+    },
+    {
+      "id": 17, "name": "CloseDocument", "documentId": "required",
+      "request": { "type": "CloseDocument", "fields": [] },
+      "reply": { "type": "CloseDocumentReply", "fields": [] }
+    },
+    {
+      "id": 18, "name": "GetDocumentInfo", "documentId": "required",
+      "request": { "type": "GetDocumentInfo", "fields": [] },
+      "reply": {
+        "type": "GetDocumentInfoReply",
+        "fields": [
+          { "key": 0, "name": "pageCount", "type": "u32", "max": 10000000 },
+          { "key": 1, "name": "pdfVersion", "type": "u32", "max": 99, "doc": "Version times ten, as PDFium reports it (17 = PDF 1.7). 0 = unknown." },
+          { "key": 2, "name": "title", "type": "string", "maxBytes": 1024 },
+          { "key": 3, "name": "author", "type": "string", "maxBytes": 1024 },
+          { "key": 4, "name": "subject", "type": "string", "maxBytes": 1024 },
+          { "key": 5, "name": "keywords", "type": "string", "maxBytes": 1024 },
+          { "key": 6, "name": "creator", "type": "string", "maxBytes": 1024 },
+          { "key": 7, "name": "producer", "type": "string", "maxBytes": 1024 },
+          { "key": 8, "name": "permissions", "type": "u32", "doc": "PDF permission bits, as in the /P entry." },
+          { "key": 9, "name": "isTagged", "type": "bool" },
+          { "key": 10, "name": "hasXfa", "type": "bool" },
+          { "key": 11, "name": "hasJavaScript", "type": "bool" },
+          { "key": 12, "name": "signatureCount", "type": "u32", "max": 65535 }
+        ]
+      }
+    },
+    {
+      "id": 19, "name": "GetPageSizes", "documentId": "required",
+      "$comment": "count is capped at 5000 so that a full reply (5000 x (5+5+1) bytes) fits one 64 KiB frame; callers page through larger documents.",
+      "request": {
+        "type": "GetPageSizes",
+        "fields": [
+          { "key": 0, "name": "first", "type": "u32", "max": 9999999 },
+          { "key": 1, "name": "count", "type": "u32", "min": 1, "max": 5000 }
+        ]
+      },
+      "reply": {
+        "type": "GetPageSizesReply",
+        "fields": [
+          { "key": 0, "name": "widths", "type": "array", "of": "f32", "maxCount": 5000, "exclusiveMin": 0, "max": 14400, "doc": "Points." },
+          { "key": 1, "name": "heights", "type": "array", "of": "f32", "maxCount": 5000, "exclusiveMin": 0, "max": 14400, "sameLengthAs": "widths" },
+          { "key": 2, "name": "rotations", "type": "array", "of": "u16", "maxCount": 5000, "max": 3, "sameLengthAs": "widths", "doc": "Quarter turns clockwise." }
+        ]
+      }
+    },
+    {
+      "id": 20, "name": "GetOutline", "documentId": "required",
+      "$comment": "One level of the bookmark tree, a window of siblings at a time, so a tree is expanded lazily and a reply always fits a frame. path names the parent by the sibling index taken at each level from the root (empty = the top level); it is addressing by position, not by a handle, so it survives an engine restart. total is the number of siblings at that level (the engine stops counting at 100000). Destinations are in PDF user space of the destination page; convert with GetPageBoxes.",
+      "request": {
+        "type": "GetOutline",
+        "fields": [
+          { "key": 0, "name": "path", "type": "array", "of": "u32", "maxCount": 16, "max": 99999, "doc": "Sibling index at each level, root first. At most 16 levels." },
+          { "key": 1, "name": "first", "type": "u32", "max": 99999 },
+          { "key": 2, "name": "count", "type": "u32", "min": 1, "max": 64 }
+        ]
+      },
+      "reply": {
+        "type": "GetOutlineReply",
+        "fields": [
+          { "key": 0, "name": "total", "type": "u32", "max": 100000 },
+          { "key": 1, "name": "titles", "type": "array", "of": "string", "maxCount": 64, "maxBytes": 256 },
+          { "key": 2, "name": "kinds", "type": "array", "of": "u16", "maxCount": 64, "max": 5, "sameLengthAs": "titles", "doc": "Destination kind: 0 none, 1 page, 2 page and y, 3 page, x and y, 4 external address, 5 any other action." },
+          { "key": 3, "name": "pages", "type": "array", "of": "u32", "maxCount": 64, "max": 9999999, "sameLengthAs": "titles", "doc": "Zero-based destination page; 0 unless kind is 1, 2 or 3." },
+          { "key": 4, "name": "xs", "type": "array", "of": "f32", "maxCount": 64, "min": -1000000, "max": 1000000, "sameLengthAs": "titles" },
+          { "key": 5, "name": "ys", "type": "array", "of": "f32", "maxCount": 64, "min": -1000000, "max": 1000000, "sameLengthAs": "titles" },
+          { "key": 6, "name": "hasChildren", "type": "array", "of": "u16", "maxCount": 64, "max": 1, "sameLengthAs": "titles" }
+        ]
+      }
+    },
+    {
+      "id": 21, "name": "GetPageLinks", "documentId": "required",
+      "$comment": "The link annotations of one page, a window at a time. Rectangles and destinations are in PDF user space (convert with GetPageBoxes). The address of an external link is not sent here; the caller asks for it with GetLinkUri when the link is activated.",
+      "request": {
+        "type": "GetPageLinks",
+        "fields": [
+          { "key": 0, "name": "page", "type": "u32", "max": 9999999 },
+          { "key": 1, "name": "first", "type": "u32", "max": 99999 },
+          { "key": 2, "name": "count", "type": "u32", "min": 1, "max": 512 }
+        ]
+      },
+      "reply": {
+        "type": "GetPageLinksReply",
+        "fields": [
+          { "key": 0, "name": "total", "type": "u32", "max": 100000, "doc": "Links on the page; the engine stops counting at 100000." },
+          { "key": 1, "name": "lefts", "type": "array", "of": "f32", "maxCount": 512, "min": -1000000, "max": 1000000 },
+          { "key": 2, "name": "bottoms", "type": "array", "of": "f32", "maxCount": 512, "min": -1000000, "max": 1000000, "sameLengthAs": "lefts" },
+          { "key": 3, "name": "rights", "type": "array", "of": "f32", "maxCount": 512, "min": -1000000, "max": 1000000, "sameLengthAs": "lefts" },
+          { "key": 4, "name": "tops", "type": "array", "of": "f32", "maxCount": 512, "min": -1000000, "max": 1000000, "sameLengthAs": "lefts" },
+          { "key": 5, "name": "kinds", "type": "array", "of": "u16", "maxCount": 512, "max": 5, "sameLengthAs": "lefts", "doc": "As GetOutlineReply.kinds." },
+          { "key": 6, "name": "pages", "type": "array", "of": "u32", "maxCount": 512, "max": 9999999, "sameLengthAs": "lefts" },
+          { "key": 7, "name": "xs", "type": "array", "of": "f32", "maxCount": 512, "min": -1000000, "max": 1000000, "sameLengthAs": "lefts" },
+          { "key": 8, "name": "ys", "type": "array", "of": "f32", "maxCount": 512, "min": -1000000, "max": 1000000, "sameLengthAs": "lefts" }
+        ]
+      }
+    },
+    {
+      "id": 22, "name": "GetLinkUri", "documentId": "required",
+      "$comment": "The address behind an external link (kind 4 from GetPageLinks). Unsupported when the address is longer than 2048 bytes, is not valid UTF-8 or holds control characters; InvalidArgument when the link is not an external one.",
+      "request": {
+        "type": "GetLinkUri",
+        "fields": [
+          { "key": 0, "name": "page", "type": "u32", "max": 9999999 },
+          { "key": 1, "name": "index", "type": "u32", "max": 99999, "doc": "Position of the link in the order GetPageLinks reports." }
+        ]
+      },
+      "reply": { "type": "GetLinkUriReply", "fields": [ { "key": 0, "name": "uri", "type": "string", "maxBytes": 2048 } ] }
+    },
+    {
+      "id": 23, "name": "GetPageBoxes", "documentId": "required",
+      "$comment": "What the caller needs to convert PDF user space to page space (MikePDF.Core PageGeometry): the MediaBox, the CropBox when the page has one, and /Rotate in quarter turns.",
+      "request": { "type": "GetPageBoxes", "fields": [ { "key": 0, "name": "page", "type": "u32", "max": 9999999 } ] },
+      "reply": {
+        "type": "GetPageBoxesReply",
+        "fields": [
+          { "key": 0, "name": "mediaLeft", "type": "f32", "min": -1000000, "max": 1000000 },
+          { "key": 1, "name": "mediaBottom", "type": "f32", "min": -1000000, "max": 1000000 },
+          { "key": 2, "name": "mediaRight", "type": "f32", "min": -1000000, "max": 1000000 },
+          { "key": 3, "name": "mediaTop", "type": "f32", "min": -1000000, "max": 1000000 },
+          { "key": 4, "name": "hasCropBox", "type": "bool" },
+          { "key": 5, "name": "cropLeft", "type": "f32", "min": -1000000, "max": 1000000 },
+          { "key": 6, "name": "cropBottom", "type": "f32", "min": -1000000, "max": 1000000 },
+          { "key": 7, "name": "cropRight", "type": "f32", "min": -1000000, "max": 1000000 },
+          { "key": 8, "name": "cropTop", "type": "f32", "min": -1000000, "max": 1000000 },
+          { "key": 9, "name": "rotation", "type": "u16", "max": 3, "doc": "The page's own /Rotate in quarter turns clockwise." }
+        ]
+      }
+    },
+    {
+      "id": 24, "name": "GetPageText", "documentId": "required",
+      "$comment": "The characters of one page in PDFium's order, a window at a time (a dense page is several replies; 2048 characters x 24 bytes fit a frame). One entry per UTF-16 code unit, with its loose box in PDF user space. The engine stops at 200000 characters and says so in truncated.",
+      "request": {
+        "type": "GetPageText",
+        "fields": [
+          { "key": 0, "name": "page", "type": "u32", "max": 9999999 },
+          { "key": 1, "name": "first", "type": "u32", "max": 199999 },
+          { "key": 2, "name": "count", "type": "u32", "min": 1, "max": 2048 }
+        ]
+      },
+      "reply": {
+        "type": "GetPageTextReply",
+        "fields": [
+          { "key": 0, "name": "total", "type": "u32", "max": 200000, "doc": "Characters on the page (at most 200000)." },
+          { "key": 1, "name": "truncated", "type": "bool", "doc": "The page has more characters than the engine reports." },
+          { "key": 2, "name": "units", "type": "array", "of": "u16", "maxCount": 2048, "max": 65535, "doc": "UTF-16 code units." },
+          { "key": 3, "name": "lefts", "type": "array", "of": "f32", "maxCount": 2048, "min": -1000000, "max": 1000000, "sameLengthAs": "units" },
+          { "key": 4, "name": "bottoms", "type": "array", "of": "f32", "maxCount": 2048, "min": -1000000, "max": 1000000, "sameLengthAs": "units" },
+          { "key": 5, "name": "rights", "type": "array", "of": "f32", "maxCount": 2048, "min": -1000000, "max": 1000000, "sameLengthAs": "units" },
+          { "key": 6, "name": "tops", "type": "array", "of": "f32", "maxCount": 2048, "min": -1000000, "max": 1000000, "sameLengthAs": "units" },
+          { "key": 7, "name": "flags", "type": "array", "of": "u16", "maxCount": 2048, "max": 3, "sameLengthAs": "units", "doc": "Bit 0: PDFium made this character up (a space or line break). Bit 1: a hyphen at the end of a line." }
+        ]
+      }
+    },
+    {
+      "id": 25, "name": "SearchPage", "documentId": "required",
+      "$comment": "Finds a phrase in one page. starts and lengths are in the character numbering of GetPageText. The engine reports at most 2048 matches per page and says so in truncated.",
+      "request": {
+        "type": "SearchPage",
+        "fields": [
+          { "key": 0, "name": "page", "type": "u32", "max": 9999999 },
+          { "key": 1, "name": "query", "type": "string", "maxBytes": 512 },
+          { "key": 2, "name": "flags", "type": "u32", "max": 3, "doc": "Bit 0 match case, bit 1 whole words only." }
+        ]
+      },
+      "reply": {
+        "type": "SearchPageReply",
+        "fields": [
+          { "key": 0, "name": "truncated", "type": "bool" },
+          { "key": 1, "name": "starts", "type": "array", "of": "u32", "maxCount": 2048, "max": 199999 },
+          { "key": 2, "name": "lengths", "type": "array", "of": "u32", "maxCount": 2048, "min": 1, "max": 200000, "sameLengthAs": "starts" }
+        ]
+      }
+    },
+    {
+      "id": 32, "name": "RenderTile", "documentId": "required",
+      "request": {
+        "type": "RenderTile",
+        "fields": [
+          { "key": 0, "name": "page", "type": "u32", "max": 9999999 },
+          { "key": 1, "name": "scale", "type": "f32", "min": 0.01, "max": 64 },
+          { "key": 2, "name": "rotation", "type": "u16", "max": 3 },
+          { "key": 3, "name": "tileX", "type": "i32", "min": -16777216, "max": 16777216 },
+          { "key": 4, "name": "tileY", "type": "i32", "min": -16777216, "max": 16777216 },
+          { "key": 5, "name": "tileWidth", "type": "u32", "min": 1, "max": 1024 },
+          { "key": 6, "name": "tileHeight", "type": "u32", "min": 1, "max": 1024 },
+          { "key": 7, "name": "flags", "type": "u32", "max": 3, "doc": "Bit 0 annotations, bit 1 form fields." },
+          { "key": 8, "name": "slotIndex", "type": "u32", "max": 1023 },
+          { "key": 9, "name": "generation", "type": "u64" }
+        ]
+      },
+      "reply": {
+        "type": "RenderTileReply",
+        "fields": [
+          { "key": 0, "name": "slotIndex", "type": "u32", "max": 1023 },
+          { "key": 1, "name": "width", "type": "u32", "min": 1, "max": 1024 },
+          { "key": 2, "name": "height", "type": "u32", "min": 1, "max": 1024 },
+          { "key": 3, "name": "stride", "type": "u32", "min": 4, "max": 8192 },
+          { "key": 4, "name": "generation", "type": "u64" }
+        ]
+      }
+    },
+    {
+      "id": 33, "name": "CancelBefore", "documentId": "required",
+      "request": { "type": "CancelBefore", "fields": [ { "key": 0, "name": "generation", "type": "u64" } ] },
+      "reply": { "type": "CancelBeforeReply", "fields": [] }
+    },
+    {
+      "id": 1024, "name": "ValidateStructure", "documentId": "none",
+      "$comment": "MikePDF.WriterHost only. 256 issues of at most 192 message bytes fit one frame (512-byte messages would not).",
+      "request": {
+        "type": "ValidateStructure",
+        "fields": [ { "key": 0, "name": "handle", "type": "u64", "min": 1 } ]
+      },
+      "reply": {
+        "type": "ValidateStructureReply",
+        "fields": [
+          { "key": 0, "name": "ok", "type": "bool" },
+          { "key": 1, "name": "truncated", "type": "bool", "doc": "More issues were found than fit." },
+          { "key": 2, "name": "issueCodes", "type": "array", "of": "u32", "maxCount": 256, "max": 65535 },
+          { "key": 3, "name": "issueMessages", "type": "array", "of": "string", "maxCount": 256, "maxBytes": 192, "sameLengthAs": "issueCodes" }
+        ]
+      }
+    }
+  ]
+}

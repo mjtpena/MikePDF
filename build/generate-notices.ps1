@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-  Collects the licence texts that ship inside the package (Licenses\): Quire's own, the third-party summary, and one file per PDFium bundled library.
+  Collects the licence texts that ship inside the package (Licenses\): MikePDF's own, the third-party summary, and one file per PDFium bundled library.
 .DESCRIPTION
   - LICENSE, NOTICE and THIRD-PARTY-NOTICES.md from the repository root
   - every file of the pinned PDFium build's licenses/ folder (build/out/pdfium/<arch>/licenses, fetched and hash-checked by build/fetch-pdfium.ps1)

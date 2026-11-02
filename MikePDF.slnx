@@ -1,0 +1,24 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/MikePDF.App/MikePDF.App.csproj" />
+    <Project Path="src/MikePDF.Broker/MikePDF.Broker.csproj" />
+    <Project Path="src/MikePDF.Core/MikePDF.Core.csproj" />
+    <Project Path="src/MikePDF.PdfWriter/MikePDF.PdfWriter.csproj" />
+    <Project Path="src/MikePDF.Protocol/MikePDF.Protocol.csproj" />
+    <Project Path="src/MikePDF.WriterHost/MikePDF.WriterHost.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/MikePDF.Core.Tests/MikePDF.Core.Tests.csproj" />
+    <Project Path="tests/MikePDF.Integration.Tests/MikePDF.Integration.Tests.csproj" />
+    <Project Path="tests/MikePDF.PdfWriter.Tests/MikePDF.PdfWriter.Tests.csproj" />
+    <Project Path="tests/MikePDF.UI.Tests/MikePDF.UI.Tests.csproj" />
+    <Project Path="tests/MikePDF.Protocol.Tests/MikePDF.Protocol.Tests.csproj" />
+  </Folder>
+  <Folder Name="/tests/fuzz/">
+    <Project Path="tests/fuzz/MikePDF.PdfWriter.Fuzz/MikePDF.PdfWriter.Fuzz.csproj" />
+    <Project Path="tests/fuzz/MikePDF.Protocol.Fuzz/MikePDF.Protocol.Fuzz.csproj" />
+  </Folder>
+  <Folder Name="/tools/">
+    <Project Path="tools/MikePDF.ProtocolGen/MikePDF.ProtocolGen.csproj" />
+  </Folder>
+</Solution>

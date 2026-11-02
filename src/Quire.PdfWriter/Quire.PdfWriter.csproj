@@ -1,8 +1,0 @@
-<Project Sdk="Microsoft.NET.Sdk">
-  <PropertyGroup>
-    <Description>Strict PDF parser, object model and incremental writer. Hosted only in Quire.WriterHost (ADR-0008).</Description>
-  </PropertyGroup>
-  <ItemGroup>
-    <InternalsVisibleTo Include="Quire.PdfWriter.Tests" />
-  </ItemGroup>
-</Project>

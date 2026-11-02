@@ -1,13 +1,13 @@
-# Quire privacy policy
+# MikePDF privacy policy
 
 Last updated: 2 November 2026
 
-Quire is a PDF reader that runs on your device. This policy applies to the Quire app published from the [QuirePDF open-source project](https://github.com/mjtpena/QuirePDF).
+MikePDF is a PDF reader that runs on your device. This policy applies to the MikePDF app published from the [MikePDF open-source project](https://github.com/mjtpena/QuirePDF).
 
 ## The short version
-Quire doesn't collect your personal information, doesn't send your documents anywhere, and has no account, advertising or analytics.
+MikePDF doesn't collect your personal information, doesn't send your documents anywhere, and has no account, advertising or analytics.
 
-## What Quire stores on your device
+## What MikePDF stores on your device
 To work, the app keeps a small amount of information in its private app data folder on your PC:
 - a list of recently opened files, with their paths
 - your last reading position and zoom for each document
@@ -16,16 +16,16 @@ To work, the app keeps a small amount of information in its private app data fol
 This stays on your device. It's never sent to us or to anyone else. Uninstalling the app removes it.
 
 ## Your documents
-Your PDFs are opened and rendered on your device, inside a sandboxed process with no network access. They aren't uploaded or shared. Quire doesn't make network connections.
+Your PDFs are opened and rendered on your device, inside a sandboxed process with no network access. They aren't uploaded or shared. MikePDF doesn't make network connections.
 
 ## What we don't collect
 We don't collect or receive your documents, file names, usage data, device identifiers, location, or contact details. This build contains no telemetry.
 
 ## Microsoft Store
-If you install Quire from the Microsoft Store, Microsoft handles the download and updates under [Microsoft's privacy statement](https://privacy.microsoft.com/privacystatement). Microsoft gives Store developers aggregated information, such as install counts and crash reports, in Partner Center. Crash reports come from Windows, depending on your Windows diagnostic settings, and we use them only to fix bugs.
+If you install MikePDF from the Microsoft Store, Microsoft handles the download and updates under [Microsoft's privacy statement](https://privacy.microsoft.com/privacystatement). Microsoft gives Store developers aggregated information, such as install counts and crash reports, in Partner Center. Crash reports come from Windows, depending on your Windows diagnostic settings, and we use them only to fix bugs.
 
 ## Children
-Quire doesn't collect personal information from anyone, including children.
+MikePDF doesn't collect personal information from anyone, including children.
 
 ## Changes
 If this policy changes, we'll update this page and the date above. Future features that could send data anywhere, such as optional cloud AI, will be opt-in, and they'll be described here before they ship. The source code is public, so you can verify these statements yourself.

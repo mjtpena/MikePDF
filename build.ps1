@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-  Build (and optionally test) Quire: native engine via CMake, managed code via dotnet.
+  Build (and optionally test) MikePDF: native engine via CMake, managed code via dotnet.
 .DESCRIPTION
   Same entry point locally and in CI (.github/workflows/ci.yml). Native tests run only
   when the target architecture matches the host.
@@ -42,7 +42,7 @@ $hostArch = if ([System.Runtime.InteropServices.RuntimeInformation]::OSArchitect
 
 # The checked-in protocol code (C# and C++) must match the schema; the native build below compiles it too.
 if (-not ($SkipNative -and $SkipManaged)) {
-    Invoke-Step 'Protocol generator check' { dotnet run --project (Join-Path $root 'tools/Quire.ProtocolGen') -c $Configuration -- check }
+    Invoke-Step 'Protocol generator check' { dotnet run --project (Join-Path $root 'tools/MikePDF.ProtocolGen') -c $Configuration -- check }
 }
 
 if (-not $SkipNative) {
@@ -50,7 +50,7 @@ if (-not $SkipNative) {
     $cmake = Find-CMake
     $buildDir = Join-Path $root "build/out/cmake-$Arch"
     $platform = if ($Arch -eq 'arm64') { 'ARM64' } else { 'x64' }
-    Invoke-Step 'CMake configure' { & $cmake -S $root -B $buildDir -A $platform "-DQUIRE_PDFIUM_DIR=$pdfium" "-DQUIRE_BUILD_TESTS=$(if ($Test) { 'ON' } else { 'OFF' })" "-DQUIRE_REQUIRE_SPECTRE=$(if ($Release -or $env:CI -eq 'true') { 'ON' } else { 'OFF' })" }
+    Invoke-Step 'CMake configure' { & $cmake -S $root -B $buildDir -A $platform "-DMIKEPDF_PDFIUM_DIR=$pdfium" "-DMIKEPDF_BUILD_TESTS=$(if ($Test) { 'ON' } else { 'OFF' })" "-DMIKEPDF_REQUIRE_SPECTRE=$(if ($Release -or $env:CI -eq 'true') { 'ON' } else { 'OFF' })" }
     Invoke-Step 'CMake build' { & $cmake --build $buildDir --config $Configuration --parallel }
     if ($Test -and $Arch -eq $hostArch) {
         $ctest = Join-Path (Split-Path $cmake) 'ctest.exe'
@@ -61,13 +61,13 @@ if (-not $SkipNative) {
 }
 
 if (-not $SkipManaged) {
-    $sln = Join-Path $root 'Quire.slnx'
-    Invoke-Step 'dotnet restore' { dotnet restore $sln -p:QuireArch=$Arch }
-    Invoke-Step 'dotnet build' { dotnet build $sln -c $Configuration -p:QuireArch=$Arch --no-restore }
+    $sln = Join-Path $root 'MikePDF.slnx'
+    Invoke-Step 'dotnet restore' { dotnet restore $sln -p:MikePDFArch=$Arch }
+    Invoke-Step 'dotnet build' { dotnet build $sln -c $Configuration -p:MikePDFArch=$Arch --no-restore }
     if ($Test -and $Arch -eq $hostArch) {
         # The integration tests launch the real sandboxed engine built above.
-        $env:QUIRE_ENGINE_DIR = Join-Path $root "build/out/cmake-$Arch/bin/$Configuration"
-        Invoke-Step 'dotnet test' { dotnet test --solution $sln -c $Configuration -p:QuireArch=$Arch --no-build }
+        $env:MIKEPDF_ENGINE_DIR = Join-Path $root "build/out/cmake-$Arch/bin/$Configuration"
+        Invoke-Step 'dotnet test' { dotnet test --solution $sln -c $Configuration -p:MikePDFArch=$Arch --no-build }
     } elseif ($Test) {
         Write-Warning "Managed tests skipped: cannot run $Arch binaries on a $hostArch host"
     }

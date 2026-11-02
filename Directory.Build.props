@@ -16,11 +16,11 @@
     <ContinuousIntegrationBuild Condition="'$(CI)' == 'true'">true</ContinuousIntegrationBuild>
     <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
     <RestoreLockedMode Condition="'$(CI)' == 'true'">true</RestoreLockedMode>
-    <Company>Quire</Company>
-    <Product>Quire</Product>
+    <Company>MikePDF</Company>
+    <Product>MikePDF</Product>
     <!-- Target architecture for executables (x64 | arm64). Libraries stay AnyCPU. build.ps1 passes it. -->
-    <QuireArch Condition="'$(QuireArch)' == ''">$([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture.ToString().ToLowerInvariant())</QuireArch>
-    <QuireRuntimeIdentifier>win-$(QuireArch)</QuireRuntimeIdentifier>
+    <MikePDFArch Condition="'$(MikePDFArch)' == ''">$([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture.ToString().ToLowerInvariant())</MikePDFArch>
+    <MikePDFRuntimeIdentifier>win-$(MikePDFArch)</MikePDFRuntimeIdentifier>
     <!-- Both RIDs in every lock file, so locked-mode restore works on either CI architecture. -->
     <RuntimeIdentifiers>win-x64;win-arm64</RuntimeIdentifiers>
   </PropertyGroup>
@@ -29,7 +29,7 @@
     <IsPackable>false</IsPackable>
     <IsTestProject>true</IsTestProject>
     <OutputType>Exe</OutputType>
-    <RuntimeIdentifier>$(QuireRuntimeIdentifier)</RuntimeIdentifier>
+    <RuntimeIdentifier>$(MikePDFRuntimeIdentifier)</RuntimeIdentifier>
     <!-- Test code may use underscores in names and skip ConfigureAwait. -->
     <NoWarn>$(NoWarn);CA1707;CA2007</NoWarn>
   </PropertyGroup>

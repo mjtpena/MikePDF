@@ -18,7 +18,7 @@ A reader with no write features:
 - Light, dark and high-contrast themes; engine crash recovery
 - Packaging, Store assets, listing, privacy policy, certification notes, release workflow
 
-Leaving out save means the unresolved **fidelity** gate (Acrobat and Edge manual passes, S4 and S8) doesn't apply to this package. `Quire.WriterHost` isn't shipped.
+Leaving out save means the unresolved **fidelity** gate (Acrobat and Edge manual passes, S4 and S8) doesn't apply to this package. `MikePDF.WriterHost` isn't shipped.
 
 ## Out of scope for the preview
 Annotations, forms, ink, page operations, save, printing, tabs, shell handlers, AI, OCR, signatures. These stay in their milestones.

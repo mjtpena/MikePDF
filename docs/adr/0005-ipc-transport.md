@@ -35,8 +35,8 @@
    - The I/O thread answers `Hello`, `Ping` and `CancelRender` directly, so the heartbeat (§5.2 rule 4) keeps working during a long render.
    - Everything that touches PDFium goes to the single engine thread.
 3. **Serialisation.**
-   - MessagePack, using one schema file in `src/Quire.Protocol` that generates both the C# (MessagePack-CSharp source generator, MIT) and the C++ code.
-   - The C++ side uses a **Quire-generated, bounds-checked reader and writer** over a small MessagePack core, not a general-purpose library. That keeps the C++ attack surface to code we fuzz. If a library is preferred later, it needs an ADR naming it and its licence.
+   - MessagePack, using one schema file in `src/MikePDF.Protocol` that generates both the C# (MessagePack-CSharp source generator, MIT) and the C++ code.
+   - The C++ side uses a **MikePDF-generated, bounds-checked reader and writer** over a small MessagePack core, not a general-purpose library. That keeps the C++ attack surface to code we fuzz. If a library is preferred later, it needs an ADR naming it and its licence.
    - Every message carries `schemaVersion`. `Hello` negotiates it. On a mismatch the engine is killed, not accommodated.
 4. **Bulk data goes through the slot ring.** Tiles, thumbnails, OCR page images, **and any response that can exceed 64 KiB**, such as `GetCharBoxes` and `GetPageText`. Control messages carry slot indices only. Slots are written by the engine and mapped read-only in the UI.
 5. **Validation in the UI.** Generated decoders enforce maximum lengths, counts and nesting per field, and reject unknown enum values. Semantic validators then check coordinates, page indices and slot bounds before anything reaches view models.
@@ -49,7 +49,7 @@
 
 ## Consequences
 - §5.4 holds as written. There's no scope change.
-- The C++ MessagePack core and its generator are Quire-owned code. That's a small but security-critical component, so the A.9 review applies.
+- The C++ MessagePack core and its generator are MikePDF-owned code. That's a small but security-critical component, so the A.9 review applies.
 - Responses that might exceed 64 KiB need slot allocation logic and back-pressure.
 
 ## Verification

@@ -1,6 +1,6 @@
 # Third-party notices
 
-Quire itself is licensed under the [Apache License 2.0](LICENSE). Binary distributions also contain the components below, under their own licences. Dependency rules are in [ADR-0003](docs/adr/0003-licence-policy.md).
+MikePDF itself is licensed under the [Apache License 2.0](LICENSE). Binary distributions also contain the components below, under their own licences. Dependency rules are in [ADR-0003](docs/adr/0003-licence-policy.md).
 
 Release packages embed the full licence texts: `build/generate-notices.ps1` assembles them, including one file per PDFium bundled library from the `licenses/` folder of the pinned PDFium build.
 

@@ -4,7 +4,7 @@
 - Deciders: Opus (approver), Sonnet (S1 evidence)
 
 ## Context
-Master prompt §3.1 lays out why Quire uses PDFium instead of writing its own engine:
+Master prompt §3.1 lays out why MikePDF uses PDFium instead of writing its own engine:
 - Chrome's engine has absorbed the long tail of malformed real-world files.
 - It is BSD-licensed.
 - MuPDF is AGPL, which conflicts with ADR-0003.
@@ -31,14 +31,14 @@ For the shipped binary:
 - b. **Build from a Chromium stable branch ourselves** with the same shared-library export patch. Chosen for release.
 
 ## Decision
-1. **Engine: PDFium.** All PDFium calls are confined to `Quire.Engine` / `Quire.Engine.Pdfium` (§0.2, A.5).
+1. **Engine: PDFium.** All PDFium calls are confined to `MikePDF.Engine` / `MikePDF.Engine.Pdfium` (§0.2, A.5).
 2. **Development builds (M0–M1):** the prebuilt pinned by SHA-256 in `spikes/_shared/pdfium/fetch.ps1`. It moves to `build/pdfium.lock` in M1.
 3. **Release builds (from M2):** build from source on a **Chromium stable branch**, x64 and arm64.
    - Configuration: `pdf_enable_v8=false`, `pdf_enable_xfa=false`, `is_component_build=false`, a shared-library patch identical in effect to pdfium-binaries', and the AGG renderer.
    - Hardening flags: CFG, CETCOMPAT on x64, high-entropy ASLR, and /guard:ehcont if the toolchain accepts it.
    - Our own Authenticode signature and private PDB upload (§14).
 4. **V8/XFA:** not built by default. If a policy ever enables JavaScript (§5.3), it's a separate engine flavour, treated as one switch because XFA needs V8.
-5. **Experimental-API policy:** every Experimental function we wrap is listed in `src/Quire.Engine.Pdfium/EXPERIMENTAL.md`. The weekly PDFium job diffs exports and header signatures against `functions.csv` (the baseline from S1) and fails on any change to a function we wrap. Where a stable equivalent exists, use it.
+5. **Experimental-API policy:** every Experimental function we wrap is listed in `src/MikePDF.Engine.Pdfium/EXPERIMENTAL.md`. The weekly PDFium job diffs exports and header signatures against `functions.csv` (the baseline from S1) and fails on any change to a function we wrap. Where a stable equivalent exists, use it.
 6. **Hardening read-back in CI:** `symdiff.py`'s PE-flag check runs on every PDFium artefact, so a toolchain change can't silently drop a flag.
 
 ## Consequences
@@ -51,5 +51,5 @@ For the shipped binary:
 - ARM64 control-flow hardening (PAC/BTI) has no CETCOMPAT equivalent in the PE flags read so far. Treat it as an M1 research item.
 
 ## Note (2026-10-28)
-- DEV turned out to have VS 2022 Build Tools (MSVC 14.44, x64 only). That's enough to build Quire's C++ engine on x64 (S3b), but **not PDFium**: the pinned `build/vs_toolchain.py` requires Windows SDK `10.0.28000.0`, and DEV has only 26100. ARM64 C++ libraries are also missing. Unblocking needs an admin install of SDK 10.0.28000.x plus the VS ARM64 C++ tools.
+- DEV turned out to have VS 2022 Build Tools (MSVC 14.44, x64 only). That's enough to build MikePDF's C++ engine on x64 (S3b), but **not PDFium**: the pinned `build/vs_toolchain.py` requires Windows SDK `10.0.28000.0`, and DEV has only 26100. ARM64 C++ libraries are also missing. Unblocking needs an admin install of SDK 10.0.28000.x plus the VS ARM64 C++ tools.
 - S3b: stock pdfium.dll fails to initialise under Win32k lockdown (ADR-0004 D-1). The from-source build should evaluate delay-loading gdi32/user32 and a GDI-free font path.

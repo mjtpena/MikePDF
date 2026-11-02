@@ -9,7 +9,7 @@
 - All eight spike reports exist. Seven are approved as **provisional**; S5 is incomplete.
 - Nine of ten required ADRs are Accepted or partly Accepted. ADR-0001 and ADR-0003 wait on user decisions, and ADR-0007 waits on S5 hardware.
 - The §5 architecture is **confirmed, with three amendments**:
-  1. A third sandboxed process, `Quire.WriterHost`, because Quire must own its save writer and that writer parses untrusted bytes.
+  1. A third sandboxed process, `MikePDF.WriterHost`, because MikePDF must own its save writer and that writer parses untrusted bytes.
   2. Win32k lockdown deferred until we have our own PDFium build.
   3. No compressed CPU tile tier.
 - The remaining failures are **not** design problems. They are hardware that isn't available (R1, R2, R3, Surface, camera), toolchain installs that need admin rights, manual passes in Acrobat, Edge and Narrator, and two user decisions.
@@ -57,7 +57,7 @@ Per §19.3 and A.10, a "Not measured" on a gate criterion means the gate does no
 - ADR-0001 D1: minimum OS raised to Windows 11 24H2 (**awaiting user confirmation**).
 - ADR-0004 D-1: Win32k lockdown deferred to our own PDFium build (M5).
 - ADR-0006 D-1: no compressed CPU tile tier in v1.0. D-2: the 200 MB UI memory budget is flagged for M2 review.
-- ADR-0008: Quire owns annotation writing. A new `Quire.WriterHost` sandboxed process. Signing splits into digest-in-sandbox and sign-in-broker.
+- ADR-0008: MikePDF owns annotation writing. A new `MikePDF.WriterHost` sandboxed process. Signing splits into digest-in-sandbox and sign-in-broker.
 - ADR-0003: interim licence policy (no GPL/AGPL in shipped code) until the user decides.
 
 ## Risks (top five)
@@ -92,6 +92,6 @@ Per §19.3 and A.10, a "Not measured" on a gate criterion means the gate does no
 - Repo skeleton per §5.5, CI on `windows-2025-vs2026` and `windows-11-vs2026-arm`, analysers, and `global.json` pinning .NET 10.0.403.
 - `build/pdfium.lock` plus the PDFium build pipeline (ADR-0002) on a self-hosted build machine (R-19).
 - Engine host (C++20) with the ADR-0004 sandbox profile, ADR-0005 IPC (schema generator, both decoders fuzzed), watchdog and respawn.
-- `Quire.PdfWriter` core, from the S8/S4 prototypes, inside `Quire.WriterHost`.
+- `MikePDF.PdfWriter` core, from the S8/S4 prototypes, inside `MikePDF.WriterHost`.
 - Corpus manifest plus the smoke tier (ADR-0010), visual-diff harness, perf harness, fuzz targets.
-- **M1 exit gate:** `quire-render` renders the smoke corpus through the sandboxed engine with visual diffs; 24 h of fuzzing; the IPC decoder fuzzed on both sides.
+- **M1 exit gate:** `mikepdf-render` renders the smoke corpus through the sandboxed engine with visual diffs; 24 h of fuzzing; the IPC decoder fuzzed on both sides.

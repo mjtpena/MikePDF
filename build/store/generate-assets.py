@@ -1,8 +1,8 @@
-"""Generates Quire's app icon and Store artwork. Requires Pillow (build-time only, not shipped).
+"""Generates MikePDF's app icon and Store artwork. Requires Pillow (build-time only, not shipped).
 
 Usage: python build/store/generate-assets.py
 Writes MSIX assets and Store listing art to build/store/assets/. The mark is a stack of
-sheets with a folded corner (a quire is a gathering of sheets), so it survives a rename.
+sheets with a folded corner and has no lettering, so it survives a rename.
 """
 from pathlib import Path
 

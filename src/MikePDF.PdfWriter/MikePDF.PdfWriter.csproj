@@ -1,0 +1,8 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <Description>Strict PDF parser, object model and incremental writer. Hosted only in MikePDF.WriterHost (ADR-0008).</Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="MikePDF.PdfWriter.Tests" />
+  </ItemGroup>
+</Project>

@@ -4,7 +4,7 @@
 - Deciders: User (open source, Store publishing), Opus (approver)
 
 ## Context
-§15.3 planned an App Installer file for v1.0, with the Store and winget as P2. The user has now asked to make Quire open source and to get it ready for the Microsoft Store. Checked against official Microsoft documentation on 2026-11-02 (research notes in [docs/store/README.md](../store/README.md)):
+§15.3 planned an App Installer file for v1.0, with the Store and winget as P2. The user has now asked to make MikePDF open source and to get it ready for the Microsoft Store. Checked against official Microsoft documentation on 2026-11-02 (research notes in [docs/store/README.md](../store/README.md)):
 - The Store **re-signs MSIX packages**, so a Store release needs no code-signing certificate.
 - Partner Center accounts are free when started from `storedeveloper.microsoft.com`.
 - A package's first submission must be made by hand. Later updates can be automated with the Microsoft Store Developer CLI.

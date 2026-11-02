@@ -1,21 +1,21 @@
 <#
 .SYNOPSIS
-  Builds the Quire MSIX for one architecture, or bundles two into the .msixbundle and .msixupload for the Microsoft Store.
+  Builds the MikePDF MSIX for one architecture, or bundles two into the .msixbundle and .msixupload for the Microsoft Store.
 .DESCRIPTION
   Single architecture (default):
     1. builds the sandboxed engine with CMake (./build.ps1 -SkipManaged), unless -SkipNativeBuild
-    2. publishes Quire.App: self-contained .NET, ReadyToRun, framework-dependent Windows App SDK (not Native AOT yet: see Quire.App.csproj)
-    3. lays out the package: app, Engine\ (Quire.Engine.exe + pdfium.dll; the engine runs in place from the package), Licenses\, Assets
+    2. publishes MikePDF.App: self-contained .NET, ReadyToRun, framework-dependent Windows App SDK (not Native AOT yet: see MikePDF.App.csproj)
+    3. lays out the package: app, Engine\ (MikePDF.Engine.exe + pdfium.dll; the engine runs in place from the package), Licenses\, Assets
     4. writes AppxManifest.xml from the build's manifest with the identity from build/store/identity.json (parameters override), the version,
        the architecture and MaxVersionTested 10.0.26300.0
-    5. packs with makeappx into Quire_<version>_<arch>.msix, and the PDBs into Quire_<version>_<arch>.appxsym
-  -Bundle: takes Quire_<version>_x64.msix and _arm64.msix from -OutDir and writes Quire_<version>.msixbundle and Quire_<version>.msixupload
+    5. packs with makeappx into MikePDF_<version>_<arch>.msix, and the PDBs into MikePDF_<version>_<arch>.appxsym
+  -Bundle: takes MikePDF_<version>_x64.msix and _arm64.msix from -OutDir and writes MikePDF_<version>.msixbundle and MikePDF_<version>.msixupload
   (the bundle plus the .appxsym files), after checking that both packages share identity and version.
 
   Nothing here needs administrator rights, adds a certificate, or touches the system. The package is unsigned: the Store signs it. To run a
   package locally, -RegisterLocal registers the staged layout in Developer Mode (Add-AppxPackage -Register); -Unregister removes it.
 
-  -TestBuild adds QUIRE_SELFTEST (Quire.exe --selftest) and the sandbox probe under Probe\, for installed-package tests. A release package
+  -TestBuild adds MIKEPDF_SELFTEST (MikePDF.exe --selftest) and the sandbox probe under Probe\, for installed-package tests. A release package
   contains neither, and this script fails if it finds either in one.
 .EXAMPLE
   ./build/package.ps1 -Arch x64 -Version 1.0.0.0
@@ -66,7 +66,7 @@ function Find-WindowsSdkTool([string] $Name) {
     $kits = Join-Path ${env:ProgramFiles(x86)} 'Windows Kits/10/bin'
     if (Test-Path $kits) { $candidates += Get-ChildItem (Join-Path $kits "*/$hostArch/$Name") -ErrorAction SilentlyContinue | Sort-Object FullName -Descending }
     $found = $candidates | Select-Object -First 1
-    if (-not $found) { throw "$Name not found (restore Quire.App for Microsoft.Windows.SDK.BuildTools, or install the Windows SDK)" }
+    if (-not $found) { throw "$Name not found (restore MikePDF.App for Microsoft.Windows.SDK.BuildTools, or install the Windows SDK)" }
     return $found.FullName
 }
 
@@ -84,7 +84,7 @@ if ($DisplayName) { $identity.DisplayName = $DisplayName }
 foreach ($key in 'Name', 'Publisher', 'PublisherDisplayName', 'DisplayName') { if (-not $identity.$key) { throw "identity: $key is empty" } }
 if ($identity.Name -notmatch '^[A-Za-z0-9][A-Za-z0-9.\-]{2,49}$') { throw "identity: Name '$($identity.Name)' is not a valid package name" }
 if ($identity.Publisher -notmatch '^CN=') { throw "identity: Publisher must be a distinguished name starting with CN=" }
-$placeholder = $identity.Name -eq 'Quire.Placeholder' -or $identity.Publisher -like 'CN=00000000-*'
+$placeholder = $identity.Name -eq 'MikePDF.Placeholder' -or $identity.Publisher -like 'CN=00000000-*'
 if ($placeholder) { Write-Warning 'identity.json still holds PLACEHOLDER values: this package cannot be uploaded to the Store (see docs/store/README.md).' }
 function Xml([string] $Value) { [System.Security.SecurityElement]::Escape($Value) }
 
@@ -94,7 +94,7 @@ function Xml([string] $Value) { [System.Security.SecurityElement]::Escape($Value
 if ($Bundle) {
     Step 'Bundle'
     $makeappx = Find-WindowsSdkTool 'makeappx.exe'
-    $packages = @('x64', 'arm64') | ForEach-Object { Join-Path $OutDir "Quire_${Version}_$_.msix" }
+    $packages = @('x64', 'arm64') | ForEach-Object { Join-Path $OutDir "MikePDF_${Version}_$_.msix" }
     foreach ($p in $packages) { if (-not (Test-Path $p)) { throw "Missing $p. Build both architectures first: ./build/package.ps1 -Arch x64 ; ./build/package.ps1 -Arch arm64" } }
     Add-Type -AssemblyName System.IO.Compression.FileSystem
     $seen = @()
@@ -117,16 +117,16 @@ if ($Bundle) {
     if (Test-Path $staging) { Remove-Item -Recurse -Force $staging }
     New-Item -ItemType Directory $staging | Out-Null
     foreach ($p in $packages) { Copy-Item $p $staging }
-    $bundlePath = Join-Path $OutDir "Quire_$Version.msixbundle"
+    $bundlePath = Join-Path $OutDir "MikePDF_$Version.msixbundle"
     if (Test-Path $bundlePath) { Remove-Item $bundlePath }
     & $makeappx bundle /d $staging /p $bundlePath /bv $Version /o | Select-Object -Last 3 | Out-Host
     if ($LASTEXITCODE -ne 0) { throw 'makeappx bundle failed' }
 
-    $upload = Join-Path $OutDir "Quire_$Version.msixupload"
+    $upload = Join-Path $OutDir "MikePDF_$Version.msixupload"
     $zipPath = "$upload.zip"
     if (Test-Path $zipPath) { Remove-Item $zipPath }
     if (Test-Path $upload) { Remove-Item $upload }
-    $parts = @($bundlePath) + (@('x64', 'arm64') | ForEach-Object { Join-Path $OutDir "Quire_${Version}_$_.appxsym" } | Where-Object { Test-Path $_ })
+    $parts = @($bundlePath) + (@('x64', 'arm64') | ForEach-Object { Join-Path $OutDir "MikePDF_${Version}_$_.appxsym" } | Where-Object { Test-Path $_ })
     Compress-Archive -Path $parts -DestinationPath $zipPath
     Move-Item $zipPath $upload
     Remove-Item -Recurse -Force $staging
@@ -141,8 +141,8 @@ if ($Bundle) {
 # ---------------------------------------------------------------------------------------------------------------------------------------
 $suffix = if ($TestBuild) { '_TEST' } else { '' }
 $stage = Join-Path $OutDir "stage-$Arch$suffix"
-$msixPath = Join-Path $OutDir "Quire_${Version}_${Arch}${suffix}.msix"
-$symbolsPath = Join-Path $OutDir "Quire_${Version}_${Arch}${suffix}.appxsym"
+$msixPath = Join-Path $OutDir "MikePDF_${Version}_${Arch}${suffix}.msix"
+$symbolsPath = Join-Path $OutDir "MikePDF_${Version}_${Arch}${suffix}.appxsym"
 
 if ($Unregister) {
     Get-AppxPackage -Name $identity.Name | Remove-AppxPackage
@@ -158,22 +158,22 @@ if (-not $SkipNativeBuild) {
     & (Join-Path $root 'build.ps1') @nativeArgs
     if ($LASTEXITCODE -ne 0) { throw 'native build failed' }
 }
-foreach ($f in 'Quire.Engine.exe', 'pdfium.dll') { if (-not (Test-Path (Join-Path $cmakeBin $f))) { throw "$f not found in $cmakeBin" } }
+foreach ($f in 'MikePDF.Engine.exe', 'pdfium.dll') { if (-not (Test-Path (Join-Path $cmakeBin $f))) { throw "$f not found in $cmakeBin" } }
 
 $publish = Join-Path $OutDir "publish-$Arch$suffix"
 if (-not $SkipPublish) {
-    Step "Publish Quire.App ($Arch, self-contained, ReadyToRun)"
+    Step "Publish MikePDF.App ($Arch, self-contained, ReadyToRun)"
     if (Test-Path $publish) { Remove-Item -Recurse -Force $publish }
     $publishArgs = @(
-        'publish', (Join-Path $root 'src/Quire.App/Quire.App.csproj'), '-c', 'Release', '-r', "win-$Arch", '--self-contained', 'true',
-        '-p:PublishReadyToRun=true', "-p:QuireArch=$Arch", "-p:Version=$Version", '-o', $publish, '-nologo', '-v', 'q',
+        'publish', (Join-Path $root 'src/MikePDF.App/MikePDF.App.csproj'), '-c', 'Release', '-r', "win-$Arch", '--self-contained', 'true',
+        '-p:PublishReadyToRun=true', "-p:MikePDFArch=$Arch", "-p:Version=$Version", '-o', $publish, '-nologo', '-v', 'q',
         # resources.pri must carry the package's name, not the development manifest's (the certification kit's "App resources" test).
         "-p:ProjectPriIndexName=$($identity.Name)")
-    if ($TestBuild) { $publishArgs += '-p:QuireSelfTest=true' }
+    if ($TestBuild) { $publishArgs += '-p:MikePDFSelfTest=true' }
     dotnet @publishArgs
     if ($LASTEXITCODE -ne 0) { throw 'dotnet publish failed' }
 }
-if (-not (Test-Path (Join-Path $publish 'Quire.exe'))) { throw "No Quire.exe in $publish" }
+if (-not (Test-Path (Join-Path $publish 'MikePDF.exe'))) { throw "No MikePDF.exe in $publish" }
 
 Step 'Lay out the package'
 if (Test-Path $stage) { Remove-Item -Recurse -Force $stage }
@@ -184,12 +184,12 @@ Get-ChildItem $stage -Recurse -File | Where-Object { ($_.Extension -in '.pdb', '
 
 $engineDir = Join-Path $stage 'Engine'
 New-Item -ItemType Directory $engineDir | Out-Null
-foreach ($f in 'Quire.Engine.exe', 'pdfium.dll') { Copy-Item (Join-Path $cmakeBin $f) $engineDir }
+foreach ($f in 'MikePDF.Engine.exe', 'pdfium.dll') { Copy-Item (Join-Path $cmakeBin $f) $engineDir }
 
 if ($TestBuild) {
     $probeDir = Join-Path $stage 'Probe'
     New-Item -ItemType Directory $probeDir | Out-Null
-    foreach ($f in 'Quire.Engine.SandboxProbe.exe', 'rogue-copy.dll', 'rogue-marker.dll') {
+    foreach ($f in 'MikePDF.Engine.SandboxProbe.exe', 'rogue-copy.dll', 'rogue-marker.dll') {
         $source = Join-Path $cmakeBin $f
         if (-not (Test-Path $source)) { throw "$f not found: -TestBuild needs the native tests built" }
         Copy-Item $source $probeDir
@@ -200,8 +200,8 @@ Step 'Licences'
 & (Join-Path $PSScriptRoot 'generate-notices.ps1') -OutDir (Join-Path $stage 'Licenses') -Arch $Arch
 
 Step 'Manifest'
-$built = Get-ChildItem (Join-Path $root "src/Quire.App/bin/Release/*/win-$Arch/AppxManifest.xml") | Select-Object -First 1
-if (-not $built) { throw 'The build did not produce AppxManifest.xml (src/Quire.App/bin/Release/.../AppxManifest.xml)' }
+$built = Get-ChildItem (Join-Path $root "src/MikePDF.App/bin/Release/*/win-$Arch/AppxManifest.xml") | Select-Object -First 1
+if (-not $built) { throw 'The build did not produce AppxManifest.xml (src/MikePDF.App/bin/Release/.../AppxManifest.xml)' }
 $text = Get-Content $built.FullName -Raw
 $text = [regex]::Replace($text, '<Identity [^>]*/>', "<Identity Name=`"$(Xml $identity.Name)`" Publisher=`"$(Xml $identity.Publisher)`" Version=`"$Version`" ProcessorArchitecture=`"$Arch`" />", 1)
 $text = [regex]::Replace($text, '<DisplayName>[^<]*</DisplayName>', "<DisplayName>$(Xml $identity.DisplayName)</DisplayName>", 1)
@@ -215,7 +215,7 @@ Set-Content (Join-Path $stage 'AppxManifest.xml') $text -Encoding utf8NoBOM
 
 # resources.pri (strings and scale-qualified assets) must be at the package root.
 if (-not (Test-Path (Join-Path $stage 'resources.pri'))) {
-    $pri = Get-ChildItem (Join-Path $root "src/Quire.App/bin/Release/*/win-$Arch/resources.pri") | Select-Object -First 1
+    $pri = Get-ChildItem (Join-Path $root "src/MikePDF.App/bin/Release/*/win-$Arch/resources.pri") | Select-Object -First 1
     if (-not $pri) { throw 'resources.pri is missing' }
     Copy-Item $pri.FullName $stage
 }
@@ -223,23 +223,23 @@ if (-not (Test-Path (Join-Path $stage 'resources.pri'))) {
 Step 'Release checks'
 $offenders = @()
 # Never in any package: the WriterHost (no save feature in this build) and the CI package probe.
-foreach ($name in 'Quire.WriterHost.exe', 'Quire.PackageProbe.exe') { $offenders += Get-ChildItem $stage -Recurse -Filter $name -ErrorAction SilentlyContinue }
+foreach ($name in 'MikePDF.WriterHost.exe', 'MikePDF.PackageProbe.exe') { $offenders += Get-ChildItem $stage -Recurse -Filter $name -ErrorAction SilentlyContinue }
 # Test builds only: the sandbox probe and the unsigned DLL it uses.
 if (-not $TestBuild) {
-    foreach ($name in 'Quire.Engine.SandboxProbe.exe', 'rogue-copy.dll', 'rogue-marker.dll') { $offenders += Get-ChildItem $stage -Recurse -Filter $name -ErrorAction SilentlyContinue }
+    foreach ($name in 'MikePDF.Engine.SandboxProbe.exe', 'rogue-copy.dll', 'rogue-marker.dll') { $offenders += Get-ChildItem $stage -Recurse -Filter $name -ErrorAction SilentlyContinue }
     if (Test-Path (Join-Path $stage 'Probe')) { $offenders += Get-Item (Join-Path $stage 'Probe') }
 }
-# The self-test is compiled in only under QUIRE_SELFTEST: the type name must not appear in a release build.
-$appDll = Join-Path $stage 'Quire.dll'
+# The self-test is compiled in only under MIKEPDF_SELFTEST: the type name must not appear in a release build.
+$appDll = Join-Path $stage 'MikePDF.dll'
 $bytes = [System.IO.File]::ReadAllBytes($appDll)
 $hasSelfTest = [System.Text.Encoding]::ASCII.GetString($bytes).Contains('SelfTest')
 if ($hasSelfTest -and -not $TestBuild) { $offenders += Get-Item $appDll }
 if (@($offenders).Count -gt 0) { throw "A release package must not contain the sandbox probe, the self-test or the WriterHost. Found: $($offenders.FullName -join ', ')" }
-if (-not $hasSelfTest -and $TestBuild) { throw '-TestBuild was asked for but the self-test is not in Quire.dll.' }
-foreach ($required in 'Quire.exe', 'AppxManifest.xml', 'resources.pri', 'Engine/Quire.Engine.exe', 'Engine/pdfium.dll', 'Licenses/LICENSE.txt', 'Licenses/NOTICE.txt', 'Licenses/THIRD-PARTY-NOTICES.md', 'Licenses/PDFium/pdfium.txt') {
+if (-not $hasSelfTest -and $TestBuild) { throw '-TestBuild was asked for but the self-test is not in MikePDF.dll.' }
+foreach ($required in 'MikePDF.exe', 'AppxManifest.xml', 'resources.pri', 'Engine/MikePDF.Engine.exe', 'Engine/pdfium.dll', 'Licenses/LICENSE.txt', 'Licenses/NOTICE.txt', 'Licenses/THIRD-PARTY-NOTICES.md', 'Licenses/PDFium/pdfium.txt') {
     if (-not (Test-Path (Join-Path $stage $required))) { throw "Package content is incomplete: $required" }
 }
-# Quire.App must not carry PDFium itself or its own copy of the engine: only Engine\ has them.
+# MikePDF.App must not carry PDFium itself or its own copy of the engine: only Engine\ has them.
 $strays = Get-ChildItem $stage -Recurse -Filter pdfium.dll | Where-Object { $_.DirectoryName -ne $engineDir }
 if ($strays) { throw "pdfium.dll outside Engine\: $($strays.FullName -join ', ')" }
 
@@ -250,7 +250,7 @@ if (Test-Path $msixPath) { Remove-Item $msixPath }
 if ($LASTEXITCODE -ne 0) { throw 'makeappx pack failed' }
 
 # Symbols: the app's PDBs and the engine's, for crash analysis of Store builds. Not shipped to users.
-$symbolFiles = @(Get-ChildItem $publish -Recurse -Filter *.pdb) + @(Get-ChildItem $cmakeBin -Filter Quire.Engine.pdb)
+$symbolFiles = @(Get-ChildItem $publish -Recurse -Filter *.pdb) + @(Get-ChildItem $cmakeBin -Filter MikePDF.Engine.pdb)
 if (Test-Path $symbolsPath) { Remove-Item $symbolsPath }
 $symbolZip = "$symbolsPath.zip"
 if ($symbolFiles.Count -gt 0) {

@@ -6,7 +6,7 @@
 ## Context
 §7.1 sets the pipeline rules: never show blank space, cancel obsolete work, keep a two-level LRU cache, scale on the GPU during a gesture and re-rasterise after it, keep overlays separate. The evidence:
 - **[S6](../spikes/S6.md):** Win2D 1.4.0 works on WinAppSDK 2.5.1 on x64.
-- **[S7](../spikes/S7.md):** the page surface must be a Quire-owned XAML `Control` that owns the UIA Text peer, with the presenter hidden from UIA.
+- **[S7](../spikes/S7.md):** the page surface must be a MikePDF-owned XAML `Control` that owns the UIA Text peer, with the presenter hidden from UIA.
 - **[S2](../spikes/S2.md)** (DEV only, iGPU and dGPU, 100% scale), driven end to end through the C++ AppContainer engine and shared-memory slots:
 
 | Area | Measurement |
@@ -29,7 +29,7 @@ Composition also has threading hazards: dispose must happen on the compositor th
 The UI process working set is already **156–204 MB** with one 20-page document. The §11 budget is ≤ 200 MB.
 
 ## Options considered
-1. **Win2D `CanvasVirtualControl`** inside a Quire `PageSurface` control. **Chosen.**
+1. **Win2D `CanvasVirtualControl`** inside a MikePDF `PageSurface` control. **Chosen.**
 2. **Composition visuals**, one `SpriteVisual` per tile, as the fallback. Lower UI-thread and CPU cost, but has the hazards above. Compositor-driven scroll (independent of the UI thread) is its untested advantage.
 3. **A custom DXGI swap chain** in a `SwapChainPanel`. Most control, most code. Kept in reserve.
 
@@ -54,7 +54,7 @@ The UI process working set is already **156–204 MB** with one 20-page document
 
 ## Deviations
 - **D-1: no compressed CPU cache tier in v1.0.** §7.1 rule 5 asks for one. S2 shows re-rendering a text tile (≤ 1 ms) is cheaper than decompressing one, and the tier adds memory to a UI process already at its budget. Revisit in M2 as "keep compressed copies only of tiles that took more than 5 ms to render", if R1 shows heavy pages re-rendering during scroll-back.
-- **D-2 (flag for §11): the 200 MB idle UI-process budget is at risk** before any tile cache exists. M2 must break down the baseline (WinAppSDK/XAML vs Quire). Then either cut it, move the tile CPU copies out (Composition, or a swap-chain presenter), or revise the budget by ADR with evidence. Tracked as R-33.
+- **D-2 (flag for §11): the 200 MB idle UI-process budget is at risk** before any tile cache exists. M2 must break down the baseline (WinAppSDK/XAML vs MikePDF). Then either cut it, move the tile CPU copies out (Composition, or a swap-chain presenter), or revise the budget by ADR with evidence. Tracked as R-33.
 
 ## Consequences
 - Two presenter implementations to keep compiling.

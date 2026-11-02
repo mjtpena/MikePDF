@@ -9,11 +9,11 @@
 #include <span>
 #include <vector>
 
-#include "quire/protocol/codec.h"
+#include "mikepdf/protocol/codec.h"
 
 namespace {
 
-using namespace quire::protocol;
+using namespace mikepdf::protocol;
 
 [[noreturn]] void broken_invariant() {
     std::abort();

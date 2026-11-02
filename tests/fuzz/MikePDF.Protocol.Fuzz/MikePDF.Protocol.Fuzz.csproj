@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <Description>SharpFuzz harness for the MikePDF.Protocol decoders (see README.md).</Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="SharpFuzz" />
+    <ProjectReference Include="..\..\..\src\MikePDF.Protocol\MikePDF.Protocol.csproj" />
+  </ItemGroup>
+</Project>
