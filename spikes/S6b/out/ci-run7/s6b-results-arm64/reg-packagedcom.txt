@@ -1,0 +1,54 @@
+##### HKCR\PackagedCom\Package\MikePDF.S6bProbe_1.0.0.0_arm64__gxqed95vwwy28
+
+HKEY_CLASSES_ROOT\PackagedCom\Package\MikePDF.S6bProbe_1.0.0.0_arm64__gxqed95vwwy28
+    (Default)    REG_DWORD    0x4
+
+HKEY_CLASSES_ROOT\PackagedCom\Package\MikePDF.S6bProbe_1.0.0.0_arm64__gxqed95vwwy28\Class
+
+HKEY_CLASSES_ROOT\PackagedCom\Package\MikePDF.S6bProbe_1.0.0.0_arm64__gxqed95vwwy28\Class\{6B7C2D10-5A1E-4F3B-9C11-0A5B6D6B0001}
+    ServerId    REG_DWORD    0x1
+    DllPath    REG_SZ    s6b_handler.dll
+    Threading    REG_DWORD    0x3
+
+HKEY_CLASSES_ROOT\PackagedCom\Package\MikePDF.S6bProbe_1.0.0.0_arm64__gxqed95vwwy28\Class\{6B7C2D10-5A1E-4F3B-9C11-0A5B6D6B0002}
+    ServerId    REG_DWORD    0x2
+    DllPath    REG_SZ    s6b_handler.dll
+    Threading    REG_DWORD    0x0
+
+HKEY_CLASSES_ROOT\PackagedCom\Package\MikePDF.S6bProbe_1.0.0.0_arm64__gxqed95vwwy28\Class\{6B7C2D10-5A1E-4F3B-9C11-0A5B6D6B0003}
+    ServerId    REG_DWORD    0x0
+    DisplayName    REG_SZ    S6b exe thumbnail
+
+HKEY_CLASSES_ROOT\PackagedCom\Package\MikePDF.S6bProbe_1.0.0.0_arm64__gxqed95vwwy28\Server
+
+HKEY_CLASSES_ROOT\PackagedCom\Package\MikePDF.S6bProbe_1.0.0.0_arm64__gxqed95vwwy28\Server\0
+    ApplicationId    REG_SZ    Driver
+    ApplicationDisplayName    REG_SZ    S6b driver
+    DisplayName    REG_SZ    S6b exe server
+    Executable    REG_SZ    S6bComServer.exe
+    IsSystemExecutable    REG_DWORD    0x0
+    TrustLevel    REG_DWORD    0x1
+    RuntimeBehavior    REG_DWORD    0x1
+    BnoIsolation    REG_DWORD    0x0
+
+HKEY_CLASSES_ROOT\PackagedCom\Package\MikePDF.S6bProbe_1.0.0.0_arm64__gxqed95vwwy28\Server\1
+    ApplicationId    REG_SZ    Driver
+    ApplicationDisplayName    REG_SZ    S6b driver
+    DisplayName    REG_SZ    S6b thumbnail surrogate
+    SurrogateAppId    REG_SZ    {6B7C2D10-5A1E-4F3B-9C11-0A5B6D6B0010}
+    TrustLevel    REG_DWORD    0x1
+    RuntimeBehavior    REG_DWORD    0x1
+    BnoIsolation    REG_DWORD    0x0
+
+HKEY_CLASSES_ROOT\PackagedCom\Package\MikePDF.S6bProbe_1.0.0.0_arm64__gxqed95vwwy28\Server\2
+    ApplicationId    REG_SZ    Driver
+    ApplicationDisplayName    REG_SZ    S6b driver
+    DisplayName    REG_SZ    S6b preview surrogate
+    Executable    REG_SZ    prevhost.exe
+    IsSystemExecutable    REG_DWORD    0x1
+    SurrogateAppId    REG_SZ    {6B7C2D10-5A1E-4F3B-9C11-0A5B6D6B0011}
+    TrustLevel    REG_DWORD    0x1
+    RuntimeBehavior    REG_DWORD    0x1
+    BnoIsolation    REG_DWORD    0x0
+
+

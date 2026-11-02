@@ -1,0 +1,33 @@
+driver pid 6056, integrity RID 0x3000 (high or above), elevated token=1, package (none), family (none), native arch 9
+== experiment none (default .pdf ProgID: MSEdgePDF)
+  GetImage(.pdf): ok hr=0x00000000 110.8 ms 198x256 non-white 21%
+  served by: MikePDF packaged handler +1, classic competitor +0 (a competitor draws a checkerboard: ~100% non-white)
+driver pid 7296, integrity RID 0x3000 (high or above), elevated token=1, package (none), family (none), native arch 9
+  registry: HKLM\Software\Classes\CLSID\{6B7C2D10-5A1E-4F3B-9C11-0A5B6D6B0004}\InprocServer32 = D:\a\_temp\s6b-tools\s6b_handler.dll (written)
+== experiment control (default .pdf ProgID: MSEdgePDF)
+  registry: HKLM\Software\Classes\.s6bcomp\ShellEx\{E357FCCD-A995-4576-B01F-234630154E96} = {6B7C2D10-5A1E-4F3B-9C11-0A5B6D6B0004} (written)
+  SHChangeNotify(SHCNE_ASSOCCHANGED) sent, waited 1.5 s
+  GetImage(.pdf): ok hr=0x00000000 34.4 ms 256x256 non-white 100%
+  served by: MikePDF packaged handler +0, classic competitor +1 (a competitor draws a checkerboard: ~100% non-white)
+driver pid 6716, integrity RID 0x3000 (high or above), elevated token=1, package (none), family (none), native arch 9
+  registry: HKLM\Software\Classes\CLSID\{6B7C2D10-5A1E-4F3B-9C11-0A5B6D6B0004}\InprocServer32 = D:\a\_temp\s6b-tools\s6b_handler.dll (written)
+== experiment ext-level (default .pdf ProgID: MSEdgePDF)
+  registry: HKLM\Software\Classes\.pdf\ShellEx\{E357FCCD-A995-4576-B01F-234630154E96} = {6B7C2D10-5A1E-4F3B-9C11-0A5B6D6B0004} (written)
+  SHChangeNotify(SHCNE_ASSOCCHANGED) sent, waited 1.5 s
+  GetImage(.pdf): ok hr=0x00000000 63.2 ms 198x256 non-white 21%
+  served by: MikePDF packaged handler +1, classic competitor +0 (a competitor draws a checkerboard: ~100% non-white)
+driver pid 9148, integrity RID 0x3000 (high or above), elevated token=1, package (none), family (none), native arch 9
+  registry: HKLM\Software\Classes\CLSID\{6B7C2D10-5A1E-4F3B-9C11-0A5B6D6B0004}\InprocServer32 = D:\a\_temp\s6b-tools\s6b_handler.dll (written)
+== experiment progid-level (default .pdf ProgID: MSEdgePDF)
+  registry: HKLM\Software\Classes\MSEdgePDF\ShellEx\{E357FCCD-A995-4576-B01F-234630154E96} = {6B7C2D10-5A1E-4F3B-9C11-0A5B6D6B0004} (written)
+  SHChangeNotify(SHCNE_ASSOCCHANGED) sent, waited 1.5 s
+  GetImage(.pdf): ok hr=0x00000000 63.3 ms 198x256 non-white 21%
+  served by: MikePDF packaged handler +1, classic competitor +0 (a competitor draws a checkerboard: ~100% non-white)
+driver pid 4420, integrity RID 0x3000 (high or above), elevated token=1, package (none), family (none), native arch 9
+  registry: HKLM\Software\Classes\CLSID\{6B7C2D10-5A1E-4F3B-9C11-0A5B6D6B0004}\InprocServer32 = D:\a\_temp\s6b-tools\s6b_handler.dll (written)
+== experiment both (default .pdf ProgID: MSEdgePDF)
+  registry: HKLM\Software\Classes\.pdf\ShellEx\{E357FCCD-A995-4576-B01F-234630154E96} = {6B7C2D10-5A1E-4F3B-9C11-0A5B6D6B0004} (written)
+  registry: HKLM\Software\Classes\MSEdgePDF\ShellEx\{E357FCCD-A995-4576-B01F-234630154E96} = {6B7C2D10-5A1E-4F3B-9C11-0A5B6D6B0004} (written)
+  SHChangeNotify(SHCNE_ASSOCCHANGED) sent, waited 1.5 s
+  GetImage(.pdf): ok hr=0x00000000 68.4 ms 198x256 non-white 21%
+  served by: MikePDF packaged handler +1, classic competitor +0 (a competitor draws a checkerboard: ~100% non-white)

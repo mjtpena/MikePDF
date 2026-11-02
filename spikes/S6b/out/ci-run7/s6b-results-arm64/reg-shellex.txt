@@ -1,0 +1,6 @@
+##### where the thumbnail (E357FCCD) and preview (8895b1c6) handler keys live for our file types
+
+HKEY_CLASSES_ROOT\.pdf\ShellEx\{8895b1c6-b41f-4c1c-a562-0d564250836f}
+
+
+

@@ -1,6 +1,6 @@
 # S6b: how shell handlers reach the sandbox
 
-- Status: **Done. Prototype run through the real sandboxed engine on DEV (x64), and the packaged registration, activation and handler code run on GitHub-hosted runners (x64 and ARM64). The real Explorer, a Medium-integrity user session and a machine with a competing PDF app were not available: see "Not verified".**
+- Status: **Done. Prototype run through the real sandboxed engine on DEV (x64), and the packaged registration, activation and handler code run on GitHub-hosted runners (x64 and ARM64). The real Explorer, a standard-user (non-elevated) session and a machine with a competing PDF app were not available: see "Not verified".**
 - Date: 2026-11-02
 - Author: Sonnet (S6b). Reviewer: Opus.
 - Target: [shell-extensions](../features/shell-extensions.md) 3.2 and 11 (OQ-SHELL-1, -2, -3, -4, -8), risk R-16, master prompt 5.3 and 8.11. Output: a proposed [ADR-0018](#proposed-adr-0018-shell-handler-transport), the message list and schema v5 contents below.
@@ -25,6 +25,12 @@ Decisions inside A that the evidence supports (details in the ADR):
 - **A single-flight launch lock.** 16 hosts that all found no ShellHost started 14 extra ShellHost processes, which exited at once; that is wasted work, and it grows with the Explorer folder size.
 - **One engine per file, one spare ahead.** p50 28 ms against 37 ms for none and 8 ms for a shared engine; a shared engine gives up the one-process-per-document isolation for 20 ms.
 
+Findings that change the spec (details in Results and "Corrections the spec needs"):
+- **Packaged handlers are not default-only.** With Edge as the default, MikePDF's thumbnail handler served `.pdf`, and it beat a classic handler registered at the extension and at the default app's ProgID. Installing the package therefore takes over every PDF's thumbnail; the "off" switches need a product decision (OQ-SHELL-14).
+- **`desktop2:ThumbnailHandler` can only name a `com:SurrogateServer` class**, so a COM `ExeServer` cannot be the handler.
+- **Thumbnails are produced for Internet-zone files; Explorer, not the handler, blocks the preview pane for them** (KB5070960).
+- **Microsoft documents no handler timeout**; the 2 s and 1 s limits are ours.
+
 What this spike could not settle, and the product must not assume: **the integrity level of a packaged handler under a real Explorer.** On the runners every activated host (`DllHost.exe`, `prevhost.exe`, ShellHost, the ExeServer) logged `integrity=high`, **whatever the caller's level**: a driver started at Medium got High hosts, because DCOM starts a server with the user's session token and the runner's session token is High (an elevated administrator, no UAC filtering). No host was ever Low, although the documentation says prevhost runs handlers at Low by default. On a standard-user machine the session token is Medium, so the hosts are *expected* at Medium, where on-demand launch works; that expectation is **untested**. If a host were Low, a handler could not start ShellHost (measured), and a Low *caller* is refused COM activation of our classes (`0x80070005`, measured). See OQ-SHELL-10 and "Not verified".
 
 ## Questions
@@ -42,7 +48,7 @@ What this spike could not settle, and the product must not assume: **the integri
   - `native/s6b_handler.cpp`: a C++20 DLL with an `IThumbnailProvider` and an `IPreviewHandler` (plus `IInitializeWithStream`, `IOleWindow`, `IObjectWithSite`, `IPreviewHandlerVisuals`). It parses nothing. It copies the stream into an unnamed section (cap 32 MiB), connects to the pipe (starting ShellHost if the pipe is absent), checks that the server is the expected image or package family, sends two requests, validates the reply (size, stride, 64-bit arithmetic) and builds a DIB section.
   - `ShellHost/` (C#, `MikePDF.Broker` unchanged): the pipe, the handle pull, the engine pool in three modes (`fresh`, `spare`, `reuse`), a cap of 3 live engines, a kill of the engine when its client goes away, an idle exit after 60 s.
   - `native/s6b_testhost.cpp`: calls the DLL the way Explorer does (`DllGetClassObject`, `CreateInstance`, `Initialize` with a file stream from `SHCreateStreamOnFileEx`, `GetThumbnail`; `SetWindow` and `DoPreview` on a hidden window that is never shown), runs it cold or warm, and can re-run itself with a Low-integrity token.
-  - `ci/`: the package manifest, a driver that exercises the real shell (`IShellItemImageFactory`, `AssocQueryString`, a `Zone.Identifier` file, `IPreviewHandler` through COM), and a COM `ExeServer` probe.
+  - `ci/`: the package manifest, a driver that exercises the real shell (`IShellItemImageFactory`, `AssocQueryString`, a `Zone.Identifier` file, `IPreviewHandler` through COM, and a precedence experiment that writes handler registrations on the runner only), and a COM `ExeServer` probe. The handler DLL also carries a CI-only "competitor" class that draws a checkerboard.
 - **Wire format of the prototype** is its own fixed 72-byte request and reply (`native/s6b_proto.h`). It is not the product protocol; the product messages are in "Protocol" below.
 - **Timings.** `QueryPerformanceCounter` in the handler (`GetThumbnail` entry to bitmap returned) and inside ShellHost. "Cold" means ShellHost is stopped before the call, so the call starts it; the OS file cache was warm (no reboot or standby flush was possible). The Close request (which ends the one-shot engine) is measured after the bitmap is returned and is not in `total_ms`.
 
@@ -75,11 +81,21 @@ What this spike could not settle, and the product must not assume: **the integri
 
 ### 2. Do packaged handlers apply only when MikePDF is the default PDF app? (OQ-SHELL-2)
 
-- **Measured: no, not in this configuration.** With `UserChoice` pointing at Edge (`MSEdgePDF`) and MikePDF's package registered for `.pdf`, `GetImage` on a real `.pdf` was served by MikePDF's packaged handler (our log gained one `GetThumbnail`, the bitmap was our render). Run 1, 2 and 3, x64 and ARM64.
-- **Why is not established.** On the runner, Edge registers no thumbnail handler at extension level (`HKCR\.pdf\ShellEx` holds only a preview handler), so our ProgID in `OpenWithProgids` may simply be the only candidate. That is a hypothesis.
-- [[RUN4-PRECEDENCE]]
-- **For the preview handler** the shell resolves `.pdf` to the existing extension-level class (`AssocQueryString` above), not to ours. This was not driven through Explorer's pane. UNVERIFIED.
-- Consequence for the spec: "handlers take effect only while MikePDF is the default" (spec 1, item 4) is **not what was measured**; the default-app prompt is not what makes the handler work, but whether it **wins against Acrobat or Edge** is still open.
+- **Measured: no.** With `UserChoice` pointing at Edge (`MSEdgePDF`) and MikePDF's package registering `.pdf`, `GetImage` on a real `.pdf` was served by MikePDF's packaged handler: our log gained one `GetThumbnail` and the bitmap was our render (198 x 256, 21% non-white). Runs 1 to 7, x64 (Windows 10.0.26100) and ARM64 (10.0.26200). The default-app prompt is not what makes the handler work.
+- **A packaged handler beat classic registrations at both levels.** Run 7, driven from an unpackaged driver at High integrity, one fresh process per case, `SHChangeNotify(SHCNE_ASSOCCHANGED)` sent and 1.5 s waited after each registry change (the documentation requires it), registry writes under `HKLM\Software\Classes` on the hosted runner only. The competitor is a second class of the handler DLL that draws a checkerboard and never touches ShellHost, registered the way an installer does:
+
+  | Case | What was registered | Served by |
+  |---|---|---|
+  | none | nothing | MikePDF (packaged) |
+  | **control** | the competitor as the only handler of a made-up extension `.s6bcomp` | **the competitor** (256 x 256, 100% non-white): the competitor machinery works |
+  | ext-level | competitor at `HKLM\...\.pdf\ShellEx\{E357FCCD...}` | MikePDF; competitor not called |
+  | progid-level | competitor at `HKLM\...\MSEdgePDF\ShellEx\{E357FCCD...}` (the default app's ProgID, where Acrobat's registration would sit) | MikePDF; competitor not called |
+  | both | both of the above | MikePDF; competitor not called |
+
+  The same on x64 and ARM64 (`out/ci-run7/*/experiment.log`). Two earlier attempts were inconclusive and are kept as evidence: an `ExeServer` class as competitor, and an in-process class registered under `HKCU\Software\Classes`, both made even the control fail with `REGDB_E_CLASSNOTREG` (0x80040154). So an out-of-process class cannot be a classic thumbnail handler, and the thumbnail host did not find a per-user class registration (not investigated).
+- **What this does and does not show.** In this configuration the shell picked a manifest-registered handler before an extension-level and a default-ProgID handler. The rule behind it is not established, and the AppX ProgID that the package creates has **no `ShellEx` key** (`out/ci-run5/*/reg-appx-progids.txt`), so the shell finds a packaged handler by some other route. Not shown: a competing **packaged** app, another OS build, and what happens when the packaged handler declines (returns a failure): whether the shell then tries the next handler or shows the generic icon.
+- **Consequences for the product.** (1) Once the package is installed, MikePDF's thumbnails would appear for **every** PDF, even when Edge or Acrobat is the user's default, and the spec's "only while MikePDF is the default" (spec 1, item 4) is wrong for thumbnails. (2) The "off" switches (setting and policy) cannot hand thumbnails back to the previous handler by themselves: if the shell does not fall through when we fail, turning them off shows the generic icon instead of the other app's thumbnail. That needs a product decision (OQ-SHELL-14).
+- **For the preview handler** the shell resolves `.pdf` to the existing extension-level class (`AssocQueryString`), not to ours. This was not driven through Explorer's preview pane. UNVERIFIED.
 
 ### 3. Mark-of-the-Web (OQ-SHELL-8)
 
@@ -118,8 +134,10 @@ Through the real shell, packaged, on the hosted runners (`GetImage` on unique `.
 | x64 run 1 | 428, 270, 260 ms | 39.6 / 42.6 ms | 42 to 50 ms (new prevhost each) | 32 / 261 ms |
 | x64 run 2 | 454, 306, 298 ms | 42.5 / 51.3 ms | 44 to 54 ms | 36 / 285 ms |
 | x64 run 3, unpackaged driver, High | 230, 246, 207 ms | 29.4 / 32.4 ms | 31 to 34 ms | 26 / 207 ms |
+| x64 run 4, Medium caller | 340, 290, 284 ms | 41.2 / 47.9 ms | 41 to 47 ms | 35 / 338 ms |
 | ARM64 run 1 | 474, 254, 253 ms | 45.6 / 56.5 ms | 44 to 71 ms | 35 / 247 ms |
 | ARM64 run 2 | 435, 267, 258 ms | 46.0 / 47.3 ms | 44 to 66 ms | 35 / 245 ms |
+| ARM64 run 4, Medium caller | 334, 271, 275 ms | 49.2 / 55.4 ms | 50 to 54 ms | 43 / 282 ms |
 
 - The shell adds about 15 to 20 ms to the handler's own time (handler `total` about 22 ms against `GetImage` 29 to 46 ms).
 - **The source size matters only through the copy.** IStream to section: 3.5 KB 0.06 ms, 65 KB 0.1 ms, 5 MB 4.0 ms, 30 MB 22.8 ms (p50). Smaller reads cost more: 30 MB with 4 KiB reads took 58.6 ms and with 64 KiB reads 25.8 ms (the shell's own stream sets the real chunk size; not observed). **The unchanged engine wants a disk file**, so ShellHost wrote the section to a temp file first: 0.5 ms for the small file, 4.7 ms at 5 MB, 50.6 ms at 30 MB (p50, `srv_stage_us`). Giving the engine the section would remove that (see the schema).
@@ -154,8 +172,8 @@ Through the real shell, packaged, on the hosted runners (`GetImage` on unique `.
 **Security of every hop in A** (what an attacker who controls the PDF can reach):
 1. *File to the shell to the handler (`dllhost` or `prevhost`).* The handler reads bytes and parses nothing. A hostile file cannot reach a parser here. The host is not sandboxed and has the user's rights; that is the reason nothing is parsed in it.
 2. *Handler to a section.* An unnamed, pagefile-backed section with the default DACL. The handler caps it at 32 MiB.
-3. *The pipe.* Per-user name; DACL `D:P(A;;GA;;;<user>)(A;;GA;;;SY)`; Low label so a Low host can use it; `PIPE_REJECT_REMOTE_CLIENTS`. ShellHost creates the first instance with `FILE_FLAG_FIRST_PIPE_INSTANCE`, so a squatter that is already there makes it fail rather than serve. The handler checks the server before it sends anything (**measured in CI**: server image path and package family both matched: `familyMatches=1`). ShellHost reads the client's PID from the pipe, never from a message, and logs the image and the package family. Another process of the same user can use ShellHost as a "PDF to bitmap" service; it can already read the user's files.
-4. *Handle pull.* ShellHost duplicates a handle value the client names, from the client's own process, and maps at most the declared number of bytes after checking the region size (`VirtualQuery`); a handle the client does not own, or one that is not a section, fails. A client can hand ShellHost a section whose contents change while the engine reads: that affects only that client's thumbnail.
+3. *The pipe.* Per-user name; DACL `D:P(A;;GA;;;<user>)(A;;GA;;;SY)`; Low label so a Low host can use it; `PIPE_REJECT_REMOTE_CLIENTS`. ShellHost creates the first instance with `FILE_FLAG_FIRST_PIPE_INSTANCE`, so a squatter that is already there makes it fail rather than serve (the flag is in the prototype; the squatter case was not tested). The handler checks the server before it sends anything (**measured in CI**: server image path and package family both matched: `familyMatches=1`). ShellHost reads the client's PID from the pipe, never from a message, and logs the image and the package family. Another process of the same user can use ShellHost as a "PDF to bitmap" service; it can already read the user's files.
+4. *Handle pull.* ShellHost duplicates a handle value the client names, from the client's own process, and maps at most the declared number of bytes after checking the region size (`VirtualQuery`); a handle the client does not own, or one that is not a section, fails (by the API's semantics; not tested with a wrong handle). A client can hand ShellHost a section whose contents change while the engine reads: that affects only that client's thumbnail.
 5. *ShellHost to the engine.* ADR-0004 and ADR-0005 unchanged: AppContainer, job, mitigations, handles by duplication, pipe DACL. In a package the engine runs in place from the package directory (A2); CI confirmed it on both architectures.
 6. *Engine to ShellHost.* Untrusted. The existing `ReplyChecks` validate dimensions and strides; the pixels are copied once.
 7. *ShellHost to the handler.* A section the handler created; ShellHost writes `stride x height` bytes into it. The handler validates width, height and stride (1 to the requested size, `stride == 4 x width`, 64-bit product at most the section size) before it creates a bitmap, and forces the alpha byte to 255. No pointer crosses.
@@ -213,7 +231,7 @@ Statuses are the existing ones: `PasswordRequired`, `Damaged`, `Unsupported`, `T
 
 ## Corrections the spec needs
 
-1. **Spec 1 item 4 and OQ-SHELL-2:** measured on the runner, a packaged handler was used for `.pdf` while Edge was the default. Rewrite as a documented behaviour with its conditions once the precedence result is in (section 2).
+1. **Spec 1 item 4 and OQ-SHELL-2:** measured, a packaged handler was used for `.pdf` while Edge was the default, and it won over a classic handler registered at the extension and at the default app's ProgID (section 2). Rewrite item 4 as: handlers apply whenever the package is installed; the default-app prompt does not control them. Add the consequence for the "off" switches.
 2. **Spec 3.3, OQ-SHELL-3:** drop `IInitializeWithItem` and the file-in-a-private-area staging. Stream only (Microsoft documents it as the only path out of process).
 3. **Spec 11, the handle direction:** "a handle value valid in ShellHost, duplicated by the handler" becomes "a handle value valid in the handler, duplicated by ShellHost". The first needs the handler to open ShellHost for duplication, which a Low host cannot do (inferred from the integrity rules, not measured); the second was measured from a Low client.
 4. **Spec 11, schema version:** v5, not v4 (v4 is already taken by the reader gaps).
@@ -229,15 +247,16 @@ Statuses are the existing ones: `PasswordRequired`, `Damaged`, `Unsupported`, `T
 | Id | Question | Who |
 |---|---|---|
 | OQ-SHELL-10 | At what integrity level does Explorer's activation run our packaged handler on a standard-user machine? The runners showed the user's session token, never Low (so Medium is expected there), but the documentation says prevhost uses Low by default. If Low, the handler cannot start ShellHost, and a launch path across integrity levels is needed (a ShellHost started by the app or by a startup task; a Low caller is refused COM activation of our classes). Needs a real Explorer run on a non-elevated session | User and Opus (R1, R2) |
-| OQ-SHELL-11 | Handler precedence on a machine with Acrobat or Edge's own thumbnail handler, with MikePDF not the default | User (a machine with Acrobat) |
+| OQ-SHELL-11 | Handler precedence on a real machine with Acrobat installed (HKLM registration, not a stand-in), and against another packaged app | User (a machine with Acrobat) |
 | OQ-SHELL-12 | Does Explorer's block on previewing downloaded files apply before a third-party handler is created, and should MikePDF say so in its settings text? | Opus with a test on a real Explorer |
 | OQ-SHELL-13 | Should the engine accept a section in `OpenDocument` (saves up to 50 ms at 30 MB)? | Opus (schema v5 owner) |
+| OQ-SHELL-14 | MikePDF's thumbnails would replace the user's other PDF app's for every PDF once the package is installed. Is that wanted? What do the "off" switches do (a failure may show the generic icon, not the previous handler's thumbnail; the fall-through was not tested)? | User (product) and Opus |
 
 ## Not verified
 
 - **The real Explorer.** No `explorer.exe` thumbnail request, no preview pane, no folder of files. The shell was driven by `IShellItemImageFactory` and COM activation from a test process. How many thumbnails Explorer asks for at once, in how many `dllhost` instances, how long it waits for a handler, what it does when one is slow or fails, and whether it caches a failure: all UNVERIFIED.
 - **A standard-user session.** The runner's session token is High and elevated, so every COM-activated host was High. A Medium *caller* was tested (label mechanism), but the hosts it activated were High. What level the hosts have when the session token is Medium (a normal user) was not observed.
-- **Handler precedence against a competing registration, when the competing app is the user's default.** [[RUN4-NV]]
+- **Handler precedence against a competing *packaged* app, against another OS build, and against a handler that fails.** Section 2 covers a classic competitor at the extension and default-ProgID levels only.
 - **The handler at Low integrity inside a real prevhost.**
 - **The Store-signed package, Smart App Control, SmartScreen, Defender.** The test package is signed by a runner-only certificate; whether any of them delays or blocks starting ShellHost is untested.
 - **Windows' own timeout for a slow handler**, which Microsoft does not document.
@@ -245,6 +264,7 @@ Statuses are the existing ones: `PasswordRequired`, `Damaged`, `Unsupported`, `T
 - **OneDrive placeholders, network shares, files over 32 MiB** (the stream path is capped, and a larger file only fails here).
 - **A genuinely hung engine.** A render that outlasts the handler's deadline was used, not an infinite loop; the engine watchdog is ADR-0004's.
 - **A hostile file against the 256 MB limit.** The limit is a commit limit; the fixtures never approached it.
+- **The Native AOT ShellHost inside the package.** AOT numbers are DEV, unpackaged. The hosted runs used the self-contained JIT build; the broker library's reflection-free paths compiled and ran under AOT here, but trim and AOT warnings were not reviewed, and the spike's own reflection (`OpenProfile`) is not AOT-safe.
 - **A C# COM server under Native AOT**, and a custom interface's proxy/stub through `com:Interface`. Option B was measured with a native server only.
 - **ARM64 on DEV.** ARM64 ran only on the hosted runner. A cold start from a rebooted machine (nothing in the OS cache) was not measured.
 - **DEV numbers** are under 40 to 43% background CPU from other agents; the p95 and the cold figures move by tens of per cent between the two runs.
@@ -252,7 +272,7 @@ Statuses are the existing ones: `PasswordRequired`, `Damaged`, `Unsupported`, `T
 ## How to reproduce
 
 - Local (nothing is registered): `spikes/S6b/native/build.ps1 -Arch x64`; `dotnet build spikes/S6b/ShellHost/S6bShellHost.csproj -c Release`; `python spikes/S6b/gen_pdfs.py spikes/S6b/out/pdfs`; `spikes/S6b/run-measure.ps1` (latency, sizes, memory, inputs), `run-lowil.ps1`, `run-faults.ps1`, `run-flood.ps1`, `run-lowil-launch.ps1`. The engine comes from `./build.ps1 -SkipManaged`.
-- Hosted runner: push to `m3/spike-shell` (or run the workflow by hand). **Never run `spikes/S6b/ci/*` on a developer machine**: it installs a package with a self-signed certificate and writes `HKCU\Software\Classes`.
+- Hosted runner: push to `m3/spike-shell` (or run the workflow by hand). **Never run `spikes/S6b/ci/*` on a developer machine**: it trusts a self-signed certificate, installs a package and writes `HKLM\Software\Classes` (the experiment mode refuses to run unless `GITHUB_ACTIONS` and `RUNNER_ENVIRONMENT=github-hosted` are set).
 
 ## Evidence index
 
@@ -263,5 +283,5 @@ Statuses are the existing ones: `PasswordRequired`, `Damaged`, `Unsupported`, `T
 | Low-integrity client | `lowil.txt`, `lowil-launch.txt` |
 | Faults, timeout, kill | `faults.txt` |
 | Flood | `flood-16x10-max3.txt` |
-| Hosted runs | `ci-run1/`, `ci-run2/`, `ci-run3/`, `ci-run4/` (per architecture: `driver/driver.log`, `driver-*.log`, `experiment.log`, `handler.log`, `shellhost.log`, `comserver.log`, `reg-*.txt`, `processes-*.txt`, `events-*.txt`, `install.log`) |
+| Hosted runs (7; 1 first success; 2 harness trap, tools under the Low-labelled folder; 3 `runas /trustlevel` stayed High; 4 Medium by file label; 5 competitor as an ExeServer; 6 competitor under HKCU; **7 final precedence result**) | `ci-run1/` to `ci-run7/` (per architecture: `driver/driver.log`, `driver-*.log`, `experiment.log`, `handler.log`, `shellhost.log`, `comserver.log`, `reg-*.txt`, `processes-*.txt`, `events-*.txt`, `install.log`) |
 | Thumbnail of the test PDF | `smoke.png` |
