@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <AssemblyName>S6bShellHost</AssemblyName>
+    <RootNamespace>S6b</RootNamespace>
+    <RuntimeIdentifier>win-$(MikePDFArch)</RuntimeIdentifier>
+    <SelfContained>false</SelfContained>
+    <AnalysisLevel>none</AnalysisLevel>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\src\MikePDF.Broker\MikePDF.Broker.csproj" />
+    <ProjectReference Include="..\..\..\src\MikePDF.Protocol\MikePDF.Protocol.csproj" />
+  </ItemGroup>
+</Project>
