@@ -4,6 +4,8 @@
     <Description>Fuzz harness for the MikePDF.Protocol decoders: a dependency-free mutational fuzzer, and SharpFuzz entry points (see README.md).</Description>
     <!-- A fuzz harness catches nothing on purpose (an escaped exception is the finding) and uses System.Random for mutation, not for security. -->
     <NoWarn>$(NoWarn);CA5394</NoWarn>
+    <!-- LibraryImport (SetErrorMode in MutationalFuzzer) generates unsafe marshalling code. -->
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="SharpFuzz" />

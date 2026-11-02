@@ -104,7 +104,8 @@ internal static class FuzzTargets
         byte[] output = built.Value;
         Check(output.AsSpan(0, data.Length).SequenceEqual(data), "original bytes are not a prefix of the output");
         Check(StrictDocument.Open(output, Limits).IsSuccess, "output does not reopen strictly");
-        return 4 + 1000 * taken;
+        // A valid document that was appended to: tell apart by how many objects were rewritten, how big the file and its xref are, and the xref form.
+        return MutationalFuzzer.Mix(4 + (1000L * taken), (System.Numerics.BitOperations.Log2((uint)doc.XrefEntryCount + 1) * 64L) + System.Numerics.BitOperations.Log2((uint)data.Length + 1) + (doc.Latest.Form == PdfXrefForm.Table ? 0 : 5000));
     }
 
     private static void Check(bool condition, string message)

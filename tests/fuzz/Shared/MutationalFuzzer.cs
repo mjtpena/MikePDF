@@ -21,7 +21,7 @@ namespace MikePDF.Fuzz.Shared;
 ///
 /// Exit codes: 0 no finding, 1 at least one finding, 2 bad usage.
 /// </summary>
-internal static class MutationalFuzzer
+internal static partial class MutationalFuzzer
 {
     private const int WorkerFinding = 98;
     private const int WorkerTimeout = 99;
@@ -142,7 +142,6 @@ internal static class MutationalFuzzer
 
     private static int RunSupervisor(Target target, Options o)
     {
-
         Directory.CreateDirectory(o.FindingsDir);
         string currentFile = Path.Combine(o.FindingsDir, $".current-{Environment.ProcessId}");
         var deadline = DateTime.UtcNow.AddSeconds(o.Seconds);
@@ -157,6 +156,12 @@ internal static class MutationalFuzzer
                 int remaining = Math.Max(1, (int)Math.Ceiling((deadline - DateTime.UtcNow).TotalSeconds));
                 var (exit, stderr) = RunWorkerProcess(target, o, remaining, currentFile, o.Rng + workers++);
                 if (exit == 0) break;
+                if (exit == 2)
+                {
+                    // The worker's own usage error (a bad option, a missing seed folder), not something an input did.
+                    Console.Error.WriteLine("the worker could not start:" + Environment.NewLine + stderr);
+                    return 2;
+                }
 
                 byte[] input = ReadCurrent(currentFile);
                 string kind = exit == WorkerTimeout ? "timeout" : "crash";
@@ -238,8 +243,15 @@ internal static class MutationalFuzzer
     // ------------------------------------------------------------------------------------------------------------------
     // Worker
 
+    private const uint ErrorModeNoDialogs = 0x0001 | 0x0002 | 0x8000; // SEM_FAILCRITICALERRORS | SEM_NOGPFAULTERRORBOX | SEM_NOOPENFILEERRORBOX
+
+    [System.Runtime.InteropServices.LibraryImport("kernel32.dll")]
+    private static partial uint SetErrorMode(uint mode);
+
     private static int RunWorker(Target target, Options o)
     {
+        // A worker that crashes on purpose (a stack overflow is a finding) must not raise a Windows error dialog and wait for a click.
+        _ = SetErrorMode(ErrorModeNoDialogs);
         var rng = new Random(o.Rng);
         var dictionary = o.DictionaryFile is null ? [] : LoadDictionary(o.DictionaryFile);
         var corpus = new List<byte[]>();

@@ -69,7 +69,9 @@ DEV machine (Windows 11 x64, 24 logical cores shared with other agents' builds),
 | `protocol-cs` | 2 | 192,531,819 | n/a | 4,930 | 0 |
 | `pdfwriter-parse` | 2 | 11,699,831 | n/a | 3,098 | 0 |
 | `pdfwriter-append` | 2 | 20,478,331 | n/a | 41 | 1 bug, found twice in the first minutes (below) |
-| `pdfwriter-append`, rerun after the fix | 2 | APPEND_RERUN_EXECS | n/a | APPEND_RERUN_CORPUS | APPEND_RERUN_FINDINGS |
+| `pdfwriter-append`, rerun for 15 minutes after the fix | 2 | 137,453,820 | n/a | 41 | 0 |
+
+The first `pdfwriter-append` run is short of executions because the worker was restarted after each of its two hits of the bug; the rerun is the clean 15 minutes. Its 41 corpus files show that the outcome signature the target returned was nearly uninformative (most mutations are rejected by the strict parser, and a valid one was told apart only by how many objects it rewrote). After that run the signature was enriched with the size of the file, of its xref and the xref form; two minutes of that version kept 74 files. It was **not** re-run for 15 minutes.
 
 The reported `ft` is the largest of the processes, and with `-jobs` the processes reload each other's finds, so it is not the sum. `engine-document` runs at about 130 executions a second across four processes; most of that time is PDFium parsing and loading (`MIKEPDF_FUZZ_TRACE=1` on a 30-second run put about half of it in open, a quarter in info, page sizes and the outline, and under a tenth in rendering), so the target is slow because PDFium is, not because of the wrapper.
 
@@ -113,6 +115,7 @@ None yet. (None have been seen; the target cannot see inside PDFium. See limit 2
 ## CI
 
 - **Every push and pull request:** the `fuzz-smoke` job in `.github/workflows/ci.yml` runs `run-fuzz.ps1 -Target all -Seconds 60` on the x64 runner. It proves the targets build, start, accept their seeds and find nothing in a minute. It is not fuzzing in any useful sense. A finding fails the job and the reproducers are uploaded.
+  Evidence that it works on the hosted image: on the first push of this branch (CI run 41417004801) the job built the native targets with the runner's MSVC and ran all five for 60 seconds: `protocol-cpp` 963,686 executions, `engine-document` 4,254, `protocol-cs` 7,957,541, `pdfwriter-parse` 705,493, `pdfwriter-append` 3,565,205, no findings, about six minutes in all. So the `windows-2025-vs2026` image does carry the AddressSanitizer component and libFuzzer.
 - **Every night (02:17 UTC):** `.github/workflows/fuzz.yml` runs one 300-minute slice per target, as a five-job matrix, three processes each. The corpus of the previous night is restored from the Actions cache (newest key for the target), extended, and saved again; it is also uploaded as an artifact for 14 days, because cache entries are evicted after seven days without use. A finding fails the job and uploads the reproducers and logs for 90 days. The step summary shows the table above.
 - **By hand:** `workflow_dispatch` with `minutes` (at most 300), `targets` (a list or `all`) and `processes` (at most 8).
 - **The tests** (`MikePDF.Fuzz.Tests`) run in the normal `dotnet test` of both architectures: the harness self-tests, the mutator tests, and the replay of every regression and every seed.
