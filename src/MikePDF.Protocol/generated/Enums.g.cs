@@ -10,7 +10,7 @@ namespace MikePDF.Protocol;
 /// <summary>Constants taken from the schema.</summary>
 public static class ProtocolInfo
 {
-    public const uint SchemaVersion = 3u;
+    public const uint SchemaVersion = 4u;
     public const int MaxFrameBytes = 65536;
     public const uint MaxDeadlineMs = 86400000u;
 }
@@ -91,6 +91,7 @@ public enum MessageType : ushort
     GetPageBoxes = 23,
     GetPageText = 24,
     SearchPage = 25,
+    GetDocumentDetails = 26,
     RenderTile = 32,
     CancelBefore = 33,
     ValidateStructure = 1024,
@@ -109,7 +110,7 @@ public static class MessageTypeInfo
 {
     public static bool IsDefined(MessageType value) => value switch
     {
-        MessageType.Hello or MessageType.Ping or MessageType.Shutdown or MessageType.AttachSlotRing or MessageType.OpenDocument or MessageType.CloseDocument or MessageType.GetDocumentInfo or MessageType.GetPageSizes or MessageType.GetOutline or MessageType.GetPageLinks or MessageType.GetLinkUri or MessageType.GetPageBoxes or MessageType.GetPageText or MessageType.SearchPage or MessageType.RenderTile or MessageType.CancelBefore or MessageType.ValidateStructure => true,
+        MessageType.Hello or MessageType.Ping or MessageType.Shutdown or MessageType.AttachSlotRing or MessageType.OpenDocument or MessageType.CloseDocument or MessageType.GetDocumentInfo or MessageType.GetPageSizes or MessageType.GetOutline or MessageType.GetPageLinks or MessageType.GetLinkUri or MessageType.GetPageBoxes or MessageType.GetPageText or MessageType.SearchPage or MessageType.GetDocumentDetails or MessageType.RenderTile or MessageType.CancelBefore or MessageType.ValidateStructure => true,
         _ => false,
     };
 
@@ -129,6 +130,7 @@ public static class MessageTypeInfo
         MessageType.GetPageBoxes => DocumentIdRule.Required,
         MessageType.GetPageText => DocumentIdRule.Required,
         MessageType.SearchPage => DocumentIdRule.Required,
+        MessageType.GetDocumentDetails => DocumentIdRule.Required,
         MessageType.RenderTile => DocumentIdRule.Required,
         MessageType.CancelBefore => DocumentIdRule.Required,
         MessageType.ValidateStructure => DocumentIdRule.None,

@@ -512,6 +512,44 @@ struct SearchPageReply {
     bool operator==(const SearchPageReply&) const = default;
 };
 
+/// Request payload of GetDocumentDetails (message type 26).
+struct GetDocumentDetails {
+    static constexpr MessageType kMessageType = MessageType::GetDocumentDetails;
+
+    /// Checks every schema limit.
+    [[nodiscard]] Status validate() const;
+    /// Validates, then writes the payload array. Writes nothing if validation fails.
+    [[nodiscard]] Status encode(Writer& writer) const;
+    /// Reads and fully validates one payload. The value is default-constructed on failure.
+    [[nodiscard]] static Result<GetDocumentDetails> decode(Reader& reader);
+
+    bool operator==(const GetDocumentDetails&) const = default;
+};
+
+/// Reply payload of GetDocumentDetails (message type 26).
+struct GetDocumentDetailsReply {
+    static constexpr MessageType kMessageType = MessageType::GetDocumentDetails;
+    std::string creation_date{};
+    std::string modification_date{};
+    std::uint32_t security_revision{};
+    std::uint32_t user_permissions{};
+    std::uint32_t form_type{};
+    std::vector<std::string> font_names{};
+    /// Bit 0: the font program is embedded in the file.
+    std::vector<std::uint16_t> font_flags{};
+    bool fonts_complete{};
+    std::uint32_t font_pages_scanned{};
+
+    /// Checks every schema limit.
+    [[nodiscard]] Status validate() const;
+    /// Validates, then writes the payload array. Writes nothing if validation fails.
+    [[nodiscard]] Status encode(Writer& writer) const;
+    /// Reads and fully validates one payload. The value is default-constructed on failure.
+    [[nodiscard]] static Result<GetDocumentDetailsReply> decode(Reader& reader);
+
+    bool operator==(const GetDocumentDetailsReply&) const = default;
+};
+
 /// Request payload of RenderTile (message type 32).
 struct RenderTile {
     static constexpr MessageType kMessageType = MessageType::RenderTile;
@@ -619,8 +657,8 @@ struct ValidateStructureReply {
     bool operator==(const ValidateStructureReply&) const = default;
 };
 
-using RequestPayload = std::variant<Hello, Ping, Shutdown, AttachSlotRing, OpenDocument, CloseDocument, GetDocumentInfo, GetPageSizes, GetOutline, GetPageLinks, GetLinkUri, GetPageBoxes, GetPageText, SearchPage, RenderTile, CancelBefore, ValidateStructure>;
-using ReplyPayload = std::variant<HelloReply, Pong, ShutdownReply, AttachSlotRingReply, OpenDocumentReply, CloseDocumentReply, GetDocumentInfoReply, GetPageSizesReply, GetOutlineReply, GetPageLinksReply, GetLinkUriReply, GetPageBoxesReply, GetPageTextReply, SearchPageReply, RenderTileReply, CancelBeforeReply, ValidateStructureReply>;
+using RequestPayload = std::variant<Hello, Ping, Shutdown, AttachSlotRing, OpenDocument, CloseDocument, GetDocumentInfo, GetPageSizes, GetOutline, GetPageLinks, GetLinkUri, GetPageBoxes, GetPageText, SearchPage, GetDocumentDetails, RenderTile, CancelBefore, ValidateStructure>;
+using ReplyPayload = std::variant<HelloReply, Pong, ShutdownReply, AttachSlotRingReply, OpenDocumentReply, CloseDocumentReply, GetDocumentInfoReply, GetPageSizesReply, GetOutlineReply, GetPageLinksReply, GetLinkUriReply, GetPageBoxesReply, GetPageTextReply, SearchPageReply, GetDocumentDetailsReply, RenderTileReply, CancelBeforeReply, ValidateStructureReply>;
 
 /// Decode the payload of a request or reply of the given type. An unknown type is a ProtocolError.
 [[nodiscard]] Result<RequestPayload> decode_request_payload(MessageType type, Reader& reader);

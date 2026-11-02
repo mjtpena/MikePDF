@@ -34,6 +34,7 @@ public static class Samples
         new("req_get_page_boxes", 17, 7, 1000, new GetPageBoxes { Page = 9999999 }),
         new("req_get_page_text", 18, 7, 1000, new GetPageText { Page = 3, First = 2048, Count = 2048 }),
         new("req_search_page", 19, 7, 1000, new SearchPage { Page = 3, Query = "façade ✓", Flags = 3 }),
+        new("req_get_document_details", 20, 7, 1500, new GetDocumentDetails()),
     ];
 
     public static IReadOnlyList<ResponseSample> Responses { get; } =
@@ -100,6 +101,16 @@ public static class Samples
             Flags = [0, 0, 2, 1],
         }),
         new("rsp_search_page", 19, Status.Ok, MessageType.SearchPage, new SearchPageReply { Truncated = true, Starts = [0, 199000], Lengths = [5, 200000 - 199000] }),
+        new("rsp_get_document_details", 20, Status.Ok, MessageType.GetDocumentDetails, new GetDocumentDetailsReply
+        {
+            CreationDate = "D:20240115103000+10'00'", ModificationDate = "D:20240201", SecurityRevision = 4, UserPermissions = 0xFFFFF2C0, FormType = 1,
+            FontNames = ["ABCDEF+Arial-BoldMT", "Helvetica", "TimesNewRomanPSMT"], FontFlags = [1, 0, 1], FontsComplete = false, FontPagesScanned = 100,
+        }),
+        new("rsp_get_document_details_empty", 21, Status.Ok, MessageType.GetDocumentDetails, new GetDocumentDetailsReply
+        {
+            CreationDate = "", ModificationDate = "", SecurityRevision = 0, UserPermissions = 0xFFFFFFFF, FormType = 0,
+            FontNames = [], FontFlags = [], FontsComplete = true, FontPagesScanned = 0,
+        }),
         new("rsp_error_password_required", 4, Status.PasswordRequired, MessageType.OpenDocument, null),
         new("rsp_error_timeout", 9, Status.Timeout, MessageType.RenderTile, null),
     ];

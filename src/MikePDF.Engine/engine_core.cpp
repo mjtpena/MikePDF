@@ -91,6 +91,7 @@ Reply EngineCore::execute(protocol::RequestEnvelope& request, Clock::time_point 
         case protocol::MessageType::GetPageBoxes:
         case protocol::MessageType::GetPageText:
         case protocol::MessageType::SearchPage:
+        case protocol::MessageType::GetDocumentDetails:
         case protocol::MessageType::RenderTile: {
             if (Clock::now() >= deadline) {
                 return status_only(Status::Timeout);
@@ -101,6 +102,9 @@ Reply EngineCore::execute(protocol::RequestEnvelope& request, Clock::time_point 
             }
             if (request.message_type == protocol::MessageType::GetDocumentInfo) {
                 return get_info(*entry);
+            }
+            if (request.message_type == protocol::MessageType::GetDocumentDetails) {
+                return get_details(*entry, deadline);
             }
             if (request.message_type == protocol::MessageType::GetPageSizes) {
                 return get_page_sizes(*entry, std::get<protocol::GetPageSizes>(request.payload));
@@ -186,6 +190,17 @@ Reply EngineCore::get_info(Entry& entry) {
         return status_only(info.status);
     }
     return ok_with(std::move(info.value));
+}
+
+// The fonts are found by walking the first pages, which can be slow for a heavy file: stop at the request's deadline or after 1.5 s, whichever is first.
+Reply EngineCore::get_details(Entry& entry, Clock::time_point deadline) {
+    constexpr std::uint32_t kFontPages = 100;
+    const Clock::time_point stop = std::min(deadline, Clock::now() + std::chrono::milliseconds(1500));
+    auto details = entry.document.details(kFontPages, [stop] { return Clock::now() >= stop; });
+    if (!details.ok()) {
+        return status_only(details.status);
+    }
+    return ok_with(std::move(details.value));
 }
 
 Reply EngineCore::get_page_sizes(Entry& entry, const protocol::GetPageSizes& request) {

@@ -8,7 +8,7 @@
 
 namespace mikepdf::protocol {
 
-inline constexpr std::uint32_t kSchemaVersion = 3;
+inline constexpr std::uint32_t kSchemaVersion = 4;
 inline constexpr std::size_t kMaxFrameBytes = 65536;
 inline constexpr std::uint32_t kMaxDeadlineMs = 86400000;
 
@@ -93,6 +93,7 @@ enum class MessageType : std::uint16_t {
     GetPageBoxes = 23,
     GetPageText = 24,
     SearchPage = 25,
+    GetDocumentDetails = 26,
     RenderTile = 32,
     CancelBefore = 33,
     ValidateStructure = 1024,
@@ -114,6 +115,7 @@ enum class MessageType : std::uint16_t {
         case 23:
         case 24:
         case 25:
+        case 26:
         case 32:
         case 33:
         case 1024:
@@ -157,6 +159,8 @@ enum class DocumentIdRule : std::uint8_t {
         case MessageType::GetPageText:
             return DocumentIdRule::Required;
         case MessageType::SearchPage:
+            return DocumentIdRule::Required;
+        case MessageType::GetDocumentDetails:
             return DocumentIdRule::Required;
         case MessageType::RenderTile:
             return DocumentIdRule::Required;

@@ -9,7 +9,7 @@
     "Messages have no nesting: variable-size collections are parallel arrays tied together with sameLengthAs.",
     "Every variable-size field has a limit and the generator rejects a schema in which any legal message cannot fit in one frame."
   ],
-  "schemaVersion": 3,
+  "schemaVersion": 4,
   "envelope": { "maxFrameBytes": 65536, "maxDeadlineMs": 86400000 },
 
   "enums": [
@@ -271,6 +271,25 @@
           { "key": 0, "name": "truncated", "type": "bool" },
           { "key": 1, "name": "starts", "type": "array", "of": "u32", "maxCount": 2048, "max": 199999 },
           { "key": 2, "name": "lengths", "type": "array", "of": "u32", "maxCount": 2048, "min": 1, "max": 200000, "sameLengthAs": "starts" }
+        ]
+      }
+    },
+    {
+      "id": 26, "name": "GetDocumentDetails", "documentId": "required",
+      "$comment": "What the properties dialog needs beyond GetDocumentInfo (schema 4). The two dates are the file's own text, e.g. D:20240115103000+10'00' (the broker parses them and shows what it cannot parse as text). securityRevision is the standard security handler's /R: 0 when the document is not encrypted. userPermissions is the /P the file gives an ordinary user, whoever opened the file, while GetDocumentInfoReply.permissions is what applies to this session (everything, after the owner password). formType is PDFium's: 0 none, 1 AcroForm, 2 XFA, 3 XFA foreground. Fonts are those the text on the first pages is drawn with, found by walking the page objects within a time and page budget; fontNames are printable ASCII (base font names, possibly with a subset prefix such as ABCDEF+), fontFlags bit 0 is 'embedded'. fontsComplete says every page was walked; otherwise fontPagesScanned says how many were.",
+      "request": { "type": "GetDocumentDetails", "fields": [] },
+      "reply": {
+        "type": "GetDocumentDetailsReply",
+        "fields": [
+          { "key": 0, "name": "creationDate", "type": "string", "maxBytes": 64 },
+          { "key": 1, "name": "modificationDate", "type": "string", "maxBytes": 64 },
+          { "key": 2, "name": "securityRevision", "type": "u32", "max": 255 },
+          { "key": 3, "name": "userPermissions", "type": "u32" },
+          { "key": 4, "name": "formType", "type": "u32", "max": 3 },
+          { "key": 5, "name": "fontNames", "type": "array", "of": "string", "maxCount": 64, "maxBytes": 128 },
+          { "key": 6, "name": "fontFlags", "type": "array", "of": "u16", "maxCount": 64, "max": 1, "sameLengthAs": "fontNames", "doc": "Bit 0: the font program is embedded in the file." },
+          { "key": 7, "name": "fontsComplete", "type": "bool" },
+          { "key": 8, "name": "fontPagesScanned", "type": "u32", "max": 10000000 }
         ]
       }
     },

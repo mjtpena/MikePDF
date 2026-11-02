@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Text;
+using MikePDF.Protocol;
 
 namespace MikePDF.Broker;
 
@@ -39,6 +40,30 @@ internal static class ReplyChecks
         }
 
         return null;
+    }
+
+    /// <summary>
+    /// The font list of GetDocumentDetails: the schema has bounded its length and its flags, and made the two arrays the same length; what is
+    /// left is that a font name is printable ASCII (the engine replaces everything else), that no name is empty, and that a reply which says it
+    /// walked every page names exactly the document's page count (the engine only claims that for a document short enough to be walked whole).
+    /// </summary>
+    public static string? CheckDetails(GetDocumentDetailsReply reply, uint pageCount)
+    {
+        ArgumentNullException.ThrowIfNull(reply);
+        foreach (var name in reply.FontNames)
+        {
+            if (name.Length == 0 || name.Any(c => c < ' ' || c > '~'))
+            {
+                return "a font name holds characters a font name never has";
+            }
+        }
+
+        if (reply.FontPagesScanned > pageCount)
+        {
+            return "the engine walked more pages than the document has";
+        }
+
+        return reply.FontsComplete && reply.FontPagesScanned != pageCount ? "the engine says it walked every page but names another number" : null;
     }
 
     /// <summary>Matches arrive in order, never overlapping the end of the text. Returns the problem, or null.</summary>
