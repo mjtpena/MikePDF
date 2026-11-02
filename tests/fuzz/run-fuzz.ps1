@@ -7,9 +7,15 @@
   Targets:
     protocol-cpp      C++ IPC decoders (libFuzzer, MSVC /fsanitize=fuzzer,address)             tests/fuzz/protocol_fuzz.cpp
     engine-document   engine document open + render through the PDFium wrapper (libFuzzer+ASan) tests/fuzz/engine_document_fuzz.cpp
-    protocol-cs       C# IPC decoders (dependency-free mutational fuzzer, NO coverage feedback)  tests/fuzz/MikePDF.Protocol.Fuzz
-    pdfwriter-parse   MikePDF.PdfWriter parser and validator (mutational, no coverage)           tests/fuzz/MikePDF.PdfWriter.Fuzz
-    pdfwriter-append  MikePDF.PdfWriter incremental writer round trip (mutational, no coverage)
+    protocol-cs       C# IPC decoders                                                            tests/fuzz/MikePDF.Protocol.Fuzz
+    pdfwriter-parse   MikePDF.PdfWriter parser and validator                                     tests/fuzz/MikePDF.PdfWriter.Fuzz
+    pdfwriter-append  MikePDF.PdfWriter incremental writer round trip
+
+  The three C# targets run in one of two modes (-CSharpMode, ADR-0017):
+    coverage    (default) SharpFuzz-instrumented MikePDF.Protocol.dll / MikePDF.PdfWriter.dll, driven by MSVC's libFuzzer through the
+                vendored libfuzzer-dotnet driver (tests/fuzz/libfuzzer-dotnet). Coverage-guided.
+    mutational  the dependency-free fallback (tests/fuzz/Shared/MutationalFuzzer.cs): no coverage feedback, outcome-signature novelty only.
+                Needs no C++ toolchain.
 
   Exit code: 0 no finding, 1 at least one finding (reproducers are in -FindingsRoot), 2 the run could not be set up.
   Writes <OutRoot>/summary.json and <OutRoot>/summary.md.
@@ -28,7 +34,12 @@ param(
     [switch] $SkipBuild,
     [int] $Rng = 0,
     # Parallel processes per target, sharing one corpus directory. libFuzzer's -fork mode does not exist on Windows; -jobs/-workers does.
-    [ValidateRange(1, 64)] [int] $Jobs = 1
+    [ValidateRange(1, 64)] [int] $Jobs = 1,
+    # How the C# targets are driven. `coverage` fails with exit code 2 when the driver or the instrumenter cannot be set up (it never falls back silently).
+    [ValidateSet('coverage', 'mutational')] [string] $CSharpMode = 'coverage',
+    # Instead of fuzzing: prove that the coverage-guided pipeline (driver, instrumented harness, libFuzzer) finds a planted exception, hang and
+    # stack overflow and keeps a reproducer for each. Exit code 0 when all three are found.
+    [switch] $SelfTest
 )
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
@@ -38,7 +49,10 @@ if (-not $CorpusRoot) { $CorpusRoot = Join-Path $OutRoot 'corpus' }
 if (-not $FindingsRoot) { $FindingsRoot = Join-Path $OutRoot 'findings' }
 $all = 'protocol-cpp', 'engine-document', 'protocol-cs', 'pdfwriter-parse', 'pdfwriter-append'
 if ($Target -contains 'all') { $Target = $all }
+if ($SelfTest) { $Target = @('protocol-cs'); $CSharpMode = 'coverage' }
 New-Item -ItemType Directory -Force $OutRoot, $CorpusRoot, $FindingsRoot, (Join-Path $OutRoot 'logs') | Out-Null
+# The fuzzers run with another working directory (one per target), so a relative root would point somewhere else for them.
+$OutRoot = (Resolve-Path $OutRoot).Path; $CorpusRoot = (Resolve-Path $CorpusRoot).Path; $FindingsRoot = (Resolve-Path $FindingsRoot).Path
 
 function Find-CMake {
     $onPath = Get-Command cmake -ErrorAction SilentlyContinue
@@ -57,6 +71,43 @@ $csBin = @{
     'protocol-cs'      = Join-Path $root 'build/out/fuzz-bin/protocol'
     'pdfwriter-parse'  = Join-Path $root 'build/out/fuzz-bin/pdfwriter'
     'pdfwriter-append' = Join-Path $root 'build/out/fuzz-bin/pdfwriter'
+}
+
+$driverExe = Join-Path $root 'build/out/fuzz-driver/driver/Release/libfuzzer_dotnet.exe'
+$useCoverage = ($CSharpMode -eq 'coverage') -and [bool] ($Target | Where-Object { $_ -in 'protocol-cs', 'pdfwriter-parse', 'pdfwriter-append' })
+# SharpFuzz.CommandLine 2.3.0 (MIT, tests/fuzz/.config/dotnet-tools.json): a tool-manifest version pins the version but not the bytes, so the
+# package's SHA-512 is pinned here and checked after the restore.
+$sharpFuzzCliSha512 = 'G/7VoIh0eqKYdGM9GZJqM+twCotc9T3WFl6QMaulYhzKNGwS90zdXx43JC3jYrwz/BTGVDv4Nu1VK5F+f12kzg=='
+
+function Install-CoverageTools {
+    Write-Host '==> libFuzzer driver for .NET (vendored libfuzzer-dotnet, MSVC libFuzzer) and the SharpFuzz instrumenter' -ForegroundColor Cyan
+    $cmake = Find-CMake
+    $driverBuild = Join-Path $root 'build/out/fuzz-driver'
+    & $cmake -S (Join-Path $PSScriptRoot 'libfuzzer-dotnet') -B $driverBuild -A x64
+    if ($LASTEXITCODE -ne 0) { Write-Host 'CMake configure of the libFuzzer driver failed' -ForegroundColor Red; exit 2 }
+    & $cmake --build $driverBuild --config Release
+    if ($LASTEXITCODE -ne 0 -or -not (Test-Path $driverExe)) { Write-Host 'building the libFuzzer driver failed (needs the "C++ AddressSanitizer" Visual Studio component, which carries MSVC libFuzzer)' -ForegroundColor Red; exit 2 }
+
+    $manifest = Join-Path $PSScriptRoot '.config/dotnet-tools.json'
+    dotnet tool restore --tool-manifest $manifest
+    if ($LASTEXITCODE -ne 0) { Write-Host 'dotnet tool restore failed' -ForegroundColor Red; exit 2 }
+    $packages = ((dotnet nuget locals global-packages -l) -replace '^global-packages:\s*', '').Trim()
+    $sha = (Get-Content (Join-Path $packages 'sharpfuzz.commandline/2.3.0/sharpfuzz.commandline.2.3.0.nupkg.sha512') -Raw).Trim()
+    if ($sha -ne $sharpFuzzCliSha512) { Write-Host "SharpFuzz.CommandLine 2.3.0 does not match the pinned SHA-512 ($sha)" -ForegroundColor Red; exit 2 }
+}
+
+# Copies a built harness folder to <folder>-cov and instruments the named MikePDF assemblies there (never the shipped ones, never the harness).
+function Install-Instrumented([string] $plain, [string[]] $assemblies) {
+    $cov = "$plain-cov"
+    if (Test-Path $cov) { Remove-Item $cov -Recurse -Force }
+    Copy-Item $plain $cov -Recurse
+    Push-Location $PSScriptRoot # the tool manifest is found from here
+    try {
+        foreach ($name in $assemblies) {
+            dotnet sharpfuzz (Join-Path $cov $name)
+            if ($LASTEXITCODE -ne 0) { Write-Host "instrumenting $name failed" -ForegroundColor Red; exit 2 }
+        }
+    } finally { Pop-Location }
 }
 
 if (-not $SkipBuild) {
@@ -79,6 +130,11 @@ if (-not $SkipBuild) {
         Write-Host '==> C# PdfWriter fuzz harness' -ForegroundColor Cyan
         dotnet build (Join-Path $root 'tests/fuzz/MikePDF.PdfWriter.Fuzz') -c Release -o $csBin['pdfwriter-parse']
         if ($LASTEXITCODE -ne 0) { Write-Host 'build failed' -ForegroundColor Red; exit 2 }
+    }
+    if ($useCoverage) {
+        Install-CoverageTools
+        if ($Target -contains 'protocol-cs') { Install-Instrumented $csBin['protocol-cs'] @('MikePDF.Protocol.dll') }
+        if ($Target | Where-Object { $_ -like 'pdfwriter-*' }) { Install-Instrumented $csBin['pdfwriter-parse'] @('MikePDF.PdfWriter.dll') }
     }
 }
 
@@ -103,19 +159,32 @@ $dictionaries = Join-Path $PSScriptRoot 'dictionaries'
 # ---- run -----------------------------------------------------------------------------------------------------------------
 function Get-CorpusFiles([string] $dir) { if (Test-Path $dir) { @(Get-ChildItem $dir -File -Recurse).Count } else { 0 } }
 
-function Invoke-Native([string] $name, [string] $exe, [string] $seeds, [string] $dict, [int] $maxLen) {
+# `driverArgs` come first: for the .NET targets that is the driver's --target_path (the instrumented harness it starts as a child process).
+# The harness path is quoted for the driver's CreateProcess, hence the \" around it (the C runtime strips the outer quotes and keeps the inner ones).
+function Invoke-Native([string] $name, [string] $exe, [string] $seeds, [string] $dict, [int] $maxLen,
+                       [string] $kind = 'libFuzzer + AddressSanitizer (coverage-guided)', [string[]] $driverArgs = @(), [int] $timeout = 30) {
     $corpus = Join-Path $CorpusRoot $name
     $findings = Join-Path $FindingsRoot $name
     $jobDir = Join-Path $OutRoot "logs/$name-jobs"
     New-Item -ItemType Directory -Force $corpus, $findings, $jobDir | Out-Null
     $log = Join-Path $OutRoot "logs/$name.log"
-    $argv = @("-max_len=$maxLen", "-max_total_time=$Seconds", '-timeout=30', '-rss_limit_mb=4096', "-dict=$dict",
-              ('-artifact_prefix=' + $findings.Replace('\', '/') + '/'), '-print_final_stats=1', '-use_value_profile=1')
+    $argv = $driverArgs + @("-max_len=$maxLen", "-max_total_time=$Seconds", "-timeout=$timeout", '-rss_limit_mb=4096', "-dict=$dict",
+              ('-artifact_prefix=' + $findings.Replace('\', '/') + '/'), '-print_final_stats=1')
+    if ($driverArgs.Count -eq 0) { $argv += '-use_value_profile=1' } # value profile needs the compare tracing that only the compiled targets have
     if ($Rng -ne 0) { $argv += "-seed=$Rng" }
     if ($Jobs -gt 1) { $argv += "-jobs=$Jobs", "-workers=$Jobs" }
     $argv += $corpus, $seeds
     Write-Host "==> $name for ${Seconds}s ($Jobs process$(if ($Jobs -gt 1) { 'es' }))" -ForegroundColor Cyan
-    $p = Start-Process -FilePath $exe -ArgumentList $argv -NoNewWindow -Wait -PassThru -WorkingDirectory $jobDir -RedirectStandardError $log -RedirectStandardOutput (Join-Path $OutRoot "logs/$name.out.log")
+    $p = Start-Process -FilePath $exe -ArgumentList $argv -NoNewWindow -PassThru -WorkingDirectory $jobDir -RedirectStandardError $log -RedirectStandardOutput (Join-Path $OutRoot "logs/$name.out.log")
+    $null = $p.Handle # keeps the exit code readable after the process ends
+    # -max_total_time ends a healthy run. If a fuzzer is still alive 10 minutes after that (for example -jobs workers that die at start and are restarted
+    # for ever), kill the tree and fail the run instead of hanging the job until the CI limit.
+    $exitCode = $null
+    if (-not $p.WaitForExit(($Seconds + 600) * 1000)) {
+        Write-Host "$name did not stop $($Seconds + 600) s after it started; killing it" -ForegroundColor Red
+        & taskkill.exe /T /F /PID $p.Id | Out-Null
+        $exitCode = 124
+    } else { $exitCode = $p.ExitCode }
     # One log per process: this one when there is a single process, fuzz-<n>.log files under -jobs.
     $logs = if ($Jobs -gt 1) { @(Get-ChildItem $jobDir -Filter 'fuzz-*.log' | ForEach-Object FullName) } else { @($log) }
     $ft = 0; $execs = [int64] 0; $counters = $null
@@ -127,11 +196,11 @@ function Invoke-Native([string] $name, [string] $exe, [string] $seeds, [string] 
         if ($stat) { $ft = [Math]::Max($ft, [int] $stat.Groups[3].Value) }
         $units = [regex]::Match($text, 'stat::number_of_executed_units: (\d+)')
         if ($units.Success) { $execs += [int64] $units.Groups[1].Value }
-        if (-not $counters) { $counters = [regex]::Match($text, '(\d+) inline 8-bit counters') }
+        if (-not $counters -and $driverArgs.Count -eq 0) { $counters = [regex]::Match($text, '(\d+) inline 8-bit counters') } # the .NET driver has 64 counters of its own, which say nothing
     }
     $found = @(Get-ChildItem $findings -File -ErrorAction SilentlyContinue | Where-Object { $_.Name -match '^(crash|timeout|oom|leak|slow-unit)-' })
     [pscustomobject]@{
-        target = $name; kind = 'libFuzzer + AddressSanitizer (coverage-guided)'; seconds = $Seconds; processes = $Jobs; exit = $p.ExitCode
+        target = $name; kind = $kind; seconds = $Seconds; processes = $Jobs; exit = $exitCode
         executions = $execs; features = $ft; instrumentedEdges = if ($counters -and $counters.Success) { [int] $counters.Groups[1].Value } else { $null }
         corpusFiles = Get-CorpusFiles $corpus; findings = $found.Count; findingFiles = @($found | ForEach-Object Name)
     }
@@ -159,11 +228,65 @@ function Invoke-Managed([string] $name, [string] $dll, [string[]] $leading, [str
     }
     $found = @(Get-ChildItem $findings -File -ErrorAction SilentlyContinue | Where-Object { $_.Name -match '^(crash|timeout)-[0-9a-f]+$' })
     [pscustomobject]@{
-        target = $name; kind = 'mutational, NO coverage feedback (outcome-signature novelty only)'; seconds = $Seconds; processes = $Jobs
+        target = $name; kind = 'mutational fallback, NO coverage feedback (outcome-signature novelty only)'; seconds = $Seconds; processes = $Jobs
         exit = ($running | ForEach-Object { $_.Process.ExitCode } | Measure-Object -Maximum).Maximum
         executions = $execs; features = $null; instrumentedEdges = $null
         corpusFiles = Get-CorpusFiles $corpus; findings = $found.Count; findingFiles = @($found | ForEach-Object Name)
     }
+}
+
+# The coverage-guided C# targets: libFuzzer (through the vendored libfuzzer-dotnet driver) runs the SharpFuzz-instrumented harness as a child process.
+function Invoke-Guided([string] $name, [string] $harnessExe, [string[]] $leading, [string] $seeds, [string] $dict, [int] $maxLen) {
+    if (-not (Test-Path $driverExe)) { Write-Host "the libFuzzer driver is not built ($driverExe); run without -SkipBuild" -ForegroundColor Red; exit 2 }
+    if (-not (Test-Path $harnessExe)) { Write-Host "the instrumented harness is not built ($harnessExe); run without -SkipBuild" -ForegroundColor Red; exit 2 }
+    # libFuzzer's -jobs mode starts its workers by joining its own arguments back into a command line WITHOUT re-quoting them, so every argument
+    # here must survive that: no spaces, no quotes. Hence --target_path (the harness executable) and --target_arg (one word: `parse`, `append`, or none;
+    # a harness started with exactly that and nothing else runs in --libfuzzer mode). A path with spaces works for one process only.
+    if ($harnessExe -match '\s') {
+        if ($Jobs -gt 1) { Write-Host "-Jobs $Jobs needs a repository path without spaces for the coverage-guided C# targets ($harnessExe)" -ForegroundColor Red; exit 2 }
+        $child = @('"--target_path=\"' + $harnessExe + '\"' + $(if ($leading.Count) { ' ' + $leading[0] }) + '"')
+    } else {
+        $child = @("--target_path=$harnessExe") + $(if ($leading.Count) { "--target_arg=$($leading[0])" })
+    }
+    # A managed out-of-memory (a finding) must end in an exception, not in the machine's memory: cap the child's GC heap at 2 GiB (the value is hex).
+    $previous = $env:DOTNET_GCHeapHardLimit
+    $env:DOTNET_GCHeapHardLimit = '80000000'
+    try {
+        Invoke-Native $name $driverExe $seeds $dict $maxLen 'libFuzzer + SharpFuzz edge coverage (coverage-guided)' $child 20
+    } finally { $env:DOTNET_GCHeapHardLimit = $previous }
+}
+
+function Invoke-CSharp([string] $name, [string] $harness, [string[]] $leading, [string] $seeds, [string] $dict, [int] $maxLen) {
+    if ($CSharpMode -eq 'coverage') {
+        Invoke-Guided $name ((Join-Path ($csBin[$name] + '-cov') $harness) + '.exe') $leading $seeds $dict $maxLen
+    } else {
+        Invoke-Managed $name ((Join-Path $csBin[$name] $harness) + '.dll') $leading $seeds $dict $maxLen
+    }
+}
+
+if ($SelfTest) {
+    if (-not (Test-Path $driverExe)) { Write-Host "the libFuzzer driver is not built ($driverExe); run without -SkipBuild" -ForegroundColor Red; exit 2 }
+    $harness = (Join-Path ($csBin['protocol-cs'] + '-cov') 'MikePDF.Protocol.Fuzz') + '.exe'
+    $expected = [ordered]@{ throw = 'crash-'; hang = 'timeout-'; overflow = 'crash-' }
+    $failed = 0
+    foreach ($kind in $expected.Keys) {
+        $dir = Join-Path $OutRoot "selftest/$kind"
+        if (Test-Path $dir) { Remove-Item $dir -Recurse -Force }
+        $seed = Join-Path $dir 'seed'; $found = Join-Path $dir 'findings'
+        New-Item -ItemType Directory -Force $seed, $found | Out-Null
+        [IO.File]::WriteAllBytes((Join-Path $seed 'fzz'), [byte[]] (70, 90, 90)) # "FZZ": the planted failure fires on an input that starts with it
+        $argv = @(('"--target_path=\"' + $harness + '\" --libfuzzer --selftest ' + $kind + '"'), '-max_total_time=30', '-timeout=3', '-max_len=64',
+                  ('-artifact_prefix=' + $found.Replace('\', '/') + '/'), $seed)
+        $log = Join-Path $dir 'run.log'
+        $p = Start-Process -FilePath $driverExe -ArgumentList $argv -NoNewWindow -Wait -PassThru -RedirectStandardError $log -RedirectStandardOutput (Join-Path $dir 'run.out')
+        $artifact = @(Get-ChildItem $found -File | Where-Object { $_.Name -like "$($expected[$kind])*" })
+        $ok = ($p.ExitCode -ne 0) -and ($artifact.Count -eq 1) -and ($artifact[0].Length -ge 3)
+        if ($ok -and $kind -eq 'throw') { $ok = (Get-Content $log -Raw) -match 'the planted failure was reached' }
+        Write-Host ("selftest {0,-8} exit {1,-3} reproducer {2}: {3}" -f $kind, $p.ExitCode, $(if ($artifact) { $artifact[0].Name } else { 'none' }), $(if ($ok) { 'found' } else { 'NOT FOUND' }))
+        if (-not $ok) { $failed++ }
+    }
+    if ($failed) { Write-Host "$failed planted failure(s) were not found: the coverage-guided pipeline cannot be trusted" -ForegroundColor Red; exit 1 }
+    exit 0
 }
 
 $results = @()
@@ -171,16 +294,16 @@ foreach ($t in $Target) {
     switch ($t) {
         'protocol-cpp'     { $results += Invoke-Native $t (Join-Path $nativeBin 'fuzz_protocol.exe') $protocolSeeds (Join-Path $dictionaries 'protocol.dict') 65540 }
         'engine-document'  { $results += Invoke-Native $t (Join-Path $nativeBin 'fuzz_engine_document.exe') $pdfSeeds (Join-Path $dictionaries 'pdf.dict') 131072 }
-        'protocol-cs'      { $results += Invoke-Managed $t (Join-Path $csBin[$t] 'MikePDF.Protocol.Fuzz.dll') @() $protocolSeeds (Join-Path $dictionaries 'protocol.dict') 65540 }
-        'pdfwriter-parse'  { $results += Invoke-Managed $t (Join-Path $csBin[$t] 'MikePDF.PdfWriter.Fuzz.dll') @('parse') $pdfSeeds (Join-Path $dictionaries 'pdf.dict') 131072 }
-        'pdfwriter-append' { $results += Invoke-Managed $t (Join-Path $csBin[$t] 'MikePDF.PdfWriter.Fuzz.dll') @('append') $pdfSeeds (Join-Path $dictionaries 'pdf.dict') 131072 }
+        'protocol-cs'      { $results += Invoke-CSharp $t 'MikePDF.Protocol.Fuzz' @() $protocolSeeds (Join-Path $dictionaries 'protocol.dict') 65540 }
+        'pdfwriter-parse'  { $results += Invoke-CSharp $t 'MikePDF.PdfWriter.Fuzz' @('parse') $pdfSeeds (Join-Path $dictionaries 'pdf.dict') 131072 }
+        'pdfwriter-append' { $results += Invoke-CSharp $t 'MikePDF.PdfWriter.Fuzz' @('append') $pdfSeeds (Join-Path $dictionaries 'pdf.dict') 131072 }
     }
 }
 
 $results | ConvertTo-Json -Depth 4 | Set-Content (Join-Path $OutRoot 'summary.json')
 $md = @('| Target | Kind | Seconds x processes | Executions | libFuzzer features (instrumented edges) | Corpus files | Findings |', '|---|---|---|---|---|---|---|')
 foreach ($r in $results) {
-    $edges = if ($null -ne $r.features) { "$($r.features) ($($r.instrumentedEdges))" } else { 'n/a' }
+    $edges = if ($null -eq $r.features) { 'n/a' } elseif ($null -eq $r.instrumentedEdges) { "$($r.features)" } else { "$($r.features) ($($r.instrumentedEdges))" }
     $md += "| $($r.target) | $($r.kind) | $($r.seconds) x $($r.processes) | $($r.executions) | $edges | $($r.corpusFiles) | $($r.findings) |"
 }
 $md | Set-Content (Join-Path $OutRoot 'summary.md')

@@ -11,6 +11,7 @@
     <PackageReference Include="SharpFuzz" />
     <ProjectReference Include="..\..\..\src\MikePDF.Protocol\MikePDF.Protocol.csproj" />
     <Compile Include="..\Shared\MutationalFuzzer.cs" Link="Shared\MutationalFuzzer.cs" />
+    <Compile Include="..\Shared\LibFuzzerEntry.cs" Link="Shared\LibFuzzerEntry.cs" />
     <InternalsVisibleTo Include="MikePDF.Fuzz.Tests" />
   </ItemGroup>
 </Project>

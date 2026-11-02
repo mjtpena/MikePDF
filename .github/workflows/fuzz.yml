@@ -24,6 +24,12 @@ on:
         description: 'Parallel fuzzer processes per target (the runner has 4 vCPUs)'
         required: true
         default: '3'
+      csharp_mode:
+        description: 'How the C# targets run: coverage (SharpFuzz + libFuzzer, ADR-0017) or mutational (the fallback, no coverage feedback)'
+        required: true
+        type: choice
+        options: [coverage, mutational]
+        default: 'coverage'
 
 permissions:
   contents: read
@@ -77,6 +83,7 @@ jobs:
     env:
       MINUTES: ${{ inputs.minutes || '300' }}
       PROCESSES: ${{ inputs.processes || '3' }}
+      CSHARP_MODE: ${{ inputs.csharp_mode || 'coverage' }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
@@ -102,7 +109,8 @@ jobs:
           # The job limit is 360 minutes with the build and the cache save; never ask for more than fits.
           $minutes = [Math]::Clamp([int]$env:MINUTES, 1, 300)
           $processes = [Math]::Clamp([int]$env:PROCESSES, 1, 8)
-          ./tests/fuzz/run-fuzz.ps1 -Target ${{ matrix.target }} -Seconds ($minutes * 60) -Jobs $processes
+          # The C# targets are coverage-guided unless the run asks for the mutational fallback; the native ones ignore the mode. A scheduled run has no inputs.
+          ./tests/fuzz/run-fuzz.ps1 -Target ${{ matrix.target }} -Seconds ($minutes * 60) -Jobs $processes -CSharpMode $env:CSHARP_MODE
 
       - name: Save corpus
         if: always()

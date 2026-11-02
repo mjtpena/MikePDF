@@ -64,6 +64,11 @@ jobs:
       - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
         with:
           dotnet-version: '10.0.4xx' # ADR-0001 pin (10.0.403); global.json rolls forward to it
+      # The C# targets run coverage-guided (SharpFuzz + libFuzzer, ADR-0017). The self-test first proves that this pipeline finds a planted exception,
+      # hang and stack overflow, so that "no findings" below means something.
+      - name: Coverage-guided pipeline self-test
+        shell: pwsh
+        run: ./tests/fuzz/run-fuzz.ps1 -SelfTest
       - name: Fuzz smoke (60 s per target)
         shell: pwsh
         run: ./tests/fuzz/run-fuzz.ps1 -Target all -Seconds 60
