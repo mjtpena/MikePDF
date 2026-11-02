@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <!-- WinExe: no console window when a Windows Explorer host starts it. -->
+    <OutputType>WinExe</OutputType>
+    <AssemblyName>MikePDF.ShellHost</AssemblyName>
+    <RootNamespace>MikePDF.ShellHost</RootNamespace>
+    <Description>The broker for File Explorer's thumbnail provider and preview handler (ADR-0018): a per-user pipe, a fresh sandboxed engine per file, pixels back in a section the handler made.</Description>
+    <RuntimeIdentifier>$(MikePDFRuntimeIdentifier)</RuntimeIdentifier>
+    <!-- Native AOT (ADR-0018 decision 1): cold start 110 ms against 274 ms for a JIT build in S6b. The analyzers run on every build, the compiler on publish. -->
+    <PublishAot>true</PublishAot>
+    <IsAotCompatible>true</IsAotCompatible>
+    <InvariantGlobalization>true</InvariantGlobalization>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <UseSystemResourceKeys>true</UseSystemResourceKeys>
+    <!-- Stack traces and exception messages are for the log file only; nothing here is shown to a person. -->
+    <StackTraceSupport>true</StackTraceSupport>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\MikePDF.Broker\MikePDF.Broker.csproj" />
+    <ProjectReference Include="..\MikePDF.Core\MikePDF.Core.csproj" />
+    <ProjectReference Include="..\MikePDF.Protocol\MikePDF.Protocol.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="MikePDF.Integration.Tests" />
+    <InternalsVisibleTo Include="MikePDF.Fuzz.Tests" />
+    <InternalsVisibleTo Include="MikePDF.ShellHost.Fuzz" />
+  </ItemGroup>
+</Project>
