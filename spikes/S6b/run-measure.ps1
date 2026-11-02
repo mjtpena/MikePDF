@@ -3,7 +3,7 @@
   S6b local measurements: the handler DLL loaded by the test host (no registration, no windows shown), ShellHost started on demand, the real sandboxed engine.
   Every command line and every raw CSV goes to spikes/S6b/out/.
 #>
-param([string[]] $Only = @(), [switch] $Quick)
+param([string[]] $Only = @(), [switch] $Quick, [string] $Tag = '')
 $ErrorActionPreference = 'Stop'
 $here = $PSScriptRoot
 $out = Join-Path $here 'out'
@@ -19,7 +19,7 @@ function Scenario([string] $name, [string] $mode, [string] $thArgs, [hashtable] 
     $env:S6B_BUDGET_MS = '30000'
     foreach ($k in $env.Keys) { Set-Item "Env:$k" $env[$k] }
     Stop-Shell
-    $file = Join-Path $out "m-$name.csv"
+    $file = Join-Path $out "m-$name$Tag.csv"
     $line = "$TH --dll $Dll $thArgs --label $name   (S6B_SHELLHOST_ARGS=$env:S6B_SHELLHOST_ARGS; extra env: $(($env.GetEnumerator() | ForEach-Object { $_.Key + '=' + $_.Value }) -join ' '))"
     Add-Content $cmds ("[{0}] {1}" -f (Get-Date -Format s), $line)
     Write-Host "==> $name"

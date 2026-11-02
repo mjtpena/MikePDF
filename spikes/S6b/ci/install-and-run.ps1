@@ -85,28 +85,56 @@ $proc = Start-Process -FilePath $alias -ArgumentList '--selftest', "`"$drvOut`""
 Log "driver exit code: $($proc.ExitCode)"
 Get-Content (Join-Path $OutDir 'driver-stdout.txt') -ErrorAction SilentlyContinue | ForEach-Object { Log $_ }
 
-# ---- the same driver at MEDIUM and at LOW integrity, unpackaged (a copy outside the package, so no identity and no registry virtualization) ----------------------------------
-# The runner's token is High integrity, so everything above ran at High. A real Explorer runs at Medium, and prevhost's classic default for stream handlers is Low.
-# These runs lower the integrity of a duplicate of the runner's token (SetTokenInformation(TokenIntegrityLevel)); it is NOT a filtered user session.
-$tools = Join-Path $logDir 'tools'
+# ---- the same driver at HIGH (the runner), MEDIUM and LOW integrity, unpackaged (a copy outside the package: no identity, no registry virtualization) -----------------------------
+# The runner's token is High integrity, so the packaged run above was High. A real Explorer runs at Medium; prevhost's classic default for stream handlers is Low.
+# MEDIUM: runas /trustlevel:0x20000 (a "Basic User" restricted token: Administrators deny-only, privileges removed, Medium). LOW: a duplicate of the runner's token with the Low
+# label (SetTokenInformation(TokenIntegrityLevel); raising to Medium that way is refused with 1314, so Medium uses runas). Neither is a real interactive user session.
+# The tools live OUTSIDE C:\s6b-log: that folder carries a Low label so every integrity level can append logs, and an executable under it would start at Low.
+$tools = Join-Path $env:RUNNER_TEMP 's6b-tools'
 $fx2 = Join-Path $logDir 'fixtures'
 New-Item -ItemType Directory -Force $tools, $fx2 | Out-Null
 Copy-Item (Join-Path $NativeDir 'S6bDriver.exe'), (Join-Path $NativeDir 's6b_testhost.exe') $tools
+icacls $tools /grant '*S-1-1-0:(OI)(CI)RX' | Out-Null
 Copy-Item (Join-Path $fixtures 'text1.pdf') $fx2
-foreach ($il in 'medium', 'low') {
-    $work = Join-Path $logDir "work-$il"
-    $o = Join-Path $logDir "out-$il"
-    New-Item -ItemType Directory -Force $work, $o | Out-Null
-    Log "running the driver at $il integrity"
-    & (Join-Path $tools 's6b_testhost.exe') --il $il --low-exec "`"$(Join-Path $tools 'S6bDriver.exe')`" --selftest `"$o`" `"$fx2`" `"$work`"" 2>&1 | ForEach-Object { Log "$_" }
-    if (Test-Path (Join-Path $o 'driver.log')) { Copy-Item (Join-Path $o 'driver.log') (Join-Path $OutDir "driver-$il.log"); Get-Content (Join-Path $o 'driver.log') | ForEach-Object { Log $_ } } else { Log "no driver.log at $il integrity" }
-}
+$driverExe = Join-Path $tools 'S6bDriver.exe'
+function Mark([string] $m) { foreach ($f in 'handler.log', 'shellhost.log', 'comserver.log') { Add-Content -Path (Join-Path $logDir $f) -Value "==== PHASE: $m" } }
 
-# ---- who wins when another handler is registered for .pdf? (HKCU\Software\Classes writes: this disposable runner only) ----------------------------------------------------
+Mark 'unpackaged driver at HIGH integrity (the runner token)'
+$o = Join-Path $logDir 'out-high'; $work = Join-Path $logDir 'work-high'
+New-Item -ItemType Directory -Force $o, $work | Out-Null
+& $driverExe --selftest $o $fx2 $work 2>&1 | Out-Null
+if (Test-Path (Join-Path $o 'driver.log')) { Copy-Item (Join-Path $o 'driver.log') (Join-Path $OutDir 'driver-high-unpackaged.log') }
+
+Mark 'driver at MEDIUM integrity (runas /trustlevel:0x20000)'
+$o = Join-Path $logDir 'out-medium'; $work = Join-Path $logDir 'work-medium'
+New-Item -ItemType Directory -Force $o, $work | Out-Null
+$cmd = "$driverExe --selftest $o $fx2 $work"
+foreach ($attempt in 1, 2) {
+    Log "medium-integrity attempt ${attempt}: runas /trustlevel:0x20000"
+    try {
+        if ($attempt -eq 1) { Start-Process -FilePath 'runas.exe' -ArgumentList '/trustlevel:0x20000', "`"$cmd`"" -WindowStyle Hidden | Out-Null }
+        else { Start-Process -FilePath 'cmd.exe' -ArgumentList '/c', "runas /trustlevel:0x20000 `"$cmd`"" -WindowStyle Hidden | Out-Null }
+    } catch { Log "could not start: $($_.Exception.Message)" }
+    for ($i = 0; $i -lt 60; $i++) {
+        if ((Test-Path (Join-Path $o 'driver.log')) -and (Select-String -Path (Join-Path $o 'driver.log') -Pattern 'driver done' -Quiet)) { break }
+        Start-Sleep -Seconds 2
+    }
+    if (Test-Path (Join-Path $o 'driver.log')) { break }
+}
+if (Test-Path (Join-Path $o 'driver.log')) { Copy-Item (Join-Path $o 'driver.log') (Join-Path $OutDir 'driver-medium.log') } else { Log 'MEDIUM INTEGRITY: no driver.log after two attempts (runas /trustlevel did not start the driver)' }
+
+Mark 'driver at LOW integrity (token with the Low label)'
+$o = Join-Path $logDir 'out-low'; $work = Join-Path $logDir 'work-low'
+New-Item -ItemType Directory -Force $o, $work | Out-Null
+& (Join-Path $tools 's6b_testhost.exe') --il low --low-exec "`"$driverExe`" --selftest `"$o`" `"$fx2`" `"$work`"" 2>&1 | ForEach-Object { Log "$_" }
+if (Test-Path (Join-Path $o 'driver.log')) { Copy-Item (Join-Path $o 'driver.log') (Join-Path $OutDir 'driver-low.log') } else { Log 'no driver.log at low integrity' }
+
+# ---- who wins when another handler is registered for .pdf? (HKCU\Software\Classes writes: this disposable runner only; High integrity, unpackaged, one fresh process per case) ----
+Mark 'precedence experiments (High, unpackaged)'
 $expOut = Join-Path $logDir 'out-experiments'
 New-Item -ItemType Directory -Force $expOut, (Join-Path $logDir 'work-exp') | Out-Null
 foreach ($name in 'none', 'ext-level', 'progid-level', 'both') {
-    & (Join-Path $tools 'S6bDriver.exe') --experiment $name $expOut $fx2 (Join-Path $logDir 'work-exp') 2>&1 | ForEach-Object { Log "$_" }
+    & $driverExe --experiment $name $expOut $fx2 (Join-Path $logDir 'work-exp') 2>&1 | Out-Null
 }
 if (Test-Path (Join-Path $expOut 'experiment.log')) { Copy-Item (Join-Path $expOut 'experiment.log') (Join-Path $OutDir 'experiment.log') }
 Dump 'reg-after-experiments' { reg query 'HKCU\Software\Classes\.pdf' /s 2>&1 }
@@ -141,3 +169,4 @@ Dump 'after-uninstall' {
 }
 if (-not (Test-Path (Join-Path $drvOut 'driver.log'))) { Log 'NO driver.log: the driver did not run (see install.log)'; exit 2 }
 if ($env:GITHUB_STEP_SUMMARY) { '```' | Add-Content $env:GITHUB_STEP_SUMMARY; Get-Content (Join-Path $drvOut 'driver.log') | Add-Content $env:GITHUB_STEP_SUMMARY; '```' | Add-Content $env:GITHUB_STEP_SUMMARY }
+exit 0

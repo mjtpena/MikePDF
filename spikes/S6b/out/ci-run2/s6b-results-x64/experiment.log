@@ -1,0 +1,20 @@
+driver pid 4168, integrity RID 0x1000 (low), elevated token=1, package (none), family (none), native arch 9
+== experiment none (default .pdf ProgID: MSEdgePDF)
+  GetImage(.pdf): FAILED hr=0x80070005 -1.0 ms 0x0 non-white 0%
+  served by: MikePDF packaged handler +0, competitor (ExeServer) +0
+driver pid 6980, integrity RID 0x1000 (low), elevated token=1, package (none), family (none), native arch 9
+== experiment ext-level (default .pdf ProgID: MSEdgePDF)
+  registry: HKCU\Software\Classes\.pdf\ShellEx\{E357FCCD-A995-4576-B01F-234630154E96} = {6B7C2D10-5A1E-4F3B-9C11-0A5B6D6B0003} (FAILED)
+  GetImage(.pdf): FAILED hr=0x80070005 -1.0 ms 0x0 non-white 0%
+  served by: MikePDF packaged handler +0, competitor (ExeServer) +0
+driver pid 2624, integrity RID 0x1000 (low), elevated token=1, package (none), family (none), native arch 9
+== experiment progid-level (default .pdf ProgID: MSEdgePDF)
+  registry: HKCU\Software\Classes\MSEdgePDF\ShellEx\{E357FCCD-A995-4576-B01F-234630154E96} = {6B7C2D10-5A1E-4F3B-9C11-0A5B6D6B0003} (FAILED)
+  GetImage(.pdf): FAILED hr=0x80070005 -1.0 ms 0x0 non-white 0%
+  served by: MikePDF packaged handler +0, competitor (ExeServer) +0
+driver pid 8400, integrity RID 0x1000 (low), elevated token=1, package (none), family (none), native arch 9
+== experiment both (default .pdf ProgID: MSEdgePDF)
+  registry: HKCU\Software\Classes\.pdf\ShellEx\{E357FCCD-A995-4576-B01F-234630154E96} = {6B7C2D10-5A1E-4F3B-9C11-0A5B6D6B0003} (FAILED)
+  registry: HKCU\Software\Classes\MSEdgePDF\ShellEx\{E357FCCD-A995-4576-B01F-234630154E96} = {6B7C2D10-5A1E-4F3B-9C11-0A5B6D6B0003} (FAILED)
+  GetImage(.pdf): FAILED hr=0x80070005 -1.0 ms 0x0 non-white 0%
+  served by: MikePDF packaged handler +0, competitor (ExeServer) +0

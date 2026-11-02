@@ -2,8 +2,8 @@
 # label=input-truncated.pdf mode=warm cx=256 runs=3 pdf=C:\Users\mjtpe\dev\Orqentis\QuirePDF\.claude\worktrees\agent-a20eab59cba996f96\spikes\S6b\out\pdfs\truncated.pdf
 run,ok,hr,total_ms,copy_ms,connect_ms,launched,open_rt_ms,render_rt_ms,close_ms,convert_ms,srv_stage_us,srv_spawn_us,srv_open_us,srv_render_us,srv_out_us,srv_total_open_us,srv_total_render_us,engine_peak_kb,w,h,pages
 # call failed: hr=0x8007000b connectError=2 launchError=0
-0,0,0x8007000b,205.38,0.09,108.16,1,85.80,0.00,0.00,0.00,0,0,0,0,0,79925,0,0,0
+0,0,0x8007000b,266.91,0.12,136.60,1,117.17,0.00,0.00,0.00,0,0,0,0,0,108599,0,0,0,0,0
 # call failed: hr=0x8007000b connectError=0 launchError=0
-1,0,0x8007000b,24.37,0.08,0.34,0,23.47,0.00,0.00,0.00,0,0,0,0,0,22968,0,0,0
+1,0,0x8007000b,38.15,0.10,0.41,0,36.50,0.00,0.00,0.00,0,0,0,0,0,35639,0,0,0,0,0
 # call failed: hr=0x8007000b connectError=0 launchError=0
-2,0,0x8007000b,24.89,0.09,0.50,0,23.78,0.00,0.00,0.00,0,0,0,0,0,23428,0,0,0
+2,0,0x8007000b,34.47,0.15,0.66,0,32.38,0.00,0.00,0.00,0,0,0,0,0,31885,0,0,0,0,0

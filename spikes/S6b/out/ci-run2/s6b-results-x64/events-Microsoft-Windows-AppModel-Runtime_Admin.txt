@@ -1,0 +1,305 @@
+
+
+TimeCreated  : 11/2/2026 12:25:00 PM
+Id           : 211
+ProviderName : Microsoft-Windows-AppModel-Runtime
+Message      : Added process 7436 to Desktop AppX container aa9f6e3d-d6b7-11f1-98e8-7c1e520ba8bd for package MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28.
+
+TimeCreated  : 11/2/2026 12:24:58 PM
+Id           : 211
+ProviderName : Microsoft-Windows-AppModel-Runtime
+Message      : Added process 5184 to Desktop AppX container aa9f6e3d-d6b7-11f1-98e8-7c1e520ba8bd for package MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28.
+
+TimeCreated  : 11/2/2026 12:24:57 PM
+Id           : 211
+ProviderName : Microsoft-Windows-AppModel-Runtime
+Message      : Added process 5740 to Desktop AppX container aa9f6e3d-d6b7-11f1-98e8-7c1e520ba8bd for package MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28.
+
+TimeCreated  : 11/2/2026 12:24:56 PM
+Id           : 211
+ProviderName : Microsoft-Windows-AppModel-Runtime
+Message      : Added process 6976 to Desktop AppX container aa9f6e3d-d6b7-11f1-98e8-7c1e520ba8bd for package MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28.
+
+TimeCreated  : 11/2/2026 12:24:56 PM
+Id           : 211
+ProviderName : Microsoft-Windows-AppModel-Runtime
+Message      : Added process 4624 to Desktop AppX container aa9f6e3d-d6b7-11f1-98e8-7c1e520ba8bd for package MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28.
+
+TimeCreated  : 11/2/2026 12:24:56 PM
+Id           : 211
+ProviderName : Microsoft-Windows-AppModel-Runtime
+Message      : Added process 6996 to Desktop AppX container aa9f6e3d-d6b7-11f1-98e8-7c1e520ba8bd for package MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28.
+
+TimeCreated  : 11/2/2026 12:24:55 PM
+Id           : 211
+ProviderName : Microsoft-Windows-AppModel-Runtime
+Message      : Added process 8900 to Desktop AppX container aa9f6e3d-d6b7-11f1-98e8-7c1e520ba8bd for package MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28.
+
+TimeCreated  : 11/2/2026 12:24:55 PM
+Id           : 211
+ProviderName : Microsoft-Windows-AppModel-Runtime
+Message      : Added process 4080 to Desktop AppX container aa9f6e3d-d6b7-11f1-98e8-7c1e520ba8bd for package MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28.
+
+TimeCreated  : 11/2/2026 12:24:55 PM
+Id           : 211
+ProviderName : Microsoft-Windows-AppModel-Runtime
+Message      : Added process 9116 to Desktop AppX container aa9f6e3d-d6b7-11f1-98e8-7c1e520ba8bd for package MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28.
+
+TimeCreated  : 11/2/2026 12:24:54 PM
+Id           : 211
+ProviderName : Microsoft-Windows-AppModel-Runtime
+Message      : Added process 1452 to Desktop AppX container aa9f6e3d-d6b7-11f1-98e8-7c1e520ba8bd for package MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28.
+
+TimeCreated  : 11/2/2026 12:24:54 PM
+Id           : 211
+ProviderName : Microsoft-Windows-AppModel-Runtime
+Message      : Added process 5520 to Desktop AppX container aa9f6e3d-d6b7-11f1-98e8-7c1e520ba8bd for package MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28.
+
+TimeCreated  : 11/2/2026 12:24:54 PM
+Id           : 211
+ProviderName : Microsoft-Windows-AppModel-Runtime
+Message      : Added process 7056 to Desktop AppX container aa9f6e3d-d6b7-11f1-98e8-7c1e520ba8bd for package MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28.
+
+TimeCreated  : 11/2/2026 12:24:54 PM
+Id           : 211
+ProviderName : Microsoft-Windows-AppModel-Runtime
+Message      : Added process 7592 to Desktop AppX container aa9f6e3d-d6b7-11f1-98e8-7c1e520ba8bd for package MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28.
+
+TimeCreated  : 11/2/2026 12:24:54 PM
+Id           : 40
+ProviderName : Microsoft-Windows-AppModel-Runtime
+Message      : AppContainer onecore\ds\security\gina\profile\profext\appcontainer.cpp Line:1863 S6b shell host MikePDF.S6bShell was not created because it already exists.
+
+TimeCreated  : 11/2/2026 12:24:54 PM
+Id           : 211
+ProviderName : Microsoft-Windows-AppModel-Runtime
+Message      : Added process 1460 to Desktop AppX container aa9f6e3d-d6b7-11f1-98e8-7c1e520ba8bd for package MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28.
+
+TimeCreated  : 11/2/2026 12:24:52 PM
+Id           : 40
+ProviderName : Microsoft-Windows-AppModel-Runtime
+Message      : AppContainer onecore\ds\security\gina\profile\profext\appcontainer.cpp Line:1863 S6b shell host MikePDF.S6bShell was not created because it already exists.
+
+TimeCreated  : 11/2/2026 12:24:51 PM
+Id           : 40
+ProviderName : Microsoft-Windows-AppModel-Runtime
+Message      : AppContainer onecore\ds\security\gina\profile\profext\appcontainer.cpp Line:1863 S6b shell host MikePDF.S6bShell was not created because it already exists.
+
+TimeCreated  : 11/2/2026 12:24:51 PM
+Id           : 39
+ProviderName : Microsoft-Windows-AppModel-Runtime
+Message      : Successfully created AppContainer MikePDF.S6bShell.
+
+TimeCreated  : 11/2/2026 12:24:51 PM
+Id           : 211
+ProviderName : Microsoft-Windows-AppModel-Runtime
+Message      : Added process 1220 to Desktop AppX container aa9f6e3d-d6b7-11f1-98e8-7c1e520ba8bd for package MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28.
+
+TimeCreated  : 11/2/2026 12:24:51 PM
+Id           : 211
+ProviderName : Microsoft-Windows-AppModel-Runtime
+Message      : Added process 4392 to Desktop AppX container aa9f6ca4-d6b7-11f1-98e8-7c1e520ba8bd for package Microsoft.WindowsTerminal_1.23.20211.0_x64__8wekyb3d8bbwe.
+
+TimeCreated  : 11/2/2026 12:24:51 PM
+Id           : 201
+ProviderName : Microsoft-Windows-AppModel-Runtime
+Message      : Created process 4748 for application MikePDF.S6bProbe_gxqed95vwwy28!Driver in package MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28. [FinishPackageActivation]
+
+TimeCreated  : 11/2/2026 12:24:51 PM
+Id           : 211
+ProviderName : Microsoft-Windows-AppModel-Runtime
+Message      : Added process 4748 to Desktop AppX container aa9f6e3d-d6b7-11f1-98e8-7c1e520ba8bd for package MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28.
+
+TimeCreated  : 11/2/2026 12:24:51 PM
+Id           : 210
+ProviderName : Microsoft-Windows-AppModel-Runtime
+Message      : Created Desktop AppX container {AA9F6E3D-D6B7-11F1-98E8-7C1E520BA8BD} for package MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28.
+
+TimeCreated  : 11/2/2026 12:24:50 PM
+Id           : 219
+ProviderName : Microsoft-Windows-AppModel-Runtime
+Message      : PSMFlags for Desktop AppX process %1 with applicationID %2 is %3.
+
+TimeCreated  : 11/2/2026 12:24:36 PM
+Id           : 39
+ProviderName : Microsoft-Windows-AppModel-Runtime
+Message      : Successfully created AppContainer MikePDF.S6bProbe_gxqed95vwwy28.
+
+TimeCreated  : 11/2/2026 12:21:24 PM
+Id           : 211
+ProviderName : Microsoft-Windows-AppModel-Runtime
+Message      : Added process 1916 to Desktop AppX container aa9f6ca4-d6b7-11f1-98e8-7c1e520ba8bd for package Microsoft.WindowsTerminal_1.23.20211.0_x64__8wekyb3d8bbwe.
+
+TimeCreated  : 11/2/2026 12:21:24 PM
+Id           : 211
+ProviderName : Microsoft-Windows-AppModel-Runtime
+Message      : Added process 6180 to Desktop AppX container aa9f6ca4-d6b7-11f1-98e8-7c1e520ba8bd for package Microsoft.WindowsTerminal_1.23.20211.0_x64__8wekyb3d8bbwe.
+
+TimeCreated  : 11/2/2026 12:21:24 PM
+Id           : 210
+ProviderName : Microsoft-Windows-AppModel-Runtime
+Message      : Created Desktop AppX container {AA9F6CA4-D6B7-11F1-98E8-7C1E520BA8BD} for package Microsoft.WindowsTerminal_1.23.20211.0_x64__8wekyb3d8bbwe.
+
+TimeCreated  : 11/2/2026 12:20:53 PM
+Id           : 39
+ProviderName : Microsoft-Windows-AppModel-Runtime
+Message      : Successfully created AppContainer Microsoft.DesktopAppInstaller_8wekyb3d8bbwe.
+
+TimeCreated  : 11/2/2026 12:20:53 PM
+Id           : 39
+ProviderName : Microsoft-Windows-AppModel-Runtime
+Message      : Successfully created AppContainer Microsoft.VCLibs.140.00.UWPDesktop_8wekyb3d8bbwe.
+
+TimeCreated  : 11/2/2026 12:20:51 PM
+Id           : 39
+ProviderName : Microsoft-Windows-AppModel-Runtime
+Message      : Successfully created AppContainer Microsoft.WindowsTerminal_8wekyb3d8bbwe.
+
+TimeCreated  : 11/2/2026 12:20:50 PM
+Id           : 39
+ProviderName : Microsoft-Windows-AppModel-Runtime
+Message      : Successfully created AppContainer Microsoft.UI.Xaml.2.8_8wekyb3d8bbwe.
+
+TimeCreated  : 11/2/2026 12:20:46 PM
+Id           : 39
+ProviderName : Microsoft-Windows-AppModel-Runtime
+Message      : Successfully created AppContainer Microsoft.AAD.BrokerPlugin_cw5n1h2txyewy.
+
+TimeCreated  : 11/2/2026 12:20:44 PM
+Id           : 39
+ProviderName : Microsoft-Windows-AppModel-Runtime
+Message      : Successfully created AppContainer Microsoft.Windows.StartMenuExperienceHost_cw5n1h2txyewy.
+
+TimeCreated  : 11/2/2026 12:20:36 PM
+Id           : 39
+ProviderName : Microsoft-Windows-AppModel-Runtime
+Message      : Successfully created AppContainer Microsoft.MicrosoftEdge.Stable_8wekyb3d8bbwe.
+
+TimeCreated  : 11/2/2026 12:20:34 PM
+Id           : 39
+ProviderName : Microsoft-Windows-AppModel-Runtime
+Message      : Successfully created AppContainer MicrosoftWindows.Client.OOBE_cw5n1h2txyewy.
+
+TimeCreated  : 11/2/2026 12:20:33 PM
+Id           : 39
+ProviderName : Microsoft-Windows-AppModel-Runtime
+Message      : Successfully created AppContainer Microsoft.Win32WebViewHost_cw5n1h2txyewy.
+
+TimeCreated  : 11/2/2026 12:20:33 PM
+Id           : 39
+ProviderName : Microsoft-Windows-AppModel-Runtime
+Message      : Successfully created AppContainer windows.immersivecontrolpanel_cw5n1h2txyewy.
+
+TimeCreated  : 11/2/2026 12:20:33 PM
+Id           : 39
+ProviderName : Microsoft-Windows-AppModel-Runtime
+Message      : Successfully created AppContainer MicrosoftWindows.Client.CBS_cw5n1h2txyewy.
+
+TimeCreated  : 11/2/2026 12:20:27 PM
+Id           : 40
+ProviderName : Microsoft-Windows-AppModel-Runtime
+Message      : AppContainer onecore\ds\security\gina\profile\profext\appcontainer.cpp Line:1863 Usermode Font Driver Host microsoft.windows.fontdrvhost was not created because it already exists.
+
+TimeCreated  : 11/2/2026 12:19:48 PM
+Id           : 40
+ProviderName : Microsoft-Windows-AppModel-Runtime
+Message      : AppContainer onecore\ds\security\gina\profile\profext\appcontainer.cpp Line:1863 Usermode Font Driver Host microsoft.windows.fontdrvhost was not created because it already exists.
+
+TimeCreated  : 11/2/2026 12:19:48 PM
+Id           : 40
+ProviderName : Microsoft-Windows-AppModel-Runtime
+Message      : AppContainer onecore\ds\security\gina\profile\profext\appcontainer.cpp Line:1863 Usermode Font Driver Host microsoft.windows.fontdrvhost was not created because it already exists.
+
+TimeCreated  : 10/21/2026 10:16:50 PM
+Id           : 40
+ProviderName : Microsoft-Windows-AppModel-Runtime
+Message      : AppContainer onecore\ds\security\gina\profile\profext\appcontainer.cpp Line:1863 Usermode Font Driver Host microsoft.windows.fontdrvhost was not created because it already exists.
+
+TimeCreated  : 10/21/2026 10:16:50 PM
+Id           : 40
+ProviderName : Microsoft-Windows-AppModel-Runtime
+Message      : AppContainer onecore\ds\security\gina\profile\profext\appcontainer.cpp Line:1863 Usermode Font Driver Host microsoft.windows.fontdrvhost was not created because it already exists.
+
+TimeCreated  : 10/21/2026 9:43:38 PM
+Id           : 40
+ProviderName : Microsoft-Windows-AppModel-Runtime
+Message      : AppContainer onecore\ds\security\gina\profile\profext\appcontainer.cpp Line:1863 Usermode Font Driver Host microsoft.windows.fontdrvhost was not created because it already exists.
+
+TimeCreated  : 10/21/2026 9:43:38 PM
+Id           : 40
+ProviderName : Microsoft-Windows-AppModel-Runtime
+Message      : AppContainer onecore\ds\security\gina\profile\profext\appcontainer.cpp Line:1863 Usermode Font Driver Host microsoft.windows.fontdrvhost was not created because it already exists.
+
+TimeCreated  : 10/21/2026 9:17:41 PM
+Id           : 41
+ProviderName : Microsoft-Windows-AppModel-Runtime
+Message      : Successfully deleted AppContainer MicrosoftCorporationII.WindowsSubsystemForLinux_8wekyb3d8bbwe.
+
+TimeCreated  : 10/21/2026 9:17:14 PM
+Id           : 40
+ProviderName : Microsoft-Windows-AppModel-Runtime
+Message      : AppContainer onecore\ds\security\gina\profile\profext\appcontainer.cpp Line:1863 Usermode Font Driver Host microsoft.windows.fontdrvhost was not created because it already exists.
+
+TimeCreated  : 10/21/2026 9:17:14 PM
+Id           : 40
+ProviderName : Microsoft-Windows-AppModel-Runtime
+Message      : AppContainer onecore\ds\security\gina\profile\profext\appcontainer.cpp Line:1863 Usermode Font Driver Host microsoft.windows.fontdrvhost was not created because it already exists.
+
+TimeCreated  : 10/21/2026 8:05:17 PM
+Id           : 40
+ProviderName : Microsoft-Windows-AppModel-Runtime
+Message      : AppContainer onecore\ds\security\gina\profile\profext\appcontainer.cpp Line:1863 Usermode Font Driver Host microsoft.windows.fontdrvhost was not created because it already exists.
+
+TimeCreated  : 10/21/2026 8:05:17 PM
+Id           : 40
+ProviderName : Microsoft-Windows-AppModel-Runtime
+Message      : AppContainer onecore\ds\security\gina\profile\profext\appcontainer.cpp Line:1863 Usermode Font Driver Host microsoft.windows.fontdrvhost was not created because it already exists.
+
+TimeCreated  : 10/21/2026 6:31:04 PM
+Id           : 40
+ProviderName : Microsoft-Windows-AppModel-Runtime
+Message      : AppContainer onecore\ds\security\gina\profile\profext\appcontainer.cpp Line:1863 Usermode Font Driver Host microsoft.windows.fontdrvhost was not created because it already exists.
+
+TimeCreated  : 10/21/2026 6:31:04 PM
+Id           : 40
+ProviderName : Microsoft-Windows-AppModel-Runtime
+Message      : AppContainer onecore\ds\security\gina\profile\profext\appcontainer.cpp Line:1863 Usermode Font Driver Host microsoft.windows.fontdrvhost was not created because it already exists.
+
+TimeCreated  : 10/21/2026 5:53:10 PM
+Id           : 40
+ProviderName : Microsoft-Windows-AppModel-Runtime
+Message      : AppContainer onecore\ds\security\gina\profile\profext\appcontainer.cpp Line:1863 Usermode Font Driver Host microsoft.windows.fontdrvhost was not created because it already exists.
+
+TimeCreated  : 10/21/2026 5:53:10 PM
+Id           : 40
+ProviderName : Microsoft-Windows-AppModel-Runtime
+Message      : AppContainer onecore\ds\security\gina\profile\profext\appcontainer.cpp Line:1863 Usermode Font Driver Host microsoft.windows.fontdrvhost was not created because it already exists.
+
+TimeCreated  : 10/21/2026 5:06:49 PM
+Id           : 40
+ProviderName : Microsoft-Windows-AppModel-Runtime
+Message      : AppContainer onecore\ds\security\gina\profile\profext\appcontainer.cpp Line:1863 Usermode Font Driver Host microsoft.windows.fontdrvhost was not created because it already exists.
+
+TimeCreated  : 10/21/2026 5:06:49 PM
+Id           : 40
+ProviderName : Microsoft-Windows-AppModel-Runtime
+Message      : AppContainer onecore\ds\security\gina\profile\profext\appcontainer.cpp Line:1863 Usermode Font Driver Host microsoft.windows.fontdrvhost was not created because it already exists.
+
+TimeCreated  : 10/21/2026 4:59:47 PM
+Id           : 40
+ProviderName : Microsoft-Windows-AppModel-Runtime
+Message      : AppContainer onecore\ds\security\gina\profile\profext\appcontainer.cpp Line:1863 Usermode Font Driver Host microsoft.windows.fontdrvhost was not created because it already exists.
+
+TimeCreated  : 10/21/2026 4:59:47 PM
+Id           : 40
+ProviderName : Microsoft-Windows-AppModel-Runtime
+Message      : AppContainer onecore\ds\security\gina\profile\profext\appcontainer.cpp Line:1863 Usermode Font Driver Host microsoft.windows.fontdrvhost was not created because it already exists.
+
+TimeCreated  : 10/21/2026 4:17:39 PM
+Id           : 39
+ProviderName : Microsoft-Windows-AppModel-Runtime
+Message      : Successfully created AppContainer MicrosoftCorporationII.WindowsSubsystemForLinux_8wekyb3d8bbwe.
+
+
+
+
