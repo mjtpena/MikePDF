@@ -48,6 +48,19 @@ public sealed class EngineClientValidationTests
         Ys = new float[count],
     };
 
+    private static GetDocumentDetailsReply Details(string fontName = "Arial", uint pagesScanned = FakeEngine.FakePageCount, bool complete = false) => new()
+    {
+        CreationDate = "D:20240115",
+        ModificationDate = "D:20240116",
+        SecurityRevision = 0,
+        UserPermissions = uint.MaxValue,
+        FormType = 0,
+        FontNames = [fontName],
+        FontFlags = [1],
+        FontsComplete = complete,
+        FontPagesScanned = pagesScanned,
+    };
+
     private static GetPageTextReply Text(uint total, int count) => new()
     {
         Total = total,
@@ -151,6 +164,19 @@ public sealed class EngineClientValidationTests
             r => [Reply(r, Status.Ok, MessageType.SearchPage, new SearchPageReply { Starts = [4, 4], Lengths = [1, 1] })]),
         new("search-match-past-the-end-of-any-text", MessageType.SearchPage, 1, async (c, d) => (await c.SearchPageAsync(d, 0, "x", 0, Wait)).Status,
             r => [Reply(r, Status.Ok, MessageType.SearchPage, new SearchPageReply { Starts = [199_999], Lengths = [2] })]),
+        // ---- the properties dialog (schema 4) ----
+        new("details-font-name-with-a-control-character", MessageType.GetDocumentDetails, 1, async (c, d) => (await c.GetDocumentDetailsAsync(d, Wait)).Status,
+            r => [Reply(r, Status.Ok, MessageType.GetDocumentDetails, Details(fontName: "Arial\u0007"))]),
+        new("details-font-name-that-reverses-the-text", MessageType.GetDocumentDetails, 1, async (c, d) => (await c.GetDocumentDetailsAsync(d, Wait)).Status,
+            r => [Reply(r, Status.Ok, MessageType.GetDocumentDetails, Details(fontName: "Arial\u202egpj"))]),
+        new("details-font-name-empty", MessageType.GetDocumentDetails, 1, async (c, d) => (await c.GetDocumentDetailsAsync(d, Wait)).Status,
+            r => [Reply(r, Status.Ok, MessageType.GetDocumentDetails, Details(fontName: ""))]),
+        new("details-more-pages-walked-than-the-document-has", MessageType.GetDocumentDetails, 1, async (c, d) => (await c.GetDocumentDetailsAsync(d, Wait)).Status,
+            r => [Reply(r, Status.Ok, MessageType.GetDocumentDetails, Details(pagesScanned: FakeEngine.FakePageCount + 1))]),
+        new("details-complete-but-another-number-of-pages", MessageType.GetDocumentDetails, 1, async (c, d) => (await c.GetDocumentDetailsAsync(d, Wait)).Status,
+            r => [Reply(r, Status.Ok, MessageType.GetDocumentDetails, Details(complete: true, pagesScanned: 1))]),
+        new("details-answered-with-cancelled", MessageType.GetDocumentDetails, 1, async (c, d) => (await c.GetDocumentDetailsAsync(d, Wait)).Status,
+            r => [Reply(r, Status.Cancelled, MessageType.GetDocumentDetails)]),
         new("garbage-bytes", MessageType.Ping, 1, async (c, _) => (await c.PingAsync(1, Wait)).Status,
             _ => [[5, 0, 0, 0, 0xC1, 0xC1, 0xC1, 0xC1, 0xC1]]),
         new("length-prefix-above-the-frame-limit", MessageType.Ping, 1, async (c, _) => (await c.PingAsync(1, Wait)).Status,
