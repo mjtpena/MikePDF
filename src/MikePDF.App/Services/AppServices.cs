@@ -1,4 +1,5 @@
 using MikePDF.Core.Commands;
+using MikePDF.Core.Layout;
 using MikePDF.Core.Persistence;
 using MikePDF.Core.Settings;
 
@@ -70,6 +71,7 @@ internal sealed class AppServices : IDisposable
     {
         Documents.RecentLimit = Settings.Value<int>("recent.maxItems");
         Documents.RestorePositions = Settings.Value<bool>("view.restorePosition");
+        Documents.DefaultMode = ViewMode.Parse(Settings.Value<string>("view.defaultArrangement"), Settings.Value<string>("view.defaultFlow"), null);
     }
 
     public void Dispose()

@@ -47,6 +47,7 @@ public sealed class DocumentStore
     private StoreData _data;
     private int _recentLimit = MaxRecent;
     private bool _restorePositions = true;
+    private ViewMode _defaultMode;
 
     public DocumentStore(string path, TimeProvider? time = null)
     {
@@ -106,6 +107,28 @@ public sealed class DocumentStore
             lock (_gate)
             {
                 _restorePositions = value;
+            }
+        }
+    }
+
+    /// <summary>
+    /// How a document is laid out the first time it is opened, or when positions are not remembered (the settings view.defaultArrangement and view.defaultFlow). A document that has
+    /// a record of its own keeps that. The reading direction is never defaulted: it follows the document.
+    /// </summary>
+    public ViewMode DefaultMode
+    {
+        get
+        {
+            lock (_gate)
+            {
+                return _defaultMode;
+            }
+        }
+        set
+        {
+            lock (_gate)
+            {
+                _defaultMode = value with { Direction = ReadingDirection.Auto };
             }
         }
     }

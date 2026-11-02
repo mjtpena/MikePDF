@@ -131,7 +131,57 @@ public static class TilePlanner
             plan.Prefetch.AddRange(prefetch.OrderBy(t => t.Distance).Select(t => t.Item).Take(budget));
         }
 
+        // 5. A presentation: the whole of the next spread, the one before, and the one after the next, each page at the scale it will be shown, so that a turn finds its tiles drawn. It waits
+        // for the viewport's own tiles (the lanes serve the earlier lists first), and it is left out when it would not fit in the cache beside what is already there.
+        if (view.PrefetchAdjacentSpreads && !fast)
+        {
+            PrefetchAdjacentSpreads(plan, cache, view, scale, turns, centreY, visibleKeys, budget);
+        }
+
         return plan;
+    }
+
+    // The share of the cache's budget that prefetching a presentation may fill; the rest is for the page on screen and for the way back.
+    private const double AdjacentBudgetShare = 0.7;
+
+    private static void PrefetchAdjacentSpreads(TilePlan plan, TileCache cache, ViewSnapshot view, float scale, int turns, double centreY, HashSet<TileKey> visibleKeys, int budget)
+    {
+        var layout = view.Layout;
+        var current = layout.MostVisibleSpread(view.ScrollY, view.ScrollY + view.ViewportHeight);
+        if (current < 0)
+        {
+            return;
+        }
+
+        var already = new HashSet<TileKey>(plan.Prefetch.Select(item => item.Key));
+        var candidates = new List<PlannedItem>();
+        foreach (var spread in new[] { current + 1, current - 1, current + 2 })
+        {
+            if (spread < 0 || spread >= layout.SpreadCount)
+            {
+                continue;
+            }
+
+            var (first, last) = layout.PagesOf(spread);
+            for (var page = first; page <= last; page++)
+            {
+                var found = new List<(double Distance, PlannedItem Item)>();
+                CollectTiles(plan, cache, layout, page, view.ScrollX, view.ScrollX + view.ViewportWidth, layout.Top(page), layout.Top(page) + layout.Height(page), scale, turns, centreY, found, already, exclude: visibleKeys);
+                candidates.AddRange(found.OrderBy(t => t.Distance).Select(t => t.Item));
+            }
+        }
+
+        var room = (long)(cache.BudgetBytes * AdjacentBudgetShare) - cache.Bytes;
+        foreach (var item in candidates.Take(budget))
+        {
+            room -= (long)item.Width * item.Height * 4 * 2; // as the cache costs a tile: its pixels, and the surface made from them
+            if (room < 0)
+            {
+                break;
+            }
+
+            plan.Prefetch.Add(item);
+        }
     }
 
     /// <summary>The scale at which a page's placeholder is rendered so it fits the placeholder box.</summary>

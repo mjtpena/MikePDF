@@ -396,6 +396,8 @@ public sealed partial class MainWindow
         }
 
         Pages.Presentation = true;
+        _measuredSession = session;
+        session.TurnMeasured += OnTurnMeasured;
         _surfaceName = AutomationProperties.GetName(Pages);
         _surfaceId = AutomationProperties.GetAutomationId(Pages);
         AutomationProperties.SetAutomationId(Pages, "PresentationSurface");
@@ -418,6 +420,12 @@ public sealed partial class MainWindow
         }
 
         _presenting = false;
+        if (_measuredSession is { } measured)
+        {
+            measured.TurnMeasured -= OnTurnMeasured;
+            _measuredSession = null;
+        }
+
         _typedPage = string.Empty;
         _pointerOverHint = false;
         _hintTimer?.Stop();
@@ -508,6 +516,27 @@ public sealed partial class MainWindow
         }
     }
 
+    private DocumentSession? _measuredSession;
+
+    // The turn times, for the journey that measures them (PV-17): one line per page turned, only when the test seam names a file.
+    private void OnTurnMeasured(double firstFrameMs, double sharpMs) => AppendPresentationDump(
+        "turn " + firstFrameMs.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture) + " " + sharpMs.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture));
+
+    private static void AppendPresentationDump(string line)
+    {
+        if (TestSeams.Get(TestSeamGate.PresentationDump) is { Length: > 0 } name && name.IndexOfAny(Path.GetInvalidFileNameChars()) < 0)
+        {
+            try
+            {
+                File.AppendAllText(Path.Combine(AppPaths.PrivateDirectory, name), line + Environment.NewLine);
+            }
+            catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+            {
+                // A journey's own file; if it cannot be written the journey says so.
+            }
+        }
+    }
+
     private const uint EsContinuous = 0x80000000;
     private const uint EsSystemRequired = 0x00000001;
     private const uint EsDisplayRequired = 0x00000002;
@@ -525,16 +554,6 @@ public sealed partial class MainWindow
 
         _awake = on;
         _ = SetThreadExecutionState(on ? EsContinuous | EsDisplayRequired | EsSystemRequired : EsContinuous);
-        if (TestSeams.Get(TestSeamGate.PresentationDump) is { Length: > 0 } name && name.IndexOfAny(Path.GetInvalidFileNameChars()) < 0)
-        {
-            try
-            {
-                File.AppendAllText(Path.Combine(AppPaths.PrivateDirectory, name), (on ? "awake" : "asleep") + Environment.NewLine);
-            }
-            catch (Exception e) when (e is IOException or UnauthorizedAccessException)
-            {
-                // A journey's own file; if it cannot be written the journey says so.
-            }
-        }
+        AppendPresentationDump(on ? "awake" : "asleep");
     }
 }
