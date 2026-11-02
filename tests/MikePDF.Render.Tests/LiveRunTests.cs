@@ -15,7 +15,7 @@ namespace MikePDF.Render.Tests;
 /// </summary>
 public sealed class LiveRunTests
 {
-    // Enough translucent layers that a page at 4x takes the engine a few seconds (measured: about 12 ms a layer on the development machine), but not minutes.
+    // Enough translucent layers that a page at 3x takes the engine a second or two (measured on the development machine: about 12 ms a layer at 4x), but not minutes. Kept small on purpose: these tests share the machine with timing-sensitive ones.
     private const int HeavyLayers = 250;
 
     private static readonly string[] FixtureNames = ["hello_world.pdf", "hello_world_2_pages.pdf", "rectangles.pdf", "js.pdf"];
@@ -55,7 +55,7 @@ public sealed class LiveRunTests
             Assert.Equal(0.0, p.ChangedPercent);
             Assert.Null(p.DiffImage);
         });
-        Assert.All(files, f => Assert.Empty(f.EngineEvents));
+        Assert.All(files, f => Assert.True(f.EngineEvents.Count == 0, f.Id + " saw engine events: " + string.Join("; ", f.EngineEvents.Select(e => $"{e.Kind} {e.Reason} {e.ExitCode} {e.Detail}"))));
         Assert.Equal(1, h.Host.SupervisorsStarted);
 
         var settings = RenderRun.SettingsFor(options, null);
@@ -171,7 +171,7 @@ public sealed class LiveRunTests
         Assert.Equal(["Damaged", "Damaged", "Damaged", "Ok"], files.Select(f => f.Open.Status));
         Assert.Equal("Ok", files[3].Pages.Single().Status);
         Assert.Equal(1.0, files[3].Pages.Single().Ssim);
-        Assert.All(files, f => Assert.Empty(f.EngineEvents));
+        Assert.All(files, f => Assert.True(f.EngineEvents.Count == 0, f.Id + " saw engine events: " + string.Join("; ", f.EngineEvents.Select(e => $"{e.Kind} {e.Reason} {e.ExitCode} {e.Detail}"))));
         Assert.Equal(engine, (await h.Host.GetSupervisorAsync(default)).EngineProcessId); // never restarted: a damaged file is an answer, not a crash
         Assert.True(GateEvaluator.Evaluate(files, RenderRun.SettingsFor(options, null), null).Passed);
 
@@ -188,18 +188,18 @@ public sealed class LiveRunTests
         Requires.Engine();
         await using var h = Harness.Create("kill");
         var heavy = h.Write("heavy.pdf", Harness.SlowPage(HeavyLayers));
-        var options = h.Options("--scale", "4", "--no-reference", "--retries", "1");
+        var options = h.Options("--scale", "3", "--no-reference", "--retries", "1");
         var first = (await h.Host.GetSupervisorAsync(default)).EngineProcessId;
 
         var run = h.RunAsync(options, [Harness.Item(heavy), Harness.Item(Fixture("rectangles.pdf"))], null);
-        await WaitUntilAsync(() => h.Host.Context == "page 1@4", "the engine to be drawing the heavy page");
+        await WaitUntilAsync(() => h.Host.Context == "page 1@3", "the engine to be drawing the heavy page");
         await Task.Delay(150);
         Process.GetProcessById((int)first).Kill();
         var files = await run.WaitAsync(TimeSpan.FromMinutes(3));
 
         // The engine died under the page: that is on the record, with where and why ...
         var crash = Assert.Single(files[0].EngineEvents, e => e.Kind == "crashed");
-        Assert.Equal("page 1@4", crash.During);
+        Assert.Equal("page 1@3", crash.During);
         Assert.Contains(crash.Reason, ExpectedCrashReasons);
         var restored = Assert.Single(files[0].EngineEvents, e => e.Kind == "restored");
         Assert.Equal(1, restored.DocumentsRestored);
@@ -226,7 +226,7 @@ public sealed class LiveRunTests
         Requires.Engine();
         await using var h = Harness.Create("poison");
         var heavy = h.Write("heavy.pdf", Harness.SlowPage(HeavyLayers));
-        var options = h.Options("--scale", "4", "--no-reference", "--retries", "1");
+        var options = h.Options("--scale", "3", "--no-reference", "--retries", "1");
         var supervisor = await h.Host.GetSupervisorAsync(default);
 
         using var killer = new CancellationTokenSource();
@@ -237,7 +237,7 @@ public sealed class LiveRunTests
             while (!killer.IsCancellationRequested)
             {
                 var pid = supervisor.EngineProcessId;
-                if (killed.Count < 2 && h.Host.Context == "page 1@4" && pid != 0 && killed.Add(pid))
+                if (killed.Count < 2 && h.Host.Context == "page 1@3" && pid != 0 && killed.Add(pid))
                 {
                     await Task.Delay(150);
                     try
@@ -272,7 +272,7 @@ public sealed class LiveRunTests
         Requires.Engine();
         await using var h = Harness.Create("deadline");
         var heavy = h.Write("heavy.pdf", Harness.SlowPage(HeavyLayers));
-        var options = h.Options("--scale", "4", "--no-reference", "--tile-deadline-ms", "100");
+        var options = h.Options("--scale", "3", "--no-reference", "--tile-deadline-ms", "50");
         var engine = (await h.Host.GetSupervisorAsync(default)).EngineProcessId;
 
         var files = await h.RunAsync(options, [Harness.Item(heavy), Harness.Item(Fixture("rectangles.pdf"))], null).WaitAsync(TimeSpan.FromMinutes(2));
@@ -292,7 +292,7 @@ public sealed class LiveRunTests
         Requires.Engine();
         await using var h = Harness.Create("filelimit");
         var heavy = h.Write("heavy.pdf", Harness.SlowPage(60_000));
-        var options = h.Options("--scale", "4", "--no-reference", "--file-timeout-s", "1", "--tile-deadline-ms", "600000");
+        var options = h.Options("--scale", "3", "--no-reference", "--file-timeout-s", "1", "--tile-deadline-ms", "600000");
 
         var clock = Stopwatch.StartNew();
         var files = await h.RunAsync(options, [Harness.Item(heavy), Harness.Item(Fixture("rectangles.pdf"))], null).WaitAsync(TimeSpan.FromMinutes(2));
@@ -311,11 +311,11 @@ public sealed class LiveRunTests
         Requires.Engine();
         await using var h = Harness.Create("stop");
         var heavy = h.Write("heavy.pdf", Harness.SlowPage(60_000));
-        var options = h.Options("--scale", "4", "--no-reference", "--tile-deadline-ms", "600000");
+        var options = h.Options("--scale", "3", "--no-reference", "--tile-deadline-ms", "600000");
         using var stop = new CancellationTokenSource();
 
         var run = h.RunAsync(options, [Harness.Item(heavy), Harness.Item(Fixture("rectangles.pdf"))], null, stop.Token);
-        await WaitUntilAsync(() => h.Host.Context == "page 1@4", "the engine to be drawing the heavy page");
+        await WaitUntilAsync(() => h.Host.Context == "page 1@3", "the engine to be drawing the heavy page");
         await Task.Delay(100);
         var clock = Stopwatch.StartNew();
         await stop.CancelAsync();
@@ -356,7 +356,7 @@ public sealed class LiveRunTests
         await using var h = Harness.Create("giveup");
         var heavy = h.Write("heavy.pdf", Harness.SlowPage(HeavyLayers));
         // One physical page, five jobs: five scales of the same heavy page, each of which times out.
-        var options = h.Options("--scale", "4,4.1,4.2,4.3,4.4", "--no-reference", "--tile-deadline-ms", "50");
+        var options = h.Options("--scale", "3,3.1,3.2,3.3,3.4", "--no-reference", "--tile-deadline-ms", "50");
         var files = await h.RunAsync(options, [Harness.Item(heavy)], null).WaitAsync(TimeSpan.FromMinutes(2));
 
         Assert.Equal(5, files[0].Pages.Count);
