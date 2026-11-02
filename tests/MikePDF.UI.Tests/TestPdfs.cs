@@ -49,4 +49,48 @@ internal static class TestPdfs
         File.WriteAllText(path, pdf.ToString(), Encoding.Latin1);
         return path;
     }
+
+    /// <summary>
+    /// One US Letter page with a red square and a 16 x 16 colour picture (no white in it, so the engine counts it a photograph) drawn 300 pt square. Its top-left corner is green.
+    /// </summary>
+    public static string WithPhoto(string directory, string name)
+    {
+        Directory.CreateDirectory(directory);
+        var path = Path.Combine(directory, name);
+        var hex = new StringBuilder();
+        for (var y = 0; y < 16; y++)
+        {
+            for (var x = 0; x < 16; x++)
+            {
+                hex.Append(string.Create(System.Globalization.CultureInfo.InvariantCulture, $"{40 + (x * 6):X2}{200 - (y * 3):X2}{60 + (((x + y) * 5) % 100):X2}"));
+            }
+        }
+
+        var content = $"1 0 0 rg 50 50 100 100 re f\nq 300 0 0 300 150 400 cm\nBI /W 16 /H 16 /CS /RGB /BPC 8 /F /AHx ID\n{hex}>\nEI\nQ\n";
+        var objects = new[]
+        {
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 4 0 R >>",
+            $"<< /Length {content.Length} >>\nstream\n{content}\nendstream",
+        };
+        var pdf = new StringBuilder("%PDF-1.7\n");
+        var offsets = new List<int>();
+        for (var i = 0; i < objects.Length; i++)
+        {
+            offsets.Add(pdf.Length);
+            pdf.Append(i + 1).Append(" 0 obj\n").Append(objects[i]).Append("\nendobj\n");
+        }
+
+        var xref = pdf.Length;
+        pdf.Append("xref\n0 ").Append(objects.Length + 1).Append("\n0000000000 65535 f \n");
+        foreach (var offset in offsets)
+        {
+            pdf.Append(offset.ToString("D10", System.Globalization.CultureInfo.InvariantCulture)).Append(" 00000 n \n");
+        }
+
+        pdf.Append("trailer\n<< /Size ").Append(objects.Length + 1).Append(" /Root 1 0 R >>\nstartxref\n").Append(xref).Append("\n%%EOF\n");
+        File.WriteAllText(path, pdf.ToString(), Encoding.Latin1);
+        return path;
+    }
 }

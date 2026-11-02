@@ -228,6 +228,7 @@ public sealed class PageSurface : Control
 
             ScheduleOverlays();
             RefreshAccessibleText();
+            value?.SetDarkPages(!_accessibility.HighContrast && _pageColour == PageColourMode.Inverted); // a tab shown later takes on the page colour now chosen
             PushViewport();
         }
     }
@@ -297,7 +298,10 @@ public sealed class PageSurface : Control
         }
 
         Presenter.SetColors(background, paper, border);
-        Presenter.ColourMode = _accessibility.HighContrast ? PageColourMode.Normal : _pageColour;
+        // Dark pages are drawn by the engine (photographs stay as they are), so the tiles are already dark and the GPU must not invert them again. Sepia stays on the GPU.
+        var engineDark = !_accessibility.HighContrast && _pageColour == PageColourMode.Inverted;
+        Presenter.ColourMode = _accessibility.HighContrast || engineDark ? PageColourMode.Normal : _pageColour;
+        _session?.SetDarkPages(engineDark);
         _session?.RequestFrame();
     }
 

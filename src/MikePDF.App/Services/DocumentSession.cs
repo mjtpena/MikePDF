@@ -72,6 +72,8 @@ internal sealed partial class DocumentSession : IAsyncDisposable
     private SupervisedDocument? _poolDocument;
     private TileScheduler? _scheduler;
     private SizeD[] _sizes = [];
+    private readonly List<EngineTileRenderer> _renderers = [];
+    private bool _darkPages;
     private long _scrollTick;
     private double _velocity;
     private bool _zoomPending;
@@ -325,8 +327,16 @@ internal sealed partial class DocumentSession : IAsyncDisposable
 
     private void StartScheduler()
     {
-        var tiles = new EngineTileRenderer(_document!, TileDeadline);
-        ITileRenderer lowRes = _poolDocument is { } pool ? new EngineTileRenderer(pool, TileDeadline) : tiles;
+        var tiles = new EngineTileRenderer(_document!, TileDeadline) { DarkPages = _darkPages };
+        _renderers.Add(tiles);
+        ITileRenderer lowRes = tiles;
+        if (_poolDocument is { } pool)
+        {
+            var placeholders = new EngineTileRenderer(pool, TileDeadline) { DarkPages = _darkPages };
+            _renderers.Add(placeholders);
+            lowRes = placeholders;
+        }
+
         _scheduler = new TileScheduler(tiles, lowRes, _presenter, Cache);
         _scheduler.TileReady += _ => _ui.TryEnqueue(RequestFrame);
         _scheduler.PageStatus += (page, status) =>
@@ -523,6 +533,34 @@ internal sealed partial class DocumentSession : IAsyncDisposable
         {
             ViewChanged?.Invoke();
         }
+    }
+
+    // ---- dark pages ----------------------------------------------------------------------------------------------------------------------------
+
+    /// <summary>The engine draws dark pages (inverted, colour photographs left alone). Whoever shows the tiles draws them with <c>PageColourMode.Normal</c>, or they would be inverted twice.</summary>
+    public bool DarkPages => _darkPages;
+
+    /// <summary>
+    /// Turns engine-drawn dark pages on or off. The tile cache holds the other colours, so it is emptied and the view asks for its tiles again; a tile that was in flight under the
+    /// old setting is thrown away when it lands (see <see cref="EngineTileRenderer"/>).
+    /// </summary>
+    public void SetDarkPages(bool on)
+    {
+        if (on == _darkPages || _disposed)
+        {
+            return;
+        }
+
+        _darkPages = on;
+        foreach (var renderer in _renderers)
+        {
+            renderer.DarkPages = on;
+        }
+
+        Cache.Clear();
+        Cache.DisposeEvicted();
+        Publish();
+        RequestFrame();
     }
 
     // ---- view modes (docs/features/page-view-modes.md) ---------------------------------------------------------------------------------
