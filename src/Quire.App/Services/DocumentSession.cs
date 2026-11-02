@@ -41,13 +41,14 @@ internal enum EngineBanner
 /// tiles that were in flight come back as <see cref="RenderStatus.EngineLost"/> and the scheduler asks for them again.
 /// </para>
 /// </summary>
-internal sealed class DocumentSession : IAsyncDisposable
+internal sealed partial class DocumentSession : IAsyncDisposable
 {
     private const int FirstSizeChunk = 32;
     private const int SizeChunk = 128;
     private static readonly TimeSpan ZoomSettle = TimeSpan.FromMilliseconds(120);
     private static readonly TimeSpan ScrollIdle = TimeSpan.FromMilliseconds(150);
     private static readonly TimeSpan SaveDelay = TimeSpan.FromMilliseconds(1500);
+    private static readonly TimeSpan PrefetchDelay = TimeSpan.FromMilliseconds(120);
     private static readonly TimeSpan TileDeadline = TimeSpan.FromSeconds(15);
 
     private readonly EngineHost _host;
@@ -57,6 +58,7 @@ internal sealed class DocumentSession : IAsyncDisposable
     private readonly DispatcherQueueTimer _zoomTimer;
     private readonly DispatcherQueueTimer _idleTimer;
     private readonly DispatcherQueueTimer _saveTimer;
+    private readonly DispatcherQueueTimer _prefetchTimer;
     private readonly CancellationTokenSource _cts = new();
     private EngineSupervisor? _main;
     private EngineSupervisor? _pool;
@@ -86,6 +88,7 @@ internal sealed class DocumentSession : IAsyncDisposable
             _zoomPending = false;
             Publish();
             RequestFrame();
+            PrefetchVisible();
         };
         _idleTimer = ui.CreateTimer();
         _idleTimer.IsRepeating = false;
@@ -97,11 +100,17 @@ internal sealed class DocumentSession : IAsyncDisposable
             {
                 Publish();
             }
+
+            PrefetchVisible();
         };
         _saveTimer = ui.CreateTimer();
         _saveTimer.IsRepeating = false;
         _saveTimer.Interval = SaveDelay;
         _saveTimer.Tick += (_, _) => SavePosition();
+        _prefetchTimer = ui.CreateTimer();
+        _prefetchTimer.IsRepeating = false;
+        _prefetchTimer.Interval = PrefetchDelay;
+        _prefetchTimer.Tick += (_, _) => PrefetchVisible();
     }
 
     public ViewportController Controller { get; } = new();
@@ -180,11 +189,13 @@ internal sealed class DocumentSession : IAsyncDisposable
         }
 
         StartScheduler();
+        StartReading();
         _store.AddRecent(Path);
         ApplySavedPosition();
         Publish();
         RequestFrame();
         ViewChanged?.Invoke();
+        PrefetchVisible();
         _ = LoadRemainingSizesAsync(token);
         return new OpenOutcome(OpenOutcomeKind.Opened);
     }
@@ -410,6 +421,8 @@ internal sealed class DocumentSession : IAsyncDisposable
         ViewChanged?.Invoke();
         _saveTimer.Stop();
         _saveTimer.Start();
+        _prefetchTimer.Stop(); // the text of the pages in view is read once the view has stopped moving
+        _prefetchTimer.Start();
     }
 
     private void TrackVelocity(double dy)
@@ -485,9 +498,11 @@ internal sealed class DocumentSession : IAsyncDisposable
 
         SavePosition();
         _disposed = true;
+        StopReading();
         _zoomTimer.Stop();
         _idleTimer.Stop();
         _saveTimer.Stop();
+        _prefetchTimer.Stop();
         await _cts.CancelAsync().ConfigureAwait(true);
         if (_scheduler is not null)
         {
@@ -503,6 +518,8 @@ internal sealed class DocumentSession : IAsyncDisposable
         {
             await _poolDocument.DisposeAsync().ConfigureAwait(true);
         }
+
+        await DisposeServicesAsync().ConfigureAwait(true);
 
         if (_main is not null)
         {

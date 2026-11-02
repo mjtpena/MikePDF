@@ -638,6 +638,27 @@ public sealed class SupervisedDocument : IAsyncDisposable
     public Task<EngineResult<GetPageSizesReply>> GetPageSizesAsync(uint first, uint count, CancellationToken cancellationToken = default) =>
         CallAsync((client, id, deadline) => client.GetPageSizesAsync(id, first, count, deadline, cancellationToken), cancellationToken);
 
+    // The reading services. Each is one window of a list that is too long for a frame; the caller pages through it. A restart of the engine is
+    // invisible here: the position-based addressing (outline paths, page and index) means the same call works against the reopened document.
+
+    public Task<EngineResult<GetOutlineReply>> GetOutlineAsync(IReadOnlyList<uint> path, uint first, uint count, CancellationToken cancellationToken = default) =>
+        CallAsync((client, id, deadline) => client.GetOutlineAsync(id, path, first, count, deadline, cancellationToken), cancellationToken);
+
+    public Task<EngineResult<GetPageLinksReply>> GetPageLinksAsync(uint page, uint first, uint count, CancellationToken cancellationToken = default) =>
+        CallAsync((client, id, deadline) => client.GetPageLinksAsync(id, page, first, count, deadline, cancellationToken), cancellationToken);
+
+    public Task<EngineResult<GetLinkUriReply>> GetLinkUriAsync(uint page, uint index, CancellationToken cancellationToken = default) =>
+        CallAsync((client, id, deadline) => client.GetLinkUriAsync(id, page, index, deadline, cancellationToken), cancellationToken);
+
+    public Task<EngineResult<GetPageBoxesReply>> GetPageBoxesAsync(uint page, CancellationToken cancellationToken = default) =>
+        CallAsync((client, id, deadline) => client.GetPageBoxesAsync(id, page, deadline, cancellationToken), cancellationToken);
+
+    public Task<EngineResult<GetPageTextReply>> GetPageTextAsync(uint page, uint first, uint count, CancellationToken cancellationToken = default) =>
+        CallAsync((client, id, deadline) => client.GetPageTextAsync(id, page, first, count, deadline, cancellationToken), cancellationToken);
+
+    public Task<EngineResult<SearchPageReply>> SearchPageAsync(uint page, string query, uint flags, CancellationToken cancellationToken = default) =>
+        CallAsync((client, id, deadline) => client.SearchPageAsync(id, page, query, flags, deadline, cancellationToken), cancellationToken);
+
     /// <summary>See <see cref="EngineClient.RenderTileAsync"/> for the meaning of <paramref name="generation"/> and of cancelling the token.</summary>
     public Task<EngineResult<TileLease>> RenderTileAsync(RenderTileArgs args, ulong generation, TimeSpan? deadline = null, CancellationToken cancellationToken = default) =>
         CallAsync((client, id, defaultDeadline) => client.RenderTileAsync(id, args, generation, deadline ?? defaultDeadline, cancellationToken), cancellationToken);

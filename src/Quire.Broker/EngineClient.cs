@@ -151,6 +151,46 @@ public sealed class EngineClient : IAsyncDisposable
         return await CallAsync<GetPageSizesReply>(request, documentId, deadline, WithGrace(deadline), new Pending { EngineQueue = true, Sizes = request }, cancellationToken).ConfigureAwait(false);
     }
 
+    // ---- reading services (WP-S2). The engine's answers are checked against the request in ValidateReply: a window that does not fit what was asked,
+    // a page outside the document or a reversed rectangle ends the session like any other protocol violation.
+
+    public Task<EngineResult<GetOutlineReply>> GetOutlineAsync(uint documentId, IReadOnlyList<uint> path, uint first, uint count, TimeSpan deadline, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(path);
+        return TryGetPageCount(documentId, out _)
+            ? ReadAsync<GetOutlineReply>(new GetOutline { Path = [.. path], First = first, Count = count }, documentId, deadline, cancellationToken)
+            : Task.FromResult(EngineResult<GetOutlineReply>.Fail(Status.InvalidArgument, "unknown document"));
+    }
+
+    public Task<EngineResult<GetPageLinksReply>> GetPageLinksAsync(uint documentId, uint page, uint first, uint count, TimeSpan deadline, CancellationToken cancellationToken = default) =>
+        TryGetPageCount(documentId, out var pageCount) && page < pageCount
+            ? ReadAsync<GetPageLinksReply>(new GetPageLinks { Page = page, First = first, Count = count }, documentId, deadline, cancellationToken)
+            : Task.FromResult(EngineResult<GetPageLinksReply>.Fail(Status.InvalidArgument, "unknown document or page out of range"));
+
+    public Task<EngineResult<GetLinkUriReply>> GetLinkUriAsync(uint documentId, uint page, uint index, TimeSpan deadline, CancellationToken cancellationToken = default) =>
+        TryGetPageCount(documentId, out var pageCount) && page < pageCount
+            ? ReadAsync<GetLinkUriReply>(new GetLinkUri { Page = page, Index = index }, documentId, deadline, cancellationToken)
+            : Task.FromResult(EngineResult<GetLinkUriReply>.Fail(Status.InvalidArgument, "unknown document or page out of range"));
+
+    public Task<EngineResult<GetPageBoxesReply>> GetPageBoxesAsync(uint documentId, uint page, TimeSpan deadline, CancellationToken cancellationToken = default) =>
+        TryGetPageCount(documentId, out var pageCount) && page < pageCount
+            ? ReadAsync<GetPageBoxesReply>(new GetPageBoxes { Page = page }, documentId, deadline, cancellationToken)
+            : Task.FromResult(EngineResult<GetPageBoxesReply>.Fail(Status.InvalidArgument, "unknown document or page out of range"));
+
+    public Task<EngineResult<GetPageTextReply>> GetPageTextAsync(uint documentId, uint page, uint first, uint count, TimeSpan deadline, CancellationToken cancellationToken = default) =>
+        TryGetPageCount(documentId, out var pageCount) && page < pageCount
+            ? ReadAsync<GetPageTextReply>(new GetPageText { Page = page, First = first, Count = count }, documentId, deadline, cancellationToken)
+            : Task.FromResult(EngineResult<GetPageTextReply>.Fail(Status.InvalidArgument, "unknown document or page out of range"));
+
+    public Task<EngineResult<SearchPageReply>> SearchPageAsync(uint documentId, uint page, string query, uint flags, TimeSpan deadline, CancellationToken cancellationToken = default) =>
+        TryGetPageCount(documentId, out var pageCount) && page < pageCount
+            ? ReadAsync<SearchPageReply>(new SearchPage { Page = page, Query = query, Flags = flags }, documentId, deadline, cancellationToken)
+            : Task.FromResult(EngineResult<SearchPageReply>.Fail(Status.InvalidArgument, "unknown document or page out of range"));
+
+    private Task<EngineResult<T>> ReadAsync<T>(IRequestMessage request, uint documentId, TimeSpan deadline, CancellationToken cancellationToken)
+        where T : class =>
+        CallAsync<T>(request, documentId, deadline, WithGrace(deadline), new Pending { EngineQueue = true, Request = request }, cancellationToken);
+
     public Task<EngineResult<CancelBeforeReply>> CancelBeforeAsync(uint documentId, ulong generation, TimeSpan timeout, CancellationToken cancellationToken = default) =>
         CallAsync<CancelBeforeReply>(new CancelBefore { Generation = generation }, documentId, timeout, timeout, new Pending(), cancellationToken);
 
@@ -490,7 +530,9 @@ public sealed class EngineClient : IAsyncDisposable
         MessageType.ValidateStructure => status is Status.Ok or Status.InvalidArgument or Status.Damaged or Status.Timeout or Status.PermissionDenied or Status.Unsupported,
         MessageType.OpenDocument => status is Status.Ok or Status.InvalidArgument or Status.Unsupported or Status.PasswordRequired
             or Status.PasswordIncorrect or Status.UnsupportedEncryption or Status.Damaged or Status.Timeout or Status.PermissionDenied,
-        MessageType.GetDocumentInfo or MessageType.GetPageSizes => status is Status.Ok or Status.InvalidArgument or Status.Damaged or Status.Timeout,
+        MessageType.GetDocumentInfo or MessageType.GetPageSizes or MessageType.GetOutline or MessageType.GetPageLinks or MessageType.GetPageBoxes
+            or MessageType.GetPageText or MessageType.SearchPage => status is Status.Ok or Status.InvalidArgument or Status.Damaged or Status.Timeout,
+        MessageType.GetLinkUri => status is Status.Ok or Status.InvalidArgument or Status.Unsupported or Status.Damaged or Status.Timeout,
         MessageType.RenderTile => status is Status.Ok or Status.PartiallyRendered or Status.Cancelled or Status.InvalidArgument
             or Status.Unsupported or Status.Damaged or Status.Timeout,
         _ => false, // EngineCrashed and ProtocolError are never the peer's to send
@@ -513,10 +555,60 @@ public sealed class EngineClient : IAsyncDisposable
                 return pending.Sizes is { } asked && sizes.Widths.Length == asked.Count ? null : "wrong number of page sizes";
             case RenderTileReply tile:
                 return ValidateTile(pending, tile);
+            case GetOutlineReply outline:
+                return ValidateOutline(pending, outline);
+            case GetPageLinksReply links:
+                return ValidateLinks(pending, links);
+            case GetLinkUriReply uri:
+                return ReplyChecks.IsPlainAddress(uri.Uri) ? null : "the link address holds characters an address never has";
+            case GetPageTextReply text:
+                return ValidateText(pending, text);
+            case SearchPageReply search:
+                return ReplyChecks.CheckMatches(search.Starts, search.Lengths);
             default:
                 return null;
         }
     }
+
+    private string? ValidateOutline(Pending pending, GetOutlineReply reply)
+    {
+        if (pending.Request is not GetOutline asked || !_documents.TryGetValue(pending.DocumentId, out var pageCount))
+        {
+            return "outline reply without an outline request";
+        }
+
+        return !ReplyChecks.WindowFits(asked.First, asked.Count, reply.Total, reply.Titles.Length, allowStartPastEnd: true)
+            ? "the outline window is not what was asked for"
+            : ReplyChecks.CheckDestinations(reply.Kinds, reply.Pages, pageCount);
+    }
+
+    private string? ValidateLinks(Pending pending, GetPageLinksReply reply)
+    {
+        if (pending.Request is not GetPageLinks asked || !_documents.TryGetValue(pending.DocumentId, out var pageCount))
+        {
+            return "link reply without a link request";
+        }
+
+        if (!ReplyChecks.WindowFits(asked.First, asked.Count, reply.Total, reply.Lefts.Length, allowStartPastEnd: true))
+        {
+            return "the link window is not what was asked for";
+        }
+
+        for (var i = 0; i < reply.Lefts.Length; i++)
+        {
+            if (reply.Lefts[i] > reply.Rights[i] || reply.Bottoms[i] > reply.Tops[i])
+            {
+                return "a link rectangle is reversed";
+            }
+        }
+
+        return ReplyChecks.CheckDestinations(reply.Kinds, reply.Pages, pageCount);
+    }
+
+    private static string? ValidateText(Pending pending, GetPageTextReply reply) =>
+        pending.Request is not GetPageText asked || !ReplyChecks.WindowFits(asked.First, asked.Count, reply.Total, reply.Units.Length, allowStartPastEnd: false)
+            ? "the text window is not what was asked for"
+            : null;
 
     private string? ValidateTile(Pending pending, RenderTileReply tile)
     {
@@ -630,6 +722,7 @@ public sealed class EngineClient : IAsyncDisposable
         public bool Abandoned; // guarded by the client's gate
         public ulong PingNonce;
         public GetPageSizes? Sizes;
+        public IRequestMessage? Request; // the reading services: what was asked, for ValidateReply
         public RenderTile? Render;
         public SlotLease? Slot;
         public Action? OnCancel;

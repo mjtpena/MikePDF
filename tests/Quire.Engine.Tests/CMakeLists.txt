@@ -1,5 +1,6 @@
 add_executable(quire_engine_tests
   document_tests.cpp
+  reading_tests.cpp
   engine_core_tests.cpp
   library_tests.cpp
   protocol_tests.cpp)

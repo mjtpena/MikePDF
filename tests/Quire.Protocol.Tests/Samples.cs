@@ -27,6 +27,13 @@ public static class Samples
         }),
         new("req_cancel_before", 10, 7, 0, new CancelBefore { Generation = 77 }),
         new("req_validate_structure", 11, 0, 60000, new ValidateStructure { Handle = 1234 }),
+        new("req_get_outline", 13, 7, 1000, new GetOutline { Path = [2, 0, 5], First = 64, Count = 64 }),
+        new("req_get_outline_top_level", 14, 7, 1000, new GetOutline { Path = [], First = 0, Count = 1 }),
+        new("req_get_page_links", 15, 7, 1000, new GetPageLinks { Page = 41, First = 512, Count = 512 }),
+        new("req_get_link_uri", 16, 7, 1000, new GetLinkUri { Page = 41, Index = 99999 }),
+        new("req_get_page_boxes", 17, 7, 1000, new GetPageBoxes { Page = 9999999 }),
+        new("req_get_page_text", 18, 7, 1000, new GetPageText { Page = 3, First = 2048, Count = 2048 }),
+        new("req_search_page", 19, 7, 1000, new SearchPage { Page = 3, Query = "façade ✓", Flags = 3 }),
     ];
 
     public static IReadOnlyList<ResponseSample> Responses { get; } =
@@ -53,6 +60,46 @@ public static class Samples
         {
             Ok = false, Truncated = false, IssueCodes = [3, 65535], IssueMessages = ["xref entry 12 points outside the file", "café"],
         }),
+        new("rsp_get_outline", 13, Status.Ok, MessageType.GetOutline, new GetOutlineReply
+        {
+            Total = 3,
+            Titles = ["Introduction", "Chapter 2 — Fonts ✓", ""],
+            Kinds = [3, 1, 0],
+            Pages = [0, 41, 0],
+            Xs = [72f, 0f, 0f],
+            Ys = [700.5f, 0f, 0f],
+            HasChildren = [1, 0, 0],
+        }),
+        new("rsp_get_page_links", 15, Status.Ok, MessageType.GetPageLinks, new GetPageLinksReply
+        {
+            Total = 2,
+            Lefts = [72f, -10.5f],
+            Bottoms = [700f, 20f],
+            Rights = [144f, 100f],
+            Tops = [712f, 32f],
+            Kinds = [2, 4],
+            Pages = [7, 0],
+            Xs = [0f, 0f],
+            Ys = [640.25f, 0f],
+        }),
+        new("rsp_get_link_uri", 16, Status.Ok, MessageType.GetLinkUri, new GetLinkUriReply { Uri = "https://example.org/a%20b?q=ü" }),
+        new("rsp_get_page_boxes", 17, Status.Ok, MessageType.GetPageBoxes, new GetPageBoxesReply
+        {
+            MediaLeft = 0f, MediaBottom = 0f, MediaRight = 612f, MediaTop = 792f,
+            HasCropBox = true, CropLeft = 100f, CropBottom = 150f, CropRight = 500f, CropTop = 650f, Rotation = 1,
+        }),
+        new("rsp_get_page_text", 18, Status.Ok, MessageType.GetPageText, new GetPageTextReply
+        {
+            Total = 5000,
+            Truncated = false,
+            Units = [72, 105, 0xFFFD, 10],
+            Lefts = [72f, 79f, 85f, 90f],
+            Bottoms = [700f, 700f, 700f, 700f],
+            Rights = [79f, 85f, 90f, 90f],
+            Tops = [712f, 712f, 712f, 712f],
+            Flags = [0, 0, 2, 1],
+        }),
+        new("rsp_search_page", 19, Status.Ok, MessageType.SearchPage, new SearchPageReply { Truncated = true, Starts = [0, 199000], Lengths = [5, 200000 - 199000] }),
         new("rsp_error_password_required", 4, Status.PasswordRequired, MessageType.OpenDocument, null),
         new("rsp_error_timeout", 9, Status.Timeout, MessageType.RenderTile, null),
     ];

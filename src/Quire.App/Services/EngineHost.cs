@@ -50,8 +50,8 @@ internal sealed class EngineHost
     /// <summary>The engine for a document: renders sharp tiles.</summary>
     public EngineSupervisorOptions DocumentOptions() => Options(EngineKind.Document, slotCount: 6, slotSize: 1 << 20);
 
-    /// <summary>The shared pool engine: renders the low-res placeholders (ADR-0006 decision 3), so a slow page parse in the document's engine never blocks them.</summary>
-    public EngineSupervisorOptions PoolOptions() => Options(EngineKind.Pool, slotCount: 4, slotSize: 1 << 19);
+    /// <summary>The shared pool engine: renders the low-res placeholders (ADR-0006 decision 3), so a slow page parse in the document's engine never blocks them, and the thumbnails, the text, the bookmarks and the search (WP-S2). Its slots hold a thumbnail up to 1 MiB.</summary>
+    public EngineSupervisorOptions PoolOptions() => Options(EngineKind.Pool, slotCount: 4, slotSize: 1 << 20);
 
     private EngineSupervisorOptions Options(EngineKind kind, int slotCount, int slotSize) => new()
     {

@@ -24,6 +24,41 @@ public sealed class EngineClientValidationTests
 
     private static RenderTileArgs Tile() => new(0, 1f, 0, 0, 0, 16, 16);
 
+    private static GetOutlineReply Outline(uint total, int count, ushort kind = 1, uint page = 0) => new()
+    {
+        Total = total,
+        Titles = [.. Enumerable.Repeat("entry", count)],
+        Kinds = [.. Enumerable.Repeat(kind, count)],
+        Pages = [.. Enumerable.Repeat(page, count)],
+        Xs = new float[count],
+        Ys = new float[count],
+        HasChildren = new ushort[count],
+    };
+
+    private static GetPageLinksReply Links(uint total, int count, ushort kind = 1, uint page = 0, float left = 0, float right = 10) => new()
+    {
+        Total = total,
+        Lefts = [.. Enumerable.Repeat(left, count)],
+        Bottoms = new float[count],
+        Rights = [.. Enumerable.Repeat(right, count)],
+        Tops = [.. Enumerable.Repeat(10f, count)],
+        Kinds = [.. Enumerable.Repeat(kind, count)],
+        Pages = [.. Enumerable.Repeat(page, count)],
+        Xs = new float[count],
+        Ys = new float[count],
+    };
+
+    private static GetPageTextReply Text(uint total, int count) => new()
+    {
+        Total = total,
+        Units = [.. Enumerable.Repeat((ushort)'a', count)],
+        Lefts = new float[count],
+        Bottoms = new float[count],
+        Rights = [.. Enumerable.Repeat(1f, count)],
+        Tops = [.. Enumerable.Repeat(1f, count)],
+        Flags = new ushort[count],
+    };
+
     private static Func<RequestEnvelope, byte[][]> ForgedTile(Action<RenderTile, RenderTileReply> change) => r =>
     {
         var asked = (RenderTile)r.Payload;
@@ -75,6 +110,47 @@ public sealed class EngineClientValidationTests
             r => [Reply(r, Status.Damaged, MessageType.AttachSlotRing)]),
         new("validate-structure-answered-with-cancelled", MessageType.ValidateStructure, 1, async (c, _) => (await c.ValidateStructureAsync(1, Wait)).Status,
             r => [Reply(r, Status.Cancelled, MessageType.ValidateStructure)]),
+        // ---- the reading services (WP-S2) ----
+        new("outline-window-longer-than-asked", MessageType.GetOutline, 1, async (c, d) => (await c.GetOutlineAsync(d, [], 0, 1, Wait)).Status,
+            r => [Reply(r, Status.Ok, MessageType.GetOutline, Outline(total: 5, count: 2))]),
+        new("outline-window-shorter-than-the-list-allows", MessageType.GetOutline, 1, async (c, d) => (await c.GetOutlineAsync(d, [], 0, 2, Wait)).Status,
+            r => [Reply(r, Status.Ok, MessageType.GetOutline, Outline(total: 5, count: 1))]),
+        new("outline-entries-for-a-start-past-the-end", MessageType.GetOutline, 1, async (c, d) => (await c.GetOutlineAsync(d, [], 9, 2, Wait)).Status,
+            r => [Reply(r, Status.Ok, MessageType.GetOutline, Outline(total: 5, count: 1))]),
+        new("outline-destination-beyond-the-document", MessageType.GetOutline, 1, async (c, d) => (await c.GetOutlineAsync(d, [], 0, 1, Wait)).Status,
+            r => [Reply(r, Status.Ok, MessageType.GetOutline, Outline(total: 1, count: 1, kind: 1, page: FakeEngine.FakePageCount))]),
+        new("outline-page-on-an-external-destination", MessageType.GetOutline, 1, async (c, d) => (await c.GetOutlineAsync(d, [], 0, 1, Wait)).Status,
+            r => [Reply(r, Status.Ok, MessageType.GetOutline, Outline(total: 1, count: 1, kind: 4, page: 1))]),
+        new("outline-answered-with-unsupported", MessageType.GetOutline, 1, async (c, d) => (await c.GetOutlineAsync(d, [], 0, 1, Wait)).Status,
+            r => [Reply(r, Status.Unsupported, MessageType.GetOutline)]),
+        new("links-window-longer-than-asked", MessageType.GetPageLinks, 1, async (c, d) => (await c.GetPageLinksAsync(d, 0, 0, 1, Wait)).Status,
+            r => [Reply(r, Status.Ok, MessageType.GetPageLinks, Links(total: 4, count: 2))]),
+        new("links-reversed-rectangle", MessageType.GetPageLinks, 1, async (c, d) => (await c.GetPageLinksAsync(d, 0, 0, 1, Wait)).Status,
+            r => [Reply(r, Status.Ok, MessageType.GetPageLinks, Links(total: 1, count: 1, left: 50, right: 10))]),
+        new("links-destination-beyond-the-document", MessageType.GetPageLinks, 1, async (c, d) => (await c.GetPageLinksAsync(d, 0, 0, 1, Wait)).Status,
+            r => [Reply(r, Status.Ok, MessageType.GetPageLinks, Links(total: 1, count: 1, kind: 2, page: 99))]),
+        new("link-address-with-a-line-break", MessageType.GetLinkUri, 1, async (c, d) => (await c.GetLinkUriAsync(d, 0, 0, Wait)).Status,
+            r => [Reply(r, Status.Ok, MessageType.GetLinkUri, new GetLinkUriReply { Uri = "https://example.org/\nevil" })]),
+        new("link-address-that-reverses-the-text", MessageType.GetLinkUri, 1, async (c, d) => (await c.GetLinkUriAsync(d, 0, 0, Wait)).Status,
+            r => [Reply(r, Status.Ok, MessageType.GetLinkUri, new GetLinkUriReply { Uri = "https://example.org/" + (char)0x202E + "gpj.exe" })]),
+        new("link-address-with-a-space", MessageType.GetLinkUri, 1, async (c, d) => (await c.GetLinkUriAsync(d, 0, 0, Wait)).Status,
+            r => [Reply(r, Status.Ok, MessageType.GetLinkUri, new GetLinkUriReply { Uri = "https://example.org/a b" })]),
+        new("link-address-empty", MessageType.GetLinkUri, 1, async (c, d) => (await c.GetLinkUriAsync(d, 0, 0, Wait)).Status,
+            r => [Reply(r, Status.Ok, MessageType.GetLinkUri, new GetLinkUriReply { Uri = "" })]),
+        new("page-boxes-answered-with-cancelled", MessageType.GetPageBoxes, 1, async (c, d) => (await c.GetPageBoxesAsync(d, 0, Wait)).Status,
+            r => [Reply(r, Status.Cancelled, MessageType.GetPageBoxes)]),
+        new("text-window-longer-than-asked", MessageType.GetPageText, 1, async (c, d) => (await c.GetPageTextAsync(d, 0, 0, 2, Wait)).Status,
+            r => [Reply(r, Status.Ok, MessageType.GetPageText, Text(total: 10, count: 3))]),
+        new("text-window-shorter-than-the-text-allows", MessageType.GetPageText, 1, async (c, d) => (await c.GetPageTextAsync(d, 0, 0, 5, Wait)).Status,
+            r => [Reply(r, Status.Ok, MessageType.GetPageText, Text(total: 10, count: 4))]),
+        new("text-start-past-the-end", MessageType.GetPageText, 1, async (c, d) => (await c.GetPageTextAsync(d, 0, 20, 5, Wait)).Status,
+            r => [Reply(r, Status.Ok, MessageType.GetPageText, Text(total: 10, count: 0))]),
+        new("search-matches-out-of-order", MessageType.SearchPage, 1, async (c, d) => (await c.SearchPageAsync(d, 0, "x", 0, Wait)).Status,
+            r => [Reply(r, Status.Ok, MessageType.SearchPage, new SearchPageReply { Starts = [10, 4], Lengths = [1, 1] })]),
+        new("search-matches-that-repeat", MessageType.SearchPage, 1, async (c, d) => (await c.SearchPageAsync(d, 0, "x", 0, Wait)).Status,
+            r => [Reply(r, Status.Ok, MessageType.SearchPage, new SearchPageReply { Starts = [4, 4], Lengths = [1, 1] })]),
+        new("search-match-past-the-end-of-any-text", MessageType.SearchPage, 1, async (c, d) => (await c.SearchPageAsync(d, 0, "x", 0, Wait)).Status,
+            r => [Reply(r, Status.Ok, MessageType.SearchPage, new SearchPageReply { Starts = [199_999], Lengths = [2] })]),
         new("garbage-bytes", MessageType.Ping, 1, async (c, _) => (await c.PingAsync(1, Wait)).Status,
             _ => [[5, 0, 0, 0, 0xC1, 0xC1, 0xC1, 0xC1, 0xC1]]),
         new("length-prefix-above-the-frame-limit", MessageType.Ping, 1, async (c, _) => (await c.PingAsync(1, Wait)).Status,

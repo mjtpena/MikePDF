@@ -20,6 +20,12 @@ internal static class ProtocolDispatch
         MessageType.CloseDocument => CloseDocument.Read(ref reader),
         MessageType.GetDocumentInfo => GetDocumentInfo.Read(ref reader),
         MessageType.GetPageSizes => GetPageSizes.Read(ref reader),
+        MessageType.GetOutline => GetOutline.Read(ref reader),
+        MessageType.GetPageLinks => GetPageLinks.Read(ref reader),
+        MessageType.GetLinkUri => GetLinkUri.Read(ref reader),
+        MessageType.GetPageBoxes => GetPageBoxes.Read(ref reader),
+        MessageType.GetPageText => GetPageText.Read(ref reader),
+        MessageType.SearchPage => SearchPage.Read(ref reader),
         MessageType.RenderTile => RenderTile.Read(ref reader),
         MessageType.CancelBefore => CancelBefore.Read(ref reader),
         MessageType.ValidateStructure => ValidateStructure.Read(ref reader),
@@ -54,6 +60,24 @@ internal static class ProtocolDispatch
             case GetPageSizes m:
                 m.Write(ref writer);
                 break;
+            case GetOutline m:
+                m.Write(ref writer);
+                break;
+            case GetPageLinks m:
+                m.Write(ref writer);
+                break;
+            case GetLinkUri m:
+                m.Write(ref writer);
+                break;
+            case GetPageBoxes m:
+                m.Write(ref writer);
+                break;
+            case GetPageText m:
+                m.Write(ref writer);
+                break;
+            case SearchPage m:
+                m.Write(ref writer);
+                break;
             case RenderTile m:
                 m.Write(ref writer);
                 break;
@@ -78,6 +102,12 @@ internal static class ProtocolDispatch
         MessageType.CloseDocument => CloseDocumentReply.Read(ref reader),
         MessageType.GetDocumentInfo => GetDocumentInfoReply.Read(ref reader),
         MessageType.GetPageSizes => GetPageSizesReply.Read(ref reader),
+        MessageType.GetOutline => GetOutlineReply.Read(ref reader),
+        MessageType.GetPageLinks => GetPageLinksReply.Read(ref reader),
+        MessageType.GetLinkUri => GetLinkUriReply.Read(ref reader),
+        MessageType.GetPageBoxes => GetPageBoxesReply.Read(ref reader),
+        MessageType.GetPageText => GetPageTextReply.Read(ref reader),
+        MessageType.SearchPage => SearchPageReply.Read(ref reader),
         MessageType.RenderTile => RenderTileReply.Read(ref reader),
         MessageType.CancelBefore => CancelBeforeReply.Read(ref reader),
         MessageType.ValidateStructure => ValidateStructureReply.Read(ref reader),
@@ -110,6 +140,24 @@ internal static class ProtocolDispatch
                 m.Write(ref writer);
                 break;
             case GetPageSizesReply m:
+                m.Write(ref writer);
+                break;
+            case GetOutlineReply m:
+                m.Write(ref writer);
+                break;
+            case GetPageLinksReply m:
+                m.Write(ref writer);
+                break;
+            case GetLinkUriReply m:
+                m.Write(ref writer);
+                break;
+            case GetPageBoxesReply m:
+                m.Write(ref writer);
+                break;
+            case GetPageTextReply m:
+                m.Write(ref writer);
+                break;
+            case SearchPageReply m:
                 m.Write(ref writer);
                 break;
             case RenderTileReply m:

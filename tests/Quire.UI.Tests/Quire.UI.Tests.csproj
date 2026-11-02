@@ -6,6 +6,8 @@
   <PropertyGroup>
     <!-- The page objects are the only code that knows FlaUI (ADR-0009). Test code may skip ConfigureAwait and use underscores. -->
     <NoWarn>$(NoWarn);xUnit1051</NoWarn>
+    <!-- The page object reads the clipboard and moves the window with P/Invoke (LibraryImport, source generated). -->
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="FlaUI.UIA3" />

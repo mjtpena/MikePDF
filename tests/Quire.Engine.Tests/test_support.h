@@ -86,6 +86,52 @@ inline std::string build_pdf(const std::string& content, const std::string& medi
     return pdf;
 }
 
+/// A document assembled object by object, for the reading services (text, bookmarks, links), which need more than one page.
+/// Object numbers are handed out by add()/reserve() so that objects can refer to each other; build() writes a classic xref.
+class PdfBuilder {
+public:
+    /// Reserves an object number to be filled in later with set().
+    int reserve() {
+        bodies_.emplace_back();
+        return static_cast<int>(bodies_.size());
+    }
+
+    void set(int number, const std::string& body) { bodies_.at(static_cast<std::size_t>(number) - 1) = body; }
+
+    int add(const std::string& body) {
+        const int number = reserve();
+        set(number, body);
+        return number;
+    }
+
+    /// A content stream object.
+    int add_stream(const std::string& content, const std::string& extra = "") {
+        return add("<< /Length " + std::to_string(content.size()) + " " + extra + " >>\nstream\n" + content + "\nendstream");
+    }
+
+    [[nodiscard]] std::string build(int root, const std::string& trailer_extra = "") const {
+        std::string pdf = "%PDF-1.7\n";
+        std::vector<std::size_t> offsets;
+        for (std::size_t i = 0; i < bodies_.size(); ++i) {
+            offsets.push_back(pdf.size());
+            pdf += std::to_string(i + 1) + " 0 obj\n" + bodies_[i] + "\nendobj\n";
+        }
+        const std::size_t xref = pdf.size();
+        pdf += "xref\n0 " + std::to_string(bodies_.size() + 1) + "\n0000000000 65535 f \n";
+        for (const std::size_t offset : offsets) {
+            char line[32];
+            std::snprintf(line, sizeof line, "%010zu 00000 n \n", offset);
+            pdf += line;
+        }
+        pdf += "trailer\n<< /Size " + std::to_string(bodies_.size() + 1) + " /Root " + std::to_string(root) + " 0 R " + trailer_extra + " >>\nstartxref\n" +
+               std::to_string(xref) + "\n%%EOF\n";
+        return pdf;
+    }
+
+private:
+    std::vector<std::string> bodies_;
+};
+
 /// A page with `count` small filled rectangles: enough objects that PDFium consults its pause callback.
 inline std::string many_rectangles(int count) {
     std::string content = "0.2 0.4 0.8 rg\n";

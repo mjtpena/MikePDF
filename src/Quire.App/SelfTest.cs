@@ -9,7 +9,8 @@ namespace Quire.App;
 /// <summary>
 /// TEST BUILDS ONLY (build/package.ps1 -TestBuild defines QUIRE_SELFTEST). <c>Quire.exe --selftest &lt;pdf&gt; &lt;result.json&gt;</c> runs the real
 /// pipeline of the installed package without a window: stage and verify the engine, start the sandboxed engine, open the PDF by duplicated
-/// handle, read the page sizes and render a tile. A release package contains neither this class nor the sandbox probe; build/package.ps1 checks.
+/// handle, read the page sizes and render a tile, then run the sandbox probe in the same AppContainer and check its rows against ADR-0004 A2
+/// (<see cref="SandboxProbeCheck"/>). A release package contains neither this class nor the sandbox probe; build/package.ps1 checks.
 /// </summary>
 internal static class SelfTest
 {
@@ -28,6 +29,7 @@ internal static class SelfTest
         var json = new StringBuilder("{\n");
         void Field(string name, string value) => json.Append("  \"").Append(name).Append("\": \"").Append(value.Replace("\\", "\\\\", StringComparison.Ordinal).Replace("\"", "\\\"", StringComparison.Ordinal)).Append("\",\n");
         var ok = false;
+        var rendered = false;
         try
         {
             Field("packaged", AppPaths.IsPackaged.ToString());
@@ -63,13 +65,18 @@ internal static class SelfTest
                             }
 
                             Field("nonWhitePixels", nonWhite.ToString(CultureInfo.InvariantCulture));
-                            ok = nonWhite > 0;
+                            rendered = nonWhite > 0;
                         }
                     }
                 }
 
                 document.DisposeAsync().AsTask().GetAwaiter().GetResult();
             }
+
+            // The sandbox as ADR-0004 amendment A2 records it, measured from inside this installed package, in the engine's own AppContainer.
+            var problems = SandboxProbeCheck.Run(host.DocumentOptions(), pdf, Field);
+            Field("sandboxProbe", problems.Count == 0 ? "ok" : string.Join(" | ", problems));
+            ok = rendered && problems.Count == 0;
         }
         catch (Exception e)
         {

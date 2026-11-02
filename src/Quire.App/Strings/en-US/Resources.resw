@@ -76,4 +76,51 @@
   <data name="RecentHeading.Text" xml:space="preserve"><value>Recent</value></data>
   <data name="NoRecent.Text" xml:space="preserve"><value>Files you open will be listed here. The list stays on this device.</value></data>
   <data name="RecentList.AutomationProperties.Name" xml:space="preserve"><value>Recent files</value></data>
+  <data name="SidebarButton.Label" xml:space="preserve"><value>Sidebar</value></data>
+  <data name="SidebarButton.ToolTipService.ToolTip" xml:space="preserve"><value>Show or hide the thumbnails and bookmarks (F4)</value></data>
+  <data name="FindButton.Label" xml:space="preserve"><value>Find</value></data>
+  <data name="FindButton.ToolTipService.ToolTip" xml:space="preserve"><value>Find in this document (Ctrl+F)</value></data>
+  <data name="SidebarTabs.AutomationProperties.Name" xml:space="preserve"><value>Sidebar view</value></data>
+  <data name="ThumbnailsTab.Content" xml:space="preserve"><value>Thumbnails</value></data>
+  <data name="BookmarksTab.Content" xml:space="preserve"><value>Bookmarks</value></data>
+  <data name="ThumbnailList.AutomationProperties.Name" xml:space="preserve"><value>Page thumbnails</value></data>
+  <data name="OutlineTree.AutomationProperties.Name" xml:space="preserve"><value>Bookmarks</value></data>
+  <data name="Thumbnail_Automation" xml:space="preserve"><value>Page {0}</value></data>
+  <data name="Outline_Untitled" xml:space="preserve"><value>(untitled)</value></data>
+  <data name="Outline_Loading" xml:space="preserve"><value>Loading bookmarks...</value></data>
+  <data name="Outline_Empty" xml:space="preserve"><value>This document has no bookmarks.</value></data>
+  <data name="Outline_Failed" xml:space="preserve"><value>The bookmarks could not be read.</value></data>
+  <data name="Outline_More" xml:space="preserve"><value>{0} more bookmarks are not shown.</value></data>
+  <data name="FindBox.PlaceholderText" xml:space="preserve"><value>Find in document</value></data>
+  <data name="FindBox.AutomationProperties.Name" xml:space="preserve"><value>Find in document</value></data>
+  <data name="FindPreviousButton.AutomationProperties.Name" xml:space="preserve"><value>Previous match</value></data>
+  <data name="FindPreviousButton.ToolTipService.ToolTip" xml:space="preserve"><value>Previous match (Shift+Enter)</value></data>
+  <data name="FindNextButton.AutomationProperties.Name" xml:space="preserve"><value>Next match</value></data>
+  <data name="FindNextButton.ToolTipService.ToolTip" xml:space="preserve"><value>Next match (Enter)</value></data>
+  <data name="FindMatchCaseToggle.Content" xml:space="preserve"><value>Aa</value></data>
+  <data name="FindMatchCaseToggle.AutomationProperties.Name" xml:space="preserve"><value>Match case</value></data>
+  <data name="FindMatchCaseToggle.ToolTipService.ToolTip" xml:space="preserve"><value>Match case</value></data>
+  <data name="FindCloseButton.AutomationProperties.Name" xml:space="preserve"><value>Close find</value></data>
+  <data name="FindCloseButton.ToolTipService.ToolTip" xml:space="preserve"><value>Close find (Esc)</value></data>
+  <data name="Find_None" xml:space="preserve"><value>No matches</value></data>
+  <data name="Find_Count" xml:space="preserve"><value>{0} of {1}</value></data>
+  <data name="Find_CountMore" xml:space="preserve"><value>{0} of {1} so far</value></data>
+  <data name="Find_Matches" xml:space="preserve"><value>{0} matches</value></data>
+  <data name="Find_MatchesMore" xml:space="preserve"><value>{0} matches so far</value></data>
+  <data name="Find_SearchingPercent" xml:space="preserve"><value>Searching, {0}%</value></data>
+  <data name="Find_Refused" xml:space="preserve"><value>That can't be searched for</value></data>
+  <data name="Banner_LinkSkipped_Title" xml:space="preserve"><value>Link not followed</value></data>
+  <data name="Banner_LinkSkipped_Message" xml:space="preserve"><value>This link would open another file or start a program. {0} never does that for a document.</value></data>
+  <data name="Banner_LinkAddress_Title" xml:space="preserve"><value>The link's address could not be read</value></data>
+  <data name="Banner_LinkAddress_Message" xml:space="preserve"><value>It may be too long, or not a plain address.</value></data>
+  <data name="Banner_BookmarkExternal_Title" xml:space="preserve"><value>This bookmark leads outside the document</value></data>
+  <data name="Banner_BookmarkExternal_Message" xml:space="preserve"><value>{0} doesn't open web addresses.</value></data>
+  <data name="Banner_CopyTruncated_Title" xml:space="preserve"><value>Part of the selection was copied</value></data>
+  <data name="Banner_CopyTruncated_Message" xml:space="preserve"><value>The selection is very large, so only its first part went to the clipboard.</value></data>
+  <data name="Link_ExternalTitle" xml:space="preserve"><value>This link leads outside the document</value></data>
+  <data name="Link_ExternalWeb" xml:space="preserve"><value>{0} doesn't open web or mail addresses, so nothing was opened. This is where the link goes. If you trust it, copy it and open it in your browser.</value></data>
+  <data name="Link_ExternalOther" xml:space="preserve"><value>This is not a web or mail address, and {0} never opens things a document asks for. This is what the link says.</value></data>
+  <data name="Link_ExternalHostAscii" xml:space="preserve"><value>The site's name is also written {0}. Look-alike letters can make one site pass for another.</value></data>
+  <data name="Link_AddressName" xml:space="preserve"><value>Link address: {0}</value></data>
+  <data name="Link_Copy" xml:space="preserve"><value>Copy address</value></data>
 </root>

@@ -189,7 +189,7 @@ foreach ($f in 'Quire.Engine.exe', 'pdfium.dll') { Copy-Item (Join-Path $cmakeBi
 if ($TestBuild) {
     $probeDir = Join-Path $stage 'Probe'
     New-Item -ItemType Directory $probeDir | Out-Null
-    foreach ($f in 'Quire.Engine.SandboxProbe.exe', 'rogue-copy.dll') {
+    foreach ($f in 'Quire.Engine.SandboxProbe.exe', 'rogue-copy.dll', 'rogue-marker.dll') {
         $source = Join-Path $cmakeBin $f
         if (-not (Test-Path $source)) { throw "$f not found: -TestBuild needs the native tests built" }
         Copy-Item $source $probeDir
@@ -226,7 +226,7 @@ $offenders = @()
 foreach ($name in 'Quire.WriterHost.exe', 'Quire.PackageProbe.exe') { $offenders += Get-ChildItem $stage -Recurse -Filter $name -ErrorAction SilentlyContinue }
 # Test builds only: the sandbox probe and the unsigned DLL it uses.
 if (-not $TestBuild) {
-    foreach ($name in 'Quire.Engine.SandboxProbe.exe', 'rogue-copy.dll') { $offenders += Get-ChildItem $stage -Recurse -Filter $name -ErrorAction SilentlyContinue }
+    foreach ($name in 'Quire.Engine.SandboxProbe.exe', 'rogue-copy.dll', 'rogue-marker.dll') { $offenders += Get-ChildItem $stage -Recurse -Filter $name -ErrorAction SilentlyContinue }
     if (Test-Path (Join-Path $stage 'Probe')) { $offenders += Get-Item (Join-Path $stage 'Probe') }
 }
 # The self-test is compiled in only under QUIRE_SELFTEST: the type name must not appear in a release build.

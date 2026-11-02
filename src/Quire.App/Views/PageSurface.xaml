@@ -3,7 +3,39 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:local="using:Quire.App.Views">
 
-    <!-- The template of the page surface. The presenter puts its drawing element into PART_Host. -->
+    <!--
+        Colours of what is drawn over the pages: the selection, the search matches, and the match the person is on. They come from the theme, so
+        they follow light, dark and high contrast. In high contrast the fills are system colours and the shapes get a solid outline, because a
+        translucent fill is not enough contrast for everybody (WCAG 1.4.11).
+    -->
+    <ResourceDictionary.ThemeDictionaries>
+        <ResourceDictionary x:Key="Light">
+            <SolidColorBrush x:Key="PageSelectionFillBrush" Color="{ThemeResource SystemAccentColor}" Opacity="0.35" />
+            <SolidColorBrush x:Key="PageSelectionStrokeBrush" Color="Transparent" />
+            <SolidColorBrush x:Key="PageFindFillBrush" Color="#FFE8A600" Opacity="0.40" />
+            <SolidColorBrush x:Key="PageFindStrokeBrush" Color="#FF8A5A00" />
+            <SolidColorBrush x:Key="PageCurrentMatchFillBrush" Color="#FFFF8C00" Opacity="0.60" />
+            <SolidColorBrush x:Key="PageCurrentMatchStrokeBrush" Color="#FFB34700" />
+        </ResourceDictionary>
+        <ResourceDictionary x:Key="Dark">
+            <SolidColorBrush x:Key="PageSelectionFillBrush" Color="{ThemeResource SystemAccentColor}" Opacity="0.40" />
+            <SolidColorBrush x:Key="PageSelectionStrokeBrush" Color="Transparent" />
+            <SolidColorBrush x:Key="PageFindFillBrush" Color="#FFE8A600" Opacity="0.45" />
+            <SolidColorBrush x:Key="PageFindStrokeBrush" Color="#FFFFC83D" />
+            <SolidColorBrush x:Key="PageCurrentMatchFillBrush" Color="#FFFF8C00" Opacity="0.65" />
+            <SolidColorBrush x:Key="PageCurrentMatchStrokeBrush" Color="#FFFFB86B" />
+        </ResourceDictionary>
+        <ResourceDictionary x:Key="HighContrast">
+            <SolidColorBrush x:Key="PageSelectionFillBrush" Color="{ThemeResource SystemColorHighlightColor}" Opacity="0.35" />
+            <SolidColorBrush x:Key="PageSelectionStrokeBrush" Color="{ThemeResource SystemColorHighlightColor}" />
+            <SolidColorBrush x:Key="PageFindFillBrush" Color="{ThemeResource SystemColorHotlightColor}" Opacity="0.30" />
+            <SolidColorBrush x:Key="PageFindStrokeBrush" Color="{ThemeResource SystemColorHotlightColor}" />
+            <SolidColorBrush x:Key="PageCurrentMatchFillBrush" Color="{ThemeResource SystemColorHighlightColor}" Opacity="0.55" />
+            <SolidColorBrush x:Key="PageCurrentMatchStrokeBrush" Color="{ThemeResource SystemColorHighlightTextColor}" />
+        </ResourceDictionary>
+    </ResourceDictionary.ThemeDictionaries>
+
+    <!-- The template of the page surface. The presenter puts its drawing element into PART_Host, below the overlay. -->
     <Style TargetType="local:PageSurface">
         <Setter Property="IsTabStop" Value="True" />
         <Setter Property="UseSystemFocusVisuals" Value="True" />
@@ -13,7 +45,14 @@
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="local:PageSurface">
-                    <Grid x:Name="PART_Host" Background="Transparent" />
+                    <Grid x:Name="PART_Host" Background="Transparent">
+                        <!-- Over the pages, under nothing: selection, matches, the current match. Not in the accessibility tree, and never hit by the pointer. -->
+                        <Canvas x:Name="PART_Overlay" IsHitTestVisible="False" AutomationProperties.AccessibilityView="Raw">
+                            <Path x:Name="PART_FindShapes" Fill="{ThemeResource PageFindFillBrush}" Stroke="{ThemeResource PageFindStrokeBrush}" StrokeThickness="1" />
+                            <Path x:Name="PART_SelectionShapes" Fill="{ThemeResource PageSelectionFillBrush}" Stroke="{ThemeResource PageSelectionStrokeBrush}" StrokeThickness="2" />
+                            <Path x:Name="PART_CurrentMatchShapes" Fill="{ThemeResource PageCurrentMatchFillBrush}" Stroke="{ThemeResource PageCurrentMatchStrokeBrush}" StrokeThickness="2" />
+                        </Canvas>
+                    </Grid>
                 </ControlTemplate>
             </Setter.Value>
         </Setter>

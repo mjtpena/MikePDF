@@ -204,6 +204,49 @@ std::vector<RequestSample> request_samples() {
         m.handle = 1234;
         v.push_back({"req_validate_structure", 11, 0, 60000, m});
     }
+    {
+        GetOutline m;
+        m.path = {2, 0, 5};
+        m.first = 64;
+        m.count = 64;
+        v.push_back({"req_get_outline", 13, 7, 1000, m});
+        m.path = {};
+        m.first = 0;
+        m.count = 1;
+        v.push_back({"req_get_outline_top_level", 14, 7, 1000, m});
+    }
+    {
+        GetPageLinks m;
+        m.page = 41;
+        m.first = 512;
+        m.count = 512;
+        v.push_back({"req_get_page_links", 15, 7, 1000, m});
+    }
+    {
+        GetLinkUri m;
+        m.page = 41;
+        m.index = 99999;
+        v.push_back({"req_get_link_uri", 16, 7, 1000, m});
+    }
+    {
+        GetPageBoxes m;
+        m.page = 9999999;
+        v.push_back({"req_get_page_boxes", 17, 7, 1000, m});
+    }
+    {
+        GetPageText m;
+        m.page = 3;
+        m.first = 2048;
+        m.count = 2048;
+        v.push_back({"req_get_page_text", 18, 7, 1000, m});
+    }
+    {
+        SearchPage m;
+        m.page = 3;
+        m.query = "fa" "\xC3\xA7" "ade " "\xE2\x9C\x93";
+        m.flags = 3;
+        v.push_back({"req_search_page", 19, 7, 1000, m});
+    }
     return v;
 }
 
@@ -276,6 +319,68 @@ std::vector<ResponseSample> response_samples() {
         m.issue_codes = {3, 65535};
         m.issue_messages = {"xref entry 12 points outside the file", "caf" "\xC3\xA9"};
         v.push_back({"rsp_validate_structure", 11, Status::Ok, MessageType::ValidateStructure, m});
+    }
+    {
+        GetOutlineReply m;
+        m.total = 3;
+        m.titles = {"Introduction", "Chapter 2 " "\xE2\x80\x94" " Fonts " "\xE2\x9C\x93", ""};
+        m.kinds = {3, 1, 0};
+        m.pages = {0, 41, 0};
+        m.xs = {72.f, 0.f, 0.f};
+        m.ys = {700.5f, 0.f, 0.f};
+        m.has_children = {1, 0, 0};
+        v.push_back({"rsp_get_outline", 13, Status::Ok, MessageType::GetOutline, m});
+    }
+    {
+        GetPageLinksReply m;
+        m.total = 2;
+        m.lefts = {72.f, -10.5f};
+        m.bottoms = {700.f, 20.f};
+        m.rights = {144.f, 100.f};
+        m.tops = {712.f, 32.f};
+        m.kinds = {2, 4};
+        m.pages = {7, 0};
+        m.xs = {0.f, 0.f};
+        m.ys = {640.25f, 0.f};
+        v.push_back({"rsp_get_page_links", 15, Status::Ok, MessageType::GetPageLinks, m});
+    }
+    {
+        GetLinkUriReply m;
+        m.uri = "https://example.org/a%20b?q=" "\xC3\xBC";
+        v.push_back({"rsp_get_link_uri", 16, Status::Ok, MessageType::GetLinkUri, m});
+    }
+    {
+        GetPageBoxesReply m;
+        m.media_left = 0.f;
+        m.media_bottom = 0.f;
+        m.media_right = 612.f;
+        m.media_top = 792.f;
+        m.has_crop_box = true;
+        m.crop_left = 100.f;
+        m.crop_bottom = 150.f;
+        m.crop_right = 500.f;
+        m.crop_top = 650.f;
+        m.rotation = 1;
+        v.push_back({"rsp_get_page_boxes", 17, Status::Ok, MessageType::GetPageBoxes, m});
+    }
+    {
+        GetPageTextReply m;
+        m.total = 5000;
+        m.truncated = false;
+        m.units = {72, 105, 0xFFFD, 10};
+        m.lefts = {72.f, 79.f, 85.f, 90.f};
+        m.bottoms = {700.f, 700.f, 700.f, 700.f};
+        m.rights = {79.f, 85.f, 90.f, 90.f};
+        m.tops = {712.f, 712.f, 712.f, 712.f};
+        m.flags = {0, 0, 2, 1};
+        v.push_back({"rsp_get_page_text", 18, Status::Ok, MessageType::GetPageText, m});
+    }
+    {
+        SearchPageReply m;
+        m.truncated = true;
+        m.starts = {0, 199000};
+        m.lengths = {5, 1000};
+        v.push_back({"rsp_search_page", 19, Status::Ok, MessageType::SearchPage, m});
     }
     v.push_back({"rsp_error_password_required", 4, Status::PasswordRequired, MessageType::OpenDocument, std::nullopt});
     v.push_back({"rsp_error_timeout", 9, Status::Timeout, MessageType::RenderTile, std::nullopt});
@@ -674,7 +779,7 @@ TEST(ProtocolRoundTrip, EveryStatusIsCarriedAsItsOwnValue) {
 
 TEST(ProtocolRoundTrip, TheSchemaConstantsAreWhatTheDocsSay) {
     EXPECT_EQ(kMaxFrameBytes, 65536u);
-    EXPECT_EQ(kSchemaVersion, 2u);
+    EXPECT_EQ(kSchemaVersion, 3u);
     EXPECT_EQ(kMaxDeadlineMs, 86400000u);
 }
 
@@ -805,7 +910,7 @@ TEST(ProtocolFraming, MapsExtensionsAndBinaryAreRejected) {
 TEST(ProtocolEnvelope, HeaderRules) {
     EXPECT_EQ(request_status(request_frame(Raw().arr(1).u(1), MessageType::Ping)), Status::Ok);
     EXPECT_EQ(request_status(request_frame(Raw().arr(1).u(1), static_cast<MessageType>(0))), Status::ProtocolError);
-    for (const int type : {4, 15, 20, 1023, 1025, 65535}) {
+    for (const int type : {4, 15, 26, 1023, 1025, 65535}) {
         EXPECT_EQ(request_status(request_frame(Raw().arr(0), static_cast<MessageType>(type))), Status::ProtocolError) << type;
     }
     // Four elements instead of five.

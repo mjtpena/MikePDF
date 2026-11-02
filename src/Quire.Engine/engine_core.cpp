@@ -85,6 +85,12 @@ Reply EngineCore::execute(protocol::RequestEnvelope& request, Clock::time_point 
             return close_document(request.document_id);
         case protocol::MessageType::GetDocumentInfo:
         case protocol::MessageType::GetPageSizes:
+        case protocol::MessageType::GetOutline:
+        case protocol::MessageType::GetPageLinks:
+        case protocol::MessageType::GetLinkUri:
+        case protocol::MessageType::GetPageBoxes:
+        case protocol::MessageType::GetPageText:
+        case protocol::MessageType::SearchPage:
         case protocol::MessageType::RenderTile: {
             if (Clock::now() >= deadline) {
                 return status_only(Status::Timeout);
@@ -99,7 +105,10 @@ Reply EngineCore::execute(protocol::RequestEnvelope& request, Clock::time_point 
             if (request.message_type == protocol::MessageType::GetPageSizes) {
                 return get_page_sizes(*entry, std::get<protocol::GetPageSizes>(request.payload));
             }
-            return render_tile(*entry, std::get<protocol::RenderTile>(request.payload), deadline);
+            if (request.message_type == protocol::MessageType::RenderTile) {
+                return render_tile(*entry, std::get<protocol::RenderTile>(request.payload), deadline);
+            }
+            return read_page_data(*entry, request, deadline);
         }
         default:
             return status_only(Status::InvalidArgument);
@@ -185,6 +194,43 @@ Reply EngineCore::get_page_sizes(Entry& entry, const protocol::GetPageSizes& req
         return status_only(sizes.status);
     }
     return ok_with(std::move(sizes.value));
+}
+
+// The reading services: every one answers with a typed status and, on success, a reply that obeys the schema limits (the encoder checks).
+Reply EngineCore::read_page_data(Entry& entry, protocol::RequestEnvelope& request, Clock::time_point deadline) {
+    switch (request.message_type) {
+        case protocol::MessageType::GetOutline: {
+            const auto& r = std::get<protocol::GetOutline>(request.payload);
+            auto result = entry.document.outline(r.path, r.first, r.count);
+            return result.ok() ? ok_with(std::move(result.value)) : status_only(result.status);
+        }
+        case protocol::MessageType::GetPageLinks: {
+            const auto& r = std::get<protocol::GetPageLinks>(request.payload);
+            auto result = entry.document.page_links(r.page, r.first, r.count);
+            return result.ok() ? ok_with(std::move(result.value)) : status_only(result.status);
+        }
+        case protocol::MessageType::GetLinkUri: {
+            const auto& r = std::get<protocol::GetLinkUri>(request.payload);
+            auto result = entry.document.link_uri(r.page, r.index);
+            return result.ok() ? ok_with(std::move(result.value)) : status_only(result.status);
+        }
+        case protocol::MessageType::GetPageBoxes: {
+            auto result = entry.document.page_boxes(std::get<protocol::GetPageBoxes>(request.payload).page);
+            return result.ok() ? ok_with(std::move(result.value)) : status_only(result.status);
+        }
+        case protocol::MessageType::GetPageText: {
+            const auto& r = std::get<protocol::GetPageText>(request.payload);
+            auto result = entry.document.page_text(r.page, r.first, r.count);
+            return result.ok() ? ok_with(std::move(result.value)) : status_only(result.status);
+        }
+        case protocol::MessageType::SearchPage: {
+            const auto& r = std::get<protocol::SearchPage>(request.payload);
+            auto result = entry.document.search_page(r.page, r.query, r.flags, [deadline] { return Clock::now() >= deadline; });
+            return result.ok() ? ok_with(std::move(result.value)) : status_only(result.status);
+        }
+        default:
+            return status_only(Status::InvalidArgument);
+    }
 }
 
 Reply EngineCore::render_tile(Entry& entry, const protocol::RenderTile& request, Clock::time_point deadline) {

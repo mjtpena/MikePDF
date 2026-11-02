@@ -241,6 +241,107 @@ public static class GoldenVectors
         Rsp("document_id_zero", RawFrame.Response(Items(0u, 5u), MessageType.OpenDocument), Invalid);
         Rsp("render_tile_zero_stride", RawFrame.Response(Items(0u, 4u, 4u, 0u, 1UL), MessageType.RenderTile), Invalid);
 
+        // The reading services (schema 3). Requests are hand-made with the real writer, which does not validate.
+        static byte[] Doc(object message, MessageType type) => RawFrame.Request(RawFrame.Serialized(message), type, 9, 7, 1000);
+        Req("outline_count_zero", Doc(new GetOutline { Path = [], First = 0, Count = 0 }, MessageType.GetOutline), Invalid);
+        Req("outline_count_65", Doc(new GetOutline { Path = [], First = 0, Count = 65 }, MessageType.GetOutline), Invalid);
+        Req("outline_path_17_levels", Doc(new GetOutline { Path = new uint[17], First = 0, Count = 1 }, MessageType.GetOutline), Invalid);
+        Req("outline_path_index_100000", Doc(new GetOutline { Path = [100000], First = 0, Count = 1 }, MessageType.GetOutline), Invalid);
+        Req("outline_first_100000", Doc(new GetOutline { Path = [], First = 100000, Count = 1 }, MessageType.GetOutline), Invalid);
+        Req("outline_without_a_document", RawFrame.Request(RawFrame.Serialized(new GetOutline { Path = [], First = 0, Count = 1 }), MessageType.GetOutline, 9, 0), Invalid);
+        Req("page_links_count_513", Doc(new GetPageLinks { Page = 0, First = 0, Count = 513 }, MessageType.GetPageLinks), Invalid);
+        Req("link_uri_index_100000", Doc(new GetLinkUri { Page = 0, Index = 100000 }, MessageType.GetLinkUri), Invalid);
+        Req("page_boxes_page_10000000", Doc(new GetPageBoxes { Page = 10000000 }, MessageType.GetPageBoxes), Invalid);
+        Req("page_text_count_2049", Doc(new GetPageText { Page = 0, First = 0, Count = 2049 }, MessageType.GetPageText), Invalid);
+        Req("page_text_first_200000", Doc(new GetPageText { Page = 0, First = 200000, Count = 1 }, MessageType.GetPageText), Invalid);
+        Req("search_query_513_bytes", Doc(new SearchPage { Page = 0, Query = new string('q', 513), Flags = 0 }, MessageType.SearchPage), Invalid);
+        Req("search_query_with_nul", Doc(new SearchPage { Page = 0, Query = "a\0b", Flags = 0 }, MessageType.SearchPage), Invalid);
+        Req("search_flags_unknown_bit", Doc(new SearchPage { Page = 0, Query = "q", Flags = 4 }, MessageType.SearchPage), Invalid);
+        Req("search_query_invalid_utf8", RawFrame.Request(Items(0u, RawString(0xFF, 0xFE), 0u), MessageType.SearchPage, 9, 7), Protocol);
+
+        // Replies. A hostile engine can send each of these.
+        static byte[] Reply(object message, MessageType type) => RawFrame.Response(RawFrame.Serialized(message), type);
+        Rsp("outline_total_100001", Reply(new GetOutlineReply { Total = 100001, Titles = ["a"], Kinds = [1], Pages = [0], Xs = [0f], Ys = [0f], HasChildren = [0] }, MessageType.GetOutline), Invalid);
+        Rsp("outline_65_titles", Reply(new GetOutlineReply
+        {
+            Total = 65, Titles = [.. Enumerable.Repeat("t", 65)], Kinds = new ushort[65], Pages = new uint[65], Xs = new float[65], Ys = new float[65], HasChildren = new ushort[65],
+        }, MessageType.GetOutline), Invalid);
+        Rsp("outline_title_257_bytes", Reply(new GetOutlineReply { Total = 1, Titles = [new string('t', 257)], Kinds = [1], Pages = [0], Xs = [0f], Ys = [0f], HasChildren = [0] }, MessageType.GetOutline), Invalid);
+        Rsp("outline_kind_6", Reply(new GetOutlineReply { Total = 1, Titles = ["a"], Kinds = [6], Pages = [0], Xs = [0f], Ys = [0f], HasChildren = [0] }, MessageType.GetOutline), Invalid);
+        Rsp("outline_has_children_2", Reply(new GetOutlineReply { Total = 1, Titles = ["a"], Kinds = [1], Pages = [0], Xs = [0f], Ys = [0f], HasChildren = [2] }, MessageType.GetOutline), Invalid);
+        Rsp("outline_page_10000000", Reply(new GetOutlineReply { Total = 1, Titles = ["a"], Kinds = [1], Pages = [10000000], Xs = [0f], Ys = [0f], HasChildren = [0] }, MessageType.GetOutline), Invalid);
+        Rsp("outline_arrays_differ_in_length", Reply(new GetOutlineReply { Total = 1, Titles = ["a", "b"], Kinds = [1], Pages = [0], Xs = [0f], Ys = [0f], HasChildren = [0] }, MessageType.GetOutline), Invalid);
+        Rsp("outline_y_out_of_range", Reply(new GetOutlineReply { Total = 1, Titles = ["a"], Kinds = [2], Pages = [0], Xs = [0f], Ys = [1000001f], HasChildren = [0] }, MessageType.GetOutline), Invalid);
+        Rsp("outline_x_nan", RawFrame.Response(
+            (ref MessagePackWriter w) =>
+            {
+                w.WriteArrayHeader(7); w.Write(1u);
+                w.WriteArrayHeader(1); w.Write("a");
+                w.WriteArrayHeader(1); w.Write((ushort)1);
+                w.WriteArrayHeader(1); w.Write(0u);
+                w.WriteArrayHeader(1); w.WriteRaw(RawNan);
+                w.WriteArrayHeader(1); w.Write(0f);
+                w.WriteArrayHeader(1); w.Write((ushort)0);
+            },
+            MessageType.GetOutline), Invalid);
+        Rsp("links_total_100001", Reply(new GetPageLinksReply
+        {
+            Total = 100001, Lefts = [0f], Bottoms = [0f], Rights = [1f], Tops = [1f], Kinds = [1], Pages = [0], Xs = [0f], Ys = [0f],
+        }, MessageType.GetPageLinks), Invalid);
+        Rsp("links_kind_6", Reply(new GetPageLinksReply
+        {
+            Total = 1, Lefts = [0f], Bottoms = [0f], Rights = [1f], Tops = [1f], Kinds = [6], Pages = [0], Xs = [0f], Ys = [0f],
+        }, MessageType.GetPageLinks), Invalid);
+        Rsp("links_arrays_differ_in_length", Reply(new GetPageLinksReply
+        {
+            Total = 1, Lefts = [0f], Bottoms = [0f, 1f], Rights = [1f], Tops = [1f], Kinds = [1], Pages = [0], Xs = [0f], Ys = [0f],
+        }, MessageType.GetPageLinks), Invalid);
+        Rsp("links_left_out_of_range", Reply(new GetPageLinksReply
+        {
+            Total = 1, Lefts = [-1000001f], Bottoms = [0f], Rights = [1f], Tops = [1f], Kinds = [1], Pages = [0], Xs = [0f], Ys = [0f],
+        }, MessageType.GetPageLinks), Invalid);
+        Rsp("link_uri_2049_bytes", Reply(new GetLinkUriReply { Uri = new string('u', 2049) }, MessageType.GetLinkUri), Invalid);
+        Rsp("link_uri_invalid_utf8", RawFrame.Response(Items(RawString(0xFF, 0xFE)), MessageType.GetLinkUri), Protocol);
+        Rsp("page_boxes_rotation_four", Reply(new GetPageBoxesReply { MediaRight = 612f, MediaTop = 792f, CropRight = 612f, CropTop = 792f, HasCropBox = true, Rotation = 4 }, MessageType.GetPageBoxes), Invalid);
+        Rsp("page_boxes_infinite", RawFrame.Response(
+            (ref MessagePackWriter w) =>
+            {
+                w.WriteArrayHeader(10);
+                w.WriteRaw(RawInf); w.Write(0f); w.Write(612f); w.Write(792f);
+                w.Write(false);
+                w.Write(0f); w.Write(0f); w.Write(0f); w.Write(0f);
+                w.Write((ushort)0);
+            },
+            MessageType.GetPageBoxes), Invalid);
+        Rsp("page_text_total_200001", Reply(new GetPageTextReply
+        {
+            Total = 200001, Units = [65], Lefts = [0f], Bottoms = [0f], Rights = [1f], Tops = [1f], Flags = [0],
+        }, MessageType.GetPageText), Invalid);
+        Rsp("page_text_flags_4", Reply(new GetPageTextReply
+        {
+            Total = 1, Units = [65], Lefts = [0f], Bottoms = [0f], Rights = [1f], Tops = [1f], Flags = [4],
+        }, MessageType.GetPageText), Invalid);
+        Rsp("page_text_unit_70000", RawFrame.Response(
+            (ref MessagePackWriter w) =>
+            {
+                w.WriteArrayHeader(8); w.Write(1u); w.Write(false);
+                w.WriteArrayHeader(1); w.Write(70000u);
+                for (var i = 0; i < 4; i++) { w.WriteArrayHeader(1); w.Write(0f); }
+                w.WriteArrayHeader(1); w.Write((ushort)0);
+            },
+            MessageType.GetPageText), Protocol);
+        Rsp("page_text_2049_units", Reply(new GetPageTextReply
+        {
+            Total = 2049, Units = new ushort[2049], Lefts = new float[2049], Bottoms = new float[2049], Rights = new float[2049], Tops = new float[2049], Flags = new ushort[2049],
+        }, MessageType.GetPageText), Invalid);
+        Rsp("page_text_arrays_differ_in_length", Reply(new GetPageTextReply
+        {
+            Total = 2, Units = [65, 66], Lefts = [0f], Bottoms = [0f, 0f], Rights = [1f, 1f], Tops = [1f, 1f], Flags = [0, 0],
+        }, MessageType.GetPageText), Invalid);
+        Rsp("search_length_zero", Reply(new SearchPageReply { Truncated = false, Starts = [0], Lengths = [0] }, MessageType.SearchPage), Invalid);
+        Rsp("search_start_200000", Reply(new SearchPageReply { Truncated = false, Starts = [200000], Lengths = [1] }, MessageType.SearchPage), Invalid);
+        Rsp("search_2049_matches", Reply(new SearchPageReply { Truncated = true, Starts = new uint[2049], Lengths = Enumerable.Repeat(1u, 2049).ToArray() }, MessageType.SearchPage), Invalid);
+
         return v;
     }
 }

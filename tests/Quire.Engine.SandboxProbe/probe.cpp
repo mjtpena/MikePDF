@@ -12,6 +12,7 @@
 #include <WinSock2.h>
 #include <WS2tcpip.h>
 #include <Windows.h>
+#include <sddl.h>
 
 #include <cstdio>
 #include <cstring>
@@ -37,6 +38,13 @@ void emit(const std::string& line) {
     DWORD written = 0;
     WriteFile(g_out, text.data(), static_cast<DWORD>(text.size()), &written, nullptr);
 }
+
+}  // namespace
+
+// Called by rogue-marker.dll from its DllMain: the proof that the DLL's code ran. Nothing else calls it.
+extern "C" __declspec(dllexport) void quire_probe_emit(const char* line) { emit(line); }
+
+namespace {
 
 std::string narrow(std::wstring_view wide) {
     if (wide.empty()) {
@@ -224,6 +232,20 @@ Outcome write_registry() {
     return {true, 0, "key created and removed"};
 }
 
+// Renames a directory and, if that worked, puts it back at once: can this process move things around inside a folder it cannot read?
+Outcome rename_and_back(const std::wstring& dir) {
+    std::wstring trimmed = dir;
+    while (!trimmed.empty() && (trimmed.back() == L'\\' || trimmed.back() == L'/')) {
+        trimmed.pop_back();
+    }
+    const std::wstring moved = trimmed + L".renamed-by-probe";
+    if (!MoveFileExW(trimmed.c_str(), moved.c_str(), 0)) {
+        return {false, GetLastError(), "rename directory"};
+    }
+    MoveFileExW(moved.c_str(), trimmed.c_str(), 0);
+    return {true, 0, "directory renamed and renamed back"};
+}
+
 Outcome load_dll(const std::wstring& path) {
     const HMODULE module = LoadLibraryExW(path.c_str(), nullptr, 0);
     if (module == nullptr) {
@@ -253,6 +275,17 @@ void report_process() {
     }
     if (GetTokenInformation(token, static_cast<TOKEN_INFORMATION_CLASS>(30) /* TokenCapabilities */, buffer, sizeof(buffer), &returned)) {
         info("capabilityCount", std::to_string(*reinterpret_cast<DWORD*>(buffer)));
+        // The capability SIDs themselves (TOKEN_GROUPS layout), so a non-zero count can be identified.
+        const auto* groups = reinterpret_cast<const TOKEN_GROUPS*>(buffer);
+        std::string list;
+        for (DWORD i = 0; i < groups->GroupCount; ++i) {
+            LPSTR text = nullptr;
+            if (ConvertSidToStringSidA(groups->Groups[i].Sid, &text)) {
+                list += (list.empty() ? "" : ",") + std::string(text);
+                LocalFree(text);
+            }
+        }
+        info("capabilitySids", list);
     }
     if (GetTokenInformation(token, TokenPrivileges, buffer, sizeof(buffer), &returned)) {
         info("privilegeCount", std::to_string(*reinterpret_cast<DWORD*>(buffer)));
@@ -280,7 +313,7 @@ void report_mitigations(const char* phase) {
 }
 
 struct Options {
-    std::wstring documents, temp, repo_dir, repo_file, unc, tcp_lan_address, parent_pid, rogue_dll, temp_dll, engine_dir;
+    std::wstring documents, temp, repo_dir, repo_file, other_package_file, own_data_file, own_data_dir, protected_file, rename_protected_dir, rename_engine_dir, rogue_only, listen, unc, tcp_lan_address, parent_pid, rogue_dll, temp_dll, engine_dir;
     unsigned short tcp_loopback_port{};
     unsigned short tcp_lan_port{};
     DWORD parent{};
@@ -302,6 +335,14 @@ bool parse(Options& o) {
         else if (arg == L"--temp") o.temp = value;
         else if (arg == L"--repo-dir") o.repo_dir = value;
         else if (arg == L"--repo-file") o.repo_file = value;
+        else if (arg == L"--other-package-file") o.other_package_file = value;
+        else if (arg == L"--own-data-file") o.own_data_file = value;
+        else if (arg == L"--own-data-dir") o.own_data_dir = value;
+        else if (arg == L"--protected-file") o.protected_file = value;
+        else if (arg == L"--rename-protected-dir") o.rename_protected_dir = value;
+        else if (arg == L"--rename-engine-dir") o.rename_engine_dir = value;
+        else if (arg == L"--rogue-only") o.rogue_only = value;
+        else if (arg == L"--listen") o.listen = value;
         else if (arg == L"--unc") o.unc = value;
         else if (arg == L"--rogue-dll") o.rogue_dll = value;
         else if (arg == L"--temp-dll") o.temp_dll = value;
@@ -320,9 +361,49 @@ bool parse(Options& o) {
     return true;
 }
 
+// An ordinary (unsandboxed) helper for the loopback row: listens on 127.0.0.1, writes the port to a file, and stays until the process named by
+// --parent is gone. With something listening, a connection that gets through is accepted and one that is blocked times out, so the row means something.
+int listen_on_loopback(const Options& o) {
+    WSADATA wsa{};
+    WSAStartup(MAKEWORD(2, 2), &wsa);
+    SOCKET s = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+    sockaddr_in address{};
+    address.sin_family = AF_INET;
+    inet_pton(AF_INET, "127.0.0.1", &address.sin_addr);
+    int length = sizeof(address);
+    if (s == INVALID_SOCKET || bind(s, reinterpret_cast<sockaddr*>(&address), sizeof(address)) != 0 || listen(s, 8) != 0 ||
+        getsockname(s, reinterpret_cast<sockaddr*>(&address), &length) != 0) {
+        return 3;
+    }
+    const std::string port = std::to_string(ntohs(address.sin_port));
+    const HANDLE file = CreateFileW(o.listen.c_str(), GENERIC_WRITE, 0, nullptr, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr);
+    if (file == INVALID_HANDLE_VALUE) {
+        return 4;
+    }
+    DWORD written = 0;
+    WriteFile(file, port.data(), static_cast<DWORD>(port.size()), &written, nullptr);
+    CloseHandle(file);
+    const HANDLE parent = o.parent == 0 ? nullptr : OpenProcess(SYNCHRONIZE, FALSE, o.parent);
+    WaitForSingleObject(parent != nullptr ? parent : GetCurrentProcess(), INFINITE);
+    closesocket(s);
+    return 0;
+}
+
 }  // namespace
 
 int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int) {
+    {
+        Options early;
+        bool parsed = false;
+        try {
+            parsed = parse(early);
+        } catch (...) {
+        }
+        if (parsed && !early.listen.empty()) {
+            return listen_on_loopback(early);
+        }
+    }
+
     // Sandboxed: nothing is inherited, so results go to the broker's log pipe. The unsandboxed control run uses its stdout.
     g_to_log_pipe = quire::engine::connect_log_pipe();
     g_out = GetStdHandle(STD_OUTPUT_HANDLE);
@@ -353,11 +434,43 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int) {
         report_mitigations("runtime");
     }
 
+    if (!o.rogue_only.empty()) {
+        // The unsigned-DLL row, alone in its own process: if the loader ends the process, the rows above are already on record, and the
+        // marker line (printed by the DLL's own code, through quire_probe_emit) shows whether that code ran.
+        run("dll.load.rogue-marker", "deny", load_dll(o.rogue_only));
+        emit("DONE");
+        return 0;
+    }
+
     run("fs.read.documents.open", "deny", open_directory(o.documents));
     run("fs.read.documents.enumerate", "deny", enumerate_directory(o.documents));
     run("fs.write.temp", "deny", write_file(o.temp, L"quire-probe-"));
     run("fs.write.repo-dir", "deny", write_file(o.repo_dir, L"quire-probe-"));
     run("fs.read.repo-file", "deny", read_file(o.repo_file));
+    if (!o.other_package_file.empty()) {
+        // A file inside another installed package (optional): a sandboxed process must not be able to read other apps' files.
+        run("fs.read.other-package-file", "deny", read_file(o.other_package_file));
+    }
+    if (!o.own_data_file.empty()) {
+        // A file in the parent package's own data folder (optional): the sandbox must not read the app's private data either.
+        run("fs.read.parent-package-data", "deny", read_file(o.own_data_file));
+    }
+    if (!o.own_data_dir.empty()) {
+        run("fs.write.parent-package-data", "deny", write_file(o.own_data_dir, L"quire-probe-"));
+    }
+    // The engine must not be able to modify its own deployment directory (a tampered copy would be what the next launch runs).
+    run("fs.write.engine-dir", "deny", write_file(o.engine_dir, L"quire-probe-"));
+    if (!o.rename_engine_dir.empty()) {
+        // The directory the engine runs from must not be movable by the engine (a replacement would be what the next launch runs).
+        run("fs.rename.engine-dir", "deny", rename_and_back(o.rename_engine_dir));
+    }
+    if (!o.protected_file.empty()) {
+        // A file the broker keeps to itself, in a protected directory with user and SYSTEM only.
+        run("fs.read.protected-private-file", "deny", read_file(o.protected_file));
+    }
+    if (!o.rename_protected_dir.empty()) {
+        run("fs.rename.protected-private-dir", "deny", rename_and_back(o.rename_protected_dir));
+    }
     run("fs.read.unc", "deny", open_unc(o.unc));
     run("net.tcp.connect-loopback", "deny", tcp_connect("127.0.0.1", o.tcp_loopback_port));
     if (!o.tcp_lan_address.empty()) {
@@ -369,7 +482,6 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int) {
     run("ui.clipboard.read", "deny", read_clipboard());
     run("reg.write.hkcu", "deny", write_registry());
     run("dll.load.unsigned-temp-copy", "deny", load_dll(o.temp_dll));
-    run("dll.load.unsigned-in-engine-dir", "deny", load_dll(o.rogue_dll));
 
     // Positive controls: the sandbox is useless if these fail too.
     run("ctl.read.engine-dir", "allow", read_file(o.engine_dir + L"\\Quire.Engine.exe"));

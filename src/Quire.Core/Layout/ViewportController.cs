@@ -157,6 +157,44 @@ public sealed class ViewportController
         ScrollTo(ScrollX, y);
     }
 
+    /// <summary>
+    /// Scrolls so a point of a page is at the top of the viewport (a bookmark or link with a position): <paramref name="pagePoint"/> is in page
+    /// space, the page's own /Rotate applied, in points. With <paramref name="useX"/> the point is also brought to the left edge when the page
+    /// is wider than the viewport. The view rotation and the zoom are accounted for.
+    /// </summary>
+    public void GoToPoint(int page, PointD pagePoint, bool useX)
+    {
+        if (_layout.PageCount == 0)
+        {
+            return;
+        }
+
+        page = Math.Clamp(page, 0, _layout.PageCount - 1);
+        var index = Math.Min(page, _sizes.Count - 1);
+        if (index < 0)
+        {
+            GoToPage(page);
+            return;
+        }
+
+        var projection = PageProjection.For(Snapshot(), page);
+        if (projection is null)
+        {
+            GoToPage(page);
+            return;
+        }
+
+        var inPage = new PageTransform(projection.PageSize, ViewTurns, _layout.LayoutScale).PageToDevice(pagePoint);
+        var y = _layout.Top(page) + Math.Clamp(inPage.Y, 0, _layout.Height(page)) - _layout.MarginPx;
+        var x = ScrollX;
+        if (useX && _layout.ContentWidth > _viewportWidth)
+        {
+            x = _layout.Left(page, _viewportWidth) + Math.Clamp(inPage.X, 0, _layout.Width(page)) - _layout.MarginPx;
+        }
+
+        ScrollTo(x, y);
+    }
+
     public void NextPage() => GoToPage(Math.Min(CurrentPage + 1, Math.Max(0, PageCount - 1)));
 
     public void PreviousPage() => GoToPage(Math.Max(CurrentPage - 1, 0));

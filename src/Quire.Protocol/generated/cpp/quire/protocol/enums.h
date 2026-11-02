@@ -8,7 +8,7 @@
 
 namespace quire::protocol {
 
-inline constexpr std::uint32_t kSchemaVersion = 2;
+inline constexpr std::uint32_t kSchemaVersion = 3;
 inline constexpr std::size_t kMaxFrameBytes = 65536;
 inline constexpr std::uint32_t kMaxDeadlineMs = 86400000;
 
@@ -87,6 +87,12 @@ enum class MessageType : std::uint16_t {
     CloseDocument = 17,
     GetDocumentInfo = 18,
     GetPageSizes = 19,
+    GetOutline = 20,
+    GetPageLinks = 21,
+    GetLinkUri = 22,
+    GetPageBoxes = 23,
+    GetPageText = 24,
+    SearchPage = 25,
     RenderTile = 32,
     CancelBefore = 33,
     ValidateStructure = 1024,
@@ -102,6 +108,12 @@ enum class MessageType : std::uint16_t {
         case 17:
         case 18:
         case 19:
+        case 20:
+        case 21:
+        case 22:
+        case 23:
+        case 24:
+        case 25:
         case 32:
         case 33:
         case 1024:
@@ -133,6 +145,18 @@ enum class DocumentIdRule : std::uint8_t {
         case MessageType::GetDocumentInfo:
             return DocumentIdRule::Required;
         case MessageType::GetPageSizes:
+            return DocumentIdRule::Required;
+        case MessageType::GetOutline:
+            return DocumentIdRule::Required;
+        case MessageType::GetPageLinks:
+            return DocumentIdRule::Required;
+        case MessageType::GetLinkUri:
+            return DocumentIdRule::Required;
+        case MessageType::GetPageBoxes:
+            return DocumentIdRule::Required;
+        case MessageType::GetPageText:
+            return DocumentIdRule::Required;
+        case MessageType::SearchPage:
             return DocumentIdRule::Required;
         case MessageType::RenderTile:
             return DocumentIdRule::Required;

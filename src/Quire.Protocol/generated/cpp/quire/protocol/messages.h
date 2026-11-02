@@ -279,6 +279,239 @@ struct GetPageSizesReply {
     bool operator==(const GetPageSizesReply&) const = default;
 };
 
+/// Request payload of GetOutline (message type 20).
+struct GetOutline {
+    static constexpr MessageType kMessageType = MessageType::GetOutline;
+    /// Sibling index at each level, root first. At most 16 levels.
+    std::vector<std::uint32_t> path{};
+    std::uint32_t first{};
+    std::uint32_t count{};
+
+    /// Checks every schema limit.
+    [[nodiscard]] Status validate() const;
+    /// Validates, then writes the payload array. Writes nothing if validation fails.
+    [[nodiscard]] Status encode(Writer& writer) const;
+    /// Reads and fully validates one payload. The value is default-constructed on failure.
+    [[nodiscard]] static Result<GetOutline> decode(Reader& reader);
+
+    bool operator==(const GetOutline&) const = default;
+};
+
+/// Reply payload of GetOutline (message type 20).
+struct GetOutlineReply {
+    static constexpr MessageType kMessageType = MessageType::GetOutline;
+    std::uint32_t total{};
+    std::vector<std::string> titles{};
+    /// Destination kind: 0 none, 1 page, 2 page and y, 3 page, x and y, 4 external address, 5 any other action.
+    std::vector<std::uint16_t> kinds{};
+    /// Zero-based destination page; 0 unless kind is 1, 2 or 3.
+    std::vector<std::uint32_t> pages{};
+    std::vector<float> xs{};
+    std::vector<float> ys{};
+    std::vector<std::uint16_t> has_children{};
+
+    /// Checks every schema limit.
+    [[nodiscard]] Status validate() const;
+    /// Validates, then writes the payload array. Writes nothing if validation fails.
+    [[nodiscard]] Status encode(Writer& writer) const;
+    /// Reads and fully validates one payload. The value is default-constructed on failure.
+    [[nodiscard]] static Result<GetOutlineReply> decode(Reader& reader);
+
+    bool operator==(const GetOutlineReply&) const = default;
+};
+
+/// Request payload of GetPageLinks (message type 21).
+struct GetPageLinks {
+    static constexpr MessageType kMessageType = MessageType::GetPageLinks;
+    std::uint32_t page{};
+    std::uint32_t first{};
+    std::uint32_t count{};
+
+    /// Checks every schema limit.
+    [[nodiscard]] Status validate() const;
+    /// Validates, then writes the payload array. Writes nothing if validation fails.
+    [[nodiscard]] Status encode(Writer& writer) const;
+    /// Reads and fully validates one payload. The value is default-constructed on failure.
+    [[nodiscard]] static Result<GetPageLinks> decode(Reader& reader);
+
+    bool operator==(const GetPageLinks&) const = default;
+};
+
+/// Reply payload of GetPageLinks (message type 21).
+struct GetPageLinksReply {
+    static constexpr MessageType kMessageType = MessageType::GetPageLinks;
+    /// Links on the page; the engine stops counting at 100000.
+    std::uint32_t total{};
+    std::vector<float> lefts{};
+    std::vector<float> bottoms{};
+    std::vector<float> rights{};
+    std::vector<float> tops{};
+    /// As GetOutlineReply.kinds.
+    std::vector<std::uint16_t> kinds{};
+    std::vector<std::uint32_t> pages{};
+    std::vector<float> xs{};
+    std::vector<float> ys{};
+
+    /// Checks every schema limit.
+    [[nodiscard]] Status validate() const;
+    /// Validates, then writes the payload array. Writes nothing if validation fails.
+    [[nodiscard]] Status encode(Writer& writer) const;
+    /// Reads and fully validates one payload. The value is default-constructed on failure.
+    [[nodiscard]] static Result<GetPageLinksReply> decode(Reader& reader);
+
+    bool operator==(const GetPageLinksReply&) const = default;
+};
+
+/// Request payload of GetLinkUri (message type 22).
+struct GetLinkUri {
+    static constexpr MessageType kMessageType = MessageType::GetLinkUri;
+    std::uint32_t page{};
+    /// Position of the link in the order GetPageLinks reports.
+    std::uint32_t index{};
+
+    /// Checks every schema limit.
+    [[nodiscard]] Status validate() const;
+    /// Validates, then writes the payload array. Writes nothing if validation fails.
+    [[nodiscard]] Status encode(Writer& writer) const;
+    /// Reads and fully validates one payload. The value is default-constructed on failure.
+    [[nodiscard]] static Result<GetLinkUri> decode(Reader& reader);
+
+    bool operator==(const GetLinkUri&) const = default;
+};
+
+/// Reply payload of GetLinkUri (message type 22).
+struct GetLinkUriReply {
+    static constexpr MessageType kMessageType = MessageType::GetLinkUri;
+    std::string uri{};
+
+    /// Checks every schema limit.
+    [[nodiscard]] Status validate() const;
+    /// Validates, then writes the payload array. Writes nothing if validation fails.
+    [[nodiscard]] Status encode(Writer& writer) const;
+    /// Reads and fully validates one payload. The value is default-constructed on failure.
+    [[nodiscard]] static Result<GetLinkUriReply> decode(Reader& reader);
+
+    bool operator==(const GetLinkUriReply&) const = default;
+};
+
+/// Request payload of GetPageBoxes (message type 23).
+struct GetPageBoxes {
+    static constexpr MessageType kMessageType = MessageType::GetPageBoxes;
+    std::uint32_t page{};
+
+    /// Checks every schema limit.
+    [[nodiscard]] Status validate() const;
+    /// Validates, then writes the payload array. Writes nothing if validation fails.
+    [[nodiscard]] Status encode(Writer& writer) const;
+    /// Reads and fully validates one payload. The value is default-constructed on failure.
+    [[nodiscard]] static Result<GetPageBoxes> decode(Reader& reader);
+
+    bool operator==(const GetPageBoxes&) const = default;
+};
+
+/// Reply payload of GetPageBoxes (message type 23).
+struct GetPageBoxesReply {
+    static constexpr MessageType kMessageType = MessageType::GetPageBoxes;
+    float media_left{};
+    float media_bottom{};
+    float media_right{};
+    float media_top{};
+    bool has_crop_box{};
+    float crop_left{};
+    float crop_bottom{};
+    float crop_right{};
+    float crop_top{};
+    /// The page's own /Rotate in quarter turns clockwise.
+    std::uint16_t rotation{};
+
+    /// Checks every schema limit.
+    [[nodiscard]] Status validate() const;
+    /// Validates, then writes the payload array. Writes nothing if validation fails.
+    [[nodiscard]] Status encode(Writer& writer) const;
+    /// Reads and fully validates one payload. The value is default-constructed on failure.
+    [[nodiscard]] static Result<GetPageBoxesReply> decode(Reader& reader);
+
+    bool operator==(const GetPageBoxesReply&) const = default;
+};
+
+/// Request payload of GetPageText (message type 24).
+struct GetPageText {
+    static constexpr MessageType kMessageType = MessageType::GetPageText;
+    std::uint32_t page{};
+    std::uint32_t first{};
+    std::uint32_t count{};
+
+    /// Checks every schema limit.
+    [[nodiscard]] Status validate() const;
+    /// Validates, then writes the payload array. Writes nothing if validation fails.
+    [[nodiscard]] Status encode(Writer& writer) const;
+    /// Reads and fully validates one payload. The value is default-constructed on failure.
+    [[nodiscard]] static Result<GetPageText> decode(Reader& reader);
+
+    bool operator==(const GetPageText&) const = default;
+};
+
+/// Reply payload of GetPageText (message type 24).
+struct GetPageTextReply {
+    static constexpr MessageType kMessageType = MessageType::GetPageText;
+    /// Characters on the page (at most 200000).
+    std::uint32_t total{};
+    /// The page has more characters than the engine reports.
+    bool truncated{};
+    /// UTF-16 code units.
+    std::vector<std::uint16_t> units{};
+    std::vector<float> lefts{};
+    std::vector<float> bottoms{};
+    std::vector<float> rights{};
+    std::vector<float> tops{};
+    /// Bit 0: PDFium made this character up (a space or line break). Bit 1: a hyphen at the end of a line.
+    std::vector<std::uint16_t> flags{};
+
+    /// Checks every schema limit.
+    [[nodiscard]] Status validate() const;
+    /// Validates, then writes the payload array. Writes nothing if validation fails.
+    [[nodiscard]] Status encode(Writer& writer) const;
+    /// Reads and fully validates one payload. The value is default-constructed on failure.
+    [[nodiscard]] static Result<GetPageTextReply> decode(Reader& reader);
+
+    bool operator==(const GetPageTextReply&) const = default;
+};
+
+/// Request payload of SearchPage (message type 25).
+struct SearchPage {
+    static constexpr MessageType kMessageType = MessageType::SearchPage;
+    std::uint32_t page{};
+    std::string query{};
+    /// Bit 0 match case, bit 1 whole words only.
+    std::uint32_t flags{};
+
+    /// Checks every schema limit.
+    [[nodiscard]] Status validate() const;
+    /// Validates, then writes the payload array. Writes nothing if validation fails.
+    [[nodiscard]] Status encode(Writer& writer) const;
+    /// Reads and fully validates one payload. The value is default-constructed on failure.
+    [[nodiscard]] static Result<SearchPage> decode(Reader& reader);
+
+    bool operator==(const SearchPage&) const = default;
+};
+
+/// Reply payload of SearchPage (message type 25).
+struct SearchPageReply {
+    static constexpr MessageType kMessageType = MessageType::SearchPage;
+    bool truncated{};
+    std::vector<std::uint32_t> starts{};
+    std::vector<std::uint32_t> lengths{};
+
+    /// Checks every schema limit.
+    [[nodiscard]] Status validate() const;
+    /// Validates, then writes the payload array. Writes nothing if validation fails.
+    [[nodiscard]] Status encode(Writer& writer) const;
+    /// Reads and fully validates one payload. The value is default-constructed on failure.
+    [[nodiscard]] static Result<SearchPageReply> decode(Reader& reader);
+
+    bool operator==(const SearchPageReply&) const = default;
+};
+
 /// Request payload of RenderTile (message type 32).
 struct RenderTile {
     static constexpr MessageType kMessageType = MessageType::RenderTile;
@@ -386,8 +619,8 @@ struct ValidateStructureReply {
     bool operator==(const ValidateStructureReply&) const = default;
 };
 
-using RequestPayload = std::variant<Hello, Ping, Shutdown, AttachSlotRing, OpenDocument, CloseDocument, GetDocumentInfo, GetPageSizes, RenderTile, CancelBefore, ValidateStructure>;
-using ReplyPayload = std::variant<HelloReply, Pong, ShutdownReply, AttachSlotRingReply, OpenDocumentReply, CloseDocumentReply, GetDocumentInfoReply, GetPageSizesReply, RenderTileReply, CancelBeforeReply, ValidateStructureReply>;
+using RequestPayload = std::variant<Hello, Ping, Shutdown, AttachSlotRing, OpenDocument, CloseDocument, GetDocumentInfo, GetPageSizes, GetOutline, GetPageLinks, GetLinkUri, GetPageBoxes, GetPageText, SearchPage, RenderTile, CancelBefore, ValidateStructure>;
+using ReplyPayload = std::variant<HelloReply, Pong, ShutdownReply, AttachSlotRingReply, OpenDocumentReply, CloseDocumentReply, GetDocumentInfoReply, GetPageSizesReply, GetOutlineReply, GetPageLinksReply, GetLinkUriReply, GetPageBoxesReply, GetPageTextReply, SearchPageReply, RenderTileReply, CancelBeforeReply, ValidateStructureReply>;
 
 /// Decode the payload of a request or reply of the given type. An unknown type is a ProtocolError.
 [[nodiscard]] Result<RequestPayload> decode_request_payload(MessageType type, Reader& reader);

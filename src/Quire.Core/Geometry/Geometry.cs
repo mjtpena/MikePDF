@@ -28,6 +28,24 @@ public readonly record struct RectD(double X, double Y, double Width, double Hei
         return right <= left || bottom <= top ? new RectD(left, top, 0, 0) : new RectD(left, top, right - left, bottom - top);
     }
 
+    /// <summary>The smallest rectangle that holds both.</summary>
+    public RectD Union(RectD other)
+    {
+        var left = Math.Min(X, other.X);
+        var top = Math.Min(Y, other.Y);
+        return new RectD(left, top, Math.Max(Right, other.Right) - left, Math.Max(Bottom, other.Bottom) - top);
+    }
+
+    public bool Contains(PointD point) => point.X >= X && point.X < Right && point.Y >= Y && point.Y < Bottom;
+
+    /// <summary>Zero when the point is inside; otherwise the straight-line distance to the nearest edge.</summary>
+    public double DistanceTo(PointD point)
+    {
+        var dx = point.X < X ? X - point.X : point.X > Right ? point.X - Right : 0;
+        var dy = point.Y < Y ? Y - point.Y : point.Y > Bottom ? point.Y - Bottom : 0;
+        return Math.Sqrt((dx * dx) + (dy * dy));
+    }
+
     public RectD Offset(double dx, double dy) => new(X + dx, Y + dy, Width, Height);
 
     public RectD Inflate(double amount) => new(X - amount, Y - amount, Width + (2 * amount), Height + (2 * amount));

@@ -44,6 +44,8 @@ public sealed partial class MainWindow : Window
         // Creating the sandbox profile and putting the verified engine in place takes a moment; do it while the window comes up.
         _host = Task.Run(EngineHost.Create);
         InitializeComponent();
+        Pages.LinkActivated += OnLinkActivated;
+        Pages.Copied += OnCopied;
         SystemBackdrop = new MicaBackdrop();
         ConfigureTitleBar();
         ZoomInOemAccelerator.Key = (Windows.System.VirtualKey)187;      // =
@@ -162,6 +164,7 @@ public sealed partial class MainWindow : Window
             session.ViewChanged += UpdateChrome;
             session.EngineStateChanged += OnEngineStateChanged;
             session.PageIncomplete += OnPageIncomplete;
+            session.OverlaysChanged += OnOverlaysChanged;
             Pages.Session = session;
             _session = session;
 
@@ -224,6 +227,9 @@ public sealed partial class MainWindow : Window
     {
         var session = _session;
         _session = null;
+        DetachSidebar();
+        FindBar.Visibility = Visibility.Collapsed;
+        FindStatus.Text = string.Empty;
         Pages.Session = null;
         if (session is not null)
         {
@@ -242,6 +248,11 @@ public sealed partial class MainWindow : Window
         Pages.Visibility = Visibility.Visible;
         RefreshRecent();
         UpdateChrome();
+        if (_session is { } opened)
+        {
+            AttachSidebar(opened);
+        }
+
         Pages.FocusPages();
     }
 

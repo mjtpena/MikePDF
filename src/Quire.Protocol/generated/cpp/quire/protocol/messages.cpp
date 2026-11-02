@@ -707,6 +707,1178 @@ Result<GetPageSizesReply> GetPageSizesReply::decode(Reader& reader) {
     return {Status::Ok, std::move(m), ""};
 }
 
+Status GetOutline::validate() const {
+    if (path.size() > 16u) {
+        return Status::InvalidArgument;
+    }
+    for (const auto& v : path) {
+        if (v > 99999u) {
+            return Status::InvalidArgument;
+        }
+    }
+    if (first > 99999u) {
+        return Status::InvalidArgument;
+    }
+    if (count < 1u || count > 64u) {
+        return Status::InvalidArgument;
+    }
+    return Status::Ok;
+}
+
+Status GetOutline::encode(Writer& writer) const {
+    if (const Status valid = validate(); valid != Status::Ok) {
+        return valid;
+    }
+    writer.write_array_header(3);
+    writer.write_array_header(path.size());
+    for (const auto& v : path) {
+        writer.write_uint(v);
+    }
+    writer.write_uint(first);
+    writer.write_uint(count);
+    return writer.status();
+}
+
+Result<GetOutline> GetOutline::decode(Reader& reader) {
+    GetOutline m;
+    Status s = reader.expect_array(3);
+    if (s == Status::Ok) {
+        std::size_t count = 0;
+        s = reader.read_array_header(count, 16);
+        if (s == Status::Ok) {
+            m.path.reserve(count);
+            for (std::size_t i = 0; i < count && s == Status::Ok; ++i) {
+                std::uint32_t v{};
+                s = reader.read_u32(v, 0u, 99999u);
+                if (s == Status::Ok) {
+                    m.path.push_back(std::move(v));
+                }
+            }
+        }
+    }
+    if (s == Status::Ok) {
+        s = reader.read_u32(m.first, 0u, 99999u);
+    }
+    if (s == Status::Ok) {
+        s = reader.read_u32(m.count, 1u, 64u);
+    }
+    if (s == Status::Ok) {
+        s = m.validate();
+        if (s != Status::Ok) {
+            reader.fail(s, "message violates a schema limit");
+        }
+    }
+    if (s != Status::Ok) {
+        return {s, GetOutline{}, reader.detail()};
+    }
+    return {Status::Ok, std::move(m), ""};
+}
+
+Status GetOutlineReply::validate() const {
+    if (total > 100000u) {
+        return Status::InvalidArgument;
+    }
+    if (titles.size() > 64u) {
+        return Status::InvalidArgument;
+    }
+    for (const auto& v : titles) {
+        if (v.size() > 256u || !is_valid_text(v)) {
+            return Status::InvalidArgument;
+        }
+    }
+    if (kinds.size() > 64u) {
+        return Status::InvalidArgument;
+    }
+    for (const auto& v : kinds) {
+        if (v > 5) {
+            return Status::InvalidArgument;
+        }
+    }
+    if (pages.size() > 64u) {
+        return Status::InvalidArgument;
+    }
+    for (const auto& v : pages) {
+        if (v > 9999999u) {
+            return Status::InvalidArgument;
+        }
+    }
+    if (xs.size() > 64u) {
+        return Status::InvalidArgument;
+    }
+    for (const auto& v : xs) {
+        if (!std::isfinite(v) || v < -1000000.0f || v > 1000000.0f) {
+            return Status::InvalidArgument;
+        }
+    }
+    if (ys.size() > 64u) {
+        return Status::InvalidArgument;
+    }
+    for (const auto& v : ys) {
+        if (!std::isfinite(v) || v < -1000000.0f || v > 1000000.0f) {
+            return Status::InvalidArgument;
+        }
+    }
+    if (has_children.size() > 64u) {
+        return Status::InvalidArgument;
+    }
+    for (const auto& v : has_children) {
+        if (v > 1) {
+            return Status::InvalidArgument;
+        }
+    }
+    if (kinds.size() != titles.size()) {
+        return Status::InvalidArgument;
+    }
+    if (pages.size() != titles.size()) {
+        return Status::InvalidArgument;
+    }
+    if (xs.size() != titles.size()) {
+        return Status::InvalidArgument;
+    }
+    if (ys.size() != titles.size()) {
+        return Status::InvalidArgument;
+    }
+    if (has_children.size() != titles.size()) {
+        return Status::InvalidArgument;
+    }
+    return Status::Ok;
+}
+
+Status GetOutlineReply::encode(Writer& writer) const {
+    if (const Status valid = validate(); valid != Status::Ok) {
+        return valid;
+    }
+    writer.write_array_header(7);
+    writer.write_uint(total);
+    writer.write_array_header(titles.size());
+    for (const auto& v : titles) {
+        writer.write_string(v);
+    }
+    writer.write_array_header(kinds.size());
+    for (const auto& v : kinds) {
+        writer.write_uint(v);
+    }
+    writer.write_array_header(pages.size());
+    for (const auto& v : pages) {
+        writer.write_uint(v);
+    }
+    writer.write_array_header(xs.size());
+    for (const auto& v : xs) {
+        writer.write_f32(v);
+    }
+    writer.write_array_header(ys.size());
+    for (const auto& v : ys) {
+        writer.write_f32(v);
+    }
+    writer.write_array_header(has_children.size());
+    for (const auto& v : has_children) {
+        writer.write_uint(v);
+    }
+    return writer.status();
+}
+
+Result<GetOutlineReply> GetOutlineReply::decode(Reader& reader) {
+    GetOutlineReply m;
+    Status s = reader.expect_array(7);
+    if (s == Status::Ok) {
+        s = reader.read_u32(m.total, 0u, 100000u);
+    }
+    if (s == Status::Ok) {
+        std::size_t count = 0;
+        s = reader.read_array_header(count, 64);
+        if (s == Status::Ok) {
+            m.titles.reserve(count);
+            for (std::size_t i = 0; i < count && s == Status::Ok; ++i) {
+                std::string v{};
+                s = reader.read_string(v, 256);
+                if (s == Status::Ok) {
+                    m.titles.push_back(std::move(v));
+                }
+            }
+        }
+    }
+    if (s == Status::Ok) {
+        std::size_t count = 0;
+        s = reader.read_array_header(count, 64);
+        if (s == Status::Ok) {
+            m.kinds.reserve(count);
+            for (std::size_t i = 0; i < count && s == Status::Ok; ++i) {
+                std::uint16_t v{};
+                s = reader.read_u16(v, 0, 5);
+                if (s == Status::Ok) {
+                    m.kinds.push_back(std::move(v));
+                }
+            }
+        }
+    }
+    if (s == Status::Ok) {
+        std::size_t count = 0;
+        s = reader.read_array_header(count, 64);
+        if (s == Status::Ok) {
+            m.pages.reserve(count);
+            for (std::size_t i = 0; i < count && s == Status::Ok; ++i) {
+                std::uint32_t v{};
+                s = reader.read_u32(v, 0u, 9999999u);
+                if (s == Status::Ok) {
+                    m.pages.push_back(std::move(v));
+                }
+            }
+        }
+    }
+    if (s == Status::Ok) {
+        std::size_t count = 0;
+        s = reader.read_array_header(count, 64);
+        if (s == Status::Ok) {
+            m.xs.reserve(count);
+            for (std::size_t i = 0; i < count && s == Status::Ok; ++i) {
+                float v{};
+                s = reader.read_f32(v, -1000000.0f, 1000000.0f, false);
+                if (s == Status::Ok) {
+                    m.xs.push_back(std::move(v));
+                }
+            }
+        }
+    }
+    if (s == Status::Ok) {
+        std::size_t count = 0;
+        s = reader.read_array_header(count, 64);
+        if (s == Status::Ok) {
+            m.ys.reserve(count);
+            for (std::size_t i = 0; i < count && s == Status::Ok; ++i) {
+                float v{};
+                s = reader.read_f32(v, -1000000.0f, 1000000.0f, false);
+                if (s == Status::Ok) {
+                    m.ys.push_back(std::move(v));
+                }
+            }
+        }
+    }
+    if (s == Status::Ok) {
+        std::size_t count = 0;
+        s = reader.read_array_header(count, 64);
+        if (s == Status::Ok) {
+            m.has_children.reserve(count);
+            for (std::size_t i = 0; i < count && s == Status::Ok; ++i) {
+                std::uint16_t v{};
+                s = reader.read_u16(v, 0, 1);
+                if (s == Status::Ok) {
+                    m.has_children.push_back(std::move(v));
+                }
+            }
+        }
+    }
+    if (s == Status::Ok) {
+        s = m.validate();
+        if (s != Status::Ok) {
+            reader.fail(s, "message violates a schema limit");
+        }
+    }
+    if (s != Status::Ok) {
+        return {s, GetOutlineReply{}, reader.detail()};
+    }
+    return {Status::Ok, std::move(m), ""};
+}
+
+Status GetPageLinks::validate() const {
+    if (page > 9999999u) {
+        return Status::InvalidArgument;
+    }
+    if (first > 99999u) {
+        return Status::InvalidArgument;
+    }
+    if (count < 1u || count > 512u) {
+        return Status::InvalidArgument;
+    }
+    return Status::Ok;
+}
+
+Status GetPageLinks::encode(Writer& writer) const {
+    if (const Status valid = validate(); valid != Status::Ok) {
+        return valid;
+    }
+    writer.write_array_header(3);
+    writer.write_uint(page);
+    writer.write_uint(first);
+    writer.write_uint(count);
+    return writer.status();
+}
+
+Result<GetPageLinks> GetPageLinks::decode(Reader& reader) {
+    GetPageLinks m;
+    Status s = reader.expect_array(3);
+    if (s == Status::Ok) {
+        s = reader.read_u32(m.page, 0u, 9999999u);
+    }
+    if (s == Status::Ok) {
+        s = reader.read_u32(m.first, 0u, 99999u);
+    }
+    if (s == Status::Ok) {
+        s = reader.read_u32(m.count, 1u, 512u);
+    }
+    if (s == Status::Ok) {
+        s = m.validate();
+        if (s != Status::Ok) {
+            reader.fail(s, "message violates a schema limit");
+        }
+    }
+    if (s != Status::Ok) {
+        return {s, GetPageLinks{}, reader.detail()};
+    }
+    return {Status::Ok, std::move(m), ""};
+}
+
+Status GetPageLinksReply::validate() const {
+    if (total > 100000u) {
+        return Status::InvalidArgument;
+    }
+    if (lefts.size() > 512u) {
+        return Status::InvalidArgument;
+    }
+    for (const auto& v : lefts) {
+        if (!std::isfinite(v) || v < -1000000.0f || v > 1000000.0f) {
+            return Status::InvalidArgument;
+        }
+    }
+    if (bottoms.size() > 512u) {
+        return Status::InvalidArgument;
+    }
+    for (const auto& v : bottoms) {
+        if (!std::isfinite(v) || v < -1000000.0f || v > 1000000.0f) {
+            return Status::InvalidArgument;
+        }
+    }
+    if (rights.size() > 512u) {
+        return Status::InvalidArgument;
+    }
+    for (const auto& v : rights) {
+        if (!std::isfinite(v) || v < -1000000.0f || v > 1000000.0f) {
+            return Status::InvalidArgument;
+        }
+    }
+    if (tops.size() > 512u) {
+        return Status::InvalidArgument;
+    }
+    for (const auto& v : tops) {
+        if (!std::isfinite(v) || v < -1000000.0f || v > 1000000.0f) {
+            return Status::InvalidArgument;
+        }
+    }
+    if (kinds.size() > 512u) {
+        return Status::InvalidArgument;
+    }
+    for (const auto& v : kinds) {
+        if (v > 5) {
+            return Status::InvalidArgument;
+        }
+    }
+    if (pages.size() > 512u) {
+        return Status::InvalidArgument;
+    }
+    for (const auto& v : pages) {
+        if (v > 9999999u) {
+            return Status::InvalidArgument;
+        }
+    }
+    if (xs.size() > 512u) {
+        return Status::InvalidArgument;
+    }
+    for (const auto& v : xs) {
+        if (!std::isfinite(v) || v < -1000000.0f || v > 1000000.0f) {
+            return Status::InvalidArgument;
+        }
+    }
+    if (ys.size() > 512u) {
+        return Status::InvalidArgument;
+    }
+    for (const auto& v : ys) {
+        if (!std::isfinite(v) || v < -1000000.0f || v > 1000000.0f) {
+            return Status::InvalidArgument;
+        }
+    }
+    if (bottoms.size() != lefts.size()) {
+        return Status::InvalidArgument;
+    }
+    if (rights.size() != lefts.size()) {
+        return Status::InvalidArgument;
+    }
+    if (tops.size() != lefts.size()) {
+        return Status::InvalidArgument;
+    }
+    if (kinds.size() != lefts.size()) {
+        return Status::InvalidArgument;
+    }
+    if (pages.size() != lefts.size()) {
+        return Status::InvalidArgument;
+    }
+    if (xs.size() != lefts.size()) {
+        return Status::InvalidArgument;
+    }
+    if (ys.size() != lefts.size()) {
+        return Status::InvalidArgument;
+    }
+    return Status::Ok;
+}
+
+Status GetPageLinksReply::encode(Writer& writer) const {
+    if (const Status valid = validate(); valid != Status::Ok) {
+        return valid;
+    }
+    writer.write_array_header(9);
+    writer.write_uint(total);
+    writer.write_array_header(lefts.size());
+    for (const auto& v : lefts) {
+        writer.write_f32(v);
+    }
+    writer.write_array_header(bottoms.size());
+    for (const auto& v : bottoms) {
+        writer.write_f32(v);
+    }
+    writer.write_array_header(rights.size());
+    for (const auto& v : rights) {
+        writer.write_f32(v);
+    }
+    writer.write_array_header(tops.size());
+    for (const auto& v : tops) {
+        writer.write_f32(v);
+    }
+    writer.write_array_header(kinds.size());
+    for (const auto& v : kinds) {
+        writer.write_uint(v);
+    }
+    writer.write_array_header(pages.size());
+    for (const auto& v : pages) {
+        writer.write_uint(v);
+    }
+    writer.write_array_header(xs.size());
+    for (const auto& v : xs) {
+        writer.write_f32(v);
+    }
+    writer.write_array_header(ys.size());
+    for (const auto& v : ys) {
+        writer.write_f32(v);
+    }
+    return writer.status();
+}
+
+Result<GetPageLinksReply> GetPageLinksReply::decode(Reader& reader) {
+    GetPageLinksReply m;
+    Status s = reader.expect_array(9);
+    if (s == Status::Ok) {
+        s = reader.read_u32(m.total, 0u, 100000u);
+    }
+    if (s == Status::Ok) {
+        std::size_t count = 0;
+        s = reader.read_array_header(count, 512);
+        if (s == Status::Ok) {
+            m.lefts.reserve(count);
+            for (std::size_t i = 0; i < count && s == Status::Ok; ++i) {
+                float v{};
+                s = reader.read_f32(v, -1000000.0f, 1000000.0f, false);
+                if (s == Status::Ok) {
+                    m.lefts.push_back(std::move(v));
+                }
+            }
+        }
+    }
+    if (s == Status::Ok) {
+        std::size_t count = 0;
+        s = reader.read_array_header(count, 512);
+        if (s == Status::Ok) {
+            m.bottoms.reserve(count);
+            for (std::size_t i = 0; i < count && s == Status::Ok; ++i) {
+                float v{};
+                s = reader.read_f32(v, -1000000.0f, 1000000.0f, false);
+                if (s == Status::Ok) {
+                    m.bottoms.push_back(std::move(v));
+                }
+            }
+        }
+    }
+    if (s == Status::Ok) {
+        std::size_t count = 0;
+        s = reader.read_array_header(count, 512);
+        if (s == Status::Ok) {
+            m.rights.reserve(count);
+            for (std::size_t i = 0; i < count && s == Status::Ok; ++i) {
+                float v{};
+                s = reader.read_f32(v, -1000000.0f, 1000000.0f, false);
+                if (s == Status::Ok) {
+                    m.rights.push_back(std::move(v));
+                }
+            }
+        }
+    }
+    if (s == Status::Ok) {
+        std::size_t count = 0;
+        s = reader.read_array_header(count, 512);
+        if (s == Status::Ok) {
+            m.tops.reserve(count);
+            for (std::size_t i = 0; i < count && s == Status::Ok; ++i) {
+                float v{};
+                s = reader.read_f32(v, -1000000.0f, 1000000.0f, false);
+                if (s == Status::Ok) {
+                    m.tops.push_back(std::move(v));
+                }
+            }
+        }
+    }
+    if (s == Status::Ok) {
+        std::size_t count = 0;
+        s = reader.read_array_header(count, 512);
+        if (s == Status::Ok) {
+            m.kinds.reserve(count);
+            for (std::size_t i = 0; i < count && s == Status::Ok; ++i) {
+                std::uint16_t v{};
+                s = reader.read_u16(v, 0, 5);
+                if (s == Status::Ok) {
+                    m.kinds.push_back(std::move(v));
+                }
+            }
+        }
+    }
+    if (s == Status::Ok) {
+        std::size_t count = 0;
+        s = reader.read_array_header(count, 512);
+        if (s == Status::Ok) {
+            m.pages.reserve(count);
+            for (std::size_t i = 0; i < count && s == Status::Ok; ++i) {
+                std::uint32_t v{};
+                s = reader.read_u32(v, 0u, 9999999u);
+                if (s == Status::Ok) {
+                    m.pages.push_back(std::move(v));
+                }
+            }
+        }
+    }
+    if (s == Status::Ok) {
+        std::size_t count = 0;
+        s = reader.read_array_header(count, 512);
+        if (s == Status::Ok) {
+            m.xs.reserve(count);
+            for (std::size_t i = 0; i < count && s == Status::Ok; ++i) {
+                float v{};
+                s = reader.read_f32(v, -1000000.0f, 1000000.0f, false);
+                if (s == Status::Ok) {
+                    m.xs.push_back(std::move(v));
+                }
+            }
+        }
+    }
+    if (s == Status::Ok) {
+        std::size_t count = 0;
+        s = reader.read_array_header(count, 512);
+        if (s == Status::Ok) {
+            m.ys.reserve(count);
+            for (std::size_t i = 0; i < count && s == Status::Ok; ++i) {
+                float v{};
+                s = reader.read_f32(v, -1000000.0f, 1000000.0f, false);
+                if (s == Status::Ok) {
+                    m.ys.push_back(std::move(v));
+                }
+            }
+        }
+    }
+    if (s == Status::Ok) {
+        s = m.validate();
+        if (s != Status::Ok) {
+            reader.fail(s, "message violates a schema limit");
+        }
+    }
+    if (s != Status::Ok) {
+        return {s, GetPageLinksReply{}, reader.detail()};
+    }
+    return {Status::Ok, std::move(m), ""};
+}
+
+Status GetLinkUri::validate() const {
+    if (page > 9999999u) {
+        return Status::InvalidArgument;
+    }
+    if (index > 99999u) {
+        return Status::InvalidArgument;
+    }
+    return Status::Ok;
+}
+
+Status GetLinkUri::encode(Writer& writer) const {
+    if (const Status valid = validate(); valid != Status::Ok) {
+        return valid;
+    }
+    writer.write_array_header(2);
+    writer.write_uint(page);
+    writer.write_uint(index);
+    return writer.status();
+}
+
+Result<GetLinkUri> GetLinkUri::decode(Reader& reader) {
+    GetLinkUri m;
+    Status s = reader.expect_array(2);
+    if (s == Status::Ok) {
+        s = reader.read_u32(m.page, 0u, 9999999u);
+    }
+    if (s == Status::Ok) {
+        s = reader.read_u32(m.index, 0u, 99999u);
+    }
+    if (s == Status::Ok) {
+        s = m.validate();
+        if (s != Status::Ok) {
+            reader.fail(s, "message violates a schema limit");
+        }
+    }
+    if (s != Status::Ok) {
+        return {s, GetLinkUri{}, reader.detail()};
+    }
+    return {Status::Ok, std::move(m), ""};
+}
+
+Status GetLinkUriReply::validate() const {
+    if (uri.size() > 2048u || !is_valid_text(uri)) {
+        return Status::InvalidArgument;
+    }
+    return Status::Ok;
+}
+
+Status GetLinkUriReply::encode(Writer& writer) const {
+    if (const Status valid = validate(); valid != Status::Ok) {
+        return valid;
+    }
+    writer.write_array_header(1);
+    writer.write_string(uri);
+    return writer.status();
+}
+
+Result<GetLinkUriReply> GetLinkUriReply::decode(Reader& reader) {
+    GetLinkUriReply m;
+    Status s = reader.expect_array(1);
+    if (s == Status::Ok) {
+        s = reader.read_string(m.uri, 2048);
+    }
+    if (s == Status::Ok) {
+        s = m.validate();
+        if (s != Status::Ok) {
+            reader.fail(s, "message violates a schema limit");
+        }
+    }
+    if (s != Status::Ok) {
+        return {s, GetLinkUriReply{}, reader.detail()};
+    }
+    return {Status::Ok, std::move(m), ""};
+}
+
+Status GetPageBoxes::validate() const {
+    if (page > 9999999u) {
+        return Status::InvalidArgument;
+    }
+    return Status::Ok;
+}
+
+Status GetPageBoxes::encode(Writer& writer) const {
+    if (const Status valid = validate(); valid != Status::Ok) {
+        return valid;
+    }
+    writer.write_array_header(1);
+    writer.write_uint(page);
+    return writer.status();
+}
+
+Result<GetPageBoxes> GetPageBoxes::decode(Reader& reader) {
+    GetPageBoxes m;
+    Status s = reader.expect_array(1);
+    if (s == Status::Ok) {
+        s = reader.read_u32(m.page, 0u, 9999999u);
+    }
+    if (s == Status::Ok) {
+        s = m.validate();
+        if (s != Status::Ok) {
+            reader.fail(s, "message violates a schema limit");
+        }
+    }
+    if (s != Status::Ok) {
+        return {s, GetPageBoxes{}, reader.detail()};
+    }
+    return {Status::Ok, std::move(m), ""};
+}
+
+Status GetPageBoxesReply::validate() const {
+    if (!std::isfinite(media_left) || media_left < -1000000.0f || media_left > 1000000.0f) {
+        return Status::InvalidArgument;
+    }
+    if (!std::isfinite(media_bottom) || media_bottom < -1000000.0f || media_bottom > 1000000.0f) {
+        return Status::InvalidArgument;
+    }
+    if (!std::isfinite(media_right) || media_right < -1000000.0f || media_right > 1000000.0f) {
+        return Status::InvalidArgument;
+    }
+    if (!std::isfinite(media_top) || media_top < -1000000.0f || media_top > 1000000.0f) {
+        return Status::InvalidArgument;
+    }
+    if (!std::isfinite(crop_left) || crop_left < -1000000.0f || crop_left > 1000000.0f) {
+        return Status::InvalidArgument;
+    }
+    if (!std::isfinite(crop_bottom) || crop_bottom < -1000000.0f || crop_bottom > 1000000.0f) {
+        return Status::InvalidArgument;
+    }
+    if (!std::isfinite(crop_right) || crop_right < -1000000.0f || crop_right > 1000000.0f) {
+        return Status::InvalidArgument;
+    }
+    if (!std::isfinite(crop_top) || crop_top < -1000000.0f || crop_top > 1000000.0f) {
+        return Status::InvalidArgument;
+    }
+    if (rotation > 3) {
+        return Status::InvalidArgument;
+    }
+    return Status::Ok;
+}
+
+Status GetPageBoxesReply::encode(Writer& writer) const {
+    if (const Status valid = validate(); valid != Status::Ok) {
+        return valid;
+    }
+    writer.write_array_header(10);
+    writer.write_f32(media_left);
+    writer.write_f32(media_bottom);
+    writer.write_f32(media_right);
+    writer.write_f32(media_top);
+    writer.write_bool(has_crop_box);
+    writer.write_f32(crop_left);
+    writer.write_f32(crop_bottom);
+    writer.write_f32(crop_right);
+    writer.write_f32(crop_top);
+    writer.write_uint(rotation);
+    return writer.status();
+}
+
+Result<GetPageBoxesReply> GetPageBoxesReply::decode(Reader& reader) {
+    GetPageBoxesReply m;
+    Status s = reader.expect_array(10);
+    if (s == Status::Ok) {
+        s = reader.read_f32(m.media_left, -1000000.0f, 1000000.0f, false);
+    }
+    if (s == Status::Ok) {
+        s = reader.read_f32(m.media_bottom, -1000000.0f, 1000000.0f, false);
+    }
+    if (s == Status::Ok) {
+        s = reader.read_f32(m.media_right, -1000000.0f, 1000000.0f, false);
+    }
+    if (s == Status::Ok) {
+        s = reader.read_f32(m.media_top, -1000000.0f, 1000000.0f, false);
+    }
+    if (s == Status::Ok) {
+        s = reader.read_bool(m.has_crop_box);
+    }
+    if (s == Status::Ok) {
+        s = reader.read_f32(m.crop_left, -1000000.0f, 1000000.0f, false);
+    }
+    if (s == Status::Ok) {
+        s = reader.read_f32(m.crop_bottom, -1000000.0f, 1000000.0f, false);
+    }
+    if (s == Status::Ok) {
+        s = reader.read_f32(m.crop_right, -1000000.0f, 1000000.0f, false);
+    }
+    if (s == Status::Ok) {
+        s = reader.read_f32(m.crop_top, -1000000.0f, 1000000.0f, false);
+    }
+    if (s == Status::Ok) {
+        s = reader.read_u16(m.rotation, 0, 3);
+    }
+    if (s == Status::Ok) {
+        s = m.validate();
+        if (s != Status::Ok) {
+            reader.fail(s, "message violates a schema limit");
+        }
+    }
+    if (s != Status::Ok) {
+        return {s, GetPageBoxesReply{}, reader.detail()};
+    }
+    return {Status::Ok, std::move(m), ""};
+}
+
+Status GetPageText::validate() const {
+    if (page > 9999999u) {
+        return Status::InvalidArgument;
+    }
+    if (first > 199999u) {
+        return Status::InvalidArgument;
+    }
+    if (count < 1u || count > 2048u) {
+        return Status::InvalidArgument;
+    }
+    return Status::Ok;
+}
+
+Status GetPageText::encode(Writer& writer) const {
+    if (const Status valid = validate(); valid != Status::Ok) {
+        return valid;
+    }
+    writer.write_array_header(3);
+    writer.write_uint(page);
+    writer.write_uint(first);
+    writer.write_uint(count);
+    return writer.status();
+}
+
+Result<GetPageText> GetPageText::decode(Reader& reader) {
+    GetPageText m;
+    Status s = reader.expect_array(3);
+    if (s == Status::Ok) {
+        s = reader.read_u32(m.page, 0u, 9999999u);
+    }
+    if (s == Status::Ok) {
+        s = reader.read_u32(m.first, 0u, 199999u);
+    }
+    if (s == Status::Ok) {
+        s = reader.read_u32(m.count, 1u, 2048u);
+    }
+    if (s == Status::Ok) {
+        s = m.validate();
+        if (s != Status::Ok) {
+            reader.fail(s, "message violates a schema limit");
+        }
+    }
+    if (s != Status::Ok) {
+        return {s, GetPageText{}, reader.detail()};
+    }
+    return {Status::Ok, std::move(m), ""};
+}
+
+Status GetPageTextReply::validate() const {
+    if (total > 200000u) {
+        return Status::InvalidArgument;
+    }
+    if (units.size() > 2048u) {
+        return Status::InvalidArgument;
+    }
+    if (lefts.size() > 2048u) {
+        return Status::InvalidArgument;
+    }
+    for (const auto& v : lefts) {
+        if (!std::isfinite(v) || v < -1000000.0f || v > 1000000.0f) {
+            return Status::InvalidArgument;
+        }
+    }
+    if (bottoms.size() > 2048u) {
+        return Status::InvalidArgument;
+    }
+    for (const auto& v : bottoms) {
+        if (!std::isfinite(v) || v < -1000000.0f || v > 1000000.0f) {
+            return Status::InvalidArgument;
+        }
+    }
+    if (rights.size() > 2048u) {
+        return Status::InvalidArgument;
+    }
+    for (const auto& v : rights) {
+        if (!std::isfinite(v) || v < -1000000.0f || v > 1000000.0f) {
+            return Status::InvalidArgument;
+        }
+    }
+    if (tops.size() > 2048u) {
+        return Status::InvalidArgument;
+    }
+    for (const auto& v : tops) {
+        if (!std::isfinite(v) || v < -1000000.0f || v > 1000000.0f) {
+            return Status::InvalidArgument;
+        }
+    }
+    if (flags.size() > 2048u) {
+        return Status::InvalidArgument;
+    }
+    for (const auto& v : flags) {
+        if (v > 3) {
+            return Status::InvalidArgument;
+        }
+    }
+    if (lefts.size() != units.size()) {
+        return Status::InvalidArgument;
+    }
+    if (bottoms.size() != units.size()) {
+        return Status::InvalidArgument;
+    }
+    if (rights.size() != units.size()) {
+        return Status::InvalidArgument;
+    }
+    if (tops.size() != units.size()) {
+        return Status::InvalidArgument;
+    }
+    if (flags.size() != units.size()) {
+        return Status::InvalidArgument;
+    }
+    return Status::Ok;
+}
+
+Status GetPageTextReply::encode(Writer& writer) const {
+    if (const Status valid = validate(); valid != Status::Ok) {
+        return valid;
+    }
+    writer.write_array_header(8);
+    writer.write_uint(total);
+    writer.write_bool(truncated);
+    writer.write_array_header(units.size());
+    for (const auto& v : units) {
+        writer.write_uint(v);
+    }
+    writer.write_array_header(lefts.size());
+    for (const auto& v : lefts) {
+        writer.write_f32(v);
+    }
+    writer.write_array_header(bottoms.size());
+    for (const auto& v : bottoms) {
+        writer.write_f32(v);
+    }
+    writer.write_array_header(rights.size());
+    for (const auto& v : rights) {
+        writer.write_f32(v);
+    }
+    writer.write_array_header(tops.size());
+    for (const auto& v : tops) {
+        writer.write_f32(v);
+    }
+    writer.write_array_header(flags.size());
+    for (const auto& v : flags) {
+        writer.write_uint(v);
+    }
+    return writer.status();
+}
+
+Result<GetPageTextReply> GetPageTextReply::decode(Reader& reader) {
+    GetPageTextReply m;
+    Status s = reader.expect_array(8);
+    if (s == Status::Ok) {
+        s = reader.read_u32(m.total, 0u, 200000u);
+    }
+    if (s == Status::Ok) {
+        s = reader.read_bool(m.truncated);
+    }
+    if (s == Status::Ok) {
+        std::size_t count = 0;
+        s = reader.read_array_header(count, 2048);
+        if (s == Status::Ok) {
+            m.units.reserve(count);
+            for (std::size_t i = 0; i < count && s == Status::Ok; ++i) {
+                std::uint16_t v{};
+                s = reader.read_u16(v, 0, 65535);
+                if (s == Status::Ok) {
+                    m.units.push_back(std::move(v));
+                }
+            }
+        }
+    }
+    if (s == Status::Ok) {
+        std::size_t count = 0;
+        s = reader.read_array_header(count, 2048);
+        if (s == Status::Ok) {
+            m.lefts.reserve(count);
+            for (std::size_t i = 0; i < count && s == Status::Ok; ++i) {
+                float v{};
+                s = reader.read_f32(v, -1000000.0f, 1000000.0f, false);
+                if (s == Status::Ok) {
+                    m.lefts.push_back(std::move(v));
+                }
+            }
+        }
+    }
+    if (s == Status::Ok) {
+        std::size_t count = 0;
+        s = reader.read_array_header(count, 2048);
+        if (s == Status::Ok) {
+            m.bottoms.reserve(count);
+            for (std::size_t i = 0; i < count && s == Status::Ok; ++i) {
+                float v{};
+                s = reader.read_f32(v, -1000000.0f, 1000000.0f, false);
+                if (s == Status::Ok) {
+                    m.bottoms.push_back(std::move(v));
+                }
+            }
+        }
+    }
+    if (s == Status::Ok) {
+        std::size_t count = 0;
+        s = reader.read_array_header(count, 2048);
+        if (s == Status::Ok) {
+            m.rights.reserve(count);
+            for (std::size_t i = 0; i < count && s == Status::Ok; ++i) {
+                float v{};
+                s = reader.read_f32(v, -1000000.0f, 1000000.0f, false);
+                if (s == Status::Ok) {
+                    m.rights.push_back(std::move(v));
+                }
+            }
+        }
+    }
+    if (s == Status::Ok) {
+        std::size_t count = 0;
+        s = reader.read_array_header(count, 2048);
+        if (s == Status::Ok) {
+            m.tops.reserve(count);
+            for (std::size_t i = 0; i < count && s == Status::Ok; ++i) {
+                float v{};
+                s = reader.read_f32(v, -1000000.0f, 1000000.0f, false);
+                if (s == Status::Ok) {
+                    m.tops.push_back(std::move(v));
+                }
+            }
+        }
+    }
+    if (s == Status::Ok) {
+        std::size_t count = 0;
+        s = reader.read_array_header(count, 2048);
+        if (s == Status::Ok) {
+            m.flags.reserve(count);
+            for (std::size_t i = 0; i < count && s == Status::Ok; ++i) {
+                std::uint16_t v{};
+                s = reader.read_u16(v, 0, 3);
+                if (s == Status::Ok) {
+                    m.flags.push_back(std::move(v));
+                }
+            }
+        }
+    }
+    if (s == Status::Ok) {
+        s = m.validate();
+        if (s != Status::Ok) {
+            reader.fail(s, "message violates a schema limit");
+        }
+    }
+    if (s != Status::Ok) {
+        return {s, GetPageTextReply{}, reader.detail()};
+    }
+    return {Status::Ok, std::move(m), ""};
+}
+
+Status SearchPage::validate() const {
+    if (page > 9999999u) {
+        return Status::InvalidArgument;
+    }
+    if (query.size() > 512u || !is_valid_text(query)) {
+        return Status::InvalidArgument;
+    }
+    if (flags > 3u) {
+        return Status::InvalidArgument;
+    }
+    return Status::Ok;
+}
+
+Status SearchPage::encode(Writer& writer) const {
+    if (const Status valid = validate(); valid != Status::Ok) {
+        return valid;
+    }
+    writer.write_array_header(3);
+    writer.write_uint(page);
+    writer.write_string(query);
+    writer.write_uint(flags);
+    return writer.status();
+}
+
+Result<SearchPage> SearchPage::decode(Reader& reader) {
+    SearchPage m;
+    Status s = reader.expect_array(3);
+    if (s == Status::Ok) {
+        s = reader.read_u32(m.page, 0u, 9999999u);
+    }
+    if (s == Status::Ok) {
+        s = reader.read_string(m.query, 512);
+    }
+    if (s == Status::Ok) {
+        s = reader.read_u32(m.flags, 0u, 3u);
+    }
+    if (s == Status::Ok) {
+        s = m.validate();
+        if (s != Status::Ok) {
+            reader.fail(s, "message violates a schema limit");
+        }
+    }
+    if (s != Status::Ok) {
+        return {s, SearchPage{}, reader.detail()};
+    }
+    return {Status::Ok, std::move(m), ""};
+}
+
+Status SearchPageReply::validate() const {
+    if (starts.size() > 2048u) {
+        return Status::InvalidArgument;
+    }
+    for (const auto& v : starts) {
+        if (v > 199999u) {
+            return Status::InvalidArgument;
+        }
+    }
+    if (lengths.size() > 2048u) {
+        return Status::InvalidArgument;
+    }
+    for (const auto& v : lengths) {
+        if (v < 1u || v > 200000u) {
+            return Status::InvalidArgument;
+        }
+    }
+    if (lengths.size() != starts.size()) {
+        return Status::InvalidArgument;
+    }
+    return Status::Ok;
+}
+
+Status SearchPageReply::encode(Writer& writer) const {
+    if (const Status valid = validate(); valid != Status::Ok) {
+        return valid;
+    }
+    writer.write_array_header(3);
+    writer.write_bool(truncated);
+    writer.write_array_header(starts.size());
+    for (const auto& v : starts) {
+        writer.write_uint(v);
+    }
+    writer.write_array_header(lengths.size());
+    for (const auto& v : lengths) {
+        writer.write_uint(v);
+    }
+    return writer.status();
+}
+
+Result<SearchPageReply> SearchPageReply::decode(Reader& reader) {
+    SearchPageReply m;
+    Status s = reader.expect_array(3);
+    if (s == Status::Ok) {
+        s = reader.read_bool(m.truncated);
+    }
+    if (s == Status::Ok) {
+        std::size_t count = 0;
+        s = reader.read_array_header(count, 2048);
+        if (s == Status::Ok) {
+            m.starts.reserve(count);
+            for (std::size_t i = 0; i < count && s == Status::Ok; ++i) {
+                std::uint32_t v{};
+                s = reader.read_u32(v, 0u, 199999u);
+                if (s == Status::Ok) {
+                    m.starts.push_back(std::move(v));
+                }
+            }
+        }
+    }
+    if (s == Status::Ok) {
+        std::size_t count = 0;
+        s = reader.read_array_header(count, 2048);
+        if (s == Status::Ok) {
+            m.lengths.reserve(count);
+            for (std::size_t i = 0; i < count && s == Status::Ok; ++i) {
+                std::uint32_t v{};
+                s = reader.read_u32(v, 1u, 200000u);
+                if (s == Status::Ok) {
+                    m.lengths.push_back(std::move(v));
+                }
+            }
+        }
+    }
+    if (s == Status::Ok) {
+        s = m.validate();
+        if (s != Status::Ok) {
+            reader.fail(s, "message violates a schema limit");
+        }
+    }
+    if (s != Status::Ok) {
+        return {s, SearchPageReply{}, reader.detail()};
+    }
+    return {Status::Ok, std::move(m), ""};
+}
+
 Status RenderTile::validate() const {
     if (page > 9999999u) {
         return Status::InvalidArgument;
@@ -1072,6 +2244,18 @@ Result<RequestPayload> decode_request_payload(MessageType type, Reader& reader) 
             return lift<RequestPayload>(GetDocumentInfo::decode(reader));
         case MessageType::GetPageSizes:
             return lift<RequestPayload>(GetPageSizes::decode(reader));
+        case MessageType::GetOutline:
+            return lift<RequestPayload>(GetOutline::decode(reader));
+        case MessageType::GetPageLinks:
+            return lift<RequestPayload>(GetPageLinks::decode(reader));
+        case MessageType::GetLinkUri:
+            return lift<RequestPayload>(GetLinkUri::decode(reader));
+        case MessageType::GetPageBoxes:
+            return lift<RequestPayload>(GetPageBoxes::decode(reader));
+        case MessageType::GetPageText:
+            return lift<RequestPayload>(GetPageText::decode(reader));
+        case MessageType::SearchPage:
+            return lift<RequestPayload>(SearchPage::decode(reader));
         case MessageType::RenderTile:
             return lift<RequestPayload>(RenderTile::decode(reader));
         case MessageType::CancelBefore:
@@ -1100,6 +2284,18 @@ Result<ReplyPayload> decode_reply_payload(MessageType type, Reader& reader) {
             return lift<ReplyPayload>(GetDocumentInfoReply::decode(reader));
         case MessageType::GetPageSizes:
             return lift<ReplyPayload>(GetPageSizesReply::decode(reader));
+        case MessageType::GetOutline:
+            return lift<ReplyPayload>(GetOutlineReply::decode(reader));
+        case MessageType::GetPageLinks:
+            return lift<ReplyPayload>(GetPageLinksReply::decode(reader));
+        case MessageType::GetLinkUri:
+            return lift<ReplyPayload>(GetLinkUriReply::decode(reader));
+        case MessageType::GetPageBoxes:
+            return lift<ReplyPayload>(GetPageBoxesReply::decode(reader));
+        case MessageType::GetPageText:
+            return lift<ReplyPayload>(GetPageTextReply::decode(reader));
+        case MessageType::SearchPage:
+            return lift<ReplyPayload>(SearchPageReply::decode(reader));
         case MessageType::RenderTile:
             return lift<ReplyPayload>(RenderTileReply::decode(reader));
         case MessageType::CancelBefore:
