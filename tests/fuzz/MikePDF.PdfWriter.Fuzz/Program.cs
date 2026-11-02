@@ -33,7 +33,9 @@ internal static class Program
             LeadingArgs: [name]);
 
         if (MutationalFuzzer.Handles(args)) return MutationalFuzzer.Run(fuzz, args[1..]);
-        if (LibFuzzerEntry.Handles(args)) return LibFuzzerEntry.Run(fuzz, args);
+
+        // `<target>` alone is what libfuzzer-dotnet's --target_arg=<target> starts (the driver's -jobs mode cannot pass more than one word).
+        if (LibFuzzerEntry.Handles(args) || args.Length == 1) return LibFuzzerEntry.Run(fuzz, args);
 
         if (args.Length >= 3 && args[1] == "--replay")
         {

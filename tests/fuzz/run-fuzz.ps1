@@ -175,7 +175,16 @@ function Invoke-Native([string] $name, [string] $exe, [string] $seeds, [string] 
     if ($Jobs -gt 1) { $argv += "-jobs=$Jobs", "-workers=$Jobs" }
     $argv += $corpus, $seeds
     Write-Host "==> $name for ${Seconds}s ($Jobs process$(if ($Jobs -gt 1) { 'es' }))" -ForegroundColor Cyan
-    $p = Start-Process -FilePath $exe -ArgumentList $argv -NoNewWindow -Wait -PassThru -WorkingDirectory $jobDir -RedirectStandardError $log -RedirectStandardOutput (Join-Path $OutRoot "logs/$name.out.log")
+    $p = Start-Process -FilePath $exe -ArgumentList $argv -NoNewWindow -PassThru -WorkingDirectory $jobDir -RedirectStandardError $log -RedirectStandardOutput (Join-Path $OutRoot "logs/$name.out.log")
+    $null = $p.Handle # keeps the exit code readable after the process ends
+    # -max_total_time ends a healthy run. If a fuzzer is still alive 10 minutes after that (for example -jobs workers that die at start and are restarted
+    # for ever), kill the tree and fail the run instead of hanging the job until the CI limit.
+    $exitCode = $null
+    if (-not $p.WaitForExit(($Seconds + 600) * 1000)) {
+        Write-Host "$name did not stop $($Seconds + 600) s after it started; killing it" -ForegroundColor Red
+        & taskkill.exe /T /F /PID $p.Id | Out-Null
+        $exitCode = 124
+    } else { $exitCode = $p.ExitCode }
     # One log per process: this one when there is a single process, fuzz-<n>.log files under -jobs.
     $logs = if ($Jobs -gt 1) { @(Get-ChildItem $jobDir -Filter 'fuzz-*.log' | ForEach-Object FullName) } else { @($log) }
     $ft = 0; $execs = [int64] 0; $counters = $null
@@ -191,7 +200,7 @@ function Invoke-Native([string] $name, [string] $exe, [string] $seeds, [string] 
     }
     $found = @(Get-ChildItem $findings -File -ErrorAction SilentlyContinue | Where-Object { $_.Name -match '^(crash|timeout|oom|leak|slow-unit)-' })
     [pscustomobject]@{
-        target = $name; kind = $kind; seconds = $Seconds; processes = $Jobs; exit = $p.ExitCode
+        target = $name; kind = $kind; seconds = $Seconds; processes = $Jobs; exit = $exitCode
         executions = $execs; features = $ft; instrumentedEdges = if ($counters -and $counters.Success) { [int] $counters.Groups[1].Value } else { $null }
         corpusFiles = Get-CorpusFiles $corpus; findings = $found.Count; findingFiles = @($found | ForEach-Object Name)
     }
@@ -230,12 +239,20 @@ function Invoke-Managed([string] $name, [string] $dll, [string[]] $leading, [str
 function Invoke-Guided([string] $name, [string] $harnessExe, [string[]] $leading, [string] $seeds, [string] $dict, [int] $maxLen) {
     if (-not (Test-Path $driverExe)) { Write-Host "the libFuzzer driver is not built ($driverExe); run without -SkipBuild" -ForegroundColor Red; exit 2 }
     if (-not (Test-Path $harnessExe)) { Write-Host "the instrumented harness is not built ($harnessExe); run without -SkipBuild" -ForegroundColor Red; exit 2 }
-    $child = '"--target_path=\"' + $harnessExe + '\"' + (($leading + '--libfuzzer') | ForEach-Object { " $_" }) + '"'
+    # libFuzzer's -jobs mode starts its workers by joining its own arguments back into a command line WITHOUT re-quoting them, so every argument
+    # here must survive that: no spaces, no quotes. Hence --target_path (the harness executable) and --target_arg (one word: `parse`, `append`, or none;
+    # a harness started with exactly that and nothing else runs in --libfuzzer mode). A path with spaces works for one process only.
+    if ($harnessExe -match '\s') {
+        if ($Jobs -gt 1) { Write-Host "-Jobs $Jobs needs a repository path without spaces for the coverage-guided C# targets ($harnessExe)" -ForegroundColor Red; exit 2 }
+        $child = @('"--target_path=\"' + $harnessExe + '\"' + $(if ($leading.Count) { ' ' + $leading[0] }) + '"')
+    } else {
+        $child = @("--target_path=$harnessExe") + $(if ($leading.Count) { "--target_arg=$($leading[0])" })
+    }
     # A managed out-of-memory (a finding) must end in an exception, not in the machine's memory: cap the child's GC heap at 2 GiB (the value is hex).
     $previous = $env:DOTNET_GCHeapHardLimit
     $env:DOTNET_GCHeapHardLimit = '80000000'
     try {
-        Invoke-Native $name $driverExe $seeds $dict $maxLen 'libFuzzer + SharpFuzz edge coverage (coverage-guided)' @($child) 20
+        Invoke-Native $name $driverExe $seeds $dict $maxLen 'libFuzzer + SharpFuzz edge coverage (coverage-guided)' $child 20
     } finally { $env:DOTNET_GCHeapHardLimit = $previous }
 }
 
