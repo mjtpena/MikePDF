@@ -149,6 +149,40 @@ public sealed class EngineClient : IAsyncDisposable
     public Task<EngineResult<ValidateStructureReply>> ValidateStructureAsync(ulong remoteFileHandle, TimeSpan deadline, CancellationToken cancellationToken = default) =>
         CallAsync<ValidateStructureReply>(new ValidateStructure { Handle = remoteFileHandle }, 0, deadline, WithGrace(deadline), new Pending { EngineQueue = true }, cancellationToken);
 
+    /// <summary>
+    /// WriterHost, stage 4 of a save: appends the annotation edits in the edit blob to the base and writes base plus update to the output. The three
+    /// values are file handles already duplicated into the host (base and edits read-only, output writable and empty). An <c>Ok</c> reply with
+    /// <c>ok</c> false is a refusal with a reason; the broker validates the reply's counts against what it can know.
+    /// </summary>
+    public Task<EngineResult<AppendAnnotationsReply>> AppendAnnotationsAsync(ulong remoteBase, ulong remoteEdits, ulong editsLength, ulong remoteOutput, uint pageCount, TimeSpan deadline, CancellationToken cancellationToken = default) =>
+        CallAsync<AppendAnnotationsReply>(
+            new AppendAnnotations { BaseHandle = remoteBase, EditsHandle = remoteEdits, EditsLength = editsLength, OutputHandle = remoteOutput, PageCount = pageCount },
+            0,
+            deadline,
+            WithGrace(deadline),
+            new Pending { EngineQueue = true },
+            cancellationToken);
+
+    /// <summary>WriterHost: a full rewrite of the base into the output, optionally flattening form fields (flag 1) and comments (flag 2).</summary>
+    public Task<EngineResult<RewriteDocumentReply>> RewriteDocumentAsync(ulong remoteBase, ulong remoteOutput, uint flags, TimeSpan deadline, CancellationToken cancellationToken = default) =>
+        CallAsync<RewriteDocumentReply>(
+            new RewriteDocument { BaseHandle = remoteBase, OutputHandle = remoteOutput, Flags = flags },
+            0,
+            deadline,
+            WithGrace(deadline),
+            new Pending { EngineQueue = true },
+            cancellationToken);
+
+    /// <summary>WriterHost: an independent strict parse of a finished output, comparing each page's annotation count with the base's plus the model's additions minus its removals.</summary>
+    public Task<EngineResult<VerifyAnnotationsReply>> VerifyAnnotationsAsync(ulong remoteBase, ulong remoteOutput, uint pageCount, uint[] pages, uint[] added, uint[] removed, TimeSpan deadline, CancellationToken cancellationToken = default) =>
+        CallAsync<VerifyAnnotationsReply>(
+            new VerifyAnnotations { BaseHandle = remoteBase, OutputHandle = remoteOutput, PageCount = pageCount, Pages = pages, Added = added, Removed = removed },
+            0,
+            deadline,
+            WithGrace(deadline),
+            new Pending { EngineQueue = true },
+            cancellationToken);
+
     public Task<EngineResult<ShutdownReply>> ShutdownAsync(TimeSpan timeout, CancellationToken cancellationToken = default) =>
         CallAsync<ShutdownReply>(new Shutdown(), 0, timeout, timeout, new Pending(), cancellationToken);
 
@@ -733,6 +767,8 @@ public sealed class EngineClient : IAsyncDisposable
         MessageType.Ping or MessageType.Shutdown => status is Status.Ok,
         MessageType.CancelBefore or MessageType.CloseDocument or MessageType.AttachSlotRing => status is Status.Ok or Status.InvalidArgument,
         MessageType.ValidateStructure => status is Status.Ok or Status.InvalidArgument or Status.Damaged or Status.Timeout or Status.PermissionDenied or Status.Unsupported,
+        MessageType.AppendAnnotations or MessageType.RewriteDocument or MessageType.VerifyAnnotations
+            => status is Status.Ok or Status.InvalidArgument or Status.Unsupported or Status.Timeout or Status.PermissionDenied,
         MessageType.OpenDocument => status is Status.Ok or Status.InvalidArgument or Status.Unsupported or Status.PasswordRequired
             or Status.PasswordIncorrect or Status.UnsupportedEncryption or Status.Damaged or Status.Timeout or Status.PermissionDenied,
         MessageType.GetDocumentInfo or MessageType.GetPageSizes or MessageType.GetOutline or MessageType.GetPageLinks or MessageType.GetPageBoxes
@@ -775,6 +811,12 @@ public sealed class EngineClient : IAsyncDisposable
                 return ValidateText(pending, text);
             case SearchPageReply search:
                 return ReplyChecks.CheckMatches(search.Starts, search.Lengths);
+            case AppendAnnotationsReply append:
+                return ReplyChecks.CheckSaveReply(append.Ok, append.IssueCodes.Length, append.BytesWritten);
+            case RewriteDocumentReply rewrite:
+                return ReplyChecks.CheckSaveReply(rewrite.Ok, rewrite.IssueCodes.Length, rewrite.BytesWritten);
+            case VerifyAnnotationsReply verify:
+                return !verify.Ok && verify.Mismatches.Length > 0 ? "a failed verification names mismatched pages" : null;
             case GetDocumentDetailsReply details:
                 return ReplyChecks.CheckDetails(details, _documents.TryGetValue(pending.DocumentId, out var pages) ? pages : 0);
             default:

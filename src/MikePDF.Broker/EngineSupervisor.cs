@@ -281,7 +281,14 @@ public sealed class EngineSupervisor : IAsyncDisposable
     }
 
     /// <summary>
-    /// Opens a document. The broker opens the file (read-only, deny-write) and keeps the handle for the document's lifetime so it can be
+    /// How the broker opens a document, and every handle it gives the writer host or verifies with (ADR-0005 amendment A3, S10): others may not
+    /// write, append or truncate while it is open, but may rename, delete or replace the path, which is what lets a save replace the file while the
+    /// engines still map the old one.
+    /// </summary>
+    public const FileShare DocumentShare = FileShare.Read | FileShare.Delete;
+
+    /// <summary>
+    /// Opens a document. The broker opens the file (read-only, deny-write, share-delete) and keeps the handle for the document's lifetime so it can be
     /// reopened after a crash; the engine only ever receives a duplicate of it.
     /// </summary>
     public async Task<EngineResult<SupervisedDocument>> OpenDocumentAsync(string path, string? password = null, CancellationToken cancellationToken = default)
@@ -295,7 +302,7 @@ public sealed class EngineSupervisor : IAsyncDisposable
         SafeFileHandle file;
         try
         {
-            file = File.OpenHandle(path, FileMode.Open, FileAccess.Read, FileShare.Read);
+            file = File.OpenHandle(path, FileMode.Open, FileAccess.Read, DocumentShare);
         }
         catch (Exception e) when (e is FileNotFoundException or DirectoryNotFoundException or ArgumentException or NotSupportedException)
         {

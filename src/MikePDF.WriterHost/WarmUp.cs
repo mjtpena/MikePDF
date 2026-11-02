@@ -38,7 +38,60 @@ internal static class WarmUp
             _ = Validation.Run(mapped.Data);
         }
 
+        SaveCodePaths();
         GC.Collect();
+    }
+
+    /// <summary>
+    /// The save messages' code, run on a tiny document: the edit blob codec both ways, a strict parse, the appender, the rewriter with both
+    /// flatten flags, the independent annotation count, and the frames of the three new messages. Everything these load happens before the
+    /// signature policy is applied.
+    /// </summary>
+    private static void SaveCodePaths()
+    {
+        var edit = new MikePDF.Protocol.Edits.AnnotationEdit
+        {
+            Operation = MikePDF.Protocol.Edits.EditOperation.Add,
+            Page = 0,
+            Kind = MikePDF.Protocol.Edits.AnnotationKind.Highlight,
+            Rect = [10, 10, 60, 30],
+            Color = [1, 1, 0],
+            Opacity = 0.5f,
+            Name = "warmup",
+            Contents = "café",
+            Author = "warm",
+            QuadPoints = [10, 30, 60, 30, 10, 10, 60, 10],
+        };
+        var blob = MikePDF.Protocol.Edits.EditBlobCodec.Encode(new MikePDF.Protocol.Edits.EditBlob { PageCount = 1, Edits = [edit] });
+        if (!MikePDF.Protocol.Edits.EditBlobCodec.TryDecode(blob, out var decoded, out _))
+        {
+            return;
+        }
+
+        var opened = MikePDF.PdfWriter.StrictDocument.Open(MinimalPdf());
+        if (!opened.IsSuccess)
+        {
+            return;
+        }
+
+        var appended = MikePDF.PdfWriter.Editing.AnnotationAppender.Append(opened.Value, 1, [.. decoded.Edits.Select(SaveOperations.ToChange)]);
+        if (appended.IsSuccess)
+        {
+            _ = AnnotationCounter.Count(appended.Value.Output, 1, [0]);
+            var again = MikePDF.PdfWriter.StrictDocument.Open(appended.Value.Output);
+            if (again.IsSuccess)
+            {
+                _ = MikePDF.PdfWriter.Editing.DocumentRewriter.Rewrite(again.Value, new MikePDF.PdfWriter.Editing.RewriteOptions { FlattenForms = true, FlattenComments = true });
+                _ = MikePDF.PdfWriter.Editing.DocumentRewriter.Rewrite(again.Value);
+            }
+        }
+
+        _ = ProtocolCodec.EncodeRequestFrame(3, 0, 1000, new AppendAnnotations { BaseHandle = 1, EditsHandle = 2, EditsLength = 1, OutputHandle = 3, PageCount = 1 });
+        _ = ProtocolCodec.EncodeRequestFrame(4, 0, 1000, new RewriteDocument { BaseHandle = 1, OutputHandle = 2, Flags = 3 });
+        _ = ProtocolCodec.EncodeRequestFrame(5, 0, 1000, new VerifyAnnotations { BaseHandle = 1, OutputHandle = 2, PageCount = 1, Pages = [0], Added = [1], Removed = [0] });
+        _ = ProtocolCodec.EncodeResponseFrame(3, Status.Ok, MessageType.AppendAnnotations, new AppendAnnotationsReply { Ok = false, IssueCodes = [29], IssueMessages = ["error: warm"] });
+        _ = ProtocolCodec.EncodeResponseFrame(4, Status.Ok, MessageType.RewriteDocument, new RewriteDocumentReply { Ok = false, IssueCodes = [29], IssueMessages = ["error: warm"] });
+        _ = ProtocolCodec.EncodeResponseFrame(5, Status.Ok, MessageType.VerifyAnnotations, new VerifyAnnotationsReply { Ok = true, Mismatches = [] });
     }
 
     private static void LoadReferencedAssemblies(Assembly assembly, HashSet<string> seen)
