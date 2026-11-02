@@ -1,6 +1,6 @@
 // Engine command line (ADR-0004/0005). Everything is a value the broker chose; there are no paths and no handles: nothing is inherited.
 //
-//   MikePDF.Engine.exe --pipe <32 hex> --parent <pid> --kind document|pool
+//   MikePDF.Engine.exe --pipe <32 hex> --parent <pid> --kind document|pool|shell
 // The slot ring is not here: its handle is duplicated into the process and announced over the pipe (AttachSlotRing).
 #pragma once
 

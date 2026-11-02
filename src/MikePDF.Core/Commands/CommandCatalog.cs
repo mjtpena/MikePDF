@@ -21,6 +21,12 @@ public static class CommandCatalog
 
     private static CommandAvailability Always(CommandContext c) => Ok;
 
+    private static CommandAvailability NeedsTwoTabs(CommandContext c) => c.TabCount >= 2 ? Ok : Fail(Reasons.OneTab);
+
+    private static Func<CommandContext, CommandAvailability> NeedsTab(int number) => c => c.TabCount >= number ? Ok : Fail(Reasons.NoSuchTab);
+
+    private static CommandAvailability NeedsPath(CommandContext c) => !c.HasDocument ? Fail(Reasons.NoDocument) : c.HasPath ? Ok : Fail(Reasons.NoPath);
+
     private static CommandAvailability NeedsImportExport(CommandContext c) => c.ImportExportAllowed ? Ok : Fail(Reasons.Policy);
 
     private static CommandDefinition Define(
@@ -31,14 +37,12 @@ public static class CommandCatalog
         string[] chords,
         Func<CommandContext, CommandAvailability> rule,
         bool repeatable = false,
-        bool surfaceNative = false,
         bool keywords = false,
         bool dialog = false,
         bool inPresentation = false) =>
         new(id, category, scope, glyph, chords.Select(ChordParser.Parse), rule)
         {
             Repeatable = repeatable,
-            SurfaceNative = surfaceNative,
             HasKeywords = keywords,
             OpensDialog = dialog,
             AllowedInPresentation = inPresentation,
@@ -49,6 +53,7 @@ public static class CommandCatalog
         var file = CommandCategory.File;
         var view = CommandCategory.View;
         var nav = CommandCategory.Navigate;
+        var tabs = CommandCategory.TabsAndWindows;
         var settings = CommandCategory.Settings;
         var help = CommandCategory.Help;
         const CommandScope global = CommandScope.Global;
@@ -60,19 +65,45 @@ public static class CommandCatalog
             Define("file.open", file, global, "", ["Ctrl+O"], Always, dialog: true, keywords: true),
             Define("file.reload", file, global, "", ["Ctrl+R"], c => c.Busy ? Fail(Reasons.Busy) : !c.HasDocument ? Fail(Reasons.NoDocument) : c.HasPath ? Ok : Fail(Reasons.NoPath), keywords: true),
             Define("file.properties", file, global, "", ["Ctrl+D"], NeedsDocument, keywords: true),
+            Define("file.newTab", file, global, "", ["Ctrl+T"], Always, keywords: true, inPresentation: true),
+            Define("file.newWindow", file, global, "", ["Ctrl+N"], Always, keywords: true, inPresentation: true),
+            Define("file.close", file, global, "", ["Ctrl+W", "Ctrl+F4"], Always, keywords: true, inPresentation: true),
+            Define("file.closeOthers", file, global, "", [], NeedsTwoTabs),
+            Define("file.closeToRight", file, global, "", [], c => c.ActiveTabIndex < c.TabCount - 1 ? Ok : Fail(Reasons.LastTab)),
+            Define("file.reopenClosed", file, global, "", ["Ctrl+Shift+T"], c => c.CanReopenClosed ? Ok : Fail(Reasons.NothingClosed), keywords: true, inPresentation: true),
+            Define("file.closeWindow", file, global, "", [], Always, inPresentation: true),
+            Define("file.copyPath", file, global, "", [], NeedsPath),
+            Define("file.showInFolder", file, global, "", [], NeedsPath, keywords: true),
+            Define("file.locate", file, global, "", [], c => c.TabMissing ? Ok : Fail(Reasons.NotMissing), dialog: true),
+
+            // ---- tabs and windows
+            Define("tab.next", tabs, global, "", ["Ctrl+Tab"], NeedsTwoTabs, inPresentation: true),
+            Define("tab.previous", tabs, global, "", ["Ctrl+Shift+Tab"], NeedsTwoTabs, inPresentation: true),
+            Define("tab.goto1", tabs, global, "", ["Alt+1"], NeedsTab(1), inPresentation: true),
+            Define("tab.goto2", tabs, global, "", ["Alt+2"], NeedsTab(2), inPresentation: true),
+            Define("tab.goto3", tabs, global, "", ["Alt+3"], NeedsTab(3), inPresentation: true),
+            Define("tab.goto4", tabs, global, "", ["Alt+4"], NeedsTab(4), inPresentation: true),
+            Define("tab.goto5", tabs, global, "", ["Alt+5"], NeedsTab(5), inPresentation: true),
+            Define("tab.goto6", tabs, global, "", ["Alt+6"], NeedsTab(6), inPresentation: true),
+            Define("tab.goto7", tabs, global, "", ["Alt+7"], NeedsTab(7), inPresentation: true),
+            Define("tab.goto8", tabs, global, "", ["Alt+8"], NeedsTab(8), inPresentation: true),
+            Define("tab.last", tabs, global, "", ["Alt+9"], Always, inPresentation: true),
+            Define("tab.moveLeft", tabs, global, "", ["Ctrl+Shift+PageUp"], c => c.ActiveTabIndex > 0 ? Ok : Fail(Reasons.FirstTab)),
+            Define("tab.moveRight", tabs, global, "", ["Ctrl+Shift+PageDown"], c => c.ActiveTabIndex < c.TabCount - 1 ? Ok : Fail(Reasons.LastTab)),
+            Define("tab.moveToNewWindow", tabs, global, "", ["Ctrl+Shift+N"], NeedsTwoTabs, keywords: true),
 
             // ---- navigation
             Define("nav.back", nav, global, "", ["Alt+Left"], c => !c.HasDocument ? Fail(Reasons.NoDocument) : c.CanGoBack ? Ok : Fail(Reasons.NoBackHistory)),
             Define("nav.forward", nav, global, "", ["Alt+Right"], c => !c.HasDocument ? Fail(Reasons.NoDocument) : c.CanGoForward ? Ok : Fail(Reasons.NoForwardHistory)),
             Define("nav.goToPage", nav, reader, "", ["Ctrl+G"], NeedsDocument, dialog: true, keywords: true),
-            Define("nav.nextPage", nav, reader, "", ["Right"], NeedsDocument, repeatable: true, surfaceNative: true),
-            Define("nav.previousPage", nav, reader, "", ["Left"], NeedsDocument, repeatable: true, surfaceNative: true),
-            Define("nav.firstPage", nav, reader, "", ["Home"], NeedsDocument, surfaceNative: true),
-            Define("nav.lastPage", nav, reader, "", ["End"], NeedsDocument, surfaceNative: true),
-            Define("nav.scrollScreenDown", nav, reader, "", ["PageDown", "Space"], NeedsDocument, repeatable: true, surfaceNative: true),
-            Define("nav.scrollScreenUp", nav, reader, "", ["PageUp", "Shift+Space"], NeedsDocument, repeatable: true, surfaceNative: true),
-            Define("nav.scrollDown", nav, reader, "", ["Down"], NeedsDocument, repeatable: true, surfaceNative: true),
-            Define("nav.scrollUp", nav, reader, "", ["Up"], NeedsDocument, repeatable: true, surfaceNative: true),
+            Define("nav.nextPage", nav, reader, "", ["Right"], NeedsDocument, repeatable: true),
+            Define("nav.previousPage", nav, reader, "", ["Left"], NeedsDocument, repeatable: true),
+            Define("nav.firstPage", nav, reader, "", ["Home"], NeedsDocument),
+            Define("nav.lastPage", nav, reader, "", ["End"], NeedsDocument),
+            Define("nav.scrollScreenDown", nav, reader, "", ["PageDown", "Space"], NeedsDocument, repeatable: true),
+            Define("nav.scrollScreenUp", nav, reader, "", ["PageUp", "Shift+Space"], NeedsDocument, repeatable: true),
+            Define("nav.scrollDown", nav, reader, "", ["Down"], NeedsDocument, repeatable: true),
+            Define("nav.scrollUp", nav, reader, "", ["Up"], NeedsDocument, repeatable: true),
 
             // ---- view
             Define("view.zoomIn", view, reader, "", ["Ctrl+Plus", "Ctrl+Add"], NeedsDocument, repeatable: true, keywords: true),
@@ -100,8 +131,8 @@ public static class CommandCatalog
             Define("find.next", nav, global, "", ["F3"], NeedsDocument, repeatable: true),
             Define("find.previous", nav, global, "", ["Shift+F3"], NeedsDocument, repeatable: true),
             Define("find.close", nav, global, "", [], c => c.FindOpen ? Ok : Fail(Reasons.FindNotOpen)),
-            Define("edit.selectAll", CommandCategory.Edit, reader, "", ["Ctrl+A"], NeedsDocument, surfaceNative: true),
-            Define("edit.copy", CommandCategory.Edit, reader, "", ["Ctrl+C", "Ctrl+Insert"], c => !c.HasDocument ? Fail(Reasons.NoDocument) : c.CanCopy ? Ok : Fail(Reasons.OwnerNoCopy), surfaceNative: true),
+            Define("edit.selectAll", CommandCategory.Edit, reader, "", ["Ctrl+A"], NeedsDocument),
+            Define("edit.copy", CommandCategory.Edit, reader, "", ["Ctrl+C", "Ctrl+Insert"], c => !c.HasDocument ? Fail(Reasons.NoDocument) : c.CanCopy ? Ok : Fail(Reasons.OwnerNoCopy)),
 
             // ---- application
             Define("app.commandPalette", settings, global, "", ["Ctrl+Shift+P"], c => c.ModalOpen ? Fail(Reasons.Busy) : Ok, keywords: true),

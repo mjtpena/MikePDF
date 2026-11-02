@@ -35,13 +35,14 @@ public sealed class EngineWiringTests
         var host = AppSource(Path.Combine("Services", "EngineHost.cs"));
 
         // The snapshot's value is what the host keeps ...
-        Assert.Matches(@"new EngineHost\(profile, enginePath, policy\.EngineMemoryLimitMb\)", host);
+        Assert.Matches(@"new EngineHost\(profile, enginePath, maxDocumentEngines, memoryLimitMb\)", host);
         // ... the budget (document engines and the pool engine) gets it ...
         Assert.Matches(@"new EngineBudgetOptions\s*\{[^}]*EngineMemoryLimitMb\s*=\s*engineMemoryLimitMb", host);
         // ... and so does every options object the host makes for a supervisor.
         Assert.Matches(@"ProcessMemoryLimitBytes\s*=\s*\(long\)EngineMemoryLimitMb\s*<<\s*20", host);
-        // Starting without a snapshot reads the registry itself rather than falling back to the broker's built-in 2 GiB.
-        Assert.Matches(@"public static EngineHost Create\(\)\s*=>\s*Create\(AppServices\.OpenPolicy\(\)\.Current\)", host);
+        // Starting without a value reads the registry itself rather than falling back to the broker's built-in 2 GiB, and the window's host passes the policy it already holds.
+        Assert.Matches(@"engineMemoryLimitMb \?\? AppServices\.OpenPolicy\(\)\.Current\.EngineMemoryLimitMb", host);
+        Assert.Matches(@"EngineHost\.Create\(cap, memoryLimit\)", AppSource(Path.Combine("Services", "AppHost.cs")));
     }
 
     private static PolicySnapshot Set(int megabytes)

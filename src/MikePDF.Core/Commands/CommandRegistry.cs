@@ -80,9 +80,6 @@ public sealed class CommandRegistry
     /// <summary>The commands that answer to a chord, in catalogue order (usually one; the dispatcher picks by scope).</summary>
     public IReadOnlyList<CommandDefinition> CommandsFor(Chord chord) => _byChord.TryGetValue(chord, out var list) ? list : [];
 
-    /// <summary>The chords that the page surface handles itself and that no command holds now (so the dispatcher can keep them from the surface).</summary>
-    public IReadOnlySet<Chord> FreedSurfaceChords { get; private set; } = new HashSet<Chord>();
-
     public static bool ScopesOverlap(CommandScope a, CommandScope b)
     {
         if (a == CommandScope.Presentation || b == CommandScope.Presentation)
@@ -364,20 +361,9 @@ public sealed class CommandRegistry
             }
         }
 
-        // A default that the surface handles on its own and that no command holds any more must be kept from the surface, or "unbinding" it would do nothing.
-        var freed = new HashSet<Chord>();
-        foreach (var command in _commands.Where(c => c.SurfaceNative))
-        {
-            foreach (var chord in command.DefaultChords.Where(chord => !byChord.ContainsKey(chord)))
-            {
-                freed.Add(chord);
-            }
-        }
-
         _effective = effective;
         _byChord = byChord;
         _updateConflicts = updateConflicts;
-        FreedSurfaceChords = freed;
     }
 }
 

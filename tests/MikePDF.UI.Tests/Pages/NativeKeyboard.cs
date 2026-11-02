@@ -27,7 +27,8 @@ internal static partial class NativeKeyboard
         }
 
         var last = keys[^1];
-        var flags = last is Left or Up or Right or Down ? Extended : 0u;
+        // The keys of the navigation block are "extended": without the flag Shift turns them into the number pad's keys.
+        var flags = last is Left or Up or Right or Down or 0x21 or 0x22 or 0x23 or 0x24 or 0x2D or 0x2E ? Extended : 0u;
         keybd_event(last, 0, flags, UIntPtr.Zero);
         keybd_event(last, 0, flags | KeyUp, UIntPtr.Zero);
         foreach (var key in keys[..^1].Reverse())

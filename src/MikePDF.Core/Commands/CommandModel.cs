@@ -53,6 +53,12 @@ public static class Reasons
     public const string NothingToUndo = "NothingToUndo";
     public const string NothingToClear = "NothingToClear";
     public const string FindNotOpen = "FindNotOpen";
+    public const string OneTab = "OneTab";
+    public const string NoSuchTab = "NoSuchTab";
+    public const string FirstTab = "FirstTab";
+    public const string LastTab = "LastTab";
+    public const string NothingClosed = "NothingClosed";
+    public const string NotMissing = "NotMissing";
 
     public static string ResourceKey(string reason) => "Reason_" + reason;
 }
@@ -113,6 +119,17 @@ public sealed record CommandContext
 
     public bool CanUndoImport { get; init; }
 
+    /// <summary>How many tabs the window has, and which is shown (0 based). A window always has at least one.</summary>
+    public int TabCount { get; init; } = 1;
+
+    public int ActiveTabIndex { get; init; }
+
+    /// <summary>A closed tab is remembered and Reopen closed tab has something to open.</summary>
+    public bool CanReopenClosed { get; init; }
+
+    /// <summary>The shown tab is a restored document whose file could not be found (Locate file).</summary>
+    public bool TabMissing { get; init; }
+
     public PageColourMode PageColour { get; init; }
 
     /// <summary>Policy: settings and shortcut import and export are allowed (SettingsImportExportEnabled). True when no policy says otherwise.</summary>
@@ -153,9 +170,6 @@ public sealed class CommandDefinition
 
     /// <summary>True for commands that make sense on key auto-repeat: zoom, scroll, next page.</summary>
     public bool Repeatable { get; init; }
-
-    /// <summary>The page surface handles these default chords itself when it has the keyboard (its own key handler). Remapping them takes them away from the surface too.</summary>
-    public bool SurfaceNative { get; init; }
 
     /// <summary>Still runs in presentation mode (exit, quit, tabs).</summary>
     public bool AllowedInPresentation { get; init; }

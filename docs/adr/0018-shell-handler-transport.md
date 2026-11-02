@@ -29,8 +29,17 @@ Decided with this ADR:
 ## Consequences
 - No PDF parsing in any shell host, one copy of the sandbox code, and the handler path is testable without registering anything.
 - A second package executable and a C++ client codec to maintain, and a cold start of about 0.1 to 0.3 s after an idle minute.
-- **A packaged handler applies whenever the package is installed,** not only while MikePDF is the default PDF app, and it won over classic registrations in the spike. What the "off" switches do is a product decision (OQ-SHELL-14). Until the product owner decides, the default is: thumbnails and preview on, with a setting and a policy to turn them off. The shell work package first tests whether the shell falls through to the next handler when ours declines; if it doesn't, the settings text says that "off" shows the generic icon.
+- **A packaged handler applies whenever the package is installed,** not only while MikePDF is the default PDF app, and it won over classic registrations in the spike. What the "off" switches do is a product decision (OQ-SHELL-14). Until the product owner decides, the default is: thumbnails and preview on, with a setting and a policy to turn them off. Measured on hosted x64 and ARM64 runners in the shell work package: the shell does not fall through to the next handler when ours declines, so "off" shows the generic icon and the settings text says so.
 - **A handler host at Low integrity can't start ShellHost** (OQ-SHELL-10). The runners only showed High hosts, so the standard-user case needs a real Explorer run.
 
 ## Verification
 SHELL-02, -03, -05 to -13, -15 to -17, -25 and -26 of the shell-extensions spec; the spike's hosted-runner workflow kept as an integration job; an Explorer run on a standard-user session on R1 and R2 (SHELL-23), which only the user can do.
+
+## Amendments made while building it (W2-shell, 2026-11-03)
+These refine the decision; none reverses it.
+1. **Two pipes, one ShellHost.** The thumbnail provider connects to `MikePDF.Shell.<user SID>` and the preview handler to `MikePDF.Shell.<user SID>.Preview`. Same DACL, same label, same process, same engine budget. The reason: `ShellOpen` has no field that says which feature asks, and SHELL-16 needs "thumbnails off, preview on" and the reverse to be answered in 100 ms before any work is done. A field would change schema 5, which nobody owns this wave; a second pipe name costs nothing. The pipe also decides the fit rule (a thumbnail is never scaled above 2x its natural size; a preview fits the pane's width).
+2. **The negative cache is keyed by content.** With stream initialisation ShellHost has no file ID or last-write time. The key is the size and the SHA-256 of the bytes already in the section (about 1 to 2 ms for a typical file, about 20 ms at the 32 MiB cap).
+3. **Form fields are not drawn yet.** The spec asks for form fields drawn without highlight. The engine answers `Unsupported` to the form-fields bit of `RenderTile` until forms ship (no form-fill environment), so a request that set it would fail every thumbnail. ShellHost asks for annotations only.
+4. **The spare engine counts toward `shell.maxEngines`**, so "at most 3 live" is about processes, not about requests in flight. A spare that failed to start or died while it waited is skipped, not used to fail the next request.
+5. **Test overrides.** A ShellHost or handler with no package identity (only the tests run so) reads `MIKEPDF_SHELL_TEST_*` environment variables for the pipe name, the engine directory, the AppContainer profile, the data folder and the idle time. A packaged one never reads them.
+6. **The Low-integrity launch limit is unchanged and still UNVERIFIED** on a standard-user machine (OQ-SHELL-10).

@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <Description>Fuzz harness for MikePDF.ShellHost's request decoder and the rules it applies (SHELL-18): a dependency-free mutational fuzzer, and SharpFuzz entry points (see README.md).</Description>
+    <!-- A fuzz harness catches nothing on purpose (an escaped exception is the finding) and uses System.Random for mutation, not for security. -->
+    <NoWarn>$(NoWarn);CA5394</NoWarn>
+    <!-- LibraryImport (SetErrorMode in MutationalFuzzer) generates unsafe marshalling code. -->
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <!-- A harness is not published AOT, and ShellHost's own PublishAot setting must not apply to the executable that references it. -->
+    <PublishAot>false</PublishAot>
+    <IsAotCompatible>false</IsAotCompatible>
+    <ValidateExecutableReferencesMatchSelfContained>false</ValidateExecutableReferencesMatchSelfContained>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="SharpFuzz" />
+    <ProjectReference Include="..\..\..\src\MikePDF.Protocol\MikePDF.Protocol.csproj" />
+    <ProjectReference Include="..\..\..\src\MikePDF.ShellHost\MikePDF.ShellHost.csproj" />
+    <Compile Include="..\Shared\MutationalFuzzer.cs" Link="Shared\MutationalFuzzer.cs" />
+    <Compile Include="..\Shared\LibFuzzerEntry.cs" Link="Shared\LibFuzzerEntry.cs" />
+    <InternalsVisibleTo Include="MikePDF.Fuzz.Tests" />
+  </ItemGroup>
+</Project>

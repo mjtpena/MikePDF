@@ -49,6 +49,7 @@ public sealed class EngineBudget : IAsyncDisposable
     private EngineSupervisor? _pool;
     private string? _pdfiumVersion;
     private TaskCompletionSource _changed = new(TaskCreationOptions.RunContinuationsAsynchronously);
+    private int _max;
     private int _live; // document engines that hold a slot: running, restarting or starting
     private long _tick;
     private bool _disposed;
@@ -63,6 +64,7 @@ public sealed class EngineBudget : IAsyncDisposable
             ArgumentOutOfRangeException.ThrowIfGreaterThan(limit, EngineBudgetOptions.MaxEngineMemoryLimitMb, nameof(options));
         }
 
+        _max = options.MaxDocumentEngines;
         _options = options with
         {
             Document = WithLimit(options.Document with { Kind = EngineKind.Document }, options.EngineMemoryLimitMb),
@@ -73,7 +75,18 @@ public sealed class EngineBudget : IAsyncDisposable
     private static EngineSupervisorOptions WithLimit(EngineSupervisorOptions options, int? limitMb) =>
         limitMb is { } mb ? options with { Policy = options.Policy with { ProcessMemoryLimitBytes = (long)mb << 20 } } : options;
 
-    public int MaxDocumentEngines => _options.MaxDocumentEngines;
+    public int MaxDocumentEngines => Volatile.Read(ref _max);
+
+    /// <summary>
+    /// Changes the cap while the app runs (the policy <c>MaxLiveTabs</c> was read again). Raising it lets waiting documents start; lowering it suspends the least recently used idle engines as the
+    /// next documents ask for a slot, one at a time, until the count is under the new cap: nothing is killed that is busy or pinned.
+    /// </summary>
+    public void SetMaxDocumentEngines(int value)
+    {
+        ArgumentOutOfRangeException.ThrowIfLessThan(value, 1);
+        Volatile.Write(ref _max, value);
+        Pulse();
+    }
 
     /// <summary>Document engines that hold a slot: a process is running for them (or is being started or restarted).</summary>
     public int LiveDocumentEngines
@@ -174,7 +187,7 @@ public sealed class EngineBudget : IAsyncDisposable
         var engine = new DocumentEngine(this);
         if (!await AcquireSlotAsync(engine, cancellationToken).ConfigureAwait(false))
         {
-            throw new TimeoutException($"All {_options.MaxDocumentEngines} document engines are busy.");
+            throw new TimeoutException($"All {MaxDocumentEngines} document engines are busy.");
         }
 
         try
@@ -337,7 +350,7 @@ public sealed class EngineBudget : IAsyncDisposable
                     return true;
                 }
 
-                if (_live < _options.MaxDocumentEngines)
+                if (_live < Volatile.Read(ref _max))
                 {
                     _live++;
                     engine.HoldsSlot = true;

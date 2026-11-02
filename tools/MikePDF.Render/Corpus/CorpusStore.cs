@@ -11,8 +11,18 @@ internal static class CorpusStore
     public static string PathFor(string corpusDirectory, CorpusFile file) =>
         System.IO.Path.Combine(corpusDirectory, "files", file.Id.Replace('/', System.IO.Path.DirectorySeparatorChar));
 
-    public static IEnumerable<CorpusFile> InTier(CorpusManifest manifest, string tier, string? filter = null) =>
-        manifest.Files.Where(f => f.Tiers.Contains(tier, StringComparer.Ordinal) && (filter is null || f.Id.Contains(filter, StringComparison.OrdinalIgnoreCase)));
+    /// <summary>
+    /// The files a tier runs: those listed in it, and those listed in a smaller tier. The tiers nest (ADR-0010: smoke is what every pull request runs, core is that and
+    /// more, full is everything), so a file is listed once, in the smallest tier it belongs to.
+    /// </summary>
+    public static IEnumerable<CorpusFile> InTier(CorpusManifest manifest, string tier, string? filter = null)
+    {
+        var rank = TierRank(tier);
+        return manifest.Files.Where(f => rank >= 0 && f.Tiers.Any(t => TierRank(t) is var r and >= 0 && r <= rank) && (filter is null || f.Id.Contains(filter, StringComparison.OrdinalIgnoreCase)));
+    }
+
+    /// <summary>0 for smoke, 1 for core, 2 for full. An unknown name ranks below all of them, so it selects nothing.</summary>
+    public static int TierRank(string tier) => Array.IndexOf(ManifestValidator.Tiers, tier) is var index and >= 0 ? index : -1;
 
     public static string Sha256Hex(ReadOnlySpan<byte> data) => Convert.ToHexStringLower(SHA256.HashData(data));
 

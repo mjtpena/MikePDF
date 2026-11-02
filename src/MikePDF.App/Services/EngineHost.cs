@@ -1,5 +1,4 @@
 using MikePDF.Broker;
-using MikePDF.Core.Settings;
 using MikePDF.Protocol;
 
 namespace MikePDF.App.Services;
@@ -15,30 +14,34 @@ internal sealed class EngineHost
     private readonly AppContainerProfile _profile;
     private readonly string _enginePath;
 
-    private EngineHost(AppContainerProfile profile, string enginePath, int engineMemoryLimitMb)
+    private EngineHost(AppContainerProfile profile, string enginePath, int maxDocumentEngines, int engineMemoryLimitMb)
     {
         _profile = profile;
         _enginePath = enginePath;
         EngineMemoryLimitMb = engineMemoryLimitMb;
-        Budget = new EngineBudget(new EngineBudgetOptions { Document = DocumentOptions(), Pool = PoolOptions(), EngineMemoryLimitMb = engineMemoryLimitMb });
+        Budget = new EngineBudget(new EngineBudgetOptions
+        {
+            Document = DocumentOptions(),
+            Pool = PoolOptions(),
+            MaxDocumentEngines = Math.Max(1, maxDocumentEngines),
+            EngineMemoryLimitMb = engineMemoryLimitMb,
+        });
     }
 
     /// <summary>The memory limit every engine process runs under, in megabytes: the administrator's <c>EngineMemoryLimitMB</c> policy (2048 when none is set).</summary>
     public int EngineMemoryLimitMb { get; }
 
     /// <summary>
-    /// The engines the app may have at once (ADR-0004 amendment A3): one shared pool engine and at most six document engines, the least recently used suspended over the cap.
-    /// Every <see cref="DocumentSession"/> takes its engines from here; the app opens one document at a time today, and tabs will open several.
+    /// The engines the app may have at once (ADR-0004 amendment A3): one shared pool engine and at most <c>engines.maxLiveTabs</c> document engines (6 by default, set by policy), the least
+    /// recently used suspended over the cap. Every <see cref="DocumentSession"/>, in every window, takes its engines from here.
     /// </summary>
     public EngineBudget Budget { get; }
 
-    /// <summary>Starts from the policy as the registry holds it now.</summary>
-    public static EngineHost Create() => Create(AppServices.OpenPolicy().Current);
-
-    /// <summary>Starts with <paramref name="policy"/>: its engine memory limit becomes the job limit of every engine the host starts, document engines and the pool engine alike.</summary>
-    public static EngineHost Create(PolicySnapshot policy)
+    /// <param name="maxDocumentEngines">The cap on document engines at start-up (<c>engines.maxLiveTabs</c>, after policy); the app changes it later with <see cref="EngineBudget.SetMaxDocumentEngines"/>.</param>
+    /// <param name="engineMemoryLimitMb">The administrator's <c>EngineMemoryLimitMB</c> policy: the job limit of every engine process the host starts, document engines and the pool engine alike. Null reads the policy from the registry.</param>
+    public static EngineHost Create(int maxDocumentEngines = 6, int? engineMemoryLimitMb = null)
     {
-        ArgumentNullException.ThrowIfNull(policy);
+        var memoryLimitMb = engineMemoryLimitMb ?? AppServices.OpenPolicy().Current.EngineMemoryLimitMb;
         if (!AppPaths.IsPackaged)
         {
             // Without package identity the child gets no access to the engine's directory (nothing grants it): development builds are run as a registered layout.
@@ -61,7 +64,7 @@ internal sealed class EngineHost
             throw new EngineStartException("The sandbox could not be set up: " + e.Message, e);
         }
 
-        return new EngineHost(profile, enginePath, policy.EngineMemoryLimitMb);
+        return new EngineHost(profile, enginePath, maxDocumentEngines, memoryLimitMb);
     }
 
     /// <summary>The engine for a document: renders sharp tiles.</summary>

@@ -46,6 +46,10 @@ set(MIKEPDF_FUZZ_PROTOCOL_INCLUDES
 mikepdf_fuzz_target(fuzz_protocol protocol_fuzz.cpp ${MIKEPDF_FUZZ_PROTOCOL_SOURCES})
 target_include_directories(fuzz_protocol PRIVATE ${MIKEPDF_FUZZ_PROTOCOL_INCLUDES})
 
+# The handler's reply decoder and the checks it applies before it builds a bitmap (SHELL-18). The validation code is compiled in, not linked, so it carries coverage counters.
+mikepdf_fuzz_target(fuzz_shell_reply shell_reply_fuzz.cpp ${CMAKE_SOURCE_DIR}/src/MikePDF.ShellExt/validation.cpp ${MIKEPDF_FUZZ_PROTOCOL_SOURCES})
+target_include_directories(fuzz_shell_reply PRIVATE ${CMAKE_SOURCE_DIR}/src/MikePDF.ShellExt ${MIKEPDF_FUZZ_PROTOCOL_INCLUDES})
+
 # The engine's document-open and render path, through the PDFium wrapper. PDFium itself stays the uninstrumented prebuilt DLL.
 mikepdf_fuzz_target(fuzz_engine_document engine_document_fuzz.cpp
   ${CMAKE_SOURCE_DIR}/src/MikePDF.Engine.Pdfium/src/document.cpp

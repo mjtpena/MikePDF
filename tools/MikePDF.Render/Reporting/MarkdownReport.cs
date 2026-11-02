@@ -39,9 +39,39 @@ internal static class MarkdownReport
         Row(text, "Engine crashes / hangs", $"{summary.EngineCrashes} / {summary.EngineHangs}");
         Row(text, "Pages compared with the reference", summary.SsimCompared.ToString(inv));
         Row(text, $"... at or above SSIM {report.Settings.SsimThreshold:0.###}", $"{summary.SsimAtOrAboveThreshold} ({summary.SsimPassPercent:0.###}%; target {report.Settings.SsimPassTarget:0.###}%)");
-        Row(text, "SSIM min / mean", $"{Number(summary.SsimMin)} / {Number(summary.SsimMean)}");
+        Row(text, "SSIM min / 1st percentile / 5th percentile / median / mean", $"{Number(summary.SsimMin)} / {Number(summary.SsimP01)} / {Number(summary.SsimP05)} / {Number(summary.SsimMedian)} / {Number(summary.SsimMean)}");
         Row(text, "Pages without a reference render", summary.ReferenceMissing.ToString(inv));
         Row(text, "Engine time in rendering", $"{summary.TotalRenderMs / 1000.0:0.00} s");
+
+        // The two open-rate bars the project states: §0.3 (production quality) and the M2 exit gate. Only the first is enforced by the gate; the second is reported.
+        text.Append("\n## Against the project's bars\n\n| Bar | Required | This run | Met |\n|---|---|---|---|\n");
+        Bar(text, "§0.3: files that should open and render without crash, hang or blank page", GateEvaluator.OpenSuccessTarget, summary.OpenSuccessPercent, summary.FilesExpectedToOpen > 0);
+        Bar(text, "M2 exit gate: open success on the corpus", 99.0, summary.OpenSuccessPercent, summary.FilesExpectedToOpen > 0);
+        Bar(text, $"§0.3: pages at SSIM >= {report.Settings.SsimThreshold:0.###} against the PDFium reference", report.Settings.SsimPassTarget, summary.SsimPassPercent, summary.SsimCompared > 0);
+        text.Append(inv, $"\nOpen rate counts {summary.FilesKnownIssue} real file(s) that should open and are known not to (manifest `knownIssue`); the {summary.FilesExpectedNotToOpen} files broken on purpose are left out of it.\n");
+
+        if (summary.SsimCompared > 0)
+        {
+            text.Append("\n## SSIM distribution\n\n| Range | Pages | Share |\n|---|---|---|\n");
+            foreach (var bucket in summary.SsimDistribution)
+            {
+                text.Append(inv, $"| {bucket.Range} | {bucket.Pages} | {100.0 * bucket.Pages / summary.SsimCompared:0.##}% |\n");
+            }
+        }
+
+        var tagged = report.Files.SelectMany(f => f.Tags.Select(tag => (Tag: tag, File: f))).GroupBy(x => x.Tag, StringComparer.Ordinal).OrderBy(g => g.Key, StringComparer.Ordinal).ToList();
+        if (tagged.Count > 0)
+        {
+            text.Append("\n## By tag\n\n| Tag | Files | Should open | Opened | Pages rendered Ok | Engine crashes or hangs |\n|---|---|---|---|---|---|\n");
+            foreach (var group in tagged)
+            {
+                var files = group.Select(x => x.File).ToList();
+                var should = files.Where(Summarizer.ShouldOpen).ToList();
+                var pages = files.SelectMany(f => f.Pages).Where(p => p.Status != RenderStatus.OutOfRange).ToList();
+                var down = files.Sum(f => f.EngineEvents.Count(e => e.Kind == "crashed"));
+                text.Append(inv, $"| {group.Key} | {files.Count} | {should.Count} | {should.Count(f => f.Open.Status == "Ok")} | {pages.Count(p => p.Status == "Ok")} of {pages.Count} | {down} |\n");
+            }
+        }
 
         if (report.Gate.Failures.Count > 0)
         {
@@ -122,6 +152,9 @@ internal static class MarkdownReport
 
         return text.ToString();
     }
+
+    private static void Bar(StringBuilder text, string name, double required, double actual, bool measured) =>
+        text.Append(CultureInfo.InvariantCulture, $"| {name} | {required:0.###}% | {(measured ? actual.ToString("0.###", CultureInfo.InvariantCulture) + "%" : "not measured")} | {(!measured ? "-" : actual >= required ? "yes" : "**no**")} |\n");
 
     private static void Row(StringBuilder text, string name, string value) => text.Append(CultureInfo.InvariantCulture, $"| {name} | {value} |\n");
 

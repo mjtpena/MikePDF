@@ -128,6 +128,24 @@ public static class SettingsRegistry
         },
         new SettingDefinition
         {
+            Key = "startup.restore",
+            Kind = SettingKind.Enum,
+            Default = "Ask",
+            Values = ["Always", "Ask", "Never"],
+            Owner = "tabs",
+            Section = SettingSection.General,
+        },
+        new SettingDefinition
+        {
+            Key = "windows.openFromShell",
+            Kind = SettingKind.Enum,
+            Default = "LastActiveWindow",
+            Values = ["LastActiveWindow", "NewWindow"],
+            Owner = "tabs",
+            Section = SettingSection.General,
+        },
+        new SettingDefinition
+        {
             Key = "view.pageColour",
             Kind = SettingKind.Enum,
             Default = "Normal",
@@ -151,6 +169,14 @@ public static class SettingsRegistry
             Min = 0,
             Max = 50,
             Owner = "settings",
+            Section = SettingSection.Privacy,
+        },
+        new SettingDefinition
+        {
+            Key = "privacy.addToWindowsRecent",
+            Kind = SettingKind.Bool,
+            Default = true,
+            Owner = "file association",
             Section = SettingSection.Privacy,
         },
         new SettingDefinition
@@ -179,6 +205,34 @@ public static class SettingsRegistry
             Default = string.Empty,
             Owner = "annotation core",
             PolicyName = "AnnotationAuthorName",
+        },
+        new SettingDefinition
+        {
+            Key = "shell.thumbnails",
+            Kind = SettingKind.Bool,
+            Default = true,
+            Owner = "shell extensions",
+            PolicyName = "ShellThumbnailsEnabled",
+            Section = SettingSection.Privacy,
+        },
+        new SettingDefinition
+        {
+            Key = "shell.preview",
+            Kind = SettingKind.Bool,
+            Default = true,
+            Owner = "shell extensions",
+            PolicyName = "ShellPreviewEnabled",
+            Section = SettingSection.Privacy,
+        },
+        new SettingDefinition
+        {
+            Key = "shell.maxEngines",
+            Kind = SettingKind.Number,
+            Default = 3,
+            Min = 1,
+            Max = 6,
+            Owner = "shell extensions",
+            PolicyName = "ShellMaxEngines",
         },
         new SettingDefinition
         {

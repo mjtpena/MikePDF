@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.28)
-project(MikePDF LANGUAGES CXX)
+project(MikePDF LANGUAGES CXX RC)
 
 # Native half of MikePDF: the sandboxed engine host and its tests (ADR-0002, ADR-0004).
 set(CMAKE_CXX_STANDARD 20)
@@ -22,6 +22,7 @@ set(MIKEPDF_PROTOCOL_CPP_DIR "${CMAKE_SOURCE_DIR}/src/MikePDF.Protocol/generated
 add_subdirectory(src/MikePDF.Protocol)
 add_subdirectory(src/MikePDF.Engine.Pdfium)
 add_subdirectory(src/MikePDF.Engine)
+add_subdirectory(src/MikePDF.ShellExt)
 
 if(MIKEPDF_BUILD_TESTS)
   include(FetchContent)
@@ -35,6 +36,7 @@ if(MIKEPDF_BUILD_TESTS)
   enable_testing()
   add_subdirectory(tests/MikePDF.Engine.Tests)
   add_subdirectory(tests/MikePDF.Engine.SandboxProbe)
+  add_subdirectory(tests/MikePDF.ShellExt.Tests)
 endif()
 
 if(MIKEPDF_BUILD_FUZZERS)

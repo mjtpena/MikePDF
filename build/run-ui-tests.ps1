@@ -52,13 +52,40 @@ if (-not $SkipBuild) {
     if ($LASTEXITCODE -ne 0) { throw 'UI test build failed' }
 }
 
-$layout = if ($PackageLayout) { (Resolve-Path $PackageLayout).Path } else { Join-Path $root "src/MikePDF.App/bin/Release/net10.0-windows10.0.26100.0/win-$Arch" }
+$sourceLayout = if ($PackageLayout) { (Resolve-Path $PackageLayout).Path } else { Join-Path $root "src/MikePDF.App/bin/Release/net10.0-windows10.0.26100.0/win-$Arch" }
+if (-not (Test-Path (Join-Path $sourceLayout 'AppxManifest.xml'))) { throw "No package layout at $sourceLayout. Build src/MikePDF.App first." }
+
+# The Explorer thumbnail provider, the preview handler and their COM servers are shell handlers, and this harness must never register those on the machine it runs on. It registers a COPY of
+# the layout whose manifest has them removed (everything else stays, the .pdf file type association included), says so, and fails if the manifest that ends up registered still has them.
+$shellEntries = '<desktop2:ThumbnailHandler', '<desktop2:DesktopPreviewHandler', '<com:SurrogateServer', 'Category="windows.comServer"'
+function Test-ShellEntries([string] $manifestPath) {
+    $text = Get-Content $manifestPath -Raw
+    # comments may name the elements (the manifest explains them); only real elements count
+    $text = [regex]::Replace($text, '(?s)<!--.*?-->', '')
+    return @($shellEntries | Where-Object { $text.Contains($_) })
+}
+$layout = Join-Path $root "build/out/ui-layout-$Arch"
+if (Test-Path $layout) { Remove-Item $layout -Recurse -Force }
+Copy-Item -Path $sourceLayout -Destination $layout -Recurse -Force
 $manifest = Join-Path $layout 'AppxManifest.xml'
-if (-not (Test-Path $manifest)) { throw "No package layout at $layout. Build src/MikePDF.App first." }
+$text = Get-Content $manifest -Raw
+$text = [regex]::Replace($text, '\s*<desktop2:ThumbnailHandler[^>]*/>', '')
+$text = [regex]::Replace($text, '\s*<desktop2:DesktopPreviewHandler[^>]*/>', '')
+$text = [regex]::Replace($text, '(?s)\s*<com:Extension Category="windows.comServer">.*?</com:Extension>', '')
+Set-Content $manifest $text -Encoding UTF8
+$left = Test-ShellEntries $manifest
+if ($left.Count -gt 0) { throw "The manifest copy still has shell handler entries ($($left -join ', ')); refusing to register it." }
+Write-Host "Shell handlers (thumbnail provider, preview handler, their COM servers) were REMOVED from the manifest this run registers; the rest, including the .pdf association, is unchanged. Layout: $layout" -ForegroundColor Yellow
 $identity = ([xml](Get-Content $manifest -Raw)).Package.Identity.Name
 $previous = Get-AppxPackage -Name $identity
 if ($previous) { Remove-AppxPackage $previous.PackageFullName }
 Add-AppxPackage -Register $manifest
+$registered = Get-AppxPackage -Name $identity
+$registeredLeft = Test-ShellEntries (Join-Path $registered.InstallLocation 'AppxManifest.xml')
+if ($registeredLeft.Count -gt 0) {
+    Remove-AppxPackage $registered.PackageFullName
+    throw "The registered package still declares shell handler entries ($($registeredLeft -join ', ')); it was removed again and nothing was run."
+}
 $shots = Join-Path $root 'build/out/shots'
 New-Item -ItemType Directory -Force $shots | Out-Null
 try {

@@ -183,7 +183,7 @@ public sealed class JourneyTests : IDisposable
 
         app.WaitFor("the second document", () => app.PageCount == 5);
         Assert.Contains("second", app.Window.Title, StringComparison.Ordinal);
-        Assert.Single(Process.GetProcessesByName("MikePDF")); // one window, one process
+        app.WaitFor("only the one process left (the second launch hands over and ends)", () => Process.GetProcessesByName("MikePDF").Length == 1); // one window, one process
     }
 
     [UiFact]

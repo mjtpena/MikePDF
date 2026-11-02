@@ -61,33 +61,9 @@ public sealed partial class MainWindow : ISettingsHost
 
     // ---- the settings page ------------------------------------------------------------------------------------------------------------------
 
-    private void ShowSettings(string? section)
-    {
-        Palette.Close();
-        SettingsPage.Visibility = Visibility.Visible;
-        SettingsPage.Show(section);
-        DispatcherQueue.TryEnqueue(SettingsPage.FocusFirst);
-        RefreshCommands();
-    }
+    private void ShowSettings(string? section) => ShowSettingsTab(section);
 
-    private void CloseSettings()
-    {
-        if (SettingsPage.Visibility != Visibility.Visible)
-        {
-            return;
-        }
-
-        SettingsPage.Visibility = Visibility.Collapsed;
-        RefreshCommands();
-        if (_session is { IsOpen: true })
-        {
-            Pages.FocusPages();
-        }
-        else
-        {
-            EmptyOpenButton.Focus(FocusState.Programmatic);
-        }
-    }
+    private void CloseSettings() => CloseSettingsTab();
 
     // ---- the palette ---------------------------------------------------------------------------------------------------------------------------
 
@@ -104,7 +80,7 @@ public sealed partial class MainWindow : ISettingsHost
             [
                 new GoToPagePaletteSource(() => context.PageCount, Strings.Get),
                 new CommandPaletteSource(_services.Commands, () => context, Strings.Get, chord => ChordDisplay.Format(chord, null, KeyNames.CharacterFor)),
-                new TabsPaletteSource(() => [], Strings.Get), // one document per window until tabs exist
+                new TabsPaletteSource(() => [.. _app.Windows.SelectMany(w => w.TabListing())], Strings.Get),
                 new RecentFilesPaletteSource(() => [.. _store.Recent.Select(r => r.Path)], Strings.Get),
                 new SettingsPagesPaletteSource(() => [.. SettingsView.Sections.Select(s => (s.Id, Strings.Get(s.TitleKey)))], Strings.Get),
             ],
@@ -119,6 +95,13 @@ public sealed partial class MainWindow : ISettingsHost
         {
             case PaletteItemKind.Command:
                 DispatcherQueue.TryEnqueue(() => _ = RunCommandAsync(item.Key));
+                break;
+            case PaletteItemKind.Tab:
+                if (Guid.TryParseExact(item.Key, "N", out var tabId) && _app.WindowOfTab(tabId) is { } owner)
+                {
+                    owner.ShowTab(tabId);
+                }
+
                 break;
             case PaletteItemKind.RecentFile:
                 _ = OpenPathAsync(item.Key);

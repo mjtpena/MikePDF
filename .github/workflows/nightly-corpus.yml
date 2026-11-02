@@ -1,0 +1,132 @@
+name: Nightly corpus
+
+# The core tier of the corpus (ADR-0010, master prompt 12.2) through the sandboxed engine, on x64 and ARM64, every night. Each page is compared with a PDFium render made
+# outside the sandbox (SSIM, 12.3). The job fails on any crash or hang of a MikePDF-owned process (the engine, or the reference renderer) that the manifest does not
+# expect, on a file that opens differently from its manifest entry, on a page that does not render, on an SSIM drop against tests/corpus/baselines/core-<arch>.json,
+# on a fall in the open rate below that baseline, and when the open rate is under 99.5% (0.3). The report also says whether the M2 bar of 99% is met.
+# See tests/corpus/README.md and tools/MikePDF.Render/README.md.
+
+on:
+  schedule:
+    - cron: '23 1 * * *' # 01:23 UTC, away from the fuzz slices (fuzz.yml) and the perf run (perf.yml)
+  workflow_dispatch:
+    inputs:
+      tier:
+        description: 'Corpus tier to render (smoke, core)'
+        required: false
+        default: 'core'
+  # Branches that change the corpus run it too, so a change to the manifest is proven before it reaches main. (A scheduled workflow only runs from the default
+  # branch, and cannot be started by hand until its file is there, so this is also how a new version of this file is first exercised.)
+  push:
+    branches: ['m[0-9]*/corpus*']
+    paths:
+      - 'tests/corpus/**'
+      - 'tools/MikePDF.Render/**'
+      - '.github/workflows/nightly-corpus.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: nightly-corpus-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  render-core:
+    name: render-${{ inputs.tier || 'core' }}-${{ matrix.arch }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Runner labels are pinned explicitly, never *-latest (ADR-0001).
+          - arch: x64
+            runner: windows-2025-vs2026
+          - arch: arm64
+            runner: windows-11-vs2026-arm
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 300
+    env:
+      CI: 'true'
+      DOTNET_NOLOGO: 'true'
+      DOTNET_CLI_TELEMETRY_OPTOUT: 'true'
+      TIER: ${{ inputs.tier || 'core' }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          dotnet-version: '10.0.4xx' # ADR-0001 pin (10.0.403); global.json rolls forward to it
+      - name: Build the engine and the render tool
+        shell: pwsh
+        run: |
+          ./build.ps1 -Configuration Release -Arch ${{ matrix.arch }} -SkipManaged
+          dotnet build tools/MikePDF.Render -c Release -p:MikePDFArch=${{ matrix.arch }}
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Check the corpus manifest
+        shell: pwsh
+        run: |
+          dotnet run --project tools/MikePDF.Render -c Release --no-build -- corpus check
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      # The files are verified against the manifest's SHA-256 whether they come from the cache or the network, so a stale or tampered cache can only cost a download.
+      # The newest cache for an older manifest seeds the folder, so a manifest change fetches just the files that changed.
+      - name: Restore the corpus cache
+        id: cache
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: build/out/corpus
+          key: corpus-${{ env.TIER }}-${{ matrix.arch }}-${{ hashFiles('tests/corpus/manifest.json') }}
+          restore-keys: |
+            corpus-${{ env.TIER }}-${{ matrix.arch }}-
+      - name: Fetch the corpus
+        shell: pwsh
+        run: |
+          # Wikimedia, Gitiles and arXiv throttle a client that asks too fast, and a runner's address is shared. The fetch keeps every file it has verified, so
+          # a second and a third try only ask for what is missing. A file that never arrives, or arrives different, still fails the job: nothing is skipped.
+          $code = 1
+          foreach ($try in 1..3) {
+            dotnet run --project tools/MikePDF.Render -c Release --no-build -- corpus fetch --tier $env:TIER
+            $code = $LASTEXITCODE
+            if ($code -eq 0) { break }
+            Write-Host "Fetch attempt $try left files missing; waiting before the next."
+            Start-Sleep -Seconds 120
+          }
+          exit $code
+      - name: Save the corpus cache
+        if: steps.cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: build/out/corpus
+          key: corpus-${{ env.TIER }}-${{ matrix.arch }}-${{ hashFiles('tests/corpus/manifest.json') }}
+      - name: Render the corpus through the sandboxed engine
+        shell: pwsh
+        run: |
+          dotnet run --project tools/MikePDF.Render -c Release --no-build -- --tier $env:TIER --scale 1,2 --out render-out --quiet --write-baseline render-out/baseline-candidate.json
+          $code = $LASTEXITCODE
+          if (Test-Path render-out/report.md) {
+            # A job summary is cut at 1 MiB; the full report is in the artifact.
+            $text = Get-Content render-out/report.md -Raw
+            if ($text.Length -gt 900000) { $text = $text.Substring(0, 900000) + "`n`n(Cut here: the whole report is in the artifact.)`n" }
+            $text | Out-File -Append -Encoding utf8 $env:GITHUB_STEP_SUMMARY
+          }
+          exit $code
+      # A side-by-side picture of a scanned page at 2x is 10 to 90 MB. Keep the artifact reasonable: pictures over 15 MB stay out, and are named in the log.
+      - name: Keep the failure images to a reasonable size
+        if: always()
+        shell: pwsh
+        run: |
+          if (Test-Path render-out/diff) {
+            Get-ChildItem render-out/diff -Recurse -File | Where-Object { $_.Length -gt 15MB } | ForEach-Object {
+              Write-Host "not uploaded (over 15 MB): $($_.FullName.Substring((Resolve-Path render-out/diff).Path.Length)) $([int]($_.Length / 1MB)) MB"
+              Remove-Item -LiteralPath $_.FullName
+            }
+          }
+      - name: Upload the report and the failure images
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: render-${{ env.TIER }}-${{ matrix.arch }}
+          path: |
+            render-out/report.json
+            render-out/report.md
+            render-out/baseline-candidate.json
+            render-out/diff/**
+          if-no-files-found: warn
