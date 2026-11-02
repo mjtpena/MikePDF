@@ -1,4 +1,5 @@
 using MikePDF.Broker;
+using MikePDF.Core.Settings;
 using MikePDF.Protocol;
 
 namespace MikePDF.App.Services;
@@ -14,12 +15,16 @@ internal sealed class EngineHost
     private readonly AppContainerProfile _profile;
     private readonly string _enginePath;
 
-    private EngineHost(AppContainerProfile profile, string enginePath)
+    private EngineHost(AppContainerProfile profile, string enginePath, int engineMemoryLimitMb)
     {
         _profile = profile;
         _enginePath = enginePath;
-        Budget = new EngineBudget(new EngineBudgetOptions { Document = DocumentOptions(), Pool = PoolOptions() });
+        EngineMemoryLimitMb = engineMemoryLimitMb;
+        Budget = new EngineBudget(new EngineBudgetOptions { Document = DocumentOptions(), Pool = PoolOptions(), EngineMemoryLimitMb = engineMemoryLimitMb });
     }
+
+    /// <summary>The memory limit every engine process runs under, in megabytes: the administrator's <c>EngineMemoryLimitMB</c> policy (2048 when none is set).</summary>
+    public int EngineMemoryLimitMb { get; }
 
     /// <summary>
     /// The engines the app may have at once (ADR-0004 amendment A3): one shared pool engine and at most six document engines, the least recently used suspended over the cap.
@@ -27,8 +32,13 @@ internal sealed class EngineHost
     /// </summary>
     public EngineBudget Budget { get; }
 
-    public static EngineHost Create()
+    /// <summary>Starts from the policy as the registry holds it now.</summary>
+    public static EngineHost Create() => Create(AppServices.OpenPolicy().Current);
+
+    /// <summary>Starts with <paramref name="policy"/>: its engine memory limit becomes the job limit of every engine the host starts, document engines and the pool engine alike.</summary>
+    public static EngineHost Create(PolicySnapshot policy)
     {
+        ArgumentNullException.ThrowIfNull(policy);
         if (!AppPaths.IsPackaged)
         {
             // Without package identity the child gets no access to the engine's directory (nothing grants it): development builds are run as a registered layout.
@@ -51,7 +61,7 @@ internal sealed class EngineHost
             throw new EngineStartException("The sandbox could not be set up: " + e.Message, e);
         }
 
-        return new EngineHost(profile, enginePath);
+        return new EngineHost(profile, enginePath, policy.EngineMemoryLimitMb);
     }
 
     /// <summary>The engine for a document: renders sharp tiles.</summary>
@@ -68,5 +78,6 @@ internal sealed class EngineHost
         Peer = ProcessKind.Engine,
         SlotCount = slotCount,
         SlotSize = slotSize,
+        Policy = SandboxPolicy.Default with { ProcessMemoryLimitBytes = (long)EngineMemoryLimitMb << 20 },
     };
 }

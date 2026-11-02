@@ -14,6 +14,8 @@
 #include "mikepdf/protocol/msgpack.h"
 
 struct fpdf_document_t__;
+struct fpdf_bitmap_t__;
+struct fpdf_page_t__;
 
 namespace mikepdf::pdfium {
 
@@ -23,6 +25,9 @@ enum class RenderInterrupt : std::uint8_t { None, Cancel, Timeout };
 using InterruptCheck = std::function<RenderInterrupt()>;
 
 inline constexpr std::uint32_t kRenderAnnotations = 1;
+/// Draws the widgets of the page's form fields with their current values. PDFium draws a widget only through its form-fill environment (FPDF_FFLDraw);
+/// FPDF_ANNOT skips every one. The environment is made on the first request that asks for this and lives as long as the document. It has no scripting,
+/// no callbacks and no field highlight: the pixels are what the file (or a printer) shows.
 inline constexpr std::uint32_t kRenderFormFields = 2;
 /// RenderBand only: PDFium's printing mode (no screen-only annotations, no LCD text).
 inline constexpr std::uint32_t kRenderPrinting = 4;
@@ -128,6 +133,10 @@ private:
     struct PageCacheDeleter {
         void operator()(PageCache* cache) const noexcept;
     };
+    struct FormFill;
+    struct FormFillDeleter {
+        void operator()(FormFill* form) const noexcept;
+    };
 
     Document(fpdf_document_t__* handle, std::uint32_t page_count) noexcept : handle_(handle), page_count_(page_count) {}
     void reset() noexcept;
@@ -136,9 +145,18 @@ private:
     /// page, so keeping one avoids parsing it for every window. Null when the page cannot be loaded. Engine thread only.
     [[nodiscard]] PageCache* cached_page(std::uint32_t page);
 
+    /// The form-fill environment of this document, made on first use. Null when PDFium refuses to make one.
+    [[nodiscard]] FormFill* form_fill();
+
+    /// Draws a loaded page into `bitmap` and, when `with_forms`, the widgets of its form fields on top of it with the same transform. Shared by tiles and bands so that
+    /// both draw a widget the same way. Unsupported when PDFium cannot make the form-fill environment.
+    [[nodiscard]] protocol::Status render_page(fpdf_bitmap_t__* bitmap, fpdf_page_t__* page, int start_x, int start_y, int size_x, int size_y, int rotate,
+                                               bool with_forms, int flags, const InterruptCheck& interrupt);
+
     fpdf_document_t__* handle_{nullptr};
     std::uint32_t page_count_{0};
     std::unique_ptr<PageCache, PageCacheDeleter> cache_;
+    std::unique_ptr<FormFill, FormFillDeleter> form_;
 };
 
 }  // namespace mikepdf::pdfium

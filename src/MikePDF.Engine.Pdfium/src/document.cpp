@@ -312,12 +312,31 @@ struct Document::PageCache {
 
 void Document::PageCacheDeleter::operator()(PageCache* cache) const noexcept { delete cache; }
 
+// PDFium's form-fill environment for one document. The info struct is read by PDFium for as long as the environment lives, so it is kept here; every callback in it is
+// null, which is what makes the environment headless: no scripting (no JavaScript platform), no timers, no alerts, no network or file access, no clipboard.
+struct Document::FormFill {
+    FPDF_FORMFILLINFO info{};
+    FPDF_FORMHANDLE handle{nullptr};
+
+    FormFill() = default;
+    FormFill(const FormFill&) = delete;
+    FormFill& operator=(const FormFill&) = delete;
+    ~FormFill() {
+        if (handle != nullptr) {
+            FPDFDOC_ExitFormFillEnvironment(handle);
+        }
+    }
+};
+
+void Document::FormFillDeleter::operator()(FormFill* form) const noexcept { delete form; }
+
 Document::~Document() { reset(); }
 
 Document::Document(Document&& other) noexcept
     : handle_(std::exchange(other.handle_, nullptr)),
       page_count_(std::exchange(other.page_count_, 0)),
-      cache_(std::move(other.cache_)) {}
+      cache_(std::move(other.cache_)),
+      form_(std::move(other.form_)) {}
 
 Document& Document::operator=(Document&& other) noexcept {
     if (this != &other) {
@@ -325,12 +344,14 @@ Document& Document::operator=(Document&& other) noexcept {
         handle_ = std::exchange(other.handle_, nullptr);
         page_count_ = std::exchange(other.page_count_, 0);
         cache_ = std::move(other.cache_);
+        form_ = std::move(other.form_);
     }
     return *this;
 }
 
 void Document::reset() noexcept {
     cache_.reset();  // before the document: the page and its text belong to it
+    form_.reset();   // the form-fill environment too, and before the document it was made for
     if (handle_ != nullptr) {
         FPDF_CloseDocument(handle_);
         handle_ = nullptr;
@@ -405,15 +426,48 @@ Result<protocol::GetPageSizesReply> Document::page_sizes(std::uint32_t first, st
     return {Status::Ok, std::move(reply), ""};
 }
 
+Document::FormFill* Document::form_fill() {
+    if (form_ == nullptr && handle_ != nullptr) {
+        auto form = std::make_unique<FormFill>();
+        form->info.version = 1;  // the stable interface only; every callback stays null
+        form->handle = FPDFDOC_InitFormFillEnvironment(handle_, &form->info);
+        if (form->handle == nullptr) {
+            return nullptr;  // not remembered: the next request tries again
+        }
+        form_ = std::unique_ptr<FormFill, FormFillDeleter>(form.release());
+    }
+    return form_.get();
+}
+
+// Draws the page and, when asked, its widgets. A widget is drawn only by FPDF_FFLDraw, which always draws every widget (the FPDF_ANNOT flag only decides about the
+// other interactive annotations, which a still image has no use for); it has to follow the page's own drawing and uses the same transform, so the widgets land on
+// the pixels the page content does, in every tile and every band. FFLDraw cannot be paused, so it runs only for a page that was drawn to the end.
+Status Document::render_page(FPDF_BITMAP bitmap, FPDF_PAGE page, int start_x, int start_y, int size_x, int size_y, int rotate, bool with_forms, int flags,
+                             const InterruptCheck& interrupt) {
+    FormFill* form = nullptr;
+    if (with_forms) {
+        form = form_fill();
+        if (form == nullptr) {
+            return Status::Unsupported;
+        }
+        FORM_OnAfterLoadPage(page, form->handle);
+    }
+    const Status status = render_progressive(bitmap, page, start_x, start_y, size_x, size_y, rotate, flags, interrupt);
+    if (form != nullptr) {
+        if (status == Status::Ok || status == Status::PartiallyRendered) {
+            FPDF_FFLDraw(form->handle, bitmap, page, start_x, start_y, size_x, size_y, rotate, flags);
+        }
+        FORM_OnBeforeClosePage(page, form->handle);  // before the caller closes the page
+    }
+    return status;
+}
+
 Status Document::render_tile(const TileRequest& request, std::span<std::uint8_t> destination, std::uint32_t stride,
                              const InterruptCheck& interrupt) {
     if (handle_ == nullptr || request.page >= page_count_ || !std::isfinite(request.scale) || request.scale <= 0.0f ||
         request.rotation > 3 || request.tile_width == 0 || request.tile_width > kMaxTileSide || request.tile_height == 0 ||
         request.tile_height > kMaxTileSide || (request.flags & ~(kRenderAnnotations | kRenderFormFields)) != 0) {
         return Status::InvalidArgument;
-    }
-    if ((request.flags & kRenderFormFields) != 0) {
-        return Status::Unsupported;  // no form-fill environment until forms arrive
     }
     const std::uint64_t row_bytes = std::uint64_t{request.tile_width} * 4;
     if (stride < row_bytes || stride > static_cast<std::uint32_t>(std::numeric_limits<int>::max()) ||
@@ -444,8 +498,8 @@ Status Document::render_tile(const TileRequest& request, std::span<std::uint8_t>
     FPDFBitmap_FillRect(bitmap.bitmap, 0, 0, static_cast<int>(request.tile_width), static_cast<int>(request.tile_height), 0xFFFFFFFFu);
 
     const int flags = (request.flags & kRenderAnnotations) != 0 ? FPDF_ANNOT : 0;
-    return render_progressive(bitmap.bitmap, page.page, -request.tile_x, -request.tile_y, static_cast<int>(device_width),
-                              static_cast<int>(device_height), request.rotation, flags, interrupt);
+    return render_page(bitmap.bitmap, page.page, -request.tile_x, -request.tile_y, static_cast<int>(device_width), static_cast<int>(device_height),
+                       request.rotation, (request.flags & kRenderFormFields) != 0, flags, interrupt);
 }
 
 Status Document::render_band(const BandRequest& request, std::span<std::uint8_t> destination, std::uint32_t stride,
@@ -458,9 +512,6 @@ Status Document::render_band(const BandRequest& request, std::span<std::uint8_t>
         request.band_height == 0 || request.band_height > kMaxBandHeight ||
         std::uint64_t{request.band_top} + request.band_height > request.page_height_px || (request.flags & ~kKnownFlags) != 0) {
         return Status::InvalidArgument;
-    }
-    if ((request.flags & kRenderFormFields) != 0) {
-        return Status::Unsupported;  // no form-fill environment until forms arrive
     }
     const std::uint64_t row_bytes = std::uint64_t{request.page_width_px} * 4;
     if (stride != row_bytes || stride > static_cast<std::uint32_t>(std::numeric_limits<int>::max()) ||
@@ -483,8 +534,8 @@ Status Document::render_band(const BandRequest& request, std::span<std::uint8_t>
     if ((request.flags & kRenderPrinting) != 0) {
         flags |= FPDF_PRINTING;
     }
-    return render_progressive(bitmap.bitmap, page.page, 0, -static_cast<int>(request.band_top), static_cast<int>(request.page_width_px),
-                              static_cast<int>(request.page_height_px), request.rotation, flags, interrupt);
+    return render_page(bitmap.bitmap, page.page, 0, -static_cast<int>(request.band_top), static_cast<int>(request.page_width_px),
+                       static_cast<int>(request.page_height_px), request.rotation, (request.flags & kRenderFormFields) != 0, flags, interrupt);
 }
 
 // ---- schema 5: /ViewerPreferences -------------------------------------------------------------------------------------------

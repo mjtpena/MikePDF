@@ -27,7 +27,9 @@ internal sealed class EngineTileRenderer(SupervisedDocument document, TimeSpan d
 {
     public async Task<RenderResult> RenderAsync(RenderRequest request, CancellationToken cancellationToken)
     {
-        var args = new RenderTileArgs((uint)request.Key.Page, request.Scale, (ushort)request.Turns, request.X, request.Y, (uint)request.Width, (uint)request.Height);
+        // The form layer: PDFium draws a field's widget only through its form-fill environment, so without bit 1 a filled form shows empty fields. Tiles and printed bands draw them the same way.
+        var args = new RenderTileArgs((uint)request.Key.Page, request.Scale, (ushort)request.Turns, request.X, request.Y, (uint)request.Width, (uint)request.Height,
+            RenderTileArgs.Annotations | RenderTileArgs.FormFields);
         EngineResult<TileLease> result;
         try
         {

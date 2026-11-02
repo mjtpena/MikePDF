@@ -127,7 +127,7 @@ bool allowed_render_status(Status s) {
         case Status::Timeout:
         case Status::InvalidArgument:
         case Status::Damaged:
-        case Status::Unsupported:  // form-field rendering has no environment yet
+        case Status::Unsupported:  // PDFium would not make a form-fill environment for the file
             return true;
         default:
             return false;
@@ -218,8 +218,8 @@ void exercise(pdfium::Document& doc, Picker& pick) {
         request.tile_y = kTileOrigins[pick.next(10)];
         request.tile_width = pick.next(4) == 0 ? kTileSides[pick.next(6)] : kTileSides[pick.next(3)];
         request.tile_height = pick.next(4) == 0 ? kTileSides[pick.next(6)] : kTileSides[pick.next(3)];
-        // Bit 1 (form fields) is refused as Unsupported until forms arrive; ask for it now and then to keep that refusal honest.
-        request.flags = pick.next(16) == 0 ? 2 + pick.next(2) : pick.next(2);
+        // Bit 1 (form fields) makes the form-fill environment and draws the widgets: PDFium's form code parses every field of the file, so a quarter of the tiles ask for it.
+        request.flags = pick.next(4) == 0 ? 2 + pick.next(2) : pick.next(2);
         const std::uint32_t stride = request.tile_width * 4;
         std::vector<std::uint8_t> pixels(static_cast<std::size_t>(stride) * request.tile_height);
         const auto interrupt = [&]() -> pdfium::RenderInterrupt {

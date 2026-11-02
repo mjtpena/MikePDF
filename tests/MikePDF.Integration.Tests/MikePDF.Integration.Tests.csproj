@@ -1,6 +1,8 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <ItemGroup>
     <ProjectReference Include="..\..\src\MikePDF.Broker\MikePDF.Broker.csproj" />
+    <!-- EnginePolicyTests read the administrator's policy the way the app does (PolicyProvider) and check it arrives in the engine's job object. -->
+    <ProjectReference Include="..\..\src\MikePDF.Core\MikePDF.Core.csproj" />
     <!-- The tests compare the sandboxed host with an in-process validation of the same files (an oracle, not a product use). -->
     <ProjectReference Include="..\..\src\MikePDF.PdfWriter\MikePDF.PdfWriter.csproj" />
     <ProjectReference Include="..\..\src\MikePDF.Protocol\MikePDF.Protocol.csproj" />

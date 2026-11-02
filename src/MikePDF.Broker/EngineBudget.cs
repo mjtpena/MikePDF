@@ -15,6 +15,19 @@ public sealed record EngineBudgetOptions
 
     /// <summary>How long a document waits for a slot when every engine is busy or pinned before its call fails with <c>Timeout</c>.</summary>
     public TimeSpan SlotWaitTimeout { get; init; } = TimeSpan.FromSeconds(30);
+
+    /// <summary>The smallest memory limit an engine can be given. The policy catalogue's own minimum (256 MB) is above it.</summary>
+    public const int MinEngineMemoryLimitMb = 64;
+
+    /// <summary>The largest. The policy catalogue's own maximum (8192 MB) is below it.</summary>
+    public const int MaxEngineMemoryLimitMb = 65536;
+
+    /// <summary>
+    /// The memory limit of every engine process the budget starts, in megabytes: what an administrator's <c>EngineMemoryLimitMB</c> policy says (<c>PolicySnapshot.EngineMemoryLimitMb</c>).
+    /// It becomes the job's per-process commit limit (<see cref="SandboxPolicy.ProcessMemoryLimitBytes"/>) of both the document engines and the shared pool engine, and replaces
+    /// whatever the two <see cref="EngineSupervisorOptions.Policy"/> values carry. Null leaves their own limits (2 GiB by default).
+    /// </summary>
+    public int? EngineMemoryLimitMb { get; init; }
 }
 
 /// <summary>
@@ -34,6 +47,7 @@ public sealed class EngineBudget : IAsyncDisposable
     private readonly SemaphoreSlim _poolStart = new(1, 1);
     private readonly CancellationTokenSource _shutdown = new();
     private EngineSupervisor? _pool;
+    private string? _pdfiumVersion;
     private TaskCompletionSource _changed = new(TaskCreationOptions.RunContinuationsAsynchronously);
     private int _live; // document engines that hold a slot: running, restarting or starting
     private long _tick;
@@ -43,12 +57,21 @@ public sealed class EngineBudget : IAsyncDisposable
     {
         ArgumentNullException.ThrowIfNull(options);
         ArgumentOutOfRangeException.ThrowIfLessThan(options.MaxDocumentEngines, 1);
+        if (options.EngineMemoryLimitMb is { } limit)
+        {
+            ArgumentOutOfRangeException.ThrowIfLessThan(limit, EngineBudgetOptions.MinEngineMemoryLimitMb, nameof(options));
+            ArgumentOutOfRangeException.ThrowIfGreaterThan(limit, EngineBudgetOptions.MaxEngineMemoryLimitMb, nameof(options));
+        }
+
         _options = options with
         {
-            Document = options.Document with { Kind = EngineKind.Document },
-            Pool = options.Pool with { Kind = EngineKind.Pool },
+            Document = WithLimit(options.Document with { Kind = EngineKind.Document }, options.EngineMemoryLimitMb),
+            Pool = WithLimit(options.Pool with { Kind = EngineKind.Pool }, options.EngineMemoryLimitMb),
         };
     }
+
+    private static EngineSupervisorOptions WithLimit(EngineSupervisorOptions options, int? limitMb) =>
+        limitMb is { } mb ? options with { Policy = options.Policy with { ProcessMemoryLimitBytes = (long)mb << 20 } } : options;
 
     public int MaxDocumentEngines => _options.MaxDocumentEngines;
 
@@ -85,6 +108,40 @@ public sealed class EngineBudget : IAsyncDisposable
             {
                 return [.. _engines];
             }
+        }
+    }
+
+    /// <summary>
+    /// The version of PDFium the engines are built with (the pool engine's <c>HelloReply.pdfiumVersion</c>), for the About dialog. Starts the pool engine when it is not running:
+    /// the answer does not need an open document. The version is the same for every engine of this installation, so once it is known it is returned without asking again.
+    /// Null when no engine could be started (the sandbox is not available): the caller shows "unavailable".
+    /// </summary>
+    public async Task<string?> GetPdfiumVersionAsync(CancellationToken cancellationToken = default)
+    {
+        if (Volatile.Read(ref _pdfiumVersion) is { } known)
+        {
+            return known;
+        }
+
+        try
+        {
+            var pool = await GetPoolAsync(cancellationToken).ConfigureAwait(false);
+            var version = pool.PdfiumVersion;
+            if (!string.IsNullOrEmpty(version))
+            {
+                Volatile.Write(ref _pdfiumVersion, version);
+                return version;
+            }
+
+            return null;
+        }
+        catch (EngineStartException)
+        {
+            return null;
+        }
+        catch (ObjectDisposedException)
+        {
+            return null;
         }
     }
 

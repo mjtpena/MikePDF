@@ -43,15 +43,23 @@ internal sealed class AppServices : IDisposable
     public static AppServices Create()
     {
         MikePDF.Broker.PrivateDirectory.Ensure(AppPaths.PrivateDirectory);
+        var settings = new SettingsStore(AppPaths.SettingsPath, OpenPolicy());
+        var documents = new DocumentStore(AppPaths.DocumentStorePath);
+        LegacyMigration.MigratePageColour(documents, settings);
+        return new AppServices(documents, settings, new CommandRegistry(), new CommandHistory(AppPaths.CommandHistoryPath));
+    }
+
+    /// <summary>
+    /// Reads the administrator's policy from the registry (machine and user level, plus the test seam below). <see cref="Create"/> uses it, and so does <see cref="EngineHost.Create()"/>,
+    /// which needs the engine memory limit before the services exist.
+    /// </summary>
+    internal static PolicyProvider OpenPolicy()
+    {
         // Test seam: a journey names a throwaway key under HKCU\Software\MikePDF.Tests, which is read as more user-level policy. User-level policy can only make
         // things stricter, so this cannot weaken anything. (Windows does not let a standard user write HKCU\Software\Policies, so a test cannot use the real key.)
         var test = Environment.GetEnvironmentVariable("MIKEPDF_TEST_POLICY_KEY");
         IReadOnlyList<string> extra = test is { Length: < 200 } && test.StartsWith(TestPolicyRoot, StringComparison.OrdinalIgnoreCase) && !test.Contains("..", StringComparison.Ordinal) ? [test] : [];
-        var policy = new PolicyProvider(new RegistryPolicySource(Microsoft.Win32.Registry.LocalMachine, PolicyCatalog.RegistryPath, Microsoft.Win32.Registry.CurrentUser, PolicyCatalog.RegistryPath, extra));
-        var settings = new SettingsStore(AppPaths.SettingsPath, policy);
-        var documents = new DocumentStore(AppPaths.DocumentStorePath);
-        LegacyMigration.MigratePageColour(documents, settings);
-        return new AppServices(documents, settings, new CommandRegistry(), new CommandHistory(AppPaths.CommandHistoryPath));
+        return new PolicyProvider(new RegistryPolicySource(Microsoft.Win32.Registry.LocalMachine, PolicyCatalog.RegistryPath, Microsoft.Win32.Registry.CurrentUser, PolicyCatalog.RegistryPath, extra));
     }
 
     /// <summary>Applies the settings that live in the document store.</summary>
