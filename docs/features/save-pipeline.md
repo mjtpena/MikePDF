@@ -108,7 +108,7 @@ Every file in the diagram is a temporary file in the same directory as the targe
 {"v":1,"seq":3,"t":"...","cmd":"SaveBegin","outputSha256":"...","outputLength":123999,"crc":"..."}
 ```
 
-`crc` is CRC-32C of the record text without the `crc` field. Control records: `Undo` (target seq), `Redo`, `SaveIntent`, `SaveBegin`, `SaveCommitted`, `Discard`. `SaveIntent{temp, backup, target}` (S10) is written and flushed at stage 0, **before the temporary file exists**, and names every file the save may create: the temporary file and the backup name the `ReplaceFileW` fallback uses. `SaveBegin` keeps `outputSha256` and `outputLength` and is written once the output is complete, flushed and about to be validated. Without `SaveIntent`, a crash while the output is being written leaves a hidden temporary file that no record names, so nothing would ever remove it (S10 section 8.1: 12 of 36 simulated kills leaked it). Command records are defined by each feature spec (`AddAnnotation`, `UpdateAnnotation`, `MoveAnnotation`, `ResizeAnnotation`, `DeleteAnnotation`, `AddReply`, `SetReviewState`, `AddInkStroke`, `EraseInk`, `SetFieldValue`, `ResetField`, `ClearForm`, `InsertPages`, `InsertBlankPage`, `DeletePages`, `MovePages`, `RotatePages`).
+`crc` is CRC-32C (Castagnoli) of the record text without the `crc` field. Precisely, as built: a line ends with `,"crc":"hhhhhhhh"}` (eight lower-case hex digits), and the checksum covers every byte before that suffix, that is the record without its `crc` field and without the closing brace. The line is ASCII (non-ASCII is escaped) and the sequence numbers run 1, 2, 3 across commands and control records alike. Control records: `Undo` (target seq), `Redo`, `SaveIntent`, `SaveBegin`, `SaveCommitted`, `Discard`. `SaveIntent{temp, backup, saveTarget}` (S10; the field is `saveTarget` because `target` is the field of `Undo` and `Redo`) is written and flushed at stage 0, **before the temporary file exists**, and names every file the save may create: the temporary file and the backup name the `ReplaceFileW` fallback uses. `SaveBegin` keeps `outputSha256` and `outputLength` and is written once the output is complete, flushed and about to be validated. Without `SaveIntent`, a crash while the output is being written leaves a hidden temporary file that no record names, so nothing would ever remove it (S10 section 8.1: 12 of 36 simulated kills leaked it). Command records are defined by each feature spec (`AddAnnotation`, `UpdateAnnotation`, `MoveAnnotation`, `ResizeAnnotation`, `DeleteAnnotation`, `AddReply`, `SetReviewState`, `AddInkStroke`, `EraseInk`, `SetFieldValue`, `ResetField`, `ClearForm`, `InsertPages`, `InsertBlankPage`, `DeletePages`, `MovePages`, `RotatePages`).
 
 **Writing.** Each command is appended and flushed (`FILE_FLAG_WRITE_THROUGH` plus `FlushFileBuffers`) **before the command is acknowledged** (§7.4). Ink strokes use a queued flush within 50 ms (ink-pen OQ-INK-7). The file is opened exclusively by the broker. Appends are single `WriteFile` calls so a crash leaves at most one torn line at the end.
 
@@ -245,6 +245,8 @@ Reply: `bytesWritten` (u64, max 2^40), `pageCount` (u32, max 10000000). Statuses
 
 ### 11.2 Writer host (ids 1025 and up, same framing; `ValidateStructure` 1024 exists)
 
+**As built (schema 6, ADR-0005 A4).** `AppendAnnotations` (1025) is in the schema with the fields below, except that its reply is `ok`, `annotationsAdded`, `annotationsRemoved`, `objectsWritten`, `bytesWritten`, `truncated`, `issueCodes`, `issueMessages`; `RewriteDocument` (1029: `baseHandle`, `outputHandle`, `flags`) and `VerifyAnnotations` (1030: `baseHandle`, `outputHandle`, `pageCount`, `pages`, `added`, `removed`) were added for the copies and for stage 5. A refusal with a reason is an `Ok` reply with `ok` false. **`NormalizeTail` (1026) and the engine's `SaveDocument` are not in schema 6**: they come with the forms and page-organiser work packages.
+
 **`NormalizeTail` (1026).**
 
 | Request field | Type | Limits |
@@ -271,6 +273,8 @@ Reply: `ok`, `annotationsWritten` (u32, max 100000000), `objectsWritten` (u32), 
 ### 11.3 The edit blob
 
 The broker writes the edits for stage 4 into a file or section and passes its handle. It is **not** a frame, so the 64 KiB limit and the no-nesting rule of the control protocol do not apply to it. A second schema file, `src/MikePDF.Protocol/schema/mikepdf.edits.json`, defines it (MessagePack: a header map `{version, pageCount, assetCount}`, an array of edit maps, an array of asset blobs keyed by SHA-256) with explicit limits on every field (contents 16 KiB, points per stroke 1,000,000, strokes per annotation 100,000, edits 1,000,000, total 256 MiB), and a generator emits the C# reader and writer. The reader is a parser of broker-produced data inside the sandbox; it is still fuzzed (SharpFuzz) as defence in depth. Each edit on a loaded annotation carries its expectation (subtype, rectangle) for the stage 4 check. OPEN QUESTION OQ-SP-3: ADR-0005 states "messages have no nesting"; this is a deliberate second format for bulk data and needs Opus's decision (alternative: many small windowed messages, which is slow and complicated for ink).
+
+**As built.** The codec is `MikePDF.Protocol.Edits.EditBlobCodec`, hand-written on the frame codec's strict reader (no generator): `[magic "MikePDF.edits", version 1, pageCount, [edit...]]`, each edit an array of sixteen fields in a fixed order with nil where a field does not apply. Limits (writer and reader both): the blob 256 MiB; 1,000,000 edits; contents 16 KiB, author 256 bytes, `/NM` 128 bytes, expected subtype 32 bytes; 80,000 numbers of quadrilaterals; 100,000 strokes per annotation, 2,000,000 numbers per stroke and 16,000,000 over the whole blob; flags at most 1023; every coordinate finite and within +-10,000,000, colours 0 to 1, opacity above 0 and at most 1, width 0 to 1000. Rules beyond ranges: an Add has a known kind, a normalised rectangle, a colour and a name; a text markup has its quadrilaterals (a multiple of eight numbers); an ink annotation has strokes of at least two points; a Delete or Update names its target (object number or `/NM`) and carries what it expects to find (subtype and rectangle); an Update changes something. The reader refuses anything else, never throws, and refuses a truncated blob at every length. Pages are ordinals in the base. The pending commands become the blob in `AnnotationEditMapper`: the net effect, not the history (an annotation added and deleted in one snapshot is never written).
 
 ## 12. Localisation strings
 
@@ -317,13 +321,13 @@ Telemetry: none. If opt-in diagnostics are ever added, only counts of save stage
 
 | Id | Question | Who answers |
 |---|---|---|
-| OQ-SP-1 | Journal write failure: refuse the edit (strict) or continue with a warning (degraded, proposed). | Opus |
+| OQ-SP-1 | Journal write failure: refuse the edit (strict) or continue with a warning (degraded, proposed). **Built both**: `JournalFailureMode.Degraded` is the default (the command applies, `EditSession.BackedUp` goes false and the chip shows), `Strict` refuses the command. Opus to confirm the default. | Opus |
 | OQ-SP-2 | DPAPI-protect journal contents. | Opus (security), User |
-| OQ-SP-3 | Second schema for the edit blob versus windowed messages (11.3). | Opus |
+| OQ-SP-3 | Second schema for the edit blob versus windowed messages (11.3). **Decided in the build (ADR-0005 A4): a second format, hand-written on the strict primitives, not generated.** Opus to confirm. | Opus |
 | OQ-SP-4 | Closed by S10 and the decisions of 2026-11-02: share-delete open flags, POSIX rename with a `ReplaceFileW` fallback, ADR-0005 amendment A3, ADR-0008 amendment A1. §7.5 step 3 is read as the amended wording in ADR-0008 A1. | Closed |
 | OQ-SP-5 | Block all edits during a save (assumed), or allow annotation edits to queue. | Design |
 | OQ-SP-6 | Retention and cleanup suggestions for old journals. | User |
-| OQ-SP-7 | Confirm journals live in `LocalState\private\journals`, overriding §7.4's path. | Opus |
+| OQ-SP-7 | Confirm journals live in `LocalState\private\journals`, overriding §7.4's path. `JournalStore` takes the directory; the app creates it with `PrivateDirectory.Ensure` (the app shell, not this work package, wires `AppPaths`). | Opus |
 | OQ-SP-8 | Encrypted documents: block Save (assumed) until PDFium's behaviour is measured and encrypted writing exists. | Opus, User |
 | OQ-SP-9 | An Arlington-model checker as a test tool: licence and availability for CI (the model is published by the PDF Association; confirm the licence of the checker). | Opus |
 | OQ-SP-10 | M4 gate wording: "fidelity harness green for all P0 operations across PDFium, pdf.js, Acrobat Reader and Edge". Acrobat and Edge cells need the user (R-15); the gate cannot pass without that pass. | User |
@@ -373,3 +377,46 @@ Telemetry: none. If opt-in diagnostics are ever added, only counts of save stage
 | SP-39 | A path replaced by another file between open and save is detected by file ID and prompts (Overwrite / Save As / Cancel); a path that was deleted or moved is reported with Save As. | Integration |
 | SP-40 | A symbolic link at the path: the link survives and the real file is updated. A file with more than one hard link, and an EFS-encrypted file: Save is refused with Save As offered, nothing written. | Integration |
 | SP-41 | The rename returns 87 (SMB, simulated by a replace layer that fails it the same way): the `ReplaceFileW` fallback runs with the recorded backup name, the result has the new bytes, and no temporary or backup file is left. | Integration |
+
+## 15. Implementation status (work package W3-save-core, 2026-11-03)
+
+Built: the edit model and planner, the journal (format, strict reader, writer, store, privacy, limits, fuzz target), crash recovery, the file replace (S10), the writer host's `AppendAnnotations`, `RewriteDocument` and `VerifyAnnotations`, the save coordinator (Save, Save As, whole-file rewrite, flattened copy, validation, journal ordering) and the test layers below. No app UI: the shell wires `EditSession`, `SaveCoordinator`, `RecoveryService` and `AppPaths` in its own work package.
+
+| Criterion | Tests (where it is not "done", it says so) |
+|---|---|
+| SP-01 | `EditModelTests`: every combination of kinds, and the empty plan |
+| SP-02 | `EditModelTests`: dirty after a command, clean after a save, clean after undo to the clean point, dirty past it, the blocked-edit guard |
+| SP-03 | `JournalFormatTests`: round trip of every record, torn tail, corrupt middle, sequence gaps, unknown commands, hostile records, limits |
+| SP-04 | `JournalWriterTests`: append then flush then acknowledge, a failed flush in both modes |
+| SP-05 | `JournalFormatTests`: key stability and case, fingerprint changes |
+| SP-06 | `RecoveryTests`: replay with undo, redo and a new command after undo; skipped counts |
+| SP-07 | `RecoveryTests`: the idempotency table (output hash, fingerprint, changed, missing) |
+| SP-08 | `JournalWriterTests`: caps, the 90% warning, the control reserve, passwords, the 200 character excerpt. The byte scan of "a fixture session" covers the journal layer; the feature specs' own payloads are theirs to test |
+| SP-09 | `AnnotationEditMapperTests` (net effect), `AnnotationAppenderTests` (ordinals, expectation mismatch aborts). **Not done:** translating page identities to ordinals after page moves and deletes (page-organiser) |
+| SP-10 | `EditBlobTests` (round trip, every limit one over, truncation at every length, bit flips); fuzz target `EditBlob` |
+| SP-11 | `MikePDF.Protocol.Tests` golden and malformed frames and `protocol_tests.cpp` for the three schema 6 messages. `NormalizeTail` and `SaveDocument` are not in schema 6 |
+| SP-12 | **Not done**: stages 2 and 3 need the engine's PDFium save |
+| SP-13 | `AnnotationAppenderTests`: classic, xref-stream and hybrid bases, a base with earlier updates, `/Prev`, `/Size`, `/ID`, `%%EOF`, prefix; PDFium reads every annotation. `qpdf --check` is not run |
+| SP-14 | `SaveCoordinatorTests.ASaveWithNoCommands...` |
+| SP-15 | `SaveCoordinatorTests.AFaultyOutput...`: dropped annotation, corrupt xref offset, wrong `/Size`, a PDFium key, a damaged prefix, a fresh engine that disagrees |
+| SP-16 | `SaveCrashMatrixTests`: every step of the save for both replace mechanisms, a `ReplaceFileW` killed between its renames, the literal journal shown to leak, Save As killed at every step. A kill is a thrown exception that nothing catches, not a process death: **a real process kill is not done** |
+| SP-17 | `FileReplacerTests`: descriptor (SDDL), `Zone.Identifier` and another stream, attributes, creation time, Hidden clear, through both mechanisms |
+| SP-18 | `SaveCoordinatorTests`: read-only file, a directory that denies new files. **Not run:** a `WindowsApps` path |
+| SP-19 | **Not run** (needs a mounted VHD and elevation). The mapping of a disk-full error to `Save_NoSpace` is tested with an injected error |
+| SP-20 | `FileReplacerTests`, `SaveCoordinatorTests`: a lock that clears is retried, one that does not fails after five attempts |
+| SP-21 | `SaveCoordinatorTests`: the path replaced, deleted, or swapped between validation and the rename. The banner and the dialog are the shell's |
+| SP-22 | The prefix hash and the real signed fixtures (`two_signatures.pdf`) in `SaveCoordinatorTests.EveryRealFile...`. The notice and the confirmation dialogs are the shell's |
+| SP-23 | `SaveCoordinatorTests`, `RealWriterHostSaveTests`: a password protected file is refused and never replaced. **Not done:** Save As offering an unprotected copy |
+| SP-24 | `SaveCoordinatorTests`: a sparse file over 1 GiB |
+| SP-25 | `SaveCoordinatorTests`: Save As (new, same path, existing target, no edits, whole-file rewrite). The tab switch is the shell's |
+| SP-26 | `DocumentRewriterTests`, `SaveCoordinatorTests`: no widgets or flattened annotations left, one revision, the working file and journal untouched, PDFium reads it. **Not measured:** SSIM against the unflattened render, text extractability |
+| SP-27 | `SaveCoordinatorTests`: journal records and deletion ordered around the replace; a new journal against the saved file. The frame-level swap (AC-15) is the shell's |
+| SP-28, SP-30, SP-35 | **Not done** (UI journeys) |
+| SP-29 | `SaveCrashMatrixTests`, `RecoveryTests`: kill between replace and cleanup, torn tail, a changed file, a journal for a document not open. The empty-window list is the shell's |
+| SP-31 | `SaveCoordinatorTests`: a host that times out or dies fails the save once and the next works; `RealWriterHostSaveTests`: a real host process killed |
+| SP-32 | `SaveCoordinatorTests`, `EditModelTests`: a second save does not start, edits blocked and re-enabled |
+| SP-33 | **Not done** (fidelity harness, Acrobat and Edge cells) |
+| SP-34 | The existing differential tests against PDFium cover the parser; none was added for the new objects beyond PDFium reading every annotation |
+| SP-36 | **Not run** (manual) |
+| SP-37 | **Not recorded** |
+| SP-38 to SP-41 | `FileReplacerTests`, `SaveCoordinatorTests` |
