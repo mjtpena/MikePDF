@@ -1,26 +1,20 @@
-# C++ protocol fuzz target
+# Fuzz targets
 
-`protocol_fuzz.cpp` is a libFuzzer target for the C++ decoder in `src/MikePDF.Protocol`. **It is not built** by CMake or
-`build.ps1`, and it has never been run: the DEV machine has no clang, and libFuzzer needs it. It is written so that
-it can be added to the build as soon as clang is available (a `MIKEPDF_BUILD_FUZZERS` CMake option, off by default).
-The in-process randomised test in `tests/MikePDF.Engine.Tests/protocol_tests.cpp` (100,000 frames, fixed seed) is what
-exercises the decoder today.
+How to run them, how coverage is measured, how findings are triaged and the 24-hour and 72-hour plans are in
+[docs/fuzzing.md](../../docs/fuzzing.md). This folder holds the code.
 
-With clang-cl and the ASan and libFuzzer runtimes installed (from the repository root):
+| Path | What it is |
+|---|---|
+| `run-fuzz.ps1` | Builds and runs the targets: `./tests/fuzz/run-fuzz.ps1 -Target all -Seconds 60` (the CI smoke) |
+| `protocol_fuzz.cpp` | libFuzzer target: the C++ IPC decoders (engine side), with round-trip invariants |
+| `engine_document_fuzz.cpp` | libFuzzer target: the engine's document open and render path through the PDFium wrapper |
+| `CMakeLists.txt` | Builds those two with MSVC `/fsanitize=fuzzer /fsanitize=address` (`-DMIKEPDF_BUILD_FUZZERS=ON`, x64 only) |
+| `MikePDF.Protocol.Fuzz/` | The C# IPC decoders, broker side |
+| `MikePDF.PdfWriter.Fuzz/` | `MikePDF.PdfWriter`: parse and validate (`parse`), incremental writer round trip (`append`) |
+| `Shared/MutationalFuzzer.cs` | The dependency-free mutational driver the two C# harnesses use (no coverage feedback; see ADR-0017) |
+| `MikePDF.Fuzz.Tests/` | Tests: the harness finds a planted crash, hang and stack overflow; the mutator; every regression and seed replayed |
+| `dictionaries/` | `protocol.dict` and `pdf.dict` (libFuzzer and AFL format, used by both the native and the C# fuzzers) |
+| `regressions/` | Minimised reproducers of fixed findings; replayed on every test run |
 
-```powershell
-clang-cl /std:c++20 /Zi /fsanitize=fuzzer,address `
-  -I src/MikePDF.Protocol/cpp -I src/MikePDF.Protocol/generated/cpp `
-  tests/fuzz/protocol_fuzz.cpp `
-  src/MikePDF.Protocol/cpp/mikepdf/protocol/msgpack.cpp `
-  src/MikePDF.Protocol/cpp/mikepdf/protocol/codec.cpp `
-  src/MikePDF.Protocol/generated/cpp/mikepdf/protocol/messages.cpp `
-  /Fe:build/out/protocol_fuzz.exe
-
-# seeded with the golden frames written by the C# tests; 65540 is the largest legal frame
-mkdir build/out/protocol-corpus
-build/out/protocol_fuzz.exe -max_len=65540 build/out/protocol-corpus tests/MikePDF.Protocol.Tests/golden
-```
-
-The target aborts if a message the decoder accepted cannot be re-encoded, or if re-encoding is not a fixed point, so
-those invariants are checked as well as memory safety. The M1 gate (ADR-0005) is 24 hours with no crash.
+Seeds are not duplicated here: the protocol golden vectors (`tests/MikePDF.Protocol.Tests/golden`) and the PDF fixtures
+(`tests/MikePDF.PdfWriter.Tests/Fixtures/pdfium`, `tests/MikePDF.Integration.Tests/Fixtures`) are collected by `run-fuzz.ps1`.

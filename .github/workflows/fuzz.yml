@@ -1,0 +1,143 @@
+name: Fuzz
+
+# Nightly fuzzing in time slices (docs/fuzzing.md). A GitHub-hosted job stops at 6 hours, so each target gets one slice per night,
+# and the corpus carries over from slice to slice: the nightly slices add up to the total (24 h and 72 h plans in the document).
+#
+# Scheduled workflows run only from the default branch, and a workflow can be started by hand only once its file exists there, so
+# this file does nothing until it is merged to main. Until then the smoke job in ci.yml (same script, same runner image) runs on
+# every push. How the nightly run is verified after the merge is in docs/fuzzing.md, "Verifying the scheduled workflow".
+
+on:
+  schedule:
+    - cron: '17 2 * * *' # 02:17 UTC every night
+  workflow_dispatch:
+    inputs:
+      minutes:
+        description: 'Fuzzing minutes per target (the job limit is 360 including the build; 300 is the most that is safe)'
+        required: true
+        default: '300'
+      targets:
+        description: 'Comma-separated: protocol-cpp, engine-document, protocol-cs, pdfwriter-parse, pdfwriter-append, or all'
+        required: true
+        default: 'all'
+      processes:
+        description: 'Parallel fuzzer processes per target (the runner has 4 vCPUs)'
+        required: true
+        default: '3'
+
+permissions:
+  contents: read
+
+# One fuzz run at a time: two runs would race to save the same corpus.
+concurrency:
+  group: fuzz
+  cancel-in-progress: false
+
+env:
+  CI: 'true'
+  DOTNET_NOLOGO: 'true'
+  DOTNET_CLI_TELEMETRY_OPTOUT: 'true'
+
+jobs:
+  plan:
+    name: plan
+    runs-on: ubuntu-24.04
+    outputs:
+      targets: ${{ steps.plan.outputs.targets }}
+    steps:
+      - id: plan
+        shell: bash
+        env:
+          REQUESTED: ${{ inputs.targets || 'all' }}
+        run: |
+          # Only names from this fixed list are ever passed on; anything else in the request is dropped.
+          known=(protocol-cpp engine-document protocol-cs pdfwriter-parse pdfwriter-append)
+          IFS=',' read -ra wanted <<< "$(echo "$REQUESTED" | tr -d ' ')"
+          picked=()
+          for target in "${known[@]}"; do
+            for want in "${wanted[@]}"; do
+              if [ "$want" = "all" ] || [ "$want" = "$target" ]; then picked+=("\"$target\""); break; fi
+            done
+          done
+          [ "${#picked[@]}" -gt 0 ] || { echo "no known target in '$REQUESTED'" >&2; exit 1; }
+          json=$(IFS=,; echo "${picked[*]}")
+          echo "targets=[$json]" >> "$GITHUB_OUTPUT"
+
+  fuzz:
+    name: fuzz-${{ matrix.target }}
+    needs: plan
+    strategy:
+      fail-fast: false
+      matrix:
+        target: ${{ fromJSON(needs.plan.outputs.targets) }}
+    # The runner label is pinned explicitly, never *-latest (ADR-0001). The native targets need the Visual Studio
+    # "C++ AddressSanitizer" component, which the VS 2026 image is expected to carry (the build step says so if it does not).
+    runs-on: windows-2025-vs2026
+    timeout-minutes: 355
+    env:
+      MINUTES: ${{ inputs.minutes || '300' }}
+      PROCESSES: ${{ inputs.processes || '3' }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          dotnet-version: '10.0.4xx' # ADR-0001 pin (10.0.403); global.json rolls forward to it
+
+      # The corpus is the memory of the fuzzer: restore the newest one for this target, and save a new one afterwards. Cache entries are
+      # immutable, so every run saves under its own key and restores by prefix. (They are evicted after 7 days unused or at the repository
+      # limit, so the corpus is also uploaded as an artifact at the end.)
+      - name: Restore corpus
+        id: corpus
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: build/out/fuzz/corpus/${{ matrix.target }}
+          key: fuzz-corpus-${{ matrix.target }}-${{ github.run_id }}
+          restore-keys: |
+            fuzz-corpus-${{ matrix.target }}-
+
+      - name: Fuzz ${{ matrix.target }}
+        shell: pwsh
+        timeout-minutes: 335
+        run: |
+          # The job limit is 360 minutes with the build and the cache save; never ask for more than fits.
+          $minutes = [Math]::Clamp([int]$env:MINUTES, 1, 300)
+          $processes = [Math]::Clamp([int]$env:PROCESSES, 1, 8)
+          ./tests/fuzz/run-fuzz.ps1 -Target ${{ matrix.target }} -Seconds ($minutes * 60) -Jobs $processes
+
+      - name: Save corpus
+        if: always()
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: build/out/fuzz/corpus/${{ matrix.target }}
+          key: fuzz-corpus-${{ matrix.target }}-${{ github.run_id }}
+
+      - name: Summary
+        if: always()
+        shell: pwsh
+        run: |
+          if (Test-Path build/out/fuzz/summary.md) { Get-Content build/out/fuzz/summary.md | Add-Content $env:GITHUB_STEP_SUMMARY }
+
+      # A finding fails the job above. The reproducers and the logs are uploaded so that a crash can be replayed and triaged
+      # without re-running anything (docs/fuzzing.md, "Triage").
+      - name: Upload findings
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: fuzz-findings-${{ matrix.target }}-${{ github.run_id }}
+          path: |
+            build/out/fuzz/findings/**
+            build/out/fuzz/logs/**
+            build/out/fuzz/summary.*
+          if-no-files-found: warn
+          retention-days: 90
+
+      - name: Upload corpus and logs
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: fuzz-corpus-${{ matrix.target }}
+          path: |
+            build/out/fuzz/corpus/${{ matrix.target }}
+            build/out/fuzz/summary.*
+          if-no-files-found: ignore
+          retention-days: 14
