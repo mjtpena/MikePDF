@@ -35,7 +35,8 @@ internal sealed class AppHost
         _queue = DispatcherQueue.GetForCurrentThread();
         // Creating the sandbox profile and putting the verified engine in place takes a moment; it runs while the first window comes up.
         var cap = services.Settings.Value<int>("engines.maxLiveTabs");
-        Host = Task.Run(() => EngineHost.Create(cap));
+        var memoryLimit = services.Policy.Current.EngineMemoryLimitMb;
+        Host = Task.Run(() => EngineHost.Create(cap, memoryLimit));
         _activations = new ActivationRelay<ActivationRequest>(HandleActivationAsync);
         _sessionStore = new SessionStore(AppPaths.SessionPath);
         _recorder = new SessionRecorder(_sessionStore, CurrentRestoreMode);

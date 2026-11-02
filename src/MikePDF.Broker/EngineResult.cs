@@ -30,6 +30,13 @@ public readonly record struct RenderTileArgs(
 {
     public const uint Annotations = 1;
     public const uint FormFields = 2;
+
+    /// <summary>
+    /// Dark pages: the engine recolours the tile the way <c>PageColourMatrix.Inverted</c> does (lightness turned over, hue kept), except for colour photographs, which keep their
+    /// own colours (a picture that is mostly white paper, such as a scan or a diagram, is recoloured with the page). Pixels that come back are final: the presenter must not apply
+    /// the inverted matrix to them. A tile cache must be emptied when this changes, because the pixels differ.
+    /// </summary>
+    public const uint DarkPage = 4;
 }
 
 /// <summary>

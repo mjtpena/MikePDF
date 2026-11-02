@@ -116,7 +116,7 @@ No crash, hang or broken invariant in MikePDF code. That is **weak evidence**, f
 Observations that are not findings:
 
 - PDFium opens a document whose page tree has no pages, and the wrapper reports `pageCount` 0. The schema allows it, and `DocumentLayout` and `ViewportController` already handle zero pages. The `engine-document` target accepts it.
-- The engine refuses `RenderTile` with the form-fields flag as `Unsupported` ("no form-fill environment until forms arrive"). The target asks for it now and then to keep that refusal covered.
+- `RenderTile` and `RenderBand` with the form-fields flag (bit 1) make PDFium's form-fill environment for the document and draw the widgets with `FPDF_FFLDraw`. The engine-document target asks for it on a quarter of its tiles, so PDFium's field parser and appearance generator are fuzzed through the real entry point.
 - No crash has been seen inside `pdfium.dll` in these runs. Given limit 2, that is weak evidence.
 
 ## Triage

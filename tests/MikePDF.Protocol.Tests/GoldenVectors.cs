@@ -139,7 +139,7 @@ public static class GoldenVectors
         Req("tile_width_zero", TileWith(5, 0u), Invalid);
         Req("tile_width_1025", TileWith(5, 1025u), Invalid);
         Req("tile_x_out_of_range", TileWith(3, 16777217), Invalid);
-        Req("flags_unknown_bit", TileWith(7, 4u), Invalid);
+        Req("flags_unknown_bit", TileWith(7, 8u), Invalid);
         Req("handle_zero", RawFrame.Request(Items(0UL, null!), MessageType.OpenDocument), Invalid);
         Req("attach_slot_ring_handle_zero", RawFrame.Request(Items(0UL, 8u, 4096u), MessageType.AttachSlotRing), Invalid);
         Req("attach_slot_ring_no_slots", RawFrame.Request(Items(1UL, 0u, 4096u), MessageType.AttachSlotRing), Invalid);

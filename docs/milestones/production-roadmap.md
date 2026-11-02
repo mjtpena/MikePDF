@@ -67,14 +67,14 @@ Found while reviewing wave 1. Each gets a work package or joins one.
 | Integration tests in parallel worktrees share the `MikePDF.IntegrationTests` AppContainer profile and can fail each other | W1-reader | Done: PR #12, profiles named per run |
 | C# fuzz targets aren't coverage-guided. Run the SharpFuzz spike in ADR-0017 | W1-fuzz | Done: PR #9 (ADR-0017) |
 | Fuzzing gate: count nightly 5-hour slices per target, with the corpus carried over, toward 24 h (M1) and 72 h (M5) | W1-fuzz | Decided by Opus 2026-11-02 |
-| Inverted pages also invert photographs; preserving images needs engine work | W1-reader | W2-engine-2 (running) |
+| Inverted pages also invert photographs; preserving images needs engine work | W1-reader | Engine done in PR #19; app wiring in W2-views |
 | Core and full corpus tiers; a hang file and a crash file in the smoke tier; per-file licence audit of PDFium's test resources | W1-render | Done: PR #15 (core tier 1,404 files; full tier and about 5,000 core files still to do) |
-| `TileSchedulerTests.APresenterFailureDoesNotKillTheScheduler` failed once on ARM64 and passed on rerun | W2-engine CI | W2-engine-2 (running) |
-| About can't show the PDFium version without an open document; expose the pool engine's `Hello` reply | W2-commands | W2-engine-2 (running) |
+| `TileSchedulerTests.APresenterFailureDoesNotKillTheScheduler` failed once on ARM64 and passed on rerun | W2-engine CI | Done: PR #19 (back-off timer race) |
+| About can't show the PDFium version without an open document; expose the pool engine's `Hello` reply | W2-commands | API done in PR #19; About line in W2-views |
 | `PageSurface` still has its own key handler for navigation keys; move them into the command dispatcher | W2-commands | Done in `m3/tabs` (the surface keeps only Esc and Shift+arrow selection) |
-| The engine memory-limit policy is read (`PolicySnapshot.EngineMemoryLimitMb`) but not applied to the broker | W2-commands | W2-engine-2 (running) |
+| The engine memory-limit policy is read (`PolicySnapshot.EngineMemoryLimitMb`) but not applied to the broker | W2-commands | Done: PR #19 |
 | The pool engine's 32-document limit is now the effective limit on open tabs | W2-engine | Done in `m3/tabs`: it is 16 documents, because each holds two pool documents; a 17th open is refused with a message |
-| Form field contents don't print: the engine refuses `RenderBand` flag bit 1, because widgets need `FPDF_FFLDraw`. A v1.0 blocker | W2-print-core | Next engine WP, before the print sheet |
+| Form field contents don't print: the engine refuses `RenderBand` flag bit 1, because widgets need `FPDF_FFLDraw`. A v1.0 blocker | W2-print-core | Done: PR #19 (tiles and bands) |
 | The print sheet UI: strings in `PrintStrings`, `print.*` settings keys for last-used values, and PRINT-13, -21 and -22 | W2-print-core | Print sheet WP, after the tabs WP |
 | Print to physical, PCL, PostScript, duplex and XPS printers, ARM64 printing, and the 1,000-page job are unverified | W2-print-core | Print sheet WP (XPS, 1,000 pages); the user (physical printers) |
 | The user-level policy comment says "stricter than the default", but the code compares against the least strict allowed value | W2-commands review | Wave 2 |
@@ -83,6 +83,9 @@ Found while reviewing wave 1. Each gets a work package or joins one.
 | File activation and Jump List items not built: FA-09 to FA-12, FA-15 to FA-21, and the default-app prompt | W2-tabs | File association WP |
 | The test-seam gate ignores `MIKEPDF_TEST_*` in Store-signed packages; the Store path is unverified until a Store-signed package exists | W2-tabs | First Store submission (user) |
 | TAB-08 (move between monitors with different DPI) and TAB-30 (high contrast, 225% text) need a second monitor and system settings | W2-tabs | The user, or a WP with an accessibility test machine |
+| `HangDetectionTests.AHeavyButAlivePageThatOvershootsItsDeadlineIsNotKilledAsHung` fails under heavy machine load (seen twice locally, never in CI) | W2-tabs, W2-engine-2 | Engine WP |
+| `CommandsSettingsJourneyTests.CMD05_…CtrlCCopiesTheBoxText` timed out on the clipboard once in a full UI run; passes alone | Opus, main verification | W2-views (running) |
+| Large axis-aligned scans render slightly softer in tiles than in a whole-page render (43 corpus pages, about 2.7 levels mean). A whole-page bitmap cache for image-heavy pages would fix it; measure against §11 first-tile and memory budgets first | W2-engine-2 | Engine WP |
 
 ## What only the user can do
 The following gate v1.0, and agents can't do them:

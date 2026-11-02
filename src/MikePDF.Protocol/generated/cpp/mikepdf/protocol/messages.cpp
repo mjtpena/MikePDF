@@ -2194,7 +2194,7 @@ Status RenderTile::validate() const {
     if (tile_height < 1u || tile_height > 1024u) {
         return Status::InvalidArgument;
     }
-    if (flags > 3u) {
+    if (flags > 7u) {
         return Status::InvalidArgument;
     }
     if (slot_index > 1023u) {
@@ -2246,7 +2246,7 @@ Result<RenderTile> RenderTile::decode(Reader& reader) {
         s = reader.read_u32(m.tile_height, 1u, 1024u);
     }
     if (s == Status::Ok) {
-        s = reader.read_u32(m.flags, 0u, 3u);
+        s = reader.read_u32(m.flags, 0u, 7u);
     }
     if (s == Status::Ok) {
         s = reader.read_u32(m.slot_index, 0u, 1023u);

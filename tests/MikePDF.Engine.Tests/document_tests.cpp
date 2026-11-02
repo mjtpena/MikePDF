@@ -261,10 +261,10 @@ TEST_F(DocumentTest, RenderRejectsBadArguments) {
     EXPECT_EQ(doc.render_tile(good, buffer, 100, kNever), Status::InvalidArgument) << "stride below width * 4";
     EXPECT_EQ(doc.render_tile(good, std::span(buffer).first(buffer.size() - 1), 256, kNever), Status::InvalidArgument) << "buffer too small";
     TileRequest forms = good;
-    forms.flags = pdfium::kRenderFormFields;
-    EXPECT_EQ(doc.render_tile(forms, buffer, 256, kNever), Status::Unsupported);
+    forms.flags = pdfium::kRenderFormFields;  // the form layer draws now: see forms_tests.cpp
+    EXPECT_EQ(doc.render_tile(forms, buffer, 256, kNever), Status::Ok);
     TileRequest unknown_flag = good;
-    unknown_flag.flags = 4;
+    unknown_flag.flags = 8;
     EXPECT_EQ(doc.render_tile(unknown_flag, buffer, 256, kNever), Status::InvalidArgument);
 }
 

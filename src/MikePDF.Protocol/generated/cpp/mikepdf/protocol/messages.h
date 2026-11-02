@@ -596,7 +596,7 @@ struct RenderTile {
     std::int32_t tile_y{};
     std::uint32_t tile_width{};
     std::uint32_t tile_height{};
-    /// Bit 0 annotations, bit 1 form fields.
+    /// Bit 0 annotations, bit 1 form fields, bit 2 dark pages (the tile is recoloured the way the inverted page colour does it, except for colour photographs). Bit 2 means printing mode in RenderBand: the two messages have their own flags.
     std::uint32_t flags{};
     std::uint32_t slot_index{};
     std::uint64_t generation{};
