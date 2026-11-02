@@ -4,6 +4,7 @@
     <Project Path="src/MikePDF.Broker/MikePDF.Broker.csproj" />
     <Project Path="src/MikePDF.Core/MikePDF.Core.csproj" />
     <Project Path="src/MikePDF.PdfWriter/MikePDF.PdfWriter.csproj" />
+    <Project Path="src/MikePDF.Printing/MikePDF.Printing.csproj" />
     <Project Path="src/MikePDF.Protocol/MikePDF.Protocol.csproj" />
     <Project Path="src/MikePDF.WriterHost/MikePDF.WriterHost.csproj" />
   </Folder>
