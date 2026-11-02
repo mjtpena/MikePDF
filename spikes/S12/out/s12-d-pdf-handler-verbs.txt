@@ -1,0 +1,14 @@
+HKCU .pdf UserChoice ProgId (read only): MSEdgePDF
+  MSEdgePDF verb open: "C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe" --single-argument %1
+  MSEdgePDF verb print: (none registered)
+  MSEdgePDF verb printto: (none registered)
+  AcroExch.Document.DC verb open: (none registered)
+  AcroExch.Document.DC verb print: (none registered)
+  AcroExch.Document.DC verb printto: (none registered)
+  MSEdgePDF verb open: "C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe" --single-argument %1
+  MSEdgePDF verb print: (none registered)
+  MSEdgePDF verb printto: (none registered)
+  SumatraPDF verb open: (none registered)
+  SumatraPDF verb print: (none registered)
+  SumatraPDF verb printto: (none registered)
+

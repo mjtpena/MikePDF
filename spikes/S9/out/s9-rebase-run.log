@@ -1,0 +1,115 @@
+scale 1.33 Highlight yellow CA1                       ROI SSIM 0.9906 (no overlay at all: 0.9429) meanAbs 9.55 max 159  page SSIM 0.9998
+scale 1.33 Highlight green CA0.5 over salmon block    ROI SSIM 0.9990 (no overlay at all: 0.9364) meanAbs 1.04 max 39  page SSIM 1.0000
+scale 1.33 Underline                                  ROI SSIM 0.9995 (no overlay at all: 0.8446) meanAbs 0.85 max 13  page SSIM 1.0000
+scale 1.33 StrikeOut                                  ROI SSIM 0.9998 (no overlay at all: 0.8822) meanAbs 0.35 max 11  page SSIM 1.0000
+scale 1.33 Square                                     ROI SSIM 0.9999 (no overlay at all: 0.8733) meanAbs 0.25 max 32  page SSIM 1.0000
+scale 1.33 Circle                                     ROI SSIM 0.9993 (no overlay at all: 0.8603) meanAbs 0.68 max 54  page SSIM 1.0000
+scale 1.33 Line                                       ROI SSIM 0.9996 (no overlay at all: 0.9131) meanAbs 0.31 max 31  page SSIM 1.0000
+scale 1.33 Ink variable width (3 strokes)             ROI SSIM 0.9999 (no overlay at all: 0.9756) meanAbs 0.06 max 35  page SSIM 1.0000
+scale 1.33 Ink highlighter Multiply CA0.5             ROI SSIM 0.9998 (no overlay at all: 0.8471) meanAbs 0.50 max 10  page SSIM 1.0000
+scale 1.33 FreeText 12pt (Helvetica vs Arial)         ROI SSIM 0.9558 (no overlay at all: 0.6601) meanAbs 6.27 max 242  page SSIM 0.9992
+
+scale 2.67 Highlight yellow CA1                       ROI SSIM 0.9842 (no overlay at all: 0.8621) meanAbs 4.19 max 96  page SSIM 0.9998
+scale 2.67 Highlight green CA0.5 over salmon block    ROI SSIM 0.9845 (no overlay at all: 0.8851) meanAbs 1.01 max 55  page SSIM 0.9999
+scale 2.67 Underline                                  ROI SSIM 0.9998 (no overlay at all: 0.8247) meanAbs 0.46 max 11  page SSIM 1.0000
+scale 2.67 StrikeOut                                  ROI SSIM 0.9999 (no overlay at all: 0.8962) meanAbs 0.23 max 11  page SSIM 1.0000
+scale 2.67 Square                                     ROI SSIM 0.9999 (no overlay at all: 0.8909) meanAbs 0.13 max 44  page SSIM 1.0000
+scale 2.67 Circle                                     ROI SSIM 0.9991 (no overlay at all: 0.8776) meanAbs 0.49 max 81  page SSIM 1.0000
+scale 2.67 Line                                       ROI SSIM 0.9996 (no overlay at all: 0.9294) meanAbs 0.17 max 31  page SSIM 1.0000
+scale 2.67 Ink variable width (3 strokes)             ROI SSIM 0.9999 (no overlay at all: 0.9825) meanAbs 0.04 max 40  page SSIM 1.0000
+scale 2.67 Ink highlighter Multiply CA0.5             ROI SSIM 0.9997 (no overlay at all: 0.8647) meanAbs 0.52 max 12  page SSIM 1.0000
+scale 2.67 FreeText 12pt (Helvetica vs Arial)         ROI SSIM 0.9961 (no overlay at all: 0.7770) meanAbs 1.17 max 149  page SSIM 0.9999
+
+scale 5.33 Highlight yellow CA1                       ROI SSIM 0.9783 (no overlay at all: 0.8856) meanAbs 3.00 max 170  page SSIM NaN
+scale 5.33 Highlight green CA0.5 over salmon block    ROI SSIM 0.9960 (no overlay at all: 0.9024) meanAbs 0.30 max 35  page SSIM NaN
+scale 5.33 Underline                                  ROI SSIM 0.9997 (no overlay at all: 0.8226) meanAbs 0.27 max 13  page SSIM NaN
+scale 5.33 StrikeOut                                  ROI SSIM 0.9999 (no overlay at all: 0.8975) meanAbs 0.13 max 11  page SSIM NaN
+scale 5.33 Square                                     ROI SSIM 0.9999 (no overlay at all: 0.9023) meanAbs 0.07 max 32  page SSIM NaN
+scale 5.33 Circle                                     ROI SSIM 0.9994 (no overlay at all: 0.9013) meanAbs 0.22 max 69  page SSIM NaN
+scale 5.33 Line                                       ROI SSIM 0.9998 (no overlay at all: 0.9487) meanAbs 0.09 max 34  page SSIM NaN
+scale 5.33 Ink variable width (3 strokes)             ROI SSIM 0.9999 (no overlay at all: 0.9874) meanAbs 0.03 max 40  page SSIM NaN
+scale 5.33 Ink highlighter Multiply CA0.5             ROI SSIM 0.9998 (no overlay at all: 0.9084) meanAbs 0.49 max 11  page SSIM NaN
+scale 5.33 FreeText 12pt (Helvetica vs Arial)         ROI SSIM 0.9943 (no overlay at all: 0.8448) meanAbs 0.74 max 186  page SSIM NaN
+
+rotation   0: all 10 kinds, whole page SSIM 0.9988
+    Highlight yellow CA1                       ROI SSIM 0.9906
+    Highlight green CA0.5 over salmon block    ROI SSIM 0.9990
+    Underline                                  ROI SSIM 0.9995
+    StrikeOut                                  ROI SSIM 0.9997
+    Square                                     ROI SSIM 0.9999
+    Circle                                     ROI SSIM 0.9993
+    Line                                       ROI SSIM 0.9995
+    Ink variable width (3 strokes)             ROI SSIM 0.9998
+    Ink highlighter Multiply CA0.5             ROI SSIM 0.9998
+    FreeText 12pt (Helvetica vs Arial)         ROI SSIM 0.9558
+    worst: FreeText 12pt (Helvetica vs Arial) 0.9558
+rotation  90: all 10 kinds, whole page SSIM 0.9984
+    Highlight yellow CA1                       ROI SSIM 0.9899
+    Highlight green CA0.5 over salmon block    ROI SSIM 0.9987
+    Underline                                  ROI SSIM 0.9996
+    StrikeOut                                  ROI SSIM 0.9994
+    Square                                     ROI SSIM 0.9999
+    Circle                                     ROI SSIM 0.9992
+    Line                                       ROI SSIM 0.9995
+    Ink variable width (3 strokes)             ROI SSIM 0.9998
+    Ink highlighter Multiply CA0.5             ROI SSIM 0.9995
+    FreeText 12pt (Helvetica vs Arial)         ROI SSIM 0.9306
+    worst: FreeText 12pt (Helvetica vs Arial) 0.9306
+rotation 180: all 10 kinds, whole page SSIM 0.9988
+    Highlight yellow CA1                       ROI SSIM 0.9906
+    Highlight green CA0.5 over salmon block    ROI SSIM 0.9990
+    Underline                                  ROI SSIM 0.9995
+    StrikeOut                                  ROI SSIM 0.9998
+    Square                                     ROI SSIM 0.9999
+    Circle                                     ROI SSIM 0.9993
+    Line                                       ROI SSIM 0.9995
+    Ink variable width (3 strokes)             ROI SSIM 0.9998
+    Ink highlighter Multiply CA0.5             ROI SSIM 0.9998
+    FreeText 12pt (Helvetica vs Arial)         ROI SSIM 0.9550
+    worst: FreeText 12pt (Helvetica vs Arial) 0.9550
+rotation 270: all 10 kinds, whole page SSIM 0.9988
+    Highlight yellow CA1                       ROI SSIM 0.9894
+    Highlight green CA0.5 over salmon block    ROI SSIM 0.9987
+    Underline                                  ROI SSIM 0.9995
+    StrikeOut                                  ROI SSIM 0.9998
+    Square                                     ROI SSIM 0.9999
+    Circle                                     ROI SSIM 0.9993
+    Line                                       ROI SSIM 0.9995
+    Ink variable width (3 strokes)             ROI SSIM 0.9998
+    Ink highlighter Multiply CA0.5             ROI SSIM 0.9994
+    FreeText 12pt (Helvetica vs Arial)         ROI SSIM 0.9552
+    worst: FreeText 12pt (Helvetica vs Arial) 0.9552
+SNAPPED rects rot   0 scale 1.33 Highlight yellow CA1                       ROI SSIM 1.0000 meanAbs 0.000 max 0
+SNAPPED rects rot   0 scale 1.33 Highlight green CA0.5 over salmon block    ROI SSIM 1.0000 meanAbs 0.105 max 1
+SNAPPED rects rot   0 scale 2.67 Highlight yellow CA1                       ROI SSIM 1.0000 meanAbs 0.000 max 0
+SNAPPED rects rot   0 scale 2.67 Highlight green CA0.5 over salmon block    ROI SSIM 1.0000 meanAbs 0.090 max 1
+SNAPPED rects rot   0 scale 5.33 Highlight yellow CA1                       ROI SSIM 1.0000 meanAbs 0.000 max 0
+SNAPPED rects rot   0 scale 5.33 Highlight green CA0.5 over salmon block    ROI SSIM 1.0000 meanAbs 0.028 max 1
+SNAPPED rects rot  90 scale 1.33 Highlight yellow CA1                       ROI SSIM 1.0000 meanAbs 0.000 max 0
+SNAPPED rects rot  90 scale 1.33 Highlight green CA0.5 over salmon block    ROI SSIM 1.0000 meanAbs 0.119 max 1
+SNAPPED rects rot  90 scale 2.67 Highlight yellow CA1                       ROI SSIM 1.0000 meanAbs 0.000 max 0
+SNAPPED rects rot  90 scale 2.67 Highlight green CA0.5 over salmon block    ROI SSIM 1.0000 meanAbs 0.070 max 1
+SNAPPED rects rot  90 scale 5.33 Highlight yellow CA1                       ROI SSIM 1.0000 meanAbs 0.000 max 0
+SNAPPED rects rot  90 scale 5.33 Highlight green CA0.5 over salmon block    ROI SSIM 1.0000 meanAbs 0.029 max 1
+SNAPPED rects rot 180 scale 1.33 Highlight yellow CA1                       ROI SSIM 1.0000 meanAbs 0.000 max 0
+SNAPPED rects rot 180 scale 1.33 Highlight green CA0.5 over salmon block    ROI SSIM 1.0000 meanAbs 0.104 max 1
+SNAPPED rects rot 180 scale 2.67 Highlight yellow CA1                       ROI SSIM 1.0000 meanAbs 0.000 max 0
+SNAPPED rects rot 180 scale 2.67 Highlight green CA0.5 over salmon block    ROI SSIM 1.0000 meanAbs 0.099 max 1
+SNAPPED rects rot 180 scale 5.33 Highlight yellow CA1                       ROI SSIM 1.0000 meanAbs 0.000 max 0
+SNAPPED rects rot 180 scale 5.33 Highlight green CA0.5 over salmon block    ROI SSIM 1.0000 meanAbs 0.029 max 1
+SNAPPED rects rot 270 scale 1.33 Highlight yellow CA1                       ROI SSIM 1.0000 meanAbs 0.000 max 0
+SNAPPED rects rot 270 scale 1.33 Highlight green CA0.5 over salmon block    ROI SSIM 1.0000 meanAbs 0.107 max 1
+SNAPPED rects rot 270 scale 2.67 Highlight yellow CA1                       ROI SSIM 1.0000 meanAbs 0.000 max 0
+SNAPPED rects rot 270 scale 2.67 Highlight green CA0.5 over salmon block    ROI SSIM 1.0000 meanAbs 0.075 max 1
+SNAPPED rects rot 270 scale 5.33 Highlight yellow CA1                       ROI SSIM 1.0000 meanAbs 0.000 max 0
+SNAPPED rects rot 270 scale 5.33 Highlight green CA0.5 over salmon block    ROI SSIM 1.0000 meanAbs 0.028 max 1
+double drawing (overlay kept on the rebased tile): Highlight yellow CA1: ROI SSIM vs correct 0.9974, mean abs 3.59
+double drawing (overlay kept on the rebased tile): Highlight green CA0.5 over salmon block: ROI SSIM vs correct 0.9778, mean abs 23.80
+double drawing (overlay kept on the rebased tile): Ink highlighter Multiply CA0.5: ROI SSIM vs correct 0.9528, mean abs 22.52
+
+reopen: 100,38499,20,68336,1.5,1.0,0.70,7.54,7.98,8.96
+reopen: 100,38499,500,1700941,40.3,2.0,7.85,69.50,73.89,81.33
+reopen: 1000,340219,20,68458,1.8,1.6,0.92,7.27,8.42,8.89
+reopen: 1000,340219,500,1703321,47.4,2.2,10.27,77.76,87.88,112.14
+reopen: 5000,1696236,20,68581,2.5,1.6,4.02,7.39,11.53,12.94
+reopen: 5000,1696236,500,1706323,40.6,2.5,12.74,82.38,94.45,101.09

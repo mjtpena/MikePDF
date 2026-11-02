@@ -1,0 +1,9 @@
+Windows App SDK 2.5.1 (the version MikePDF pins) depends on Microsoft.WindowsAppSDK.WinUI 2.3.9 (from the package's .nuspec).
+Type names with 'Printing' found by string scan of C:\Users\mjtpe\.nuget\packages\microsoft.windowsappsdk.winui\2.3.9\metadata\Microsoft.UI.Xaml.winmd (1634656 bytes):
+  Microsoft.UI.Xaml.Printing.AddPagesEventArgs
+  Microsoft.UI.Xaml.Printing.GetPreviewPageEventArgs
+  Microsoft.UI.Xaml.Printing.IPrintDocumentFactory
+  Microsoft.UI.Xaml.Printing.IPrintDocumentStatics
+  Microsoft.UI.Xaml.Printing.PaginateEventArgs
+  Microsoft.UI.Xaml.Printing.PrintDocument
+The scan finds metadata type names only; it proves the types ship, not that printing works at runtime.

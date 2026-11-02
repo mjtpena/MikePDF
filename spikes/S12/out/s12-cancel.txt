@@ -1,0 +1,2 @@
+aborted=True after 3 pages; AbortDoc took 7.5 ms; total 3483 ms; error none
+output file exists after abort: True (0 bytes)

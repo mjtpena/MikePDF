@@ -1,0 +1,50 @@
+{
+  "Input": "text100.pdf",
+  "Printer": "Microsoft Print to PDF",
+  "Range": "1",
+  "Subset": "all",
+  "PagesInSource": 100,
+  "PagesPrinted": 1,
+  "PageNumbers": [
+    1
+  ],
+  "DevModeRequested": "fields=0x12D03 orientation=1 paper=9 copies=1 duplex=1 collate=1 colour=2 quality=600 yres=600 size=5428",
+  "DevModeAccepted": "fields=0x12D03 orientation=1 paper=9 copies=1 duplex=1 collate=1 colour=2 quality=600 yres=600 size=5428",
+  "DevModeAtDc": "",
+  "DeviceDpiX": 600,
+  "DeviceDpiY": 600,
+  "HorzRes": 4961,
+  "VertRes": 7016,
+  "PhysW": 4961,
+  "PhysH": 7016,
+  "PhysOffX": 0,
+  "PhysOffY": 0,
+  "TotalMs": 1975.2586000000001,
+  "RenderMs": 87.3662,
+  "BlitMs": 121.017,
+  "StartDocMs": 168.4044,
+  "EndDocMs": 641.0443,
+  "AbortMs": 0,
+  "Bands": 8,
+  "BytesBlitted": 127398480,
+  "FailedBlits": 0,
+  "PeakPrivateSelf": 144117760,
+  "PeakWorkingSetSelf": 212570112,
+  "BasePrivateSelf": 14118912,
+  "PeakPrivateOthers": {
+    "spoolsv": 13959168,
+    "PrintFilterPipelineSvc": 113008640
+  },
+  "BasePrivateOthers": {
+    "spoolsv": 13959168,
+    "PrintFilterPipelineSvc": 23621632
+  },
+  "OutputBytes": 3098998,
+  "Error": null,
+  "Aborted": false,
+  "Placements": [
+    "p1: 612.0x792.0pt rot90=False scale=8.1062px/pt dest=(0,298,4961,6420) clipped=False"
+  ],
+  "StartDocResult": 23,
+  "EndDocResult": 1
+}

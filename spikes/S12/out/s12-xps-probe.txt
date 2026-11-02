@@ -1,0 +1,9 @@
+CoCreateInstance(PrintDocumentPackageTargetFactory) = 0x00000000
+SHCreateStreamOnFileEx = 0x00000000
+CreateDocumentPackageTargetForPrintJob(Microsoft Print to PDF, job output = a file stream in the worktree) = 0x00000000
+GetPackageTargetTypes = 0x00000000, 2 type(s):
+  0056bb72-8c9c-4612-bd0f-93012a87099d
+  9cae40a8-ded1-41c9-a9fd-d735ef33aeda
+Cancel() = 0x00000000 (no page was submitted)
+
+output stream file after cancel: exists=True (0 bytes)

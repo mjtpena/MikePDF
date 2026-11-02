@@ -1,0 +1,112 @@
+### perf b100
+  printer Microsoft Print to PDF; source pages 100; range "" subset all -> pages 1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63,64,65,66,67,68,69,70,71,72,73,74,75,76,77,78,79,80,81,82,83,84,85,86,87,88,89,90,91,92,93,94,95,96,97,98,99,100; printed 100
+  DEVMODE requested: fields=0x12D03 orientation=1 paper=9 copies=1 duplex=1 collate=1 colour=2 quality=600 yres=600 size=5428
+  DEVMODE driver kept: fields=0x12D03 orientation=1 paper=9 copies=1 duplex=1 collate=1 colour=2 quality=600 yres=600 size=5428
+  device: 600x600 dpi, printable 4961x7016 px, physical 4961x7016, offset 0,0
+  p1: 612.0x792.0pt rot90=False scale=8.1062px/pt dest=(0,298,4961,6420) clipped=False
+  p2: 612.0x792.0pt rot90=False scale=8.1062px/pt dest=(0,298,4961,6420) clipped=False
+  p3: 612.0x792.0pt rot90=False scale=8.1062px/pt dest=(0,298,4961,6420) clipped=False
+  p4: 612.0x792.0pt rot90=False scale=8.1062px/pt dest=(0,298,4961,6420) clipped=False
+  p5: 612.0x792.0pt rot90=False scale=8.1062px/pt dest=(0,298,4961,6420) clipped=False
+  p6: 612.0x792.0pt rot90=False scale=8.1062px/pt dest=(0,298,4961,6420) clipped=False
+  p7: 612.0x792.0pt rot90=False scale=8.1062px/pt dest=(0,298,4961,6420) clipped=False
+  p8: 612.0x792.0pt rot90=False scale=8.1062px/pt dest=(0,298,4961,6420) clipped=False
+  p9: 612.0x792.0pt rot90=False scale=8.1062px/pt dest=(0,298,4961,6420) clipped=False
+  p10: 612.0x792.0pt rot90=False scale=8.1062px/pt dest=(0,298,4961,6420) clipped=False
+  p11: 612.0x792.0pt rot90=False scale=8.1062px/pt dest=(0,298,4961,6420) clipped=False
+  p12: 612.0x792.0pt rot90=False scale=8.1062px/pt dest=(0,298,4961,6420) clipped=False
+  p13: 612.0x792.0pt rot90=False scale=8.1062px/pt dest=(0,298,4961,6420) clipped=False
+  p14: 612.0x792.0pt rot90=False scale=8.1062px/pt dest=(0,298,4961,6420) clipped=False
+  p15: 612.0x792.0pt rot90=False scale=8.1062px/pt dest=(0,298,4961,6420) clipped=False
+  p16: 612.0x792.0pt rot90=False scale=8.1062px/pt dest=(0,298,4961,6420) clipped=False
+  p17: 612.0x792.0pt rot90=False scale=8.1062px/pt dest=(0,298,4961,6420) clipped=False
+  p18: 612.0x792.0pt rot90=False scale=8.1062px/pt dest=(0,298,4961,6420) clipped=False
+  p19: 612.0x792.0pt rot90=False scale=8.1062px/pt dest=(0,298,4961,6420) clipped=False
+  p20: 612.0x792.0pt rot90=False scale=8.1062px/pt dest=(0,298,4961,6420) clipped=False
+  p21: 612.0x792.0pt rot90=False scale=8.1062px/pt dest=(0,298,4961,6420) clipped=False
+  p22: 612.0x792.0pt rot90=False scale=8.1062px/pt dest=(0,298,4961,6420) clipped=False
+  p23: 612.0x792.0pt rot90=False scale=8.1062px/pt dest=(0,298,4961,6420) clipped=False
+  p24: 612.0x792.0pt rot90=False scale=8.1062px/pt dest=(0,298,4961,6420) clipped=False
+  p25: 612.0x792.0pt rot90=False scale=8.1062px/pt dest=(0,298,4961,6420) clipped=False
+  p26: 612.0x792.0pt rot90=False scale=8.1062px/pt dest=(0,298,4961,6420) clipped=False
+  p27: 612.0x792.0pt rot90=False scale=8.1062px/pt dest=(0,298,4961,6420) clipped=False
+  p28: 612.0x792.0pt rot90=False scale=8.1062px/pt dest=(0,298,4961,6420) clipped=False
+  p29: 612.0x792.0pt rot90=False scale=8.1062px/pt dest=(0,298,4961,6420) clipped=False
+  p30: 612.0x792.0pt rot90=False scale=8.1062px/pt dest=(0,298,4961,6420) clipped=False
+  p31: 612.0x792.0pt rot90=False scale=8.1062px/pt dest=(0,298,4961,6420) clipped=False
+  p32: 612.0x792.0pt rot90=False scale=8.1062px/pt dest=(0,298,4961,6420) clipped=False
+  p33: 612.0x792.0pt rot90=False scale=8.1062px/pt dest=(0,298,4961,6420) clipped=False
+  p34: 612.0x792.0pt rot90=False scale=8.1062px/pt dest=(0,298,4961,6420) clipped=False
+  p35: 612.0x792.0pt rot90=False scale=8.1062px/pt dest=(0,298,4961,6420) clipped=False
+  p36: 612.0x792.0pt rot90=False scale=8.1062px/pt dest=(0,298,4961,6420) clipped=False
+  p37: 612.0x792.0pt rot90=False scale=8.1062px/pt dest=(0,298,4961,6420) clipped=False
+  p38: 612.0x792.0pt rot90=False scale=8.1062px/pt dest=(0,298,4961,6420) clipped=False
+  p39: 612.0x792.0pt rot90=False scale=8.1062px/pt dest=(0,298,4961,6420) clipped=False
+  p40: 612.0x792.0pt rot90=False scale=8.1062px/pt dest=(0,298,4961,6420) clipped=False
+  p41: 612.0x792.0pt rot90=False scale=8.1062px/pt dest=(0,298,4961,6420) clipped=False
+  p42: 612.0x792.0pt rot90=False scale=8.1062px/pt dest=(0,298,4961,6420) clipped=False
+  p43: 612.0x792.0pt rot90=False scale=8.1062px/pt dest=(0,298,4961,6420) clipped=False
+  p44: 612.0x792.0pt rot90=False scale=8.1062px/pt dest=(0,298,4961,6420) clipped=False
+  p45: 612.0x792.0pt rot90=False scale=8.1062px/pt dest=(0,298,4961,6420) clipped=False
+  p46: 612.0x792.0pt rot90=False scale=8.1062px/pt dest=(0,298,4961,6420) clipped=False
+  p47: 612.0x792.0pt rot90=False scale=8.1062px/pt dest=(0,298,4961,6420) clipped=False
+  p48: 612.0x792.0pt rot90=False scale=8.1062px/pt dest=(0,298,4961,6420) clipped=False
+  p49: 612.0x792.0pt rot90=False scale=8.1062px/pt dest=(0,298,4961,6420) clipped=False
+  p50: 612.0x792.0pt rot90=False scale=8.1062px/pt dest=(0,298,4961,6420) clipped=False
+  p51: 612.0x792.0pt rot90=False scale=8.1062px/pt dest=(0,298,4961,6420) clipped=False
+  p52: 612.0x792.0pt rot90=False scale=8.1062px/pt dest=(0,298,4961,6420) clipped=False
+  p53: 612.0x792.0pt rot90=False scale=8.1062px/pt dest=(0,298,4961,6420) clipped=False
+  p54: 612.0x792.0pt rot90=False scale=8.1062px/pt dest=(0,298,4961,6420) clipped=False
+  p55: 612.0x792.0pt rot90=False scale=8.1062px/pt dest=(0,298,4961,6420) clipped=False
+  p56: 612.0x792.0pt rot90=False scale=8.1062px/pt dest=(0,298,4961,6420) clipped=False
+  p57: 612.0x792.0pt rot90=False scale=8.1062px/pt dest=(0,298,4961,6420) clipped=False
+  p58: 612.0x792.0pt rot90=False scale=8.1062px/pt dest=(0,298,4961,6420) clipped=False
+  p59: 612.0x792.0pt rot90=False scale=8.1062px/pt dest=(0,298,4961,6420) clipped=False
+  p60: 612.0x792.0pt rot90=False scale=8.1062px/pt dest=(0,298,4961,6420) clipped=False
+  p61: 612.0x792.0pt rot90=False scale=8.1062px/pt dest=(0,298,4961,6420) clipped=False
+  p62: 612.0x792.0pt rot90=False scale=8.1062px/pt dest=(0,298,4961,6420) clipped=False
+  p63: 612.0x792.0pt rot90=False scale=8.1062px/pt dest=(0,298,4961,6420) clipped=False
+  p64: 612.0x792.0pt rot90=False scale=8.1062px/pt dest=(0,298,4961,6420) clipped=False
+  p65: 612.0x792.0pt rot90=False scale=8.1062px/pt dest=(0,298,4961,6420) clipped=False
+  p66: 612.0x792.0pt rot90=False scale=8.1062px/pt dest=(0,298,4961,6420) clipped=False
+  p67: 612.0x792.0pt rot90=False scale=8.1062px/pt dest=(0,298,4961,6420) clipped=False
+  p68: 612.0x792.0pt rot90=False scale=8.1062px/pt dest=(0,298,4961,6420) clipped=False
+  p69: 612.0x792.0pt rot90=False scale=8.1062px/pt dest=(0,298,4961,6420) clipped=False
+  p70: 612.0x792.0pt rot90=False scale=8.1062px/pt dest=(0,298,4961,6420) clipped=False
+  p71: 612.0x792.0pt rot90=False scale=8.1062px/pt dest=(0,298,4961,6420) clipped=False
+  p72: 612.0x792.0pt rot90=False scale=8.1062px/pt dest=(0,298,4961,6420) clipped=False
+  p73: 612.0x792.0pt rot90=False scale=8.1062px/pt dest=(0,298,4961,6420) clipped=False
+  p74: 612.0x792.0pt rot90=False scale=8.1062px/pt dest=(0,298,4961,6420) clipped=False
+  p75: 612.0x792.0pt rot90=False scale=8.1062px/pt dest=(0,298,4961,6420) clipped=False
+  p76: 612.0x792.0pt rot90=False scale=8.1062px/pt dest=(0,298,4961,6420) clipped=False
+  p77: 612.0x792.0pt rot90=False scale=8.1062px/pt dest=(0,298,4961,6420) clipped=False
+  p78: 612.0x792.0pt rot90=False scale=8.1062px/pt dest=(0,298,4961,6420) clipped=False
+  p79: 612.0x792.0pt rot90=False scale=8.1062px/pt dest=(0,298,4961,6420) clipped=False
+  p80: 612.0x792.0pt rot90=False scale=8.1062px/pt dest=(0,298,4961,6420) clipped=False
+  p81: 612.0x792.0pt rot90=False scale=8.1062px/pt dest=(0,298,4961,6420) clipped=False
+  p82: 612.0x792.0pt rot90=False scale=8.1062px/pt dest=(0,298,4961,6420) clipped=False
+  p83: 612.0x792.0pt rot90=False scale=8.1062px/pt dest=(0,298,4961,6420) clipped=False
+  p84: 612.0x792.0pt rot90=False scale=8.1062px/pt dest=(0,298,4961,6420) clipped=False
+  p85: 612.0x792.0pt rot90=False scale=8.1062px/pt dest=(0,298,4961,6420) clipped=False
+  p86: 612.0x792.0pt rot90=False scale=8.1062px/pt dest=(0,298,4961,6420) clipped=False
+  p87: 612.0x792.0pt rot90=False scale=8.1062px/pt dest=(0,298,4961,6420) clipped=False
+  p88: 612.0x792.0pt rot90=False scale=8.1062px/pt dest=(0,298,4961,6420) clipped=False
+  p89: 612.0x792.0pt rot90=False scale=8.1062px/pt dest=(0,298,4961,6420) clipped=False
+  p90: 612.0x792.0pt rot90=False scale=8.1062px/pt dest=(0,298,4961,6420) clipped=False
+  p91: 612.0x792.0pt rot90=False scale=8.1062px/pt dest=(0,298,4961,6420) clipped=False
+  p92: 612.0x792.0pt rot90=False scale=8.1062px/pt dest=(0,298,4961,6420) clipped=False
+  p93: 612.0x792.0pt rot90=False scale=8.1062px/pt dest=(0,298,4961,6420) clipped=False
+  p94: 612.0x792.0pt rot90=False scale=8.1062px/pt dest=(0,298,4961,6420) clipped=False
+  p95: 612.0x792.0pt rot90=False scale=8.1062px/pt dest=(0,298,4961,6420) clipped=False
+  p96: 612.0x792.0pt rot90=False scale=8.1062px/pt dest=(0,298,4961,6420) clipped=False
+  p97: 612.0x792.0pt rot90=False scale=8.1062px/pt dest=(0,298,4961,6420) clipped=False
+  p98: 612.0x792.0pt rot90=False scale=8.1062px/pt dest=(0,298,4961,6420) clipped=False
+  p99: 612.0x792.0pt rot90=False scale=8.1062px/pt dest=(0,298,4961,6420) clipped=False
+  p100: 612.0x792.0pt rot90=False scale=8.1062px/pt dest=(0,298,4961,6420) clipped=False
+  time total 377622 ms (StartDoc 194, render 9721, blit 9937, EndDoc 258130); bands 800; sent 12150 MiB; failed blits 0; error none
+  own process private bytes: base 13 MiB peak 152 MiB (peak working set 215 MiB)
+  spoolsv: base 14 MiB peak 14 MiB
+  PrintFilterPipelineSvc: base 76 MiB peak 410 MiB
+  output: 100 pages (job reported 100; copies requested 1, collate 0), 297145 KiB
+  out p1 <- src p1: 595.3 x 841.9 pt, SSIM 0.9334 @150 dpi (print.md PRINT-13 method), mean abs 6.69; at 600 dpi: mean abs NaN, max -1, NaN% pixels differ, SSIM after 4x box NaN; text chars 0, objects text/image/path 0/8/0
+  out p2 <- src p2: 595.3 x 841.9 pt, SSIM 0.9329 @150 dpi (print.md PRINT-13 method), mean abs 6.73; at 600 dpi: mean abs NaN, max -1, NaN% pixels differ, SSIM after 4x box NaN; text chars 0, objects text/image/path 0/8/0

@@ -1,0 +1,22 @@
+### perf w10
+  printer Microsoft Print to PDF; source pages 100; range "1-10" subset all -> pages 1,2,3,4,5,6,7,8,9,10; printed 10
+  DEVMODE requested: fields=0x12D03 orientation=1 paper=9 copies=1 duplex=1 collate=1 colour=2 quality=600 yres=600 size=5428
+  DEVMODE driver kept: fields=0x12D03 orientation=1 paper=9 copies=1 duplex=1 collate=1 colour=2 quality=600 yres=600 size=5428
+  device: 600x600 dpi, printable 4961x7016 px, physical 4961x7016, offset 0,0
+  p1: 612.0x792.0pt rot90=False scale=8.1062px/pt dest=(0,298,4961,6420) clipped=False
+  p2: 612.0x792.0pt rot90=False scale=8.1062px/pt dest=(0,298,4961,6420) clipped=False
+  p3: 612.0x792.0pt rot90=False scale=8.1062px/pt dest=(0,298,4961,6420) clipped=False
+  p4: 612.0x792.0pt rot90=False scale=8.1062px/pt dest=(0,298,4961,6420) clipped=False
+  p5: 612.0x792.0pt rot90=False scale=8.1062px/pt dest=(0,298,4961,6420) clipped=False
+  p6: 612.0x792.0pt rot90=False scale=8.1062px/pt dest=(0,298,4961,6420) clipped=False
+  p7: 612.0x792.0pt rot90=False scale=8.1062px/pt dest=(0,298,4961,6420) clipped=False
+  p8: 612.0x792.0pt rot90=False scale=8.1062px/pt dest=(0,298,4961,6420) clipped=False
+  p9: 612.0x792.0pt rot90=False scale=8.1062px/pt dest=(0,298,4961,6420) clipped=False
+  p10: 612.0x792.0pt rot90=False scale=8.1062px/pt dest=(0,298,4961,6420) clipped=False
+  time total 15182 ms (StartDoc 132, render 887, blit 779, EndDoc 5210); bands 10; sent 1215 MiB; failed blits 0; error none
+  own process private bytes: base 14 MiB peak 155 MiB (peak working set 324 MiB)
+  spoolsv: base 13 MiB peak 15 MiB
+  PrintFilterPipelineSvc: base 48 MiB peak 294 MiB
+  output: 10 pages (job reported 10; copies requested 1, collate 0), 30550 KiB
+  out p1 <- src p1: 595.3 x 841.9 pt, SSIM 0.9301 @150 dpi (print.md PRINT-13 method), mean abs 6.85; at 600 dpi: mean abs NaN, max -1, NaN% pixels differ, SSIM after 4x box NaN; text chars 0, objects text/image/path 0/2/0
+  out p2 <- src p2: 595.3 x 841.9 pt, SSIM 0.9302 @150 dpi (print.md PRINT-13 method), mean abs 6.87; at 600 dpi: mean abs NaN, max -1, NaN% pixels differ, SSIM after 4x box NaN; text chars 0, objects text/image/path 0/2/0
