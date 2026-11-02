@@ -561,6 +561,9 @@
   <data name="About_Title" xml:space="preserve"><value>About MikePDF</value></data>
   <data name="About_Version" xml:space="preserve"><value>Version {0}, {1}</value></data>
   <data name="About_Engine" xml:space="preserve"><value>PDF engine: PDFium, in a separate protected process</value></data>
+  <data name="About_Pdfium" xml:space="preserve"><value>PDFium version {0}</value></data>
+  <data name="About_Pdfium_Loading" xml:space="preserve"><value>PDFium version: reading it from the engine</value></data>
+  <data name="About_Pdfium_Unavailable" xml:space="preserve"><value>PDFium version: not available</value></data>
   <data name="About_NoTracking" xml:space="preserve"><value>No telemetry. No account. Nothing leaves this device.</value></data>
   <data name="About_Managed_Header" xml:space="preserve"><value>Managed by your organisation</value></data>
   <data name="About_Policy_Line" xml:space="preserve"><value>{0}: {1}. {2}</value></data>
