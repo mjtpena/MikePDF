@@ -130,6 +130,7 @@ internal sealed class Win2DTilePresenter : ITilePresenter, IDisposable
 
     private void OnRegionsInvalidated(CanvasVirtualControl sender, CanvasRegionsInvalidatedEventArgs args)
     {
+        var traceStart = AppTrace.FrameBegin();
         var frame = _frame;
         var scale = (float)_rasterScale;
         foreach (var region in args.InvalidatedRegions)
@@ -168,6 +169,8 @@ internal sealed class Win2DTilePresenter : ITilePresenter, IDisposable
                 session.DrawRectangle(paper, _paperBorder, 1f / Math.Max(1f, scale));
             }
         }
+
+        AppTrace.FrameEnd(traceStart, frame);
     }
 
     private static Rect ToDips(MikePDF.Core.Geometry.RectD r, float scale) => new(r.X / scale, r.Y / scale, r.Width / scale, r.Height / scale);

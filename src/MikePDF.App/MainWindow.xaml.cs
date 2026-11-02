@@ -89,6 +89,7 @@ public sealed partial class MainWindow : Window
         var scale = dpi / 96.0;
         AppWindow.Resize(new SizeInt32((int)(1100 * scale), (int)(820 * scale)));
         Root.Loaded += (_, _) => _loaded.TrySetResult();
+        Root.Loaded += (_, _) => AppTrace.WindowLoaded(DispatcherQueue);
         Root.Loaded += (_, _) => RightInsetColumn.Width = new GridLength(AppWindow.TitleBar.RightInset / Math.Max(1.0, (Root.XamlRoot?.RasterizationScale ?? 1.0)));
     }
 
@@ -130,6 +131,7 @@ public sealed partial class MainWindow : Window
     /// <summary>Opens a document, replacing the current one. Shows its own errors.</summary>
     internal Task OpenPathAsync(string path)
     {
+        AppTrace.OpenRequested();
         // One open at a time, in the order asked (a drop during an open waits for it).
         var next = _openChain.ContinueWith(_ => OpenCoreAsync(path), CancellationToken.None, TaskContinuationOptions.None, TaskScheduler.FromCurrentSynchronizationContext()).Unwrap();
         _openChain = next;
