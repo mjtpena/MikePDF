@@ -88,6 +88,18 @@ Line coverage of the .NET code under test (the replay described above):
 
 The golden vectors already reach all but nine lines of the protocol package (default branches in the generated dispatch, enums and text helpers), so the fuzzer had nothing new to reach there; that is a statement about the decoders being well covered by the golden vectors, not evidence of more depth. In the writer the corpus reached 161 more lines than the fixtures.
 
+### Coverage-guided C# runs (2026-11-02, branch `m1/sharpfuzz`, ADR-0017)
+
+Same machine, 960 seconds (16 minutes) of wall-clock per target, two libFuzzer processes sharing one corpus (`-Jobs 2`), the corpus starting empty, the three targets running at the same time. `ft` is libFuzzer's feature count over `MikePDF.Protocol.dll` or `MikePDF.PdfWriter.dll` (edges times hit-count buckets); the largest of the two processes.
+
+| Target | Executions | `ft` | Corpus files | Findings |
+|---|---|---|---|---|
+| `protocol-cs` | 46,658,561 | 4,237 | 907 | 0 |
+| `pdfwriter-parse` | 3,614,607 | 12,084 | 5,597 | 0 |
+| `pdfwriter-append` | 6,973,095 | 11,364 | 4,377 | 0 |
+
+No crash, hang or broken invariant in MikePDF code. That is **weak evidence**, for the reasons in limit 1: 16 minutes, and only the two MikePDF assemblies give feedback. The 10-minute comparison against the mutational fuzzer, with its `ft` and line-coverage numbers per target, is in ADR-0017 (summary: more `ft` on all three targets, and `MikePDF.PdfWriter` line coverage of the replayed corpus 90.8% against 85.9% for the mutational corpus and 76.9% for the seeds alone; `MikePDF.Protocol` is at 99.2% for all three). The first attempt at this run hung on both PdfWriter targets: libFuzzer's `-jobs` workers were started with the harness word lost (the driver's argument is re-joined without quoting), so they died at start and were restarted for ever. `run-fuzz.ps1` now passes the word through `--target_arg`, and kills a fuzzer that is still alive 10 minutes after its time is up. That bug would have hung the nightly job (3 processes) until the CI limit.
+
 ### Findings
 
 | # | Target | What | Owner | State |
