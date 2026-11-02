@@ -27,11 +27,16 @@ internal static class Locations
     /// <summary>The folder holding <c>MikePDF.Engine.exe</c> and <c>pdfium.dll</c>.</summary>
     public static string EngineDirectory(string? explicitDirectory)
     {
-        var candidates = new List<string?> { explicitDirectory, Environment.GetEnvironmentVariable("MIKEPDF_ENGINE_DIR") };
-        if (RepositoryRoot() is { } root)
+        // A directory named on the command line is the one used: if it is wrong the run says so, instead of quietly rendering with some other engine.
+        var candidates = new List<string?> { explicitDirectory };
+        if (explicitDirectory is null)
         {
-            candidates.Add(Path.Combine(root, "build", "out", $"cmake-{Architecture}", "bin", "Release"));
-            candidates.Add(Path.Combine(root, "build", "out", $"cmake-{Architecture}", "bin", "Debug"));
+            candidates.Add(Environment.GetEnvironmentVariable("MIKEPDF_ENGINE_DIR"));
+            if (RepositoryRoot() is { } root)
+            {
+                candidates.Add(Path.Combine(root, "build", "out", $"cmake-{Architecture}", "bin", "Release"));
+                candidates.Add(Path.Combine(root, "build", "out", $"cmake-{Architecture}", "bin", "Debug"));
+            }
         }
 
         foreach (var candidate in candidates.Where(c => !string.IsNullOrEmpty(c)))
@@ -48,13 +53,21 @@ internal static class Locations
     /// <summary>The <c>pdfium.dll</c> the reference renderer loads: the pinned build, which is also the one beside the engine.</summary>
     public static string PdfiumDll(string? explicitDirectory, string engineDirectory)
     {
-        var candidates = new List<string?> { explicitDirectory is null ? null : Path.Combine(explicitDirectory, "pdfium.dll") };
-        if (RepositoryRoot() is { } root)
+        var candidates = new List<string?>();
+        if (explicitDirectory is not null)
         {
-            candidates.Add(Path.Combine(root, "build", "out", "pdfium", Architecture, "bin", "pdfium.dll"));
+            candidates.Add(Path.Combine(explicitDirectory, "pdfium.dll"));
+        }
+        else
+        {
+            if (RepositoryRoot() is { } root)
+            {
+                candidates.Add(Path.Combine(root, "build", "out", "pdfium", Architecture, "bin", "pdfium.dll"));
+            }
+
+            candidates.Add(Path.Combine(engineDirectory, "pdfium.dll"));
         }
 
-        candidates.Add(Path.Combine(engineDirectory, "pdfium.dll"));
         return candidates.Where(c => c is not null && File.Exists(c)).Select(c => Path.GetFullPath(c!)).FirstOrDefault()
             ?? throw new FileNotFoundException("pdfium.dll was not found for the reference renderer. Pass --pdfium-dir or --no-reference.");
     }

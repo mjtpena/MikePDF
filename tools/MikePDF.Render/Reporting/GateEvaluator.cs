@@ -32,10 +32,12 @@ internal static class GateEvaluator
                 CheckPage(file, page, settings, baseline, failures, warnings);
             }
 
-            if (file.Reference is not (null or "Ok" or "Disabled"))
+            foreach (var problem in file.Problems)
             {
-                warnings.Add(new GateFailure("ReferenceDiffers", file.Id, null, $"Reference renderer: {file.Reference}. Pages it could not render are not compared."));
+                failures.Add(new GateFailure("FileProblem", file.Id, null, problem));
             }
+
+            CheckReference(file, failures, warnings);
         }
 
         var summary = Summarizer.Summarize(files, settings);
@@ -55,6 +57,26 @@ internal static class GateEvaluator
         }
 
         return new GateResult { Passed = failures.Count == 0, Failures = failures, Warnings = warnings };
+    }
+
+    /// <summary>
+    /// The reference renderer is PDFium without the sandbox, built by this repository. If it crashes or hangs on a file, that is a crash or a hang in a
+    /// MikePDF-owned process, and fails the gate like the engine's would. Anything else it cannot do (it would not start, it opens what the engine refuses)
+    /// is a warning: the affected pages are simply not compared, and a run that compares nothing fails on its own.
+    /// </summary>
+    private static void CheckReference(FileReport file, List<GateFailure> failures, List<GateFailure> warnings)
+    {
+        switch (file.Reference)
+        {
+            case null or "Ok" or "Disabled":
+                break;
+            case "Crashed" or "TimedOut" when file.Expected?.AllowsEngineCrash != true:
+                failures.Add(new GateFailure(file.Reference == "Crashed" ? "ReferenceCrash" : "ReferenceHang", file.Id, null, $"The reference renderer (PDFium outside the sandbox) {(file.Reference == "Crashed" ? "crashed" : "did not finish and was killed")} on this file."));
+                break;
+            default:
+                warnings.Add(new GateFailure("ReferenceDiffers", file.Id, null, $"Reference renderer: {file.Reference}. Pages it could not render are not compared."));
+                break;
+        }
     }
 
     private static void CheckOpen(FileReport file, List<GateFailure> failures)

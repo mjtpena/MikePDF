@@ -63,8 +63,15 @@ internal sealed class ReferenceResult : IDisposable
     }
 }
 
+/// <summary>The reference side of a comparison. A seam for tests; the one implementation is <see cref="ReferenceRunner"/>.</summary>
+internal interface IReferenceRenderer
+{
+    /// <summary>Renders <paramref name="jobs"/> (page, scale) of the file with PDFium outside the sandbox. Never throws for a file that makes the renderer fail: that is a <see cref="ReferenceResult.Outcome"/>.</summary>
+    Task<ReferenceResult> RenderAsync(string pdfPath, string? password, int rotation, IReadOnlyList<(int Page, float Scale)> jobs, TimeSpan timeout, CancellationToken cancellationToken);
+}
+
 /// <summary>Runs <c>mikepdf-refrender</c> (the pinned pdfium.dll, outside the sandbox) in a child process, so a file that crashes PDFium there cannot take this tool down.</summary>
-internal sealed class ReferenceRunner(string executable, string pdfiumDll, string workDirectory)
+internal sealed class ReferenceRunner(string executable, string pdfiumDll, string workDirectory) : IReferenceRenderer
 {
     public async Task<ReferenceResult> RenderAsync(string pdfPath, string? password, int rotation, IReadOnlyList<(int Page, float Scale)> jobs, TimeSpan timeout, CancellationToken cancellationToken)
     {

@@ -96,13 +96,14 @@ internal static class MarkdownReport
             text.Append(inv, $"| {verdict}`{file.Id}` | {file.Open.Status} | {(file.Open.Status == "Ok" ? file.PageCount.ToString(inv) : "-")} | {rendered} of {file.Pages.Count} | {(double.IsNaN(worst) ? "-" : worst.ToString("0.0000", inv))} | {string.Join("; ", notes)} |\n");
         }
 
-        var problems = report.Files.Where(f => f.Pages.Any(p => p.Status is not "Ok" || p.Ssim is < 0.98)).ToList();
+        var bar = report.Settings.SsimThreshold;
+        var problems = report.Files.Where(f => f.Pages.Any(p => p.Status is not "Ok" || p.Ssim < bar)).ToList();
         if (problems.Count > 0)
         {
             text.Append("\n## Pages that did not render Ok or scored under 0.98\n\n| File | Page | Status | SSIM | Changed | Image |\n|---|---|---|---|---|---|\n");
             foreach (var file in problems)
             {
-                foreach (var page in file.Pages.Where(p => p.Status is not "Ok" || p.Ssim is < 0.98))
+                foreach (var page in file.Pages.Where(p => p.Status is not "Ok" || p.Ssim < bar))
                 {
                     text.Append(inv, $"| `{file.Id}` | {page.Key} | {page.Status}{(page.Detail is null ? "" : " - " + page.Detail)} | {Number(page.Ssim)} | {(page.ChangedPercent is { } c ? c.ToString("0.##", inv) + "%" : "-")} | {page.DiffImage ?? "-"} |\n");
                 }

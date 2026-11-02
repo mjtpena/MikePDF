@@ -57,6 +57,9 @@ internal sealed class SandboxedEngineHost : IAsyncDisposable
         return new SandboxedEngineHost(deploy, profile, openDeadline, clock);
     }
 
+    /// <summary>What the run says it is doing now (see <see cref="SetContext"/>).</summary>
+    public string? Context => _context;
+
     /// <summary>Names what the run is doing, so events the engine raises on its own thread can be attributed.</summary>
     public void SetContext(string? context) => _context = context;
 

@@ -27,18 +27,16 @@ internal sealed class RenderRun
 
     private readonly RenderOptions _options;
     private readonly SandboxedEngineHost _host;
-    private readonly ReferenceRunner? _reference;
+    private readonly IReferenceRenderer? _reference;
     private readonly string _outDirectory;
-    private readonly Stopwatch _clock;
     private readonly Action<string> _log;
 
-    public RenderRun(RenderOptions options, SandboxedEngineHost host, ReferenceRunner? reference, string outDirectory, Stopwatch clock, Action<string> log)
+    public RenderRun(RenderOptions options, SandboxedEngineHost host, IReferenceRenderer? reference, string outDirectory, Action<string> log)
     {
         _options = options;
         _host = host;
         _reference = reference;
         _outDirectory = outDirectory;
-        _clock = clock;
         _log = log;
     }
 
@@ -99,7 +97,7 @@ internal sealed class RenderRun
         {
             Id = item.Id,
             Path = item.Path,
-            SizeBytes = new FileInfo(item.Path).Length,
+            SizeBytes = SizeOf(item.Path),
             Tags = item.Tags,
             Expected = item.Expected,
         };
@@ -123,9 +121,27 @@ internal sealed class RenderRun
                 file.Open = new OpenReport(RenderStatus.FileTimeout, "The file's time limit ran out while opening.", (long)_options.FileTimeout.TotalMilliseconds);
             }
         }
+        catch (OperationCanceledException)
+        {
+            // Ctrl+C: this file is left as far as it got, and says so; the caller stops the run.
+            file.Problems.Add("The run was stopped while this file was being rendered.");
+            foreach (var page in file.Pages.Where(p => p.Status == RenderStatus.NotRun))
+            {
+                page.Status = RenderStatus.Skipped;
+            }
+        }
         catch (EngineStartException e)
         {
             file.Open = new OpenReport(nameof(Status.EngineCrashed), "No sandboxed engine could be started: " + e.Message, 0);
+        }
+        catch (Exception e) when (e is not OutOfMemoryException)
+        {
+            // Nothing a file does may end the run, and nothing the tool trips over on one file may hide the others: it is recorded, and fails the gate.
+            file.Problems.Add($"The tool failed on this file: {e.GetType().Name}: {e.Message}");
+            if (file.Open.Status == "NotRun")
+            {
+                file.Open = new OpenReport("InternalError", e.Message, 0);
+            }
         }
         finally
         {
@@ -134,6 +150,18 @@ internal sealed class RenderRun
         }
 
         return file;
+    }
+
+    private static long SizeOf(string path)
+    {
+        try
+        {
+            return new FileInfo(path).Length;
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+        {
+            return -1; // the open will say why
+        }
     }
 
     private async Task OpenAndRenderAsync(WorkItem item, FileReport file, CancellationToken cancellationToken)

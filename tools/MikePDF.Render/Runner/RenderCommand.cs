@@ -16,6 +16,8 @@ internal static class RenderCommand
     public const int GateFailed = 1;
     public const int CouldNotRun = 2;
 
+    private static readonly string[] PictureFolders = ["diff", "png"];
+
     public static async Task<int> RunAsync(IReadOnlyList<string> args, TextWriter output, TextWriter error, CancellationToken cancellationToken)
     {
         RenderOptions options;
@@ -61,6 +63,11 @@ internal static class RenderCommand
 
         var outDirectory = Path.GetFullPath(options.OutDirectory);
         Directory.CreateDirectory(outDirectory);
+        // Pictures from an earlier run in the same folder would pass for this run's failures.
+        foreach (var stale in PictureFolders.Select(name => Path.Combine(outDirectory, name)).Where(Directory.Exists))
+        {
+            Directory.Delete(stale, recursive: true);
+        }
         var workDirectory = Path.GetFullPath(options.WorkDirectory ?? Locations.DefaultWorkDirectory());
 
         SandboxedEngineHost host;
@@ -97,7 +104,7 @@ internal static class RenderCommand
                 return CouldNotRun;
             }
 
-            var run = new RenderRun(options, host, reference, outDirectory, clock, line => output.WriteLine(line));
+            var run = new RenderRun(options, host, reference, outDirectory, line => output.WriteLine(line));
             var files = await run.RunAsync(items, cancellationToken).ConfigureAwait(false);
             var interrupted = cancellationToken.IsCancellationRequested;
 
