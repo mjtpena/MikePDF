@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using MikePDF.Broker;
 using MikePDF.Core.Printing;
 using MikePDF.Integration.Tests.Support;
 using MikePDF.Printing;
@@ -23,7 +24,36 @@ public sealed class PrintRecoveryTests(SandboxFixture sandbox)
         MaxEngineCrashes = maxCrashes,
     };
 
-    private static void KillEngine(PrintSession session) => session.Engine.Supervisor.CurrentProcess!.Kill(1);
+    private static void KillEngine(PrintSession session) => session.Engine.Supervisor.CurrentProcess?.Kill(1);
+
+    // The engine is killed with a call in flight: the process is terminated right before a RenderBand call is issued, so the call meets a dead pipe and ends EngineCrashed, which is what
+    // a crash during a render looks like to the job. (A kill between two calls is not seen by the job at all: the supervisor has restarted the engine before the next call, which waits
+    // for it. That is recovery working, and nothing for the job to count.)
+    private sealed class KillingSource(PrintSession session, Func<int, bool> killBeforeCall) : IPrintSource
+    {
+        private int _calls;
+
+        public int Kills { get; private set; }
+
+        public int SlotBytes => session.Source.SlotBytes;
+
+        public Task<(Status Status, PrintDocumentInfo? Info)> GetInfoAsync(CancellationToken cancellationToken) => session.Source.GetInfoAsync(cancellationToken);
+
+        public Task<(Status Status, IReadOnlyList<MikePDF.Core.Geometry.SizeD> Sizes)> GetPageSizesAsync(int first, int count, CancellationToken cancellationToken) => session.Source.GetPageSizesAsync(first, count, cancellationToken);
+
+        public Task<GetViewerPreferencesReply?> GetViewerPreferencesAsync(CancellationToken cancellationToken) => session.Source.GetViewerPreferencesAsync(cancellationToken);
+
+        public Task<BandResult> RenderBandAsync(RenderBandArgs args, ulong generation, TimeSpan deadline, CancellationToken cancellationToken)
+        {
+            if (killBeforeCall(Interlocked.Increment(ref _calls)))
+            {
+                Kills++;
+                KillEngine(session);
+            }
+
+            return session.Source.RenderBandAsync(args, generation, deadline, cancellationToken);
+        }
+    }
 
     [Fact]
     public async Task AnEngineKilledMidJobIsReplacedAndTheJobFinishesWithEveryPageOnceAndTheSamePixels()
@@ -43,20 +73,12 @@ public sealed class PrintRecoveryTests(SandboxFixture sandbox)
         await using (var session = await harness.OpenAsync(pdf, options))
         {
             var firstEngine = session.Engine.EngineProcessId;
-            var kills = 0;
-            killed.AfterDraw = draws =>
-            {
-                if (draws is 1 or 3) // the band after the next one is still to be asked for, so a kill is always noticed
-                {
-                    kills++;
-                    KillEngine(session);
-                }
-            };
-            var result = await PrintJob.RunAsync(Request(6, options), session.Source, new FixedDeviceFactory(killed));
+            var source = new KillingSource(session, call => call is 2 or 5); // two crashes, with pages between them
+            var result = await PrintJob.RunAsync(Request(6, options), source, new FixedDeviceFactory(killed));
 
             Assert.True(result.Completed, $"{result.Outcome}: {result.Detail}");
-            Assert.Equal(2, kills);
-            Assert.Equal(2, result.EngineCrashes);
+            Assert.Equal(2, source.Kills);
+            Assert.InRange(result.EngineCrashes, 1, 2); // seen by the job when a call was in flight; the supervisor counts both below
             Assert.NotEqual(firstEngine, session.Engine.EngineProcessId);
             Assert.True(session.Engine.RestartCount >= 2);
         }
@@ -76,8 +98,8 @@ public sealed class PrintRecoveryTests(SandboxFixture sandbox)
         var options = new PrintOptions { Scaling = PrintScaling.Fit, FormFields = false };
         await using var session = await harness.OpenAsync(PrintFixtures.Text(8), options);
         var device = new BitmapDevice(A4At150);
-        device.AfterDraw = _ => KillEngine(session); // the engine dies after every band
-        var result = await PrintJob.RunAsync(Request(8, options), session.Source, new FixedDeviceFactory(device));
+        var source = new KillingSource(session, _ => true); // the engine dies under every call
+        var result = await PrintJob.RunAsync(Request(8, options), source, new FixedDeviceFactory(device));
 
         Assert.Equal(PrintOutcome.Failed, result.Outcome);
         Assert.Equal(Status.EngineCrashed, result.EngineStatus);
