@@ -36,6 +36,9 @@ internal static partial class AppPaths
     /// <summary>The settings file (settings.json) and the shortcut/command history, in the private folder: the sandboxed engine cannot reach them (ADR-0004 A2).</summary>
     public static string SettingsPath => Path.Combine(PrivateDirectory, "settings.json");
 
+    /// <summary>The windows and tabs that were open (docs/features/tabs-windows-session.md 3.6): paths and view state, never a password. In the private folder, like every file the engine must not reach.</summary>
+    public static string SessionPath => Path.Combine(PrivateDirectory, "session.json");
+
     public static string CommandHistoryPath => Path.Combine(PrivateDirectory, "palette-history.json");
 
     /// <summary>The engine, beside the executable. It runs from here: in a package this is under WindowsApps, which Windows protects and the package signature covers.</summary>

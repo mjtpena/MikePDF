@@ -146,6 +146,45 @@ public sealed class SettingsPage(MikePDFApp app)
 /// <summary>The packaged app's own data, which stays between launches within a run: the journeys that change settings start from none and leave none.</summary>
 public static class AppData
 {
+    /// <summary>The private folder of the registered package, or null when there is none.</summary>
+    public static string? PrivateFolder()
+    {
+        var packages = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Packages");
+        return Directory.Exists(packages) ? Directory.EnumerateDirectories(packages, "*MikePDF*").Select(p => Path.Combine(p, "LocalState", "private")).FirstOrDefault(Directory.Exists) : null;
+    }
+
+    /// <summary>The bytes of session.json, or null when there is none.</summary>
+    public static byte[]? ReadSession()
+    {
+        try
+        {
+            var path = PrivateFolder() is { } folder ? Path.Combine(folder, "session.json") : null;
+            return path is not null && File.Exists(path) ? File.ReadAllBytes(path) : null;
+        }
+        catch (IOException)
+        {
+            return null; // being replaced at this moment: the caller looks again
+        }
+    }
+
+    public static void DeleteSession()
+    {
+        if (PrivateFolder() is { } folder)
+        {
+            foreach (var name in new[] { "session.json", "session.json.tmp" })
+            {
+                try
+                {
+                    File.Delete(Path.Combine(folder, name));
+                }
+                catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+                {
+                    // Left for the next run.
+                }
+            }
+        }
+    }
+
     /// <summary>Deletes settings.json (and the history of commands) from the registered package's private folder. The app must not be running.</summary>
     public static void ResetSettings()
     {

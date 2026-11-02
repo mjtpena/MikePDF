@@ -6,6 +6,14 @@ namespace MikePDF.Render.Runner;
 /// <summary><c>mikepdf-render corpus (fetch | verify | check)</c>: the manifest tooling of ADR-0010.</summary>
 internal static class CorpusCommand
 {
+    /// <summary>A client with a User-Agent that says who is asking (Wikimedia and arXiv ask for one) and time enough for the larger files of the core tier.</summary>
+    internal static HttpClient CreateClient()
+    {
+        var client = new HttpClient { Timeout = TimeSpan.FromMinutes(10) };
+        client.DefaultRequestHeaders.UserAgent.ParseAdd("MikePDF-corpus/1.0 (+https://github.com/mjtpena/MikePDF; test corpus fetch, hash-pinned)");
+        return client;
+    }
+
     public static async Task<int> RunAsync(IReadOnlyList<string> args, TextWriter output, TextWriter error, HttpClient? http, CancellationToken cancellationToken)
     {
         if (args.Count == 0 || args[0] is not ("fetch" or "verify" or "check" or "generate"))
@@ -87,7 +95,7 @@ internal static class CorpusCommand
             return mismatches.Count == 0 ? RenderCommand.Passed : RenderCommand.GateFailed;
         }
 
-        var client = http ?? new HttpClient { Timeout = TimeSpan.FromSeconds(60) };
+        var client = http ?? CreateClient();
         try
         {
             var summary = await new CorpusFetcher(client).FetchAsync(manifest, tier, directory, filter, line => output.WriteLine(line), cancellationToken).ConfigureAwait(false);

@@ -26,10 +26,12 @@ internal sealed class Harness : IAsyncDisposable
 
     public SandboxedEngineHost Host { get; }
 
-    public static Harness Create(string purpose)
+    /// <param name="purpose">Names the scratch folder.</param>
+    /// <param name="overdueGrace">How long past its deadline a request may go unanswered before the engine is killed as hung; the tests' default is long so a loaded machine never trips it.</param>
+    public static Harness Create(string purpose, TimeSpan? overdueGrace = null)
     {
         var scratch = LiveEngine.NewScratchDirectory(purpose);
-        return new Harness(scratch, LiveEngine.NewHost(Path.Combine(scratch, "work")));
+        return new Harness(scratch, LiveEngine.NewHost(Path.Combine(scratch, "work"), null, overdueGrace));
     }
 
     public string Write(string name, byte[] bytes)

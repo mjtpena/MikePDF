@@ -10,10 +10,24 @@ internal static partial class ManifestValidator
 {
     public static readonly string[] Tiers = ["smoke", "core", "full"];
 
-    /// <summary>Licences ADR-0003 allows in files that are redistributed. Anything else needs an ADR first.</summary>
-    public static readonly string[] AllowedLicences = ["BSD-3-Clause", "Apache-2.0", "MIT", "CC0-1.0", "LicenseRef-Public-Domain"];
+    /// <summary>Licences allowed in corpus files (ADR-0003 for the permissive ones, ADR-0010's amendment of 2026-11-03 for Creative Commons Attribution). Anything else needs an ADR first.</summary>
+    public static readonly string[] AllowedLicences =
+    [
+        "BSD-3-Clause", "Apache-2.0", "MIT", "CC0-1.0", "LicenseRef-Public-Domain", "CC-BY-2.0", "CC-BY-2.5", "CC-BY-3.0", "CC-BY-4.0",
+    ];
 
     public const int SmokeMinimumFiles = 30;
+
+    private static readonly string[] EngineEventKinds = ["crash", "hang"];
+
+    /// <summary>§12.2 aims at about 5,000 core files. This is the floor below which the manifest check says the tier has not been built, not the target.</summary>
+    public const int CoreMinimumFiles = 300;
+
+    /// <summary>What the core tier must cover (§12.2, brief W2-corpus): scanned, tagged, forms, large page counts, CJK, RTL, transparency, annotations, encryption, broken files.</summary>
+    public static readonly string[] CoreCoverage =
+    [
+        "scanned", "tagged", "form", "huge-page-count", "cjk", "rtl", "transparency", "annotation", "encrypted", "broken-xref", "broken-structure",
+    ];
 
     /// <summary>What the smoke tier must cover (§17 M1, brief W1-render): every one of these tags on at least one file.</summary>
     public static readonly string[] SmokeCoverage =
@@ -65,6 +79,31 @@ internal static partial class ManifestValidator
             foreach (var tier in file.Tiers.Where(t => !Tiers.Contains(t, StringComparer.Ordinal)))
             {
                 problems.Add($"{at}: unknown tier '{tier}'.");
+            }
+
+            if (file.Tiers.Count > 0 && !file.Tiers.Contains("smoke", StringComparer.Ordinal) && string.IsNullOrWhiteSpace(file.LicenceEvidence))
+            {
+                problems.Add($"{at}: a file outside the smoke tier needs licenceEvidence (where its licence was read, per file or per source).");
+            }
+
+            if (file.Expect.EngineEvent is { } engineEvent && engineEvent is not ("crash" or "hang"))
+            {
+                problems.Add($"{at}: expect.engineEvent must be 'crash' or 'hang'.");
+            }
+
+            if (file.Expect.EngineEvent is not null && !file.Expect.Opens)
+            {
+                problems.Add($"{at}: a file made to take the engine down must open (the crash or hang comes while rendering).");
+            }
+
+            if (file.Expect.KnownIssue is not null && file.Expect.Status == "Ok")
+            {
+                problems.Add($"{at}: expect.knownIssue is for a file that should open and does not; its status is not Ok.");
+            }
+
+            if (file.Render?.TileDeadlineMs is <= 0)
+            {
+                problems.Add($"{at}: render.tileDeadlineMs must be positive.");
             }
 
             switch (file.Origin)
@@ -122,6 +161,26 @@ internal static partial class ManifestValidator
             foreach (var tag in SmokeCoverage.Where(tag => !smoke.Any(f => f.Tags.Contains(tag, StringComparer.Ordinal))))
             {
                 problems.Add($"The smoke tier has no file tagged '{tag}'.");
+            }
+
+            foreach (var kind in EngineEventKinds.Where(kind => !smoke.Any(f => f.Expect.EngineEvent == kind)))
+            {
+                problems.Add($"The smoke tier has no file that makes the engine {kind} (expect.engineEvent '{kind}'): the gate would not exercise that recovery.");
+            }
+        }
+
+        var core = manifest.Files.Where(f => f.Tiers.Contains("core", StringComparer.Ordinal)).ToList();
+        if (core.Count > 0)
+        {
+            var inCore = CorpusStore.InTier(manifest, "core").ToList();
+            if (inCore.Count < CoreMinimumFiles)
+            {
+                problems.Add($"The core tier has {inCore.Count} files; at least {CoreMinimumFiles} are expected (ADR-0010, §12.2).");
+            }
+
+            foreach (var tag in CoreCoverage.Where(tag => !inCore.Any(f => f.Tags.Contains(tag, StringComparer.Ordinal))))
+            {
+                problems.Add($"The core tier has no file tagged '{tag}'.");
             }
         }
 

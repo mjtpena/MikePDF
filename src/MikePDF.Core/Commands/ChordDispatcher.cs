@@ -84,7 +84,7 @@ public sealed class ChordDispatcher
         var command = matches.OrderBy(Specificity).FirstOrDefault();
         if (command is null)
         {
-            return input.SurfaceFocused && !input.PaletteOpen && _registry.FreedSurfaceChords.Contains(chord) ? DispatchResult.Swallow : DispatchResult.NotHandled;
+            return DispatchResult.NotHandled; // a key that no command holds (an unbound default too) is left for the focused control: the page surface acts on none of the command keys
         }
 
         var availability = command.CanExecute(input.Context);

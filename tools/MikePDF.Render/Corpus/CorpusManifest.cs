@@ -62,6 +62,12 @@ internal sealed record CorpusFile
 
     public bool Redistributable { get; init; }
 
+    /// <summary>Where the licence of this file (not just of its source's repository) was read: a URL or a short statement. Required for files outside the smoke tier.</summary>
+    public string? LicenceEvidence { get; init; }
+
+    /// <summary>The result of the per-file licence audit: what was checked, by whom and when, and anything noted. Absent means the file was not audited individually.</summary>
+    public string? Audit { get; init; }
+
     public required string Sha256 { get; init; }
 
     public long Bytes { get; init; }
@@ -91,6 +97,21 @@ internal sealed record CorpusExpect
 
     public bool AllowsPartialRender { get; init; }
 
+    /// <summary>The document opens but some of its pages cannot be loaded (a page tree broken on purpose, a page of the wrong type): those pages end <c>Damaged</c> and that is the expected result. Other failures still fail the gate.</summary>
+    public bool AllowsDamagedPages { get; init; }
+
+    /// <summary>
+    /// <c>crash</c> or <c>hang</c>: the file is made to take the engine down (it runs it out of memory, or PDFium spins inside one drawing operation), and a run
+    /// must see exactly that, and see the engine replaced. A run that does not is a failure: the file would no longer exercise recovery. Implies <see cref="AllowsEngineCrash"/>.
+    /// </summary>
+    public string? EngineEvent { get; init; }
+
+    /// <summary>
+    /// Set on a real-world file that should open but, when it was added, did not (a PDFium limitation, not a file broken on purpose). It still counts as a file that
+    /// should open, so it lowers the open-success rate (§0.3) instead of hiding among the expected failures. The text says what is known.
+    /// </summary>
+    public string? KnownIssue { get; init; }
+
     public string? Note { get; init; }
 }
 
@@ -98,6 +119,12 @@ internal sealed record CorpusRender
 {
     /// <summary>Which pages a run renders (a page spec). Used for files with thousands of pages, where all of them would take too long for a smoke run.</summary>
     public string? Pages { get; init; }
+
+    /// <summary>A tile deadline for this file, in milliseconds, instead of the run's. A file made to hang the engine uses a short one so the gate stays quick.</summary>
+    public int? TileDeadlineMs { get; init; }
+
+    /// <summary>False for a file the reference renderer would also hang or crash on: it is rendered through the engine only and has no SSIM.</summary>
+    public bool? Reference { get; init; }
 }
 
 internal sealed record ExcludedSource
