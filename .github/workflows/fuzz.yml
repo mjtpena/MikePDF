@@ -8,6 +8,8 @@ name: Fuzz
 # every push. How the nightly run is verified after the merge is in docs/fuzzing.md, "Verifying the scheduled workflow".
 
 on:
+  push: # TEMPORARY: exercise this workflow on the branch before it exists on main; removed in the next commit
+    branches: ['m1/fuzzing']
   schedule:
     - cron: '17 2 * * *' # 02:17 UTC every night
   workflow_dispatch:
@@ -75,8 +77,8 @@ jobs:
     runs-on: windows-2025-vs2026
     timeout-minutes: 355
     env:
-      MINUTES: ${{ inputs.minutes || '300' }}
-      PROCESSES: ${{ inputs.processes || '3' }}
+      MINUTES: ${{ inputs.minutes || (github.event_name == 'push' && '2' || '300') }}
+      PROCESSES: ${{ inputs.processes || (github.event_name == 'push' && '2' || '3') }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
