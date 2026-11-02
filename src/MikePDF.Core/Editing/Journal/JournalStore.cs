@@ -11,6 +11,9 @@ public sealed class JournalStore
 {
     public const string Extension = ".jsonl";
 
+    /// <summary>The <see cref="JournalReadResult.Problem"/> of a journal that another process has open.</summary>
+    public const string InUse = "The journal is in use by another instance.";
+
     private readonly IJournalFileSystem _files;
 
     public JournalStore(string directory, IJournalFileSystem? files = null, JournalLimits? limits = null)
@@ -72,6 +75,11 @@ public sealed class JournalStore
         try
         {
             return JournalCodec.Parse(File.ReadAllBytes(path), Limits);
+        }
+        catch (IOException e) when ((e.HResult & 0xFFFF) is 32 or 33)
+        {
+            // Another instance of the app is editing this document: its journal is open exclusively. Not a damaged journal, and not ours to touch.
+            return new JournalReadResult(JournalReadStatus.Unreadable, null, [], 0, length, InUse);
         }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException)
         {

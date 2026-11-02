@@ -69,6 +69,11 @@ public sealed class RecoveryService(JournalStore store)
             return null;
         }
 
+        if (read.Problem == JournalStore.InUse)
+        {
+            return null; // being edited right now by another instance of the app
+        }
+
         if (read.Status is JournalReadStatus.Unreadable or JournalReadStatus.TooLarge || read.Header is null)
         {
             return new RecoveryCandidate(journalPath, null, RecoveryAction.Unreadable, read, new RecoverySummary(0, 0, 0, null), none);

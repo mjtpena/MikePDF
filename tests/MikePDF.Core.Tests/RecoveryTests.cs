@@ -224,6 +224,23 @@ public sealed class RecoveryTests : IDisposable
     }
 
     [Fact]
+    public void AJournalThatAnotherInstanceHasOpenIsNeitherOfferedNorTouched()
+    {
+        var store = Store();
+        var document = Document();
+        var (session, journalPath) = Start(store, document);
+        session.Model.Apply(Edits.Add());
+
+        // The first session is still editing: its journal is held exclusively.
+        var found = new RecoveryService(Store()).Scan();
+
+        Assert.Empty(found);
+        Assert.True(File.Exists(journalPath));
+        session.Dispose();
+        Assert.Single(new RecoveryService(Store()).Scan()); // once it is closed without a save, it is unsaved work
+    }
+
+    [Fact]
     public void AnEmptyJournalIsRemovedAndAnUnreadableOneIsOfferedForDiscard()
     {
         var store = Store();
