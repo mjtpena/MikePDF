@@ -74,6 +74,9 @@ Found while reviewing wave 1. Each gets a work package or joins one.
 | `PageSurface` still has its own key handler for navigation keys; move them into the command dispatcher | W2-commands | Tabs WP (app-shell owner) |
 | The engine memory-limit policy is read (`PolicySnapshot.EngineMemoryLimitMb`) but not applied to the broker | W2-commands | Wave 2 |
 | The pool engine's 32-document limit is now the effective limit on open tabs | W2-engine | Tabs WP |
+| Form field contents don't print: the engine refuses `RenderBand` flag bit 1, because widgets need `FPDF_FFLDraw`. A v1.0 blocker | W2-print-core | Next engine WP, before the print sheet |
+| The print sheet UI: strings in `PrintStrings`, `print.*` settings keys for last-used values, and PRINT-13, -21 and -22 | W2-print-core | Print sheet WP, after the tabs WP |
+| Print to physical, PCL, PostScript, duplex and XPS printers, ARM64 printing, and the 1,000-page job are unverified | W2-print-core | Print sheet WP (XPS, 1,000 pages); the user (physical printers) |
 | The user-level policy comment says "stricter than the default", but the code compares against the least strict allowed value | W2-commands review | Wave 2 |
 
 ## What only the user can do

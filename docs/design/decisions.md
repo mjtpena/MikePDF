@@ -45,3 +45,11 @@ The ADR-0005, ADR-0008 and spec amendments proposed in the S10 and S11 reports a
 | Thumbnails when MikePDF isn't the default (OQ-SHELL-14) | Product owner to decide. Default until then: on, with a setting and a policy to turn them off |
 
 The shell-extensions work package applies the ten spec corrections in the S6b report as part of its first change.
+
+## After the print pipeline review (2026-11-03)
+| Item | Decision |
+|---|---|
+| PRINT-06, bands against a whole-page render | Amended: at most 0.3% of pixels may differ, none within 1 pixel of a band boundary, solid content identical. The cause is PDFium's float band offset (measured about 0.1%, on anti-aliased edges) |
+| SSIM floor for printed pages | ADR-0011's 0.99 stays the target. 0.98 is accepted for shrunk text (custom scale below 100%) printed to Microsoft Print to PDF until the cause (suspected: the queue's image re-encoding) is isolated |
+| Multiple pages per sheet | Offered in the print sheet: 2, 4, 6, 9 and 16 per sheet, as the pipeline already supports |
+| Printing form field contents (PRINT-15) | A v1.0 blocker. The engine must draw widgets with `FPDF_FFLDraw` when `RenderBand` flag bit 1 is set. Goes to the next engine work package, before the print sheet ships |

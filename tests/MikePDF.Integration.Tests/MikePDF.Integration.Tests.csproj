@@ -1,6 +1,8 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <ItemGroup>
     <ProjectReference Include="..\..\src\MikePDF.Broker\MikePDF.Broker.csproj" />
+    <ProjectReference Include="..\..\src\MikePDF.Core\MikePDF.Core.csproj" />
+    <ProjectReference Include="..\..\src\MikePDF.Printing\MikePDF.Printing.csproj" />
     <!-- The tests compare the sandboxed host with an in-process validation of the same files (an oracle, not a product use). -->
     <ProjectReference Include="..\..\src\MikePDF.PdfWriter\MikePDF.PdfWriter.csproj" />
     <ProjectReference Include="..\..\src\MikePDF.Protocol\MikePDF.Protocol.csproj" />
@@ -10,6 +12,11 @@
   <ItemGroup>
     <!-- Small PDFium test PDFs (BSD-3-Clause), see Fixtures/MANIFEST.md. -->
     <Content Include="Fixtures\**" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- The visual-diff tool's image type and SSIM (ADR-0011 decision 5 compares printed output with them), compiled in rather than referenced: the tool is an executable. -->
+    <Compile Include="..\..\tools\MikePDF.Render\Imaging\Ssim.cs" Link="Printing\Linked\Ssim.cs" />
+    <Compile Include="..\..\tools\MikePDF.Render\Imaging\BgraImage.cs" Link="Printing\Linked\BgraImage.cs" />
   </ItemGroup>
   <PropertyGroup>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
