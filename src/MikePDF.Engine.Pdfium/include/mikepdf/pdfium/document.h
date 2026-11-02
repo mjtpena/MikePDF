@@ -8,6 +8,7 @@
 #include <memory>
 #include <span>
 #include <string_view>
+#include <vector>
 
 #include "mikepdf/protocol/enums.h"
 #include "mikepdf/protocol/messages.h"
@@ -29,6 +30,11 @@ inline constexpr std::uint32_t kRenderAnnotations = 1;
 /// FPDF_ANNOT skips every one. The environment is made on the first request that asks for this and lives as long as the document. It has no scripting,
 /// no callbacks and no field highlight: the pixels are what the file (or a printer) shows.
 inline constexpr std::uint32_t kRenderFormFields = 2;
+/// RenderTile only: dark pages. The tile is drawn as the file draws it and then recoloured the way the app's inverted page colour does it (lightness turned over, hue kept:
+/// white paper becomes about 7% grey, black text about 95% white), except for colour photographs, which keep their own colours. Which images are photographs: a picture
+/// of at least 16 x 16 pixels, with more than one bit a pixel, that covers less than 90% of the page and in which fewer than 55% of a sample of its pixels are near white. Scans,
+/// line art and diagrams (mostly white paper) are recoloured with the rest of the page. The meaning of bit 2 of RenderBand is another one (below).
+inline constexpr std::uint32_t kRenderDarkPage = 4;
 /// RenderBand only: PDFium's printing mode (no screen-only annotations, no LCD text).
 inline constexpr std::uint32_t kRenderPrinting = 4;
 
@@ -148,6 +154,24 @@ private:
     /// The form-fill environment of this document, made on first use. Null when PDFium refuses to make one.
     [[nodiscard]] FormFill* form_fill();
 
+    /// Whether the page draws an image through a matrix that is neither axis-aligned nor a quarter turn (a skewed scan). PDFium draws such an image with its image
+    /// transformer, which takes the shear from the corner of the clip rectangle instead of the corner of the image, so a window of the page that does not start at the
+    /// page's own corner shows the image shifted by up to a few pixels against the whole-page picture. The answer for the last page asked about is remembered.
+    [[nodiscard]] bool has_skewed_image(fpdf_page_t__* page, std::uint32_t index);
+
+    /// The rectangles of the page's colour photographs in page space (left, bottom, right, top), for dark pages. Found once per page (the last page asked about is remembered):
+    /// the images are decoded to look at a sample of their pixels, which costs about as much as drawing them.
+    struct PhotoRect {
+        float left, bottom, right, top;
+    };
+    [[nodiscard]] const std::vector<PhotoRect>& photo_rects(fpdf_page_t__* page, std::uint32_t index);
+
+    /// Draws the window [x, x + width) x [y, y + height) of a page laid out at `size_x` x `size_y` device pixels into `destination` (rows `stride` bytes apart): a tile or a band.
+    /// A window that does not start at the page's corner of a page with a skewed image is drawn from the corner instead, into a scratch bitmap that is cropped (when it fits
+    /// the budget), so that it is the same pixels as that part of the whole page drawn at once.
+    [[nodiscard]] protocol::Status render_window(fpdf_page_t__* page, std::uint32_t index, int x, int y, int width, int height, int size_x, int size_y, int rotate,
+                                                 bool with_forms, int flags, std::uint8_t* destination, std::uint32_t stride, const InterruptCheck& interrupt);
+
     /// Draws a loaded page into `bitmap` and, when `with_forms`, the widgets of its form fields on top of it with the same transform. Shared by tiles and bands so that
     /// both draw a widget the same way. Unsupported when PDFium cannot make the form-fill environment.
     [[nodiscard]] protocol::Status render_page(fpdf_bitmap_t__* bitmap, fpdf_page_t__* page, int start_x, int start_y, int size_x, int size_y, int rotate,
@@ -157,6 +181,10 @@ private:
     std::uint32_t page_count_{0};
     std::unique_ptr<PageCache, PageCacheDeleter> cache_;
     std::unique_ptr<FormFill, FormFillDeleter> form_;
+    std::uint32_t photo_page_{0xFFFFFFFFu};
+    std::vector<PhotoRect> photos_;
+    std::uint32_t skew_page_{0xFFFFFFFFu};
+    bool skew_value_{false};
 };
 
 }  // namespace mikepdf::pdfium

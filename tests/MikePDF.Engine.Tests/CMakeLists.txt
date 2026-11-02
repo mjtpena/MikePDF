@@ -4,6 +4,8 @@ add_executable(mikepdf_engine_tests
   reader_gaps_tests.cpp
   schema5_tests.cpp
   forms_tests.cpp
+  tile_consistency_tests.cpp
+  dark_page_tests.cpp
   engine_core_tests.cpp
   library_tests.cpp
   protocol_tests.cpp)

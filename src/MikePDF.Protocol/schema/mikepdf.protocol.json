@@ -329,7 +329,7 @@
           { "key": 4, "name": "tileY", "type": "i32", "min": -16777216, "max": 16777216 },
           { "key": 5, "name": "tileWidth", "type": "u32", "min": 1, "max": 1024 },
           { "key": 6, "name": "tileHeight", "type": "u32", "min": 1, "max": 1024 },
-          { "key": 7, "name": "flags", "type": "u32", "max": 3, "doc": "Bit 0 annotations, bit 1 form fields." },
+          { "key": 7, "name": "flags", "type": "u32", "max": 7, "doc": "Bit 0 annotations, bit 1 form fields, bit 2 dark pages (the tile is recoloured the way the inverted page colour does it, except for colour photographs). Bit 2 means printing mode in RenderBand: the two messages have their own flags." },
           { "key": 8, "name": "slotIndex", "type": "u32", "max": 1023 },
           { "key": 9, "name": "generation", "type": "u64" }
         ]

@@ -219,7 +219,7 @@ void exercise(pdfium::Document& doc, Picker& pick) {
         request.tile_width = pick.next(4) == 0 ? kTileSides[pick.next(6)] : kTileSides[pick.next(3)];
         request.tile_height = pick.next(4) == 0 ? kTileSides[pick.next(6)] : kTileSides[pick.next(3)];
         // Bit 1 (form fields) makes the form-fill environment and draws the widgets: PDFium's form code parses every field of the file, so a quarter of the tiles ask for it.
-        request.flags = pick.next(4) == 0 ? 2 + pick.next(2) : pick.next(2);
+        request.flags = (pick.next(4) == 0 ? 2 + pick.next(2) : pick.next(2)) | (pick.next(5) == 0 ? 4 : 0);  // bit 2: dark pages decode every image of the page to tell photographs from scans
         const std::uint32_t stride = request.tile_width * 4;
         std::vector<std::uint8_t> pixels(static_cast<std::size_t>(stride) * request.tile_height);
         const auto interrupt = [&]() -> pdfium::RenderInterrupt {

@@ -264,7 +264,7 @@ TEST_F(DocumentTest, RenderRejectsBadArguments) {
     forms.flags = pdfium::kRenderFormFields;  // the form layer draws now: see forms_tests.cpp
     EXPECT_EQ(doc.render_tile(forms, buffer, 256, kNever), Status::Ok);
     TileRequest unknown_flag = good;
-    unknown_flag.flags = 4;
+    unknown_flag.flags = 8;
     EXPECT_EQ(doc.render_tile(unknown_flag, buffer, 256, kNever), Status::InvalidArgument);
 }
 
