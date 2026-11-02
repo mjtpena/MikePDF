@@ -1,5 +1,5 @@
 # ADR-0011: Printing
-- Status: **Proposed.** Measured on one machine and one virtual printer (Microsoft Print to PDF). Physical PCL, PostScript, duplex and ARM64 printing, the XPS route and the PrintManager runtime path are unverified
+- Status: **Accepted** by Opus on 2026-11-02, on the S12 evidence. Still unverified: Measured on one machine and one virtual printer (Microsoft Print to PDF). Physical PCL, PostScript, duplex and ARM64 printing, the XPS route and the PrintManager runtime path are unverified
 - Date: 2026-11-02
 - Deciders: Opus (approver), Sonnet (S12 evidence)
 

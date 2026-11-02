@@ -21,3 +21,9 @@
 | Q14 | Share is deferred to v1.x. It isn't in v1.0 | It sends the file elsewhere; it needs its own privacy review |
 | Q15 | Open: a wave 2 research item. Headings come from the structure tree (`FPDF_StructTree_*`) when the PDF is tagged, exposed through the Text pattern's heading attributes. Scenario 6 can't be claimed until a manual NVDA pass shows it works | Needs a spike before a design |
 | Q16 | The Ask tab isn't shown, even disabled, before M7 | No placeholder UI for unbuilt features |
+
+## After the M4 spikes (2026-11-02)
+| Item | Decision |
+|---|---|
+| Annotation display | S9's hybrid (annotation-core 3.3 option 4): a retained overlay with cached tessellation, a raster-cache layer over 100 strokes, highlights drawn with Multiply through Win2D `BlendEffect` using PDFium's pixel-grid rectangle fill, and the hidden-flag mirror for moved or deleted originals. The flag is always restored before a save. FreeText gets its own visual threshold |
+| Printing | ADR-0011 accepted: a MikePDF print sheet, with GDI printing from the broker. The engine stays bitmap-only and keeps its sandbox |
