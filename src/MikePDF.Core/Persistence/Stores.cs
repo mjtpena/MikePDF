@@ -8,8 +8,15 @@ namespace MikePDF.Core.Persistence;
 /// <summary>A document opened recently. Stored on this device only; nothing is sent anywhere (master prompt 14).</summary>
 public sealed record RecentFile(string Path, DateTimeOffset LastOpened);
 
-/// <summary>Where a document was left: the page at the top of the window, how far down it, and how it was viewed.</summary>
-public sealed record DocumentPosition(string Path, int Page, double PageFraction, double Zoom, FitMode Fit, int ViewTurns, DateTimeOffset Saved);
+/// <summary>
+/// Where a document was left: the page at the top of the window, how far down it, and how it was viewed. The view mode is kept as names (a name written by another version never
+/// makes the file unreadable); a record without them is single pages, continuous, automatic direction.
+/// </summary>
+public sealed record DocumentPosition(string Path, int Page, double PageFraction, double Zoom, FitMode Fit, int ViewTurns, DateTimeOffset Saved, string Arrangement = nameof(PageArrangement.OnePage), string Flow = nameof(PageFlow.Continuous), string Direction = nameof(ReadingDirection.Auto))
+{
+    [JsonIgnore]
+    public ViewMode Mode => ViewMode.Parse(Arrangement, Flow, Direction);
+}
 
 public sealed class StoreData
 {
@@ -196,7 +203,7 @@ public sealed class DocumentStore
         }
     }
 
-    public void SavePosition(string path, int page, double pageFraction, double zoom, FitMode fit, int viewTurns)
+    public void SavePosition(string path, int page, double pageFraction, double zoom, FitMode fit, int viewTurns, ViewMode mode = default)
     {
         var full = Normalize(path);
         lock (_gate)
@@ -207,7 +214,7 @@ public sealed class DocumentStore
             }
 
             _data.Positions.RemoveAll(p => Same(p.Path, full));
-            _data.Positions.Add(new DocumentPosition(full, Math.Max(0, page), Math.Clamp(pageFraction, 0, 1), ZoomMath.Clamp(zoom), fit, viewTurns, _time.GetUtcNow()));
+            _data.Positions.Add(new DocumentPosition(full, Math.Max(0, page), Math.Clamp(pageFraction, 0, 1), ZoomMath.Clamp(zoom), fit, viewTurns, _time.GetUtcNow(), Enum.IsDefined(mode.Arrangement) ? mode.Arrangement.ToString() : nameof(PageArrangement.OnePage), Enum.IsDefined(mode.Flow) ? mode.Flow.ToString() : nameof(PageFlow.Continuous), Enum.IsDefined(mode.Direction) ? mode.Direction.ToString() : nameof(ReadingDirection.Auto)));
             _data.Positions = [.. _data.Positions.OrderByDescending(p => p.Saved).Take(MaxPositions)];
             Save();
         }

@@ -102,6 +102,9 @@ public static class SessionCodec
                     w.WriteNumber("zoom", tab.View.Zoom);
                     w.WriteString("fit", tab.View.Fit.ToString());
                     w.WriteNumber("viewTurns", tab.View.ViewTurns);
+                    w.WriteString("arrangement", tab.View.Mode.Arrangement.ToString());
+                    w.WriteString("flow", tab.View.Mode.Flow.ToString());
+                    w.WriteString("direction", tab.View.Mode.Direction.ToString());
                     w.WriteBoolean("suspended", tab.Suspended);
                     w.WriteEndObject();
                 }
@@ -221,7 +224,9 @@ public static class SessionCodec
                 return null;
             }
 
-            tabs.Add(new SessionTab(kind, path, fileId, title, new TabViewState(page, fraction, zoom, fit, turns), suspended));
+            // The view mode is optional (a file from before it existed has none) and forgiving: a name that is not one of ours is the default, it never rejects the file.
+            var mode = ViewMode.Parse(OptionalText(t, "arrangement"), OptionalText(t, "flow"), OptionalText(t, "direction"));
+            tabs.Add(new SessionTab(kind, path, fileId, title, new TabViewState(page, fraction, zoom, fit, turns, mode), suspended));
         }
 
         problem = SessionProblem.None;
@@ -229,6 +234,8 @@ public static class SessionCodec
     }
 
     private static bool HasProperty(JsonElement e, string name) => e.TryGetProperty(name, out _);
+
+    private static string? OptionalText(JsonElement e, string name) => Text(e, name, out var value, 32) ? value : null;
 
     private static bool Bool(JsonElement e, string name, out bool value)
     {
