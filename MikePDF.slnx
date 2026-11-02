@@ -13,6 +13,7 @@
     <Project Path="tests/MikePDF.PdfWriter.Tests/MikePDF.PdfWriter.Tests.csproj" />
     <Project Path="tests/MikePDF.UI.Tests/MikePDF.UI.Tests.csproj" />
     <Project Path="tests/MikePDF.Protocol.Tests/MikePDF.Protocol.Tests.csproj" />
+    <Project Path="tests/MikePDF.Render.Tests/MikePDF.Render.Tests.csproj" />
   </Folder>
   <Folder Name="/tests/fuzz/">
     <Project Path="tests/fuzz/MikePDF.PdfWriter.Fuzz/MikePDF.PdfWriter.Fuzz.csproj" />
@@ -20,5 +21,7 @@
   </Folder>
   <Folder Name="/tools/">
     <Project Path="tools/MikePDF.ProtocolGen/MikePDF.ProtocolGen.csproj" />
+    <Project Path="tools/MikePDF.Render/MikePDF.Render.csproj" />
+    <Project Path="tools/MikePDF.Render.Reference/MikePDF.Render.Reference.csproj" />
   </Folder>
 </Solution>
