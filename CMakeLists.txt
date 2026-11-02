@@ -13,6 +13,8 @@ include(MikePDFHardening)
 include(Pdfium)
 
 option(MIKEPDF_BUILD_TESTS "Build native tests" ON)
+# libFuzzer targets (MSVC /fsanitize=fuzzer,address; x64 only). Off by default, see tests/fuzz/CMakeLists.txt.
+option(MIKEPDF_BUILD_FUZZERS "Build native fuzz targets" OFF)
 
 # Generated protocol code (tools/MikePDF.ProtocolGen) lands here.
 set(MIKEPDF_PROTOCOL_CPP_DIR "${CMAKE_SOURCE_DIR}/src/MikePDF.Protocol/generated/cpp")
@@ -33,4 +35,8 @@ if(MIKEPDF_BUILD_TESTS)
   enable_testing()
   add_subdirectory(tests/MikePDF.Engine.Tests)
   add_subdirectory(tests/MikePDF.Engine.SandboxProbe)
+endif()
+
+if(MIKEPDF_BUILD_FUZZERS)
+  add_subdirectory(tests/fuzz)
 endif()
