@@ -10,8 +10,6 @@ namespace MikePDF.App.Services;
 internal static class NativeWindowing
 {
     private const int MonitorDpiEffective = 0;
-    private const uint WmNcLButtonDown = 0x00A1;
-    private const nint HtCaption = 2;
     private const uint WmQueryEndSession = 0x0011;
     private const uint WmEndSession = 0x0016;
 
@@ -55,15 +53,6 @@ internal static class NativeWindowing
     [DllImport("shcore.dll")]
     [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
     private static extern int GetDpiForMonitor(nint monitor, int type, out uint dpiX, out uint dpiY);
-
-    [DllImport("user32.dll")]
-    [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    private static extern bool ReleaseCapture();
-
-    [DllImport("user32.dll")]
-    [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
-    private static extern nint SendMessageW(nint hwnd, uint message, nint wParam, nint lParam);
 
     [DllImport("comctl32.dll")]
     [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
@@ -139,13 +128,6 @@ internal static class NativeWindowing
         var display = DisplayArea.GetFromWindowId(window.Id, DisplayAreaFallback.Nearest).DisplayId.Value.ToString(System.Globalization.CultureInfo.InvariantCulture);
         var dpi = (int)Math.Clamp(GetDpiForWindow(hwnd), 24u, 1000u);
         return (new StoredBounds(rect.X, rect.Y, Math.Max(1, rect.Width), Math.Max(1, rect.Height), dpi, display), maximized);
-    }
-
-    /// <summary>Starts the system's move loop for a window, as if the person had pressed on its title bar. The mouse button must be down.</summary>
-    public static void StartWindowMove(nint hwnd)
-    {
-        ReleaseCapture();
-        SendMessageW(hwnd, WmNcLButtonDown, HtCaption, 0);
     }
 
     private static readonly List<SubclassProc> Procedures = [];
