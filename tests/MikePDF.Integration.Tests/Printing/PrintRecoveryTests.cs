@@ -46,7 +46,7 @@ public sealed class PrintRecoveryTests(SandboxFixture sandbox)
             var kills = 0;
             killed.AfterDraw = draws =>
             {
-                if (draws is 2 or 5)
+                if (draws is 1 or 3) // the band after the next one is still to be asked for, so a kill is always noticed
                 {
                     kills++;
                     KillEngine(session);
