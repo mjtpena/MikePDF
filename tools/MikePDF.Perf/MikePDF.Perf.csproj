@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <AssemblyName>MikePDF.Perf</AssemblyName>
+    <RootNamespace>MikePDF.Perf</RootNamespace>
+    <Description>Performance harness (master prompt 11, 15.1): drives the real sandboxed engine through MikePDF.Broker and measures the budgets that can be measured headlessly.</Description>
+    <!-- A console tool with no synchronisation context: ConfigureAwait adds nothing. -->
+    <NoWarn>$(NoWarn);CA2007</NoWarn>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\MikePDF.Broker\MikePDF.Broker.csproj" />
+    <ProjectReference Include="..\..\src\MikePDF.Core\MikePDF.Core.csproj" />
+    <ProjectReference Include="..\..\src\MikePDF.Protocol\MikePDF.Protocol.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="MikePDF.Perf.Tests" />
+  </ItemGroup>
+</Project>
