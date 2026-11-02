@@ -1,25 +1,41 @@
 name: Performance
 
-# Master prompt 15.1 step 7 and section 11: the headless performance suite against the real sandboxed engine, on every PR, compared with a
-# per-runner baseline in docs/perf/baselines. A regression of more than 10% (after the retries described in docs/perf/README.md) fails the job.
+# Master prompt 15.1 step 7 and section 11: the headless performance suite against the real sandboxed engine, on every PR.
 #
-# GitHub-hosted runners are shared virtual machines and are NOT reference hardware (R-09, R-17, R-19). This job catches regressions against its
-# own baseline; it says nothing about whether a section 11 budget is met. That needs R1, R2 and R3.
+# The gate is a same-runner A/B (docs/perf/README.md, "The regression gate"). One job on one runner builds the base and the head, measures them one
+# after the other in alternating order for several rounds, and fails only when the head is more than 10% worse than the base with the confidence
+# interval to show it is real. A stored baseline from another runner decided this before, and the hosted pool's speed varies by more than 10% from one
+# VM to the next, so the gate failed without a code cause (4 times on 2026-11-02 and -03). The stored baselines in docs/perf/baselines are a trend
+# record now and never gate.
+#
+# GitHub-hosted runners are shared virtual machines and are NOT reference hardware (R-09, R-17, R-19). This job says whether a change made the engine
+# slower than it was; it says nothing about whether a section 11 budget is met. That needs R1, R2 and R3.
 
 on:
   pull_request:
   push:
     branches: [main, 'm[0-9]*/**']
   schedule:
-    # Nightly, so the noise of the hosted runners shows up in artifacts before it shows up in a failed PR.
+    # Nightly: the head against itself (A/A), so the false-positive rate of the gate shows up in artifacts before it shows up in a failed PR.
     - cron: '23 3 * * *'
   workflow_dispatch:
+    inputs:
+      base:
+        description: 'Measure against: empty = automatic; "self" = the head against itself (an A/A run, measures the noise); or a commit, tag or branch.'
+        default: ''
+      plant:
+        description: 'TEST ONLY. Slow every time in the head by this many percent (0 = off) to prove the gate catches a slowdown of a known size.'
+        default: '0'
+      rounds:
+        description: 'Planned A/B rounds (the default is the gate''s).'
+        default: '8'
 
 permissions:
   contents: read
 
 concurrency:
-  group: perf-${{ github.ref }}
+  # A new push to the same ref cancels the run in progress. Manual runs each get a group of their own, so that several A/A runs can be started side by side.
+  group: perf-${{ github.ref }}-${{ github.event_name == 'workflow_dispatch' && github.run_id || 'auto' }}
   cancel-in-progress: true
 
 jobs:
@@ -29,39 +45,147 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # Runner labels are pinned explicitly, never *-latest (ADR-0001). Baselines are per runner and per CPU: docs/perf/baselines/ci-<arch>.<cpu>.json.
+          # Runner labels are pinned explicitly, never *-latest (ADR-0001).
           - arch: x64
             runner: windows-2025-vs2026
           - arch: arm64
             runner: windows-11-vs2026-arm
     runs-on: ${{ matrix.runner }}
-    timeout-minutes: 45
+    # Before: about 4 minutes. Now: two builds (the base is cached when main built it) and 8 to 12 rounds of two runs of about a minute each.
+    timeout-minutes: 60
     env:
       CI: 'true'
       DOTNET_NOLOGO: 'true'
       DOTNET_CLI_TELEMETRY_OPTOUT: 'true'
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # The base can be any earlier commit of main or of the branch.
+          fetch-depth: 0
       - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
         with:
           dotnet-version: '10.0.4xx' # ADR-0001 pin (10.0.403); global.json rolls forward to it
-      - name: Build the engine (native half)
+
+      - name: Choose the base
+        id: choose
         shell: pwsh
-        run: ./build.ps1 -Configuration Release -Arch ${{ matrix.arch }} -SkipManaged
-      - name: Build the harness
+        env:
+          EVENT: ${{ github.event_name }}
+          BASE_INPUT: ${{ inputs.base }}
+          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          PUSH_BEFORE: ${{ github.event.before }}
+        run: |
+          function Resolve-Commit([string] $ref) {
+            if (-not $ref) { return $null }
+            $sha = git rev-parse --verify --quiet "$ref^{commit}" 2>$null
+            if ($LASTEXITCODE -eq 0 -and $sha) { return $sha.Trim() }
+            return $null
+          }
+          $head = (git rev-parse HEAD).Trim()
+          $mode = 'ab'
+          $base = $null
+          $why = ''
+          if ($env:EVENT -eq 'schedule' -or $env:BASE_INPUT -eq 'self') {
+            $mode = 'aa'
+            $why = 'A/A run: the head against itself, to measure the noise of the gate'
+          } elseif ($env:BASE_INPUT) {
+            $base = (Resolve-Commit $env:BASE_INPUT) ?? (Resolve-Commit "origin/$($env:BASE_INPUT)")
+            if (-not $base) { throw "Cannot find '$($env:BASE_INPUT)' in this repository." }
+            $why = "requested: $($env:BASE_INPUT)"
+          } elseif ($env:EVENT -eq 'pull_request') {
+            # The job runs on the merge of the pull request into its base branch. The first parent of that merge is the tip of the base branch: the change
+            # measured is exactly what merging would do.
+            $parents = (git rev-list --parents -n 1 HEAD).Trim().Split(' ')
+            if ($parents.Count -ge 3) { $base = $parents[1]; $why = 'the tip of the branch the pull request merges into' }
+            else { $base = Resolve-Commit $env:PR_BASE_SHA; $why = 'the base commit of the pull request' }
+          } else {
+            $before = if ($env:EVENT -eq 'push') { Resolve-Commit $env:PUSH_BEFORE } else { $null }
+            if ($before) { $base = $before; $why = 'the previous tip of the branch' }
+            else {
+              $base = (git merge-base HEAD origin/main 2>$null)
+              if ($base) { $base = $base.Trim() }
+              $why = 'the merge base with main'
+              if (-not $base -or $base -eq $head) { $base = Resolve-Commit 'HEAD~1'; $why = 'the previous commit' }
+            }
+          }
+          if ($mode -eq 'ab' -and (-not $base -or $base -eq $head)) {
+            $mode = 'aa'
+            $why = 'there is nothing older to compare with: the head against itself'
+            $base = $null
+          }
+          if ($mode -eq 'aa') { $base = $head }
+          $label = { param($sha) $subject = (git log -1 --format=%s $sha); "``$($sha.Substring(0, 9))`` $subject" }
+          Write-Host "mode=$mode base=$base head=$head ($why)"
+          "mode=$mode" | Add-Content $env:GITHUB_OUTPUT
+          "head_sha=$head" | Add-Content $env:GITHUB_OUTPUT
+          "base_sha=$base" | Add-Content $env:GITHUB_OUTPUT
+          "base_label=$(& $label $base) ($why)" | Add-Content $env:GITHUB_OUTPUT
+          "head_label=$(& $label $head)" | Add-Content $env:GITHUB_OUTPUT
+
+      # A bundle is the built engine and harness of one commit (tools/MikePDF.Perf/build-bundle.ps1), about 37 MB. Main saves the bundle of every commit it
+      # builds, so the next pull request, whose base is that commit, finds its base already built.
+      - name: Restore the cached head build
+        id: head-cache
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ runner.temp }}/perf/head
+          key: perf-bundle-v1-${{ matrix.arch }}-${{ steps.choose.outputs.head_sha }}
+      - name: Restore the cached base build
+        id: base-cache
+        if: steps.choose.outputs.mode == 'ab'
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ runner.temp }}/perf/base
+          key: perf-bundle-v1-${{ matrix.arch }}-${{ steps.choose.outputs.base_sha }}
+
+      - name: Build the head (engine and harness)
+        if: steps.head-cache.outputs.cache-hit != 'true'
         shell: pwsh
-        run: dotnet build tools/MikePDF.Perf/MikePDF.Perf.csproj -c Release -p:MikePDFArch=${{ matrix.arch }}
-      - name: Stop the compiler servers
-        # They are still winding down after the build; the harness would be timing them. (It also waits for the machine to be under 15% busy.)
-        shell: pwsh
-        run: dotnet build-server shutdown
-      - name: Measure and compare with the baseline
+        run: ./tools/MikePDF.Perf/build-bundle.ps1 -Source . -Out "$env:RUNNER_TEMP/perf/head" -Arch ${{ matrix.arch }}
+      - name: Cache the head build
+        if: steps.head-cache.outputs.cache-hit != 'true' && github.event_name != 'pull_request'
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ runner.temp }}/perf/head
+          key: perf-bundle-v1-${{ matrix.arch }}-${{ steps.choose.outputs.head_sha }}
+
+      - name: Build the base (engine and harness)
+        if: steps.choose.outputs.mode == 'ab' && steps.base-cache.outputs.cache-hit != 'true'
         shell: pwsh
         run: |
-          $tool = (Get-ChildItem tools/MikePDF.Perf/bin/Release -Recurse -Filter MikePDF.Perf.exe | Select-Object -First 1).FullName
-          # Exit codes: 0 passed (or no baseline yet), 1 regression, 2 bad usage, 3 a metric could not be measured.
-          & $tool gate --profile ci --runner-id ci-${{ matrix.arch }} --baseline-dir docs/perf/baselines --out perf-results
+          $source = Join-Path "$env:RUNNER_TEMP/perf" 'base-src'
+          git worktree add --detach $source ${{ steps.choose.outputs.base_sha }}
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          # The head's copy of the script builds the base too: an older base may not have it. The downloaded PDFium is reused (its hash is checked again).
+          ./tools/MikePDF.Perf/build-bundle.ps1 -Source $source -Out "$env:RUNNER_TEMP/perf/base" -Arch ${{ matrix.arch }} -SeedPdfiumFrom .
+      - name: Use a second copy of the head as the base (A/A)
+        if: steps.choose.outputs.mode == 'aa'
+        shell: pwsh
+        run: Copy-Item -Recurse "$env:RUNNER_TEMP/perf/head" "$env:RUNNER_TEMP/perf/base"
+
+      - name: Measure the base and the head against each other
+        shell: pwsh
+        env:
+          BASE_LABEL: ${{ steps.choose.outputs.base_label }}
+          HEAD_LABEL: ${{ steps.choose.outputs.head_label }}
+          ROUNDS_INPUT: ${{ inputs.rounds }}
+          PLANT_INPUT: ${{ inputs.plant }}
+        run: |
+          $rounds = if ($env:ROUNDS_INPUT) { $env:ROUNDS_INPUT } else { '8' }
+          $plant = if ($env:PLANT_INPUT) { [double]$env:PLANT_INPUT / 100 } else { 0 }
+          $arguments = @(
+            'ab',
+            '--base-exe', "$env:RUNNER_TEMP/perf/base/harness/MikePDF.Perf.exe", '--base-engine', "$env:RUNNER_TEMP/perf/base/engine",
+            '--head-exe', "$env:RUNNER_TEMP/perf/head/harness/MikePDF.Perf.exe", '--head-engine', "$env:RUNNER_TEMP/perf/head/engine",
+            '--base-label', $env:BASE_LABEL, '--head-label', $env:HEAD_LABEL,
+            '--profile', 'ci', '--rounds', $rounds, '--runner-id', 'ci-${{ matrix.arch }}',
+            '--budgets', 'docs/perf/budgets.json', '--baseline-dir', 'docs/perf/baselines', '--out', 'perf-results'
+          )
+          if ($plant -gt 0) { $arguments += @('--plant-head', $plant.ToString([cultureinfo]::InvariantCulture)) }
+          # Exit codes: 0 passed, 1 regression, 2 bad usage, 3 a metric could not be measured.
+          & "$env:RUNNER_TEMP/perf/head/harness/MikePDF.Perf.exe" @arguments
           exit $LASTEXITCODE
+
       - name: Job summary
         if: always()
         shell: pwsh
@@ -71,7 +195,8 @@ jobs:
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          # perf-results.json is also the candidate baseline: commit it as docs/perf/baselines/ci-<arch>.<cpu>.json (the job output names the file) after review.
+          # perf-ab.json is the decision, perf-results.json the head over all rounds (also the candidate for docs/perf/baselines: the job output names the file),
+          # perf-results-base.json the base, rounds/ every single run.
           name: perf-results-${{ matrix.arch }}
           path: perf-results/**
           if-no-files-found: warn
