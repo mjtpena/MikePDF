@@ -164,8 +164,8 @@ public sealed class PrintContentTests(SandboxFixture sandbox)
         var placement = PrintLayout.Place(new SizeD(612, 792), LetterAt100, PrintScaling.Fit, 100, true);
         var (rx, ry) = At(placement, 250, 625); // inside the field, where its appearance is empty: this is where an editing highlight would be
         Assert.True(IsWhite(device.Pixel(0, rx, ry)), "the editing highlight never prints");
-        // The engine has no form layer yet (schema 5's RenderBand refuses flag bit 1 until the form-fill environment arrives): the pipeline noticed, asked again without it, and says so.
-        Assert.True(result.FormLayerUnavailable);
+        // The engine draws the form layer, so the pipeline did not have to fall back to printing without it.
+        Assert.False(result.FormLayerUnavailable);
     }
 
     [Fact]
@@ -178,9 +178,9 @@ public sealed class PrintContentTests(SandboxFixture sandbox)
         var result = await PrintJob.RunAsync(Request(1, options), session.Source, new FixedDeviceFactory(device));
 
         Assert.True(result.Completed, result.Detail);
-        // PDFium draws a widget only through its form-fill environment (FPDF_FFLDraw): FPDF_ANNOT never shows one. The engine has none until M4, so today a form's field contents are
-        // not printed at all. This test starts to run, and to pass or fail, the day the engine accepts RenderBand's form flag; until then it says why it is skipped.
-        Assert.SkipWhen(result.FormLayerUnavailable, "PRINT-15 (field contents): the engine has no form-fill environment yet, so RenderBand refuses the form flag and widgets are not drawn (docs/features/forms.md, M4).");
+        // PDFium draws a widget only through its form-fill environment (FPDF_FFLDraw): FPDF_ANNOT never shows one. The engine makes one when RenderBand carries flag bit 1, so the field's
+        // appearance is on the paper. (Until then the pipeline fell back to printing without the layer and this test skipped itself.)
+        Assert.False(result.FormLayerUnavailable, "PRINT-15: the engine must accept RenderBand's form flag");
         var placement = PrintLayout.Place(new SizeD(612, 792), LetterAt100, PrintScaling.Fit, 100, true);
         var (lx, ly) = At(placement, 150, 625); // where the field's appearance is a green block
         var content = device.Pixel(0, lx, ly);
@@ -202,7 +202,7 @@ public sealed class PrintContentTests(SandboxFixture sandbox)
         Assert.True(result.Completed, result.Detail);
         Assert.Equal(3, device.Sheets.Count);
         Assert.Equal(3, device.Draws); // one bitmap per page
-        var bands = source.Requests.Where(r => (r.Flags & 2) == 0).ToList(); // the first request carries the form flag the engine refuses; the pipeline asks again without it
+        var bands = source.Requests.ToList();
         Assert.Equal(3, bands.Count); // one request, so one bitmap, per page
         Assert.All(bands, r =>
         {

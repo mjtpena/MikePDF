@@ -1126,7 +1126,9 @@ TEST(ProtocolLimits, RenderTile) {
     EXPECT_EQ(status(tile(0, 1.f, 0, 0, 0, 1025, 1, 0, 0, 0)), Status::InvalidArgument);
     EXPECT_EQ(status(tile(0, 1.f, 0, 0, 0, 1, 1025, 0, 0, 0)), Status::InvalidArgument);
     EXPECT_EQ(status(tile(0, 1.f, 0, 0, 0, 1, 1, 3, 0, 0)), Status::Ok);
-    EXPECT_EQ(status(tile(0, 1.f, 0, 0, 0, 1, 1, 4, 0, 0)), Status::InvalidArgument);
+    EXPECT_EQ(status(tile(0, 1.f, 0, 0, 0, 1, 1, 4, 0, 0)), Status::Ok);  // dark pages
+    EXPECT_EQ(status(tile(0, 1.f, 0, 0, 0, 1, 1, 7, 0, 0)), Status::Ok);
+    EXPECT_EQ(status(tile(0, 1.f, 0, 0, 0, 1, 1, 8, 0, 0)), Status::InvalidArgument);
     EXPECT_EQ(status(tile(0, 1.f, 0, 0, 0, 1, 1, 0, 1023, 0)), Status::Ok);
     EXPECT_EQ(status(tile(0, 1.f, 0, 0, 0, 1, 1, 0, 1024, 0)), Status::InvalidArgument);
     EXPECT_EQ(status(tile(0, 1.f, 0, 0, 0, 1, 1, 0, 0, ~0ull)), Status::Ok);

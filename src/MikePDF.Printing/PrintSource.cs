@@ -36,6 +36,12 @@ public interface IPrintSource
     /// <summary>The size of one slot of the ring bands arrive in: no band is larger than this.</summary>
     int SlotBytes { get; }
 
+    /// <summary>
+    /// How many times the engine behind this source has been replaced. The job reads it before a call, so that two calls that were in flight when one engine died are one crash
+    /// (PRINT-12), however late the second one reports it.
+    /// </summary>
+    int EngineGeneration { get; }
+
     Task<(Status Status, PrintDocumentInfo? Info)> GetInfoAsync(CancellationToken cancellationToken);
 
     /// <summary>The displayed sizes in points of <paramref name="count"/> pages from the 0-based page <paramref name="first"/>.</summary>
@@ -53,6 +59,8 @@ public sealed class EngineBandSource(SupervisedDocument document, int slotBytes)
     private const int PageSizeWindow = 5000; // the schema's limit for GetPageSizes
 
     public int SlotBytes { get; } = slotBytes;
+
+    public int EngineGeneration => document.EngineRestartCount;
 
     public async Task<(Status Status, PrintDocumentInfo? Info)> GetInfoAsync(CancellationToken cancellationToken)
     {

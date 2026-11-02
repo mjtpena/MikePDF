@@ -68,7 +68,7 @@ public sealed class CommandTests
                 Assert.True(clash.Command is null, $"{command.Id} and {clash.Command?.Id} both default to {chord}");
                 if (!chord.HasControl && !chord.HasAlt && ChordKeys.IsPrintable(chord.Key))
                 {
-                    Assert.Equal(CommandScope.Reader, command.Scope); // plain printable keys only where nothing is being typed
+                    Assert.True(command.Scope is CommandScope.Reader or CommandScope.Presentation, command.Id); // plain printable keys only where nothing is being typed
                 }
 
                 seen.Add((command, chord));

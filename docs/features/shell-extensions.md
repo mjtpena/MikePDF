@@ -244,7 +244,7 @@ What exists and what checks it. "Hosted" means the job `shell-integration` on a 
 | SHELL-09 | `ShellHandlerTests` and the probe | |
 | SHELL-10 | `ShellHostServerTests` (idle exit), `ShellHandlerTests` (2 s idle), hosted: the real 75 s | |
 | SHELL-11 | `validation_tests`, `client_tests` (hostile replies) | |
-| SHELL-12 | Pool, server and 30-request real-engine flood; hosted: 504 requests, engine count sampled | Memory bound is 128 MB until a number is set from R1 and R2 |
+| SHELL-12 | Pool (a slot is given back only after the process has exited, with engine doubles whose exit is held), a real-engine kill-and-return test, server and 30-request real-engine flood; hosted: 504 requests, engine processes that have not exited sampled every 5 ms | Memory bound is 128 MB until a number is set from R1 and R2 |
 | SHELL-13 | Real engine, handler and probe | |
 | SHELL-14 | | **Not checkable from a handler** (stream initialisation); manual, UNVERIFIED |
 | SHELL-15 | `policy_tests`, `thumbnail_tests`, `ShellSwitchesTests`; hosted: HKLM policy, ShellHost never started | |

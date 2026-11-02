@@ -334,6 +334,35 @@ public sealed class TileSchedulerTests
         Assert.True(cache.Contains(TileKey.ForTile(0, 1.0f, 0, 0, 0)));
     }
 
+    /// <summary>
+    /// The root cause of the flake in APresenterFailureDoesNotKillTheScheduler (about 2 runs in 100 on x64, more on a busy ARM64 runner): the wake-up that ends a back-off was a
+    /// timer; timers count whole milliseconds and the clock does not, so it could fire a hair before the back-off was over. The look-again then found the tile still backing off,
+    /// started nothing, and nothing was left to look again. This clock makes that certain: every timer goes off 5 ms early.
+    /// </summary>
+    [Fact]
+    public async Task ATimerThatFiresBeforeTheEndOfABackOffDoesNotLoseTheTile()
+    {
+        var cache = new TileCache(1L << 30);
+        var options = Fast with { FailureBackoff = TimeSpan.FromMilliseconds(100) };
+        await using var scheduler = new TileScheduler(new FakeRenderer(), new FakeRenderer(), new FlakyPresenter(), cache, options, new EarlyTimers());
+        scheduler.Update(View(pages: 1));
+        var deadline = DateTime.UtcNow + Wait;
+        while ((!cache.Contains(TileKey.ForTile(0, 1.0f, 0, 0, 0)) || !cache.Contains(TileKey.LowRes(0, 0))) && DateTime.UtcNow < deadline)
+        {
+            await Task.Delay(20);
+        }
+
+        Assert.True(cache.Contains(TileKey.ForTile(0, 1.0f, 0, 0, 0)));
+        Assert.True(cache.Contains(TileKey.LowRes(0, 0)));
+    }
+
+    /// <summary>The real clock with timers that go off 5 ms before they were asked to.</summary>
+    private sealed class EarlyTimers : TimeProvider
+    {
+        public override ITimer CreateTimer(TimerCallback callback, object? state, TimeSpan dueTime, TimeSpan period) =>
+            base.CreateTimer(callback, state, dueTime > TimeSpan.FromMilliseconds(5) ? dueTime - TimeSpan.FromMilliseconds(5) : dueTime, period);
+    }
+
     private sealed class ThreadRecordingPresenter(List<int> threads) : ITilePresenter
     {
         public ITileSurface CreateSurface(IPixelBuffer pixels)

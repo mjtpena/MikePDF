@@ -1,9 +1,12 @@
 #include "mikepdf/pdfium/document.h"
 
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <cstring>
 #include <limits>
+#include <memory>
+#include <new>
 #include <string>
 #include <unordered_set>
 #include <utility>
@@ -312,12 +315,31 @@ struct Document::PageCache {
 
 void Document::PageCacheDeleter::operator()(PageCache* cache) const noexcept { delete cache; }
 
+// PDFium's form-fill environment for one document. The info struct is read by PDFium for as long as the environment lives, so it is kept here; every callback in it is
+// null, which is what makes the environment headless: no scripting (no JavaScript platform), no timers, no alerts, no network or file access, no clipboard.
+struct Document::FormFill {
+    FPDF_FORMFILLINFO info{};
+    FPDF_FORMHANDLE handle{nullptr};
+
+    FormFill() = default;
+    FormFill(const FormFill&) = delete;
+    FormFill& operator=(const FormFill&) = delete;
+    ~FormFill() {
+        if (handle != nullptr) {
+            FPDFDOC_ExitFormFillEnvironment(handle);
+        }
+    }
+};
+
+void Document::FormFillDeleter::operator()(FormFill* form) const noexcept { delete form; }
+
 Document::~Document() { reset(); }
 
 Document::Document(Document&& other) noexcept
     : handle_(std::exchange(other.handle_, nullptr)),
       page_count_(std::exchange(other.page_count_, 0)),
-      cache_(std::move(other.cache_)) {}
+      cache_(std::move(other.cache_)),
+      form_(std::move(other.form_)) {}
 
 Document& Document::operator=(Document&& other) noexcept {
     if (this != &other) {
@@ -325,12 +347,14 @@ Document& Document::operator=(Document&& other) noexcept {
         handle_ = std::exchange(other.handle_, nullptr);
         page_count_ = std::exchange(other.page_count_, 0);
         cache_ = std::move(other.cache_);
+        form_ = std::move(other.form_);
     }
     return *this;
 }
 
 void Document::reset() noexcept {
     cache_.reset();  // before the document: the page and its text belong to it
+    form_.reset();   // the form-fill environment too, and before the document it was made for
     if (handle_ != nullptr) {
         FPDF_CloseDocument(handle_);
         handle_ = nullptr;
@@ -405,15 +429,308 @@ Result<protocol::GetPageSizesReply> Document::page_sizes(std::uint32_t first, st
     return {Status::Ok, std::move(reply), ""};
 }
 
+namespace {
+
+constexpr std::uint64_t kMaxAnchoredBytes = std::uint64_t{144} << 20;  // a whole A4 page at 600 dpi is 133 MiB
+
+struct Affine {
+    float a{1}, b{0}, c{0}, d{1}, e{0}, f{0};
+};
+
+// The matrix of a page object, in the space of the form it is in. `inner` first, then `outer` (row vectors, as PDF does).
+Affine compose(const Affine& inner, const Affine& outer) {
+    return {inner.a * outer.a + inner.b * outer.c, inner.a * outer.b + inner.b * outer.d, inner.c * outer.a + inner.d * outer.c, inner.c * outer.b + inner.d * outer.d,
+            inner.e * outer.a + inner.f * outer.c + outer.e, inner.e * outer.b + inner.f * outer.d + outer.f};
+}
+
+// True when an image under `matrix` is drawn by PDFium's image transformer for good: not axis-aligned and not a quarter turn (those two it stretches or flips exactly).
+bool is_skewed(const Affine& m) {
+    const float n = std::max({std::fabs(m.a), std::fabs(m.b), std::fabs(m.c), std::fabs(m.d)});
+    if (!(n > 0.0f) || !std::isfinite(n)) {
+        return false;
+    }
+    const float eps = 1e-4f * n;
+    const bool axis_aligned = std::fabs(m.b) <= eps && std::fabs(m.c) <= eps;
+    const bool quarter_turn = std::fabs(m.a) <= eps && std::fabs(m.d) <= eps;
+    return !axis_aligned && !quarter_turn;
+}
+
+// Walks the page objects (the forms in them too, as deep as collect_fonts goes) for a skewed image. Stops, answering no, after kMaxObjectsPerPage objects.
+bool find_skewed_image(FPDF_PAGE page, FPDF_PAGEOBJECT form, const Affine& outer, int depth, std::uint32_t& visited) {
+    const int count = form == nullptr ? FPDFPage_CountObjects(page) : FPDFFormObj_CountObjects(form);
+    for (int i = 0; i < count; ++i) {
+        if (++visited > kMaxObjectsPerPage) {
+            return false;
+        }
+        FPDF_PAGEOBJECT object = form == nullptr ? FPDFPage_GetObject(page, i) : FPDFFormObj_GetObject(form, static_cast<unsigned long>(i));
+        if (object == nullptr) {
+            continue;
+        }
+        const int type = FPDFPageObj_GetType(object);
+        if (type != FPDF_PAGEOBJ_IMAGE && type != FPDF_PAGEOBJ_FORM) {
+            continue;
+        }
+        FS_MATRIX raw{1, 0, 0, 1, 0, 0};
+        if (FPDFPageObj_GetMatrix(object, &raw) == 0) {
+            continue;
+        }
+        const Affine total = compose({raw.a, raw.b, raw.c, raw.d, raw.e, raw.f}, outer);
+        if (type == FPDF_PAGEOBJ_IMAGE) {
+            if (is_skewed(total)) {
+                return true;
+            }
+        } else if (depth < kMaxFormDepth && find_skewed_image(page, object, total, depth + 1, visited)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+}  // namespace
+
+bool Document::has_skewed_image(FPDF_PAGE page, std::uint32_t index) {
+    if (skew_page_ != index) {
+        std::uint32_t visited = 0;
+        skew_value_ = find_skewed_image(page, nullptr, Affine{}, 0, visited);
+        skew_page_ = index;
+    }
+    return skew_value_;
+}
+
+Status Document::render_window(FPDF_PAGE page, std::uint32_t index, int x, int y, int width, int height, int size_x, int size_y, int rotate, bool with_forms,
+                               int flags, std::uint8_t* destination, std::uint32_t stride, const InterruptCheck& interrupt) {
+    const bool away_from_corner = x > 0 || y > 0;
+    if (away_from_corner) {
+        const int origin_x = x > 0 ? 0 : x;
+        const int origin_y = y > 0 ? 0 : y;
+        constexpr int kMargin = 8;  // the transformer also rounds at the far edges of its clip: keep the window's own edges away from them
+        const int margin_x = std::int64_t{x} + width < size_x ? kMargin : 0;  // but never past the page's own edge: the whole page ends there
+        const int margin_y = std::int64_t{y} + height < size_y ? kMargin : 0;
+        const std::uint64_t scratch_width = static_cast<std::uint64_t>(std::int64_t{x} + width + margin_x - origin_x);
+        const std::uint64_t scratch_height = static_cast<std::uint64_t>(std::int64_t{y} + height + margin_y - origin_y);
+        const std::uint64_t bytes = scratch_width * scratch_height * 4;
+        if (scratch_width <= static_cast<std::uint64_t>(std::numeric_limits<int>::max() / 4) && bytes <= kMaxAnchoredBytes && has_skewed_image(page, index)) {
+            std::unique_ptr<std::uint8_t[]> scratch(new (std::nothrow) std::uint8_t[bytes]);
+            if (scratch != nullptr) {
+                BitmapHandle bitmap{FPDFBitmap_CreateEx(static_cast<int>(scratch_width), static_cast<int>(scratch_height), FPDFBitmap_BGRA, scratch.get(),
+                                                        static_cast<int>(scratch_width * 4))};
+                if (bitmap.bitmap == nullptr) {
+                    return Status::InvalidArgument;
+                }
+                FPDFBitmap_FillRect(bitmap.bitmap, 0, 0, static_cast<int>(scratch_width), static_cast<int>(scratch_height), 0xFFFFFFFFu);
+                const Status status = render_page(bitmap.bitmap, page, -origin_x, -origin_y, size_x, size_y, rotate, with_forms, flags, interrupt);
+                if (status == Status::Ok || status == Status::PartiallyRendered) {
+                    const std::uint8_t* from = scratch.get() + (static_cast<std::uint64_t>(y - origin_y) * scratch_width + static_cast<std::uint64_t>(x - origin_x)) * 4;
+                    for (int row = 0; row < height; ++row) {
+                        std::memcpy(destination + static_cast<std::uint64_t>(row) * stride, from + static_cast<std::uint64_t>(row) * scratch_width * 4,
+                                    static_cast<std::size_t>(width) * 4);
+                    }
+                }
+                return status;
+            }
+        }
+    }
+
+    BitmapHandle bitmap{FPDFBitmap_CreateEx(width, height, FPDFBitmap_BGRA, destination, static_cast<int>(stride))};
+    if (bitmap.bitmap == nullptr) {
+        return Status::InvalidArgument;
+    }
+    FPDFBitmap_FillRect(bitmap.bitmap, 0, 0, width, height, 0xFFFFFFFFu);
+    return render_page(bitmap.bitmap, page, -x, -y, size_x, size_y, rotate, with_forms, flags, interrupt);
+}
+
+namespace {
+
+constexpr std::uint32_t kMaxImagesAnalysed = 32;
+constexpr std::uint64_t kMaxAnalysedImagePixels = std::uint64_t{64} << 20;
+
+struct ImageRef {
+    FPDF_PAGEOBJECT object;
+    Affine matrix;
+};
+
+// Every image object of the page, forms included, with its matrix in page space. Stops after kMaxObjectsPerPage objects.
+void collect_images(FPDF_PAGE page, FPDF_PAGEOBJECT form, const Affine& outer, int depth, std::uint32_t& visited, std::vector<ImageRef>& out) {
+    const int count = form == nullptr ? FPDFPage_CountObjects(page) : FPDFFormObj_CountObjects(form);
+    for (int i = 0; i < count; ++i) {
+        if (++visited > kMaxObjectsPerPage) {
+            return;
+        }
+        FPDF_PAGEOBJECT object = form == nullptr ? FPDFPage_GetObject(page, i) : FPDFFormObj_GetObject(form, static_cast<unsigned long>(i));
+        if (object == nullptr) {
+            continue;
+        }
+        const int type = FPDFPageObj_GetType(object);
+        if (type != FPDF_PAGEOBJ_IMAGE && type != FPDF_PAGEOBJ_FORM) {
+            continue;
+        }
+        FS_MATRIX raw{1, 0, 0, 1, 0, 0};
+        if (FPDFPageObj_GetMatrix(object, &raw) == 0) {
+            continue;
+        }
+        const Affine total = compose({raw.a, raw.b, raw.c, raw.d, raw.e, raw.f}, outer);
+        if (type == FPDF_PAGEOBJ_IMAGE) {
+            out.push_back({object, total});
+        } else if (depth < kMaxFormDepth) {
+            collect_images(page, object, total, depth + 1, visited, out);
+        }
+    }
+}
+
+// A colour photograph, as opposed to a scan, line art or a diagram, which are mostly white paper: more than one bit a pixel and fewer than 55% near-white pixels in a sample.
+bool looks_like_photo(FPDF_PAGE page, FPDF_PAGEOBJECT image) {
+    FPDF_IMAGEOBJ_METADATA meta{};
+    if (FPDFImageObj_GetImageMetadata(image, page, &meta) == 0 || meta.width < 16 || meta.height < 16 || meta.bits_per_pixel <= 1 ||
+        std::uint64_t{meta.width} * meta.height > kMaxAnalysedImagePixels) {
+        return false;
+    }
+    BitmapHandle bitmap{FPDFImageObj_GetBitmap(image)};
+    if (bitmap.bitmap == nullptr) {
+        return false;
+    }
+    const int width = FPDFBitmap_GetWidth(bitmap.bitmap);
+    const int height = FPDFBitmap_GetHeight(bitmap.bitmap);
+    const int stride = FPDFBitmap_GetStride(bitmap.bitmap);
+    const int format = FPDFBitmap_GetFormat(bitmap.bitmap);
+    const auto* pixels = static_cast<const std::uint8_t*>(FPDFBitmap_GetBuffer(bitmap.bitmap));
+    const int bytes = format == FPDFBitmap_Gray ? 1 : format == FPDFBitmap_BGR ? 3 : (format == FPDFBitmap_BGRx || format == FPDFBitmap_BGRA) ? 4 : 0;
+    if (pixels == nullptr || bytes == 0 || width < 1 || height < 1 || stride < width * bytes) {
+        return false;
+    }
+    constexpr int kGrid = 48;
+    int sampled = 0;
+    int white = 0;
+    for (int gy = 0; gy < kGrid; ++gy) {
+        const int y = std::min(height - 1, (gy * height + height / 2) / kGrid);
+        for (int gx = 0; gx < kGrid; ++gx) {
+            const int x = std::min(width - 1, (gx * width + width / 2) / kGrid);
+            const std::uint8_t* p = pixels + static_cast<std::size_t>(y) * static_cast<std::size_t>(stride) + static_cast<std::size_t>(x) * static_cast<std::size_t>(bytes);
+            const bool transparent = format == FPDFBitmap_BGRA && p[3] < 16;
+            const bool near_white = bytes == 1 ? p[0] >= 235 : (p[0] >= 235 && p[1] >= 235 && p[2] >= 235);
+            white += (transparent || near_white) ? 1 : 0;
+            ++sampled;
+        }
+    }
+    return white * 100 < sampled * 55;
+}
+
+// The app's PageColourMatrix.Inverted (src/MikePDF.Core/Colour/PageColour.cs): CSS invert(1) hue-rotate(180deg), eased into [0.07, 0.95]. Same constants, same clamp.
+void darken_pixels(std::uint8_t* pixels, std::uint32_t stride, int width, int height, int tile_x, int tile_y, const std::vector<std::array<int, 4>>& keep) {
+    constexpr float kLow = 0.07f;
+    constexpr float kHigh = 0.95f;
+    constexpr float kHue[3][3] = {{-0.574f, 1.430f, 0.144f}, {0.426f, 0.430f, 0.144f}, {0.426f, 1.430f, -0.856f}};
+    // Lookup for the channel sums is not worth it: a tile is at most a million pixels. Photographs are skipped by rectangle.
+    for (int y = 0; y < height; ++y) {
+        std::uint8_t* row = pixels + static_cast<std::size_t>(y) * stride;
+        const int page_y = tile_y + y;
+        for (int x = 0; x < width; ++x) {
+            const int page_x = tile_x + x;
+            bool kept = false;
+            for (const auto& r : keep) {
+                if (page_x >= r[0] && page_x < r[2] && page_y >= r[1] && page_y < r[3]) {
+                    kept = true;
+                    break;
+                }
+            }
+            if (kept) {
+                continue;
+            }
+            std::uint8_t* p = row + static_cast<std::size_t>(x) * 4;
+            const float b = p[0] / 255.0f;
+            const float g = p[1] / 255.0f;
+            const float r = p[2] / 255.0f;
+            for (int o = 0; o < 3; ++o) {
+                const float v = -(kHigh - kLow) * (kHue[o][0] * r + kHue[o][1] * g + kHue[o][2] * b) + kLow + (kHigh - kLow);
+                p[2 - o] = static_cast<std::uint8_t>(std::lround(std::clamp(v, 0.0f, 1.0f) * 255.0f));
+            }
+        }
+    }
+}
+
+}  // namespace
+
+const std::vector<Document::PhotoRect>& Document::photo_rects(FPDF_PAGE page, std::uint32_t index) {
+    if (photo_page_ != index) {
+        photos_.clear();
+        photo_page_ = index;
+        std::vector<ImageRef> images;
+        std::uint32_t visited = 0;
+        collect_images(page, nullptr, Affine{}, 0, visited, images);
+        const double page_area = double{FPDF_GetPageWidthF(page)} * double{FPDF_GetPageHeightF(page)};
+        std::uint32_t analysed = 0;
+        for (const ImageRef& image : images) {
+            float left = std::numeric_limits<float>::max();
+            float bottom = left;
+            float right = std::numeric_limits<float>::lowest();
+            float top = right;
+            for (const auto& [u, v] : {std::pair{0.0f, 0.0f}, std::pair{1.0f, 0.0f}, std::pair{0.0f, 1.0f}, std::pair{1.0f, 1.0f}}) {
+                const float x = image.matrix.a * u + image.matrix.c * v + image.matrix.e;
+                const float y = image.matrix.b * u + image.matrix.d * v + image.matrix.f;
+                left = std::min(left, x);
+                right = std::max(right, x);
+                bottom = std::min(bottom, y);
+                top = std::max(top, y);
+            }
+            if (!std::isfinite(left) || !std::isfinite(right) || !std::isfinite(bottom) || !std::isfinite(top)) {
+                continue;
+            }
+            const double area = double{right - left} * double{top - bottom};
+            if (page_area > 0 && area >= 0.9 * page_area) {
+                continue;  // a scan of a page: text, so it is recoloured like text
+            }
+            if (analysed++ >= kMaxImagesAnalysed) {
+                break;
+            }
+            if (looks_like_photo(page, image.object)) {
+                photos_.push_back({left, bottom, right, top});
+            }
+        }
+    }
+    return photos_;
+}
+
+Document::FormFill* Document::form_fill() {
+    if (form_ == nullptr && handle_ != nullptr) {
+        auto form = std::make_unique<FormFill>();
+        form->info.version = 1;  // the stable interface only; every callback stays null
+        form->handle = FPDFDOC_InitFormFillEnvironment(handle_, &form->info);
+        if (form->handle == nullptr) {
+            return nullptr;  // not remembered: the next request tries again
+        }
+        form_ = std::unique_ptr<FormFill, FormFillDeleter>(form.release());
+    }
+    return form_.get();
+}
+
+// Draws the page and, when asked, its widgets. A widget is drawn only by FPDF_FFLDraw, which always draws every widget (the FPDF_ANNOT flag only decides about the
+// other interactive annotations, which a still image has no use for); it has to follow the page's own drawing and uses the same transform, so the widgets land on
+// the pixels the page content does, in every tile and every band. FFLDraw cannot be paused, so it runs only for a page that was drawn to the end.
+Status Document::render_page(FPDF_BITMAP bitmap, FPDF_PAGE page, int start_x, int start_y, int size_x, int size_y, int rotate, bool with_forms, int flags,
+                             const InterruptCheck& interrupt) {
+    FormFill* form = nullptr;
+    if (with_forms) {
+        form = form_fill();
+        if (form == nullptr) {
+            return Status::Unsupported;
+        }
+        FORM_OnAfterLoadPage(page, form->handle);
+    }
+    const Status status = render_progressive(bitmap, page, start_x, start_y, size_x, size_y, rotate, flags, interrupt);
+    if (form != nullptr) {
+        if (status == Status::Ok || status == Status::PartiallyRendered) {
+            FPDF_FFLDraw(form->handle, bitmap, page, start_x, start_y, size_x, size_y, rotate, flags);
+        }
+        FORM_OnBeforeClosePage(page, form->handle);  // before the caller closes the page
+    }
+    return status;
+}
+
 Status Document::render_tile(const TileRequest& request, std::span<std::uint8_t> destination, std::uint32_t stride,
                              const InterruptCheck& interrupt) {
     if (handle_ == nullptr || request.page >= page_count_ || !std::isfinite(request.scale) || request.scale <= 0.0f ||
         request.rotation > 3 || request.tile_width == 0 || request.tile_width > kMaxTileSide || request.tile_height == 0 ||
-        request.tile_height > kMaxTileSide || (request.flags & ~(kRenderAnnotations | kRenderFormFields)) != 0) {
+        request.tile_height > kMaxTileSide || (request.flags & ~(kRenderAnnotations | kRenderFormFields | kRenderDarkPage)) != 0) {
         return Status::InvalidArgument;
-    }
-    if ((request.flags & kRenderFormFields) != 0) {
-        return Status::Unsupported;  // no form-fill environment until forms arrive
     }
     const std::uint64_t row_bytes = std::uint64_t{request.tile_width} * 4;
     if (stride < row_bytes || stride > static_cast<std::uint32_t>(std::numeric_limits<int>::max()) ||
@@ -436,16 +753,33 @@ Status Document::render_tile(const TileRequest& request, std::span<std::uint8_t>
         return Status::InvalidArgument;
     }
 
-    BitmapHandle bitmap{FPDFBitmap_CreateEx(static_cast<int>(request.tile_width), static_cast<int>(request.tile_height),
-                                            FPDFBitmap_BGRA, destination.data(), static_cast<int>(stride))};
-    if (bitmap.bitmap == nullptr) {
-        return Status::InvalidArgument;
-    }
-    FPDFBitmap_FillRect(bitmap.bitmap, 0, 0, static_cast<int>(request.tile_width), static_cast<int>(request.tile_height), 0xFFFFFFFFu);
-
     const int flags = (request.flags & kRenderAnnotations) != 0 ? FPDF_ANNOT : 0;
-    return render_progressive(bitmap.bitmap, page.page, -request.tile_x, -request.tile_y, static_cast<int>(device_width),
-                              static_cast<int>(device_height), request.rotation, flags, interrupt);
+    const Status status = render_window(page.page, request.page, request.tile_x, request.tile_y, static_cast<int>(request.tile_width),
+                                        static_cast<int>(request.tile_height), static_cast<int>(device_width), static_cast<int>(device_height), request.rotation,
+                                        (request.flags & kRenderFormFields) != 0, flags, destination.data(), stride, interrupt);
+    if ((request.flags & kRenderDarkPage) != 0 && (status == Status::Ok || status == Status::PartiallyRendered)) {
+        // The photographs' rectangles in the device pixels of the whole page, from the same transform the page was drawn with.
+        std::vector<std::array<int, 4>> keep;
+        for (const PhotoRect& photo : photo_rects(page.page, request.page)) {
+            int left = std::numeric_limits<int>::max();
+            int top = left;
+            int right = std::numeric_limits<int>::min();
+            int bottom = right;
+            for (const auto& [px, py] : {std::pair{photo.left, photo.bottom}, std::pair{photo.right, photo.bottom}, std::pair{photo.left, photo.top},
+                                         std::pair{photo.right, photo.top}}) {
+                int dx = 0;
+                int dy = 0;
+                FPDF_PageToDevice(page.page, 0, 0, static_cast<int>(device_width), static_cast<int>(device_height), request.rotation, px, py, &dx, &dy);
+                left = std::min(left, dx);
+                right = std::max(right, dx);
+                top = std::min(top, dy);
+                bottom = std::max(bottom, dy);
+            }
+            keep.push_back({left, top, right + 1, bottom + 1});
+        }
+        darken_pixels(destination.data(), stride, static_cast<int>(request.tile_width), static_cast<int>(request.tile_height), request.tile_x, request.tile_y, keep);
+    }
+    return status;
 }
 
 Status Document::render_band(const BandRequest& request, std::span<std::uint8_t> destination, std::uint32_t stride,
@@ -459,9 +793,6 @@ Status Document::render_band(const BandRequest& request, std::span<std::uint8_t>
         std::uint64_t{request.band_top} + request.band_height > request.page_height_px || (request.flags & ~kKnownFlags) != 0) {
         return Status::InvalidArgument;
     }
-    if ((request.flags & kRenderFormFields) != 0) {
-        return Status::Unsupported;  // no form-fill environment until forms arrive
-    }
     const std::uint64_t row_bytes = std::uint64_t{request.page_width_px} * 4;
     if (stride != row_bytes || stride > static_cast<std::uint32_t>(std::numeric_limits<int>::max()) ||
         std::uint64_t{stride} * request.band_height > destination.size()) {
@@ -472,19 +803,13 @@ Status Document::render_band(const BandRequest& request, std::span<std::uint8_t>
     if (page.page == nullptr) {
         return Status::Damaged;
     }
-    BitmapHandle bitmap{FPDFBitmap_CreateEx(static_cast<int>(request.page_width_px), static_cast<int>(request.band_height), FPDFBitmap_BGRA,
-                                            destination.data(), static_cast<int>(stride))};
-    if (bitmap.bitmap == nullptr) {
-        return Status::InvalidArgument;
-    }
-    FPDFBitmap_FillRect(bitmap.bitmap, 0, 0, static_cast<int>(request.page_width_px), static_cast<int>(request.band_height), 0xFFFFFFFFu);
-
     int flags = (request.flags & kRenderAnnotations) != 0 ? FPDF_ANNOT : 0;
     if ((request.flags & kRenderPrinting) != 0) {
         flags |= FPDF_PRINTING;
     }
-    return render_progressive(bitmap.bitmap, page.page, 0, -static_cast<int>(request.band_top), static_cast<int>(request.page_width_px),
-                              static_cast<int>(request.page_height_px), request.rotation, flags, interrupt);
+    return render_window(page.page, request.page, 0, static_cast<int>(request.band_top), static_cast<int>(request.page_width_px), static_cast<int>(request.band_height),
+                         static_cast<int>(request.page_width_px), static_cast<int>(request.page_height_px), request.rotation, (request.flags & kRenderFormFields) != 0, flags,
+                         destination.data(), stride, interrupt);
 }
 
 // ---- schema 5: /ViewerPreferences -------------------------------------------------------------------------------------------

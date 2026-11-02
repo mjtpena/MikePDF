@@ -47,7 +47,7 @@ public sealed class PageProjection
     public static PageProjection? At(ViewSnapshot view, PointD viewportPoint)
     {
         ArgumentNullException.ThrowIfNull(view);
-        var page = view.Layout.PageAt(viewportPoint.Y + view.ScrollY);
+        var page = view.Layout.PageAt(viewportPoint.X + view.ScrollX, viewportPoint.Y + view.ScrollY, view.ViewportWidth);
         return For(view, page);
     }
 

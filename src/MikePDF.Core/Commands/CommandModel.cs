@@ -59,6 +59,8 @@ public static class Reasons
     public const string LastTab = "LastTab";
     public const string NothingClosed = "NothingClosed";
     public const string NotMissing = "NotMissing";
+    public const string NotFacing = "NotFacing";
+    public const string NotPresenting = "NotPresenting";
 
     public static string ResourceKey(string reason) => "Reason_" + reason;
 }
@@ -131,6 +133,9 @@ public sealed record CommandContext
     public bool TabMissing { get; init; }
 
     public PageColourMode PageColour { get; init; }
+
+    /// <summary>How pages are arranged and turned in the shown document (the checked items of the View menu).</summary>
+    public MikePDF.Core.Layout.ViewMode ViewMode { get; init; }
 
     /// <summary>Policy: settings and shortcut import and export are allowed (SettingsImportExportEnabled). True when no policy says otherwise.</summary>
     public bool ImportExportAllowed { get; init; } = true;

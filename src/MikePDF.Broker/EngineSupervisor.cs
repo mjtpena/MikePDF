@@ -129,6 +129,7 @@ public sealed class EngineSupervisor : IAsyncDisposable
     private Task _recovery = Task.CompletedTask;
     private int _restartCount;
     private long _pingNonce;
+    private string _pdfiumVersion = string.Empty;
 
     // Suspension (EngineBudget). All guarded by _gate unless said otherwise.
     private int _activeCalls;        // calls in flight: an engine with one is never suspended
@@ -222,6 +223,21 @@ public sealed class EngineSupervisor : IAsyncDisposable
             lock (_gate)
             {
                 return _instance?.Process;
+            }
+        }
+    }
+
+    /// <summary>
+    /// What the engine reported as its PDFium version in its Hello (empty for the WriterHost, which has none). Remembered across restarts and suspensions: it is a property of
+    /// the installation, not of one process. Empty until the first engine has answered.
+    /// </summary>
+    public string PdfiumVersion
+    {
+        get
+        {
+            lock (_gate)
+            {
+                return _instance?.Hello.PdfiumVersion is { Length: > 0 } version ? _pdfiumVersion = version : _pdfiumVersion;
             }
         }
     }
@@ -963,6 +979,9 @@ public sealed class SupervisedDocument : IAsyncDisposable
     }
 
     public uint PageCount { get; }
+
+    /// <summary>How many times the engine this document lives in has been replaced after a crash. A caller that reads it before a call can tell calls that met the same engine death from calls that met two.</summary>
+    public int EngineRestartCount => _owner.RestartCount;
 
     internal string? Password { get; }
 

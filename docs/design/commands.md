@@ -165,7 +165,11 @@ These aren't remappable in v1.0 but are listed so they are not forgotten. Each m
 | `view.layoutTwoCover` | Two pages with cover | `Ctrl+6` | View | Doc, two pages or more | Navigation |
 | `view.continuous` | Continuous scroll | `Ctrl+7` | View | Doc | Navigation |
 | `view.readingMode` | Reading mode | `F11` | View, HUD | Doc | Navigation |
-| `view.presentation` | Presentation | `Ctrl+L` | View | Doc | Navigation |
+| `view.presentation` | Presentation | `Ctrl+L` | View | Doc, no dialog open | Navigation |
+| `view.coverPage` | Show the first page alone, as a cover | - | View | Two pages or two pages with cover | Navigation |
+| `view.directionAuto` / `view.directionLtr` / `view.directionRtl` | Reading direction: automatic / left to right / right to left | - | View | Doc | Navigation |
+| `present.next` / `present.previous` | Next / previous page in the presentation | `Enter`, `N` / `Backspace`, `P` | - | Presenting (scope: Presentation) | Navigation |
+| `present.black` / `present.white` | Black screen / White screen | `B`, `.` / `W`, `,` | - | Presenting (scope: Presentation) | Navigation |
 | `view.pageColors` | Cycle page colours | `Ctrl+Shift+I` | View | Doc | Navigation |
 | `view.pageColorsNormal` / `Dark` / `Sepia` / `HighContrast` | Page colours: Normal / Dark / Sepia / High contrast | - | View | Doc. High contrast needs E13 | Navigation |
 | `view.caretSelection` | Select text with the keyboard | `F7` | View | Doc | Navigation |

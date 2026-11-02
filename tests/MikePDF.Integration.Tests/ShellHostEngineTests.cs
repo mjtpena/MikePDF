@@ -233,7 +233,65 @@ public sealed class ShellHostEngineTests(SandboxFixture sandbox)
 
             public ValueTask KillAsync() => engine.KillAsync();
 
+            public Task<bool> WaitForExitAsync(TimeSpan timeout) => engine.WaitForExitAsync(timeout);
+
             public ValueTask DisposeAsync() => engine.DisposeAsync();
+        }
+    }
+
+    private static bool IsGone(uint processId)
+    {
+        try
+        {
+            using var process = Process.GetProcessById((int)processId);
+            return process.HasExited;
+        }
+        catch (ArgumentException)
+        {
+            return true; // no such process
+        }
+    }
+
+    [Fact]
+    public async Task TheExitWatchSeesARealProcessRunAndExit()
+    {
+        using var process = Process.Start(new ProcessStartInfo("ping.exe", "-n 60 127.0.0.1") { CreateNoWindow = true, UseShellExecute = false, RedirectStandardOutput = true })!;
+        using var watch = ProcessExit.Watch((uint)process.Id);
+        Assert.True(watch.CanTell);
+        Assert.False(await watch.WaitAsync(TimeSpan.FromMilliseconds(200)), "a running process was reported as gone");
+
+        var waiting = watch.WaitAsync(TimeSpan.FromSeconds(20));
+        process.Kill();
+        Assert.True(await waiting.WaitAsync(Wait), "a killed process was not reported as gone");
+        Assert.True(await watch.WaitAsync(TimeSpan.Zero), "and it stays gone");
+
+        // A process id that names nothing (the process is long gone): reported as gone at once.
+        using var nothing = ProcessExit.Watch(uint.MaxValue - 3);
+        Assert.True(await nothing.WaitAsync(TimeSpan.FromMilliseconds(50)));
+    }
+
+    /// <summary>
+    /// The real engine, the real wait: a kill another caller started must not let a slot go back before the process is gone (SHELL-12). On a quiet machine the window this closes
+    /// is microseconds wide, so this passes without the wait too; the deterministic proof is in <c>ShellHostPoolTests</c>, where the exit is held. This one runs the whole path
+    /// with real processes, and <see cref="TheExitWatchSeesARealProcessRunAndExit"/> checks the wait itself.
+    /// </summary>
+    [Fact]
+    public async Task ASlotGoesBackOnlyAfterTheEngineProcessHasReallyExited()
+    {
+        await using var pool = new ShellEnginePool(RealEngines(), () => 1);
+        for (var i = 0; i < 12; i++)
+        {
+            var lease = await pool.AcquireAsync(CancellationToken.None);
+            var processId = lease.Engine.ProcessId;
+            Assert.NotEqual(0u, processId);
+            Assert.False(IsGone(processId));
+
+            // The background kill of a cancelled request, then the session's own return of the lease: the second kill finds the engine already being ended and returns at once.
+            var background = lease.Engine.KillAsync().AsTask();
+            await lease.DisposeAsync();
+
+            Assert.True(IsGone(processId), $"round {i}: the slot was given back while process {processId} was still there");
+            await background;
         }
     }
 

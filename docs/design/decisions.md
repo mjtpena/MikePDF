@@ -64,3 +64,11 @@ The shell-extensions work package applies the ten spec corrections in the S6b re
 | Opening many files (Q12) | Confirm above 10 files, read at most 100. The spec's 25 is replaced |
 | UI journeys and the shell handlers | `build/run-ui-tests.ps1` always registers a copy of the package without the Explorer handlers and COM servers, and refuses to run if any remain. Shell handlers are tested only on hosted runners |
 | Test seams in shipped builds | Every `MIKEPDF_TEST_*` variable goes through one gate that ignores them in Store-signed packages |
+
+## After the page views review (2026-11-03)
+| Item | Decision |
+|---|---|
+| Fit width in two-page modes | Fits the spread on screen, not the widest spread in the document, matching the design and single-page behaviour |
+| Presentation arrangement | Always one page at a time, as the feature spec says (design 04's two-page presentation is replaced) |
+| Layout shortcuts | Ctrl+4 to Ctrl+6 choose the layout and Ctrl+7 toggles continuous; Ctrl+Alt chords aren't allowed as defaults |
+| Pointer hide in presentation | 3 s, as the feature spec says |

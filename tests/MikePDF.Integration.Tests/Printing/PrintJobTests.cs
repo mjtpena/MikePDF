@@ -337,12 +337,19 @@ public sealed class PrintJobTests
         var reference = new FakeDevice(A4At300);
         await RunAsync(Request(All(4)), new FakePrintSource(Letters(4)) { SlotBytes = 1 << 20 }, reference);
 
-        // Two bands are in flight when the engine dies: both come back EngineCrashed, and that is one crash.
-        var source = new FakePrintSource(Letters(4)) { SlotBytes = 1 << 20, Script = (_, call) => call is 5 or 6 ? Status.EngineCrashed : Status.Ok };
+        // The engine dies while call 5 is being served. Call 6, the next band, is in flight with it and, being slow, reports the death long after the job has handled call 5's crash and asked
+        // again: it is the same death, so one crash.
+        var source = new FakePrintSource(Letters(4))
+        {
+            SlotBytes = 1 << 20,
+            DieDuringCall = (_, call) => call == 5,
+            DelayFor = (_, call) => call == 6 ? TimeSpan.FromMilliseconds(80) : TimeSpan.FromMilliseconds(1),
+        };
         var device = new FakeDevice(A4At300);
         var result = await RunAsync(Request(All(4)), source, device);
 
         Assert.True(result.Completed, result.Detail);
+        Assert.Equal(1, source.Deaths);
         Assert.Equal(1, result.EngineCrashes);
         Assert.Equal(reference.Draws, device.Draws); // the same pixels in the same places in the same order: nothing lost, nothing printed twice
         Assert.Equal(4, device.Calls.Count(c => c == "StartPage"));
@@ -350,13 +357,30 @@ public sealed class PrintJobTests
     }
 
     [Fact]
+    public async Task ACrashThatTheJobHearsOfWhileTheEngineIsStillBeingReplacedCountsOnce()
+    {
+        // The engine has died but the restart generation has not moved on yet: every call issued meanwhile meets the dead engine and ends EngineCrashed, as many times as the job asks.
+        // That is still the one death.
+        var source = new FakePrintSource(Letters(3)) { SlotBytes = 1 << 20, DieDuringCall = (_, call) => call == 5, RestartDelay = TimeSpan.FromMilliseconds(40) };
+        var device = new FakeDevice(A4At300);
+        var result = await RunAsync(Request(All(3)), source, device);
+
+        Assert.True(result.Completed, result.Detail);
+        Assert.Equal(1, source.Deaths);
+        Assert.Equal(1, result.EngineCrashes);
+        Assert.True(source.Requests.Count > device.Draws.Count + 3, "the job asked again while the engine was down");
+    }
+
+    [Fact]
     public async Task TheJobFailsAfterThreeCrashesAndAbortsTheSpoolJob()
     {
-        var source = new FakePrintSource(Letters(4)) { Script = (_, call) => call >= 3 ? Status.EngineCrashed : Status.Ok };
+        // The engine dies while calls 3, 6 and 9 are being served: three deaths, each with a restart before the next.
+        var source = new FakePrintSource(Letters(4)) { RenderDelay = TimeSpan.FromMilliseconds(5), DieDuringCall = (_, call) => call % 3 == 0 };
         var device = new FakeDevice(A4At300);
         var result = await RunAsync(Request(All(4)), source, device);
 
         Assert.Equal(PrintOutcome.Failed, result.Outcome);
+        Assert.True(source.Deaths >= 3);
         Assert.Equal(Status.EngineCrashed, result.EngineStatus);
         Assert.Equal("Print_Failed", result.ResourceKey);
         Assert.Contains("3", result.Detail);
@@ -368,15 +392,17 @@ public sealed class PrintJobTests
     [Fact]
     public async Task TwoCrashesStillFinishTheJob()
     {
-        // The first band of page 1 and the first band of page 3 each crash the engine once: two separate crashes, with a whole page between them.
-        var crashed = new HashSet<uint>();
-        var source = new FakePrintSource(Letters(3));
-        source.Script = (args, _) =>
+        // The engine dies while the first band of page 1 is served and again while the first band of page 3 is: two deaths, with a whole page between them.
+        var died = new HashSet<uint>();
+        var source = new FakePrintSource(Letters(3))
         {
-            lock (crashed)
+            DieDuringCall = (args, _) =>
             {
-                return args.BandTop == 0 && args.Page is 0 or 2 && crashed.Add(args.Page) ? Status.EngineCrashed : Status.Ok;
-            }
+                lock (died)
+                {
+                    return args.BandTop == 0 && args.Page is 0 or 2 && died.Add(args.Page);
+                }
+            },
         };
         var device = new FakeDevice(A4At300);
         var result = await RunAsync(Request(All(3)), source, device);

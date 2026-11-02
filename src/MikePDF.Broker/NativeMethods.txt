@@ -20,6 +20,7 @@ LocalFree
 MapViewOfFile
 OpenProcess
 PostQueuedCompletionStatus
+QueryInformationJobObject
 ResumeThread
 SetInformationJobObject
 TerminateProcess

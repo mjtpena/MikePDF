@@ -1910,7 +1910,7 @@ public sealed class RenderTile : IRequestMessage
     public int TileY { get; set; }
     public uint TileWidth { get; set; }
     public uint TileHeight { get; set; }
-    /// <summary>Bit 0 annotations, bit 1 form fields.</summary>
+    /// <summary>Bit 0 annotations, bit 1 form fields, bit 2 dark pages (the tile is recoloured the way the inverted page colour does it, except for colour photographs). Bit 2 means printing mode in RenderBand: the two messages have their own flags.</summary>
     public uint Flags { get; set; }
     public uint SlotIndex { get; set; }
     public ulong Generation { get; set; }
@@ -1932,7 +1932,7 @@ public sealed class RenderTile : IRequestMessage
         message.TileY = StrictReader.ReadI32(ref reader, -16777216, 16777216);
         message.TileWidth = StrictReader.ReadU32(ref reader, 1u, 1024u);
         message.TileHeight = StrictReader.ReadU32(ref reader, 1u, 1024u);
-        message.Flags = StrictReader.ReadU32(ref reader, 0u, 3u);
+        message.Flags = StrictReader.ReadU32(ref reader, 0u, 7u);
         message.SlotIndex = StrictReader.ReadU32(ref reader, 0u, 1023u);
         message.Generation = StrictReader.ReadU64(ref reader, 0UL, ulong.MaxValue);
         return message;
@@ -1964,7 +1964,7 @@ public sealed class RenderTile : IRequestMessage
         if (TileY < -16777216 || TileY > 16777216) return ProtocolFailure.Invalid("RenderTile.tileY violates its limit");
         if (TileWidth < 1u || TileWidth > 1024u) return ProtocolFailure.Invalid("RenderTile.tileWidth violates its limit");
         if (TileHeight < 1u || TileHeight > 1024u) return ProtocolFailure.Invalid("RenderTile.tileHeight violates its limit");
-        if (Flags > 3u) return ProtocolFailure.Invalid("RenderTile.flags violates its limit");
+        if (Flags > 7u) return ProtocolFailure.Invalid("RenderTile.flags violates its limit");
         if (SlotIndex > 1023u) return ProtocolFailure.Invalid("RenderTile.slotIndex violates its limit");
         return null;
     }

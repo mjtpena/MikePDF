@@ -35,7 +35,9 @@ internal sealed class AppHost
         _queue = DispatcherQueue.GetForCurrentThread();
         // Creating the sandbox profile and putting the verified engine in place takes a moment; it runs while the first window comes up.
         var cap = services.Settings.Value<int>("engines.maxLiveTabs");
-        Host = Task.Run(() => EngineHost.Create(cap));
+        var memoryLimit = services.Policy.Current.EngineMemoryLimitMb;
+        Host = Task.Run(() => EngineHost.Create(cap, memoryLimit));
+        services.PdfiumVersion = PdfiumVersionAsync;
         _activations = new ActivationRelay<ActivationRequest>(HandleActivationAsync);
         _sessionStore = new SessionStore(AppPaths.SessionPath);
         _recorder = new SessionRecorder(_sessionStore, CurrentRestoreMode);
@@ -59,6 +61,19 @@ internal sealed class AppHost
     public AppServices Services { get; }
 
     public Task<EngineHost> Host { get; }
+
+    // About shows the engine's PDFium version without an open document: the pool engine says it in its Hello. Null when no engine can start.
+    private async Task<string?> PdfiumVersionAsync()
+    {
+        try
+        {
+            return await (await Host.ConfigureAwait(true)).Budget.GetPdfiumVersionAsync().ConfigureAwait(true);
+        }
+        catch (Exception e) when (e is not OutOfMemoryException)
+        {
+            return null;
+        }
+    }
 
     public AppModel Model { get; } = new();
 

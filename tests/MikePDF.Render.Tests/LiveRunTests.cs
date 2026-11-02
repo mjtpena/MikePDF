@@ -292,7 +292,7 @@ public sealed class LiveRunTests
         Requires.Engine();
         await using var h = Harness.Create("filelimit");
         var heavy = h.Write("heavy.pdf", Harness.SlowPage(60_000));
-        var options = h.Options("--scale", "3", "--no-reference", "--file-timeout-s", "1", "--tile-deadline-ms", "600000");
+        var options = h.Options("--scale", "3", "--no-reference", "--file-timeout-s", "2", "--tile-deadline-ms", "600000");
 
         var clock = Stopwatch.StartNew();
         var files = await h.RunAsync(options, [Harness.Item(heavy), Harness.Item(Fixture("rectangles.pdf"))], null).WaitAsync(TimeSpan.FromMinutes(2));
@@ -300,9 +300,31 @@ public sealed class LiveRunTests
 
         Assert.True(clock.Elapsed < TimeSpan.FromSeconds(60), $"the cut-off took {clock.Elapsed}");
         Assert.Equal(RenderStatus.FileTimeout, Assert.Single(files[0].Pages).Status);
-        Assert.Contains(files[0].Problems, p => p.Contains("did not finish within 1 s", StringComparison.Ordinal));
+        Assert.Contains(files[0].Problems, p => p.Contains("did not finish within 2 s", StringComparison.Ordinal));
         Assert.Equal("Ok", Assert.Single(files[1].Pages).Status);
         Assert.Contains(GateEvaluator.Evaluate(files, RenderRun.SettingsFor(options, null), null).Failures, f => f.Kind == "RenderFailed" && f.File == "heavy.pdf");
+    }
+
+    /// <summary>
+    /// The flake: on a busy CI runner the first file's time limit also paid for starting the engine, so a limit of 1 s could run out before the file's first page was even listed
+    /// ("Assert.Single() Failure: The collection was empty"). Starting an engine is now slower than the limit by construction, and the file must still get its pages.
+    /// </summary>
+    [Fact]
+    public async Task TheFileTimeLimitDoesNotPayForStartingTheEngine()
+    {
+        Requires.Engine();
+        await using var h = Harness.Create("filelimit-start");
+        var heavy = h.Write("heavy.pdf", Harness.SlowPage(60_000));
+        var options = h.Options("--scale", "3", "--no-reference", "--file-timeout-s", "1", "--tile-deadline-ms", "600000");
+        h.Host.BeforeStart = ct => Task.Delay(TimeSpan.FromMilliseconds(2500), ct); // every engine start takes 2.5 s: well over the file limit
+
+        var files = await h.RunAsync(options, [Harness.Item(heavy), Harness.Item(Fixture("rectangles.pdf"))], null).WaitAsync(TimeSpan.FromMinutes(2));
+
+        Assert.Equal("Ok", files[0].Open.Status);
+        Assert.Equal(RenderStatus.FileTimeout, Assert.Single(files[0].Pages).Status); // cut off while drawing, not before it began
+        Assert.Equal("Ok", files[1].Open.Status);
+        Assert.Equal("Ok", Assert.Single(files[1].Pages).Status); // and the file after the cut-off got its own engine and its own full second
+        Assert.True(h.Host.SupervisorsStarted >= 2, "the engine that was cut off while busy is replaced, not waited for");
     }
 
     [Fact]
