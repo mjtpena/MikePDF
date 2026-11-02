@@ -1,0 +1,56 @@
+##### the AppX ProgIDs the package's file types registered, and everything under them
+##### HKCR\AppX8cdpzjtj2j9zk2pc8p2fya1jwkpnrqva
+
+HKEY_CLASSES_ROOT\AppX8cdpzjtj2j9zk2pc8p2fya1jwkpnrqva\Application
+    ApplicationName    REG_SZ    S6b driver
+    ApplicationCompany    REG_SZ    MikePDF CI
+    ApplicationIcon    REG_SZ    C:\Program Files\WindowsApps\MikePDF.S6bProbe_1.0.0.0_arm64__gxqed95vwwy28\Assets\Square44x44Logo.png
+    ApplicationDescription    REG_SZ    Test only
+    AppUserModelID    REG_SZ    MikePDF.S6bProbe_gxqed95vwwy28!Driver
+
+HKEY_CLASSES_ROOT\AppX8cdpzjtj2j9zk2pc8p2fya1jwkpnrqva\DefaultIcon
+    (Default)    REG_SZ    C:\Program Files\WindowsApps\MikePDF.S6bProbe_1.0.0.0_arm64__gxqed95vwwy28\Assets\Square44x44Logo.png
+
+HKEY_CLASSES_ROOT\AppX8cdpzjtj2j9zk2pc8p2fya1jwkpnrqva\Shell
+    (Default)    REG_SZ    open
+
+HKEY_CLASSES_ROOT\AppX8cdpzjtj2j9zk2pc8p2fya1jwkpnrqva\Shell\open
+    AppUserModelID    REG_SZ    MikePDF.S6bProbe_gxqed95vwwy28!Driver
+    PackageRelativeExecutable    REG_SZ    S6bDriver.exe
+    DesktopAppXActivateOptions    REG_DWORD    0x20
+    ContractId    REG_SZ    Windows.File
+    DesiredInitialViewState    REG_DWORD    0x0
+    PackageId    REG_SZ    MikePDF.S6bProbe_1.0.0.0_arm64__gxqed95vwwy28
+
+HKEY_CLASSES_ROOT\AppX8cdpzjtj2j9zk2pc8p2fya1jwkpnrqva\Shell\open\command
+    DelegateExecute    REG_SZ    {BFEC0C93-0B7D-4F2C-B09C-AFFFC4BDAE78}
+    (Default)    REG_SZ    "C:\Program Files\WindowsApps\MikePDF.S6bProbe_1.0.0.0_arm64__gxqed95vwwy28\S6bDriver.exe"
+
+##### HKCR\AppXc3tc6f9npav80ca6sa5kqk8vagggaejq
+
+HKEY_CLASSES_ROOT\AppXc3tc6f9npav80ca6sa5kqk8vagggaejq\Application
+    ApplicationName    REG_SZ    S6b driver
+    ApplicationCompany    REG_SZ    MikePDF CI
+    ApplicationIcon    REG_SZ    C:\Program Files\WindowsApps\MikePDF.S6bProbe_1.0.0.0_arm64__gxqed95vwwy28\Assets\Square44x44Logo.png
+    ApplicationDescription    REG_SZ    Test only
+    AppUserModelID    REG_SZ    MikePDF.S6bProbe_gxqed95vwwy28!Driver
+
+HKEY_CLASSES_ROOT\AppXc3tc6f9npav80ca6sa5kqk8vagggaejq\DefaultIcon
+    (Default)    REG_SZ    C:\Program Files\WindowsApps\MikePDF.S6bProbe_1.0.0.0_arm64__gxqed95vwwy28\Assets\Square44x44Logo.png
+
+HKEY_CLASSES_ROOT\AppXc3tc6f9npav80ca6sa5kqk8vagggaejq\Shell
+    (Default)    REG_SZ    open
+
+HKEY_CLASSES_ROOT\AppXc3tc6f9npav80ca6sa5kqk8vagggaejq\Shell\open
+    AppUserModelID    REG_SZ    MikePDF.S6bProbe_gxqed95vwwy28!Driver
+    PackageRelativeExecutable    REG_SZ    S6bDriver.exe
+    DesktopAppXActivateOptions    REG_DWORD    0x20
+    ContractId    REG_SZ    Windows.File
+    DesiredInitialViewState    REG_DWORD    0x0
+    PackageId    REG_SZ    MikePDF.S6bProbe_1.0.0.0_arm64__gxqed95vwwy28
+
+HKEY_CLASSES_ROOT\AppXc3tc6f9npav80ca6sa5kqk8vagggaejq\Shell\open\command
+    DelegateExecute    REG_SZ    {BFEC0C93-0B7D-4F2C-B09C-AFFFC4BDAE78}
+    (Default)    REG_SZ    "C:\Program Files\WindowsApps\MikePDF.S6bProbe_1.0.0.0_arm64__gxqed95vwwy28\S6bDriver.exe"
+
+

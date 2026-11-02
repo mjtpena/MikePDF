@@ -99,7 +99,7 @@ Get-Content (Join-Path $OutDir 'driver-stdout.txt') -ErrorAction SilentlyContinu
 $tools = Join-Path $env:RUNNER_TEMP 's6b-tools'
 $fx2 = Join-Path $logDir 'fixtures'
 New-Item -ItemType Directory -Force $tools, $fx2 | Out-Null
-Copy-Item (Join-Path $NativeDir 'S6bDriver.exe'), (Join-Path $NativeDir 's6b_testhost.exe') $tools
+Copy-Item (Join-Path $NativeDir 'S6bDriver.exe'), (Join-Path $NativeDir 's6b_testhost.exe'), (Join-Path $NativeDir 's6b_handler.dll') $tools   # the DLL copy is the classic "competitor" of the precedence experiment
 icacls $tools /grant '*S-1-1-0:(OI)(CI)RX' | Out-Null
 Copy-Item (Join-Path $fixtures 'text1.pdf') $fx2
 $driverExe = Join-Path $tools 'S6bDriver.exe'

@@ -367,7 +367,19 @@ static void AssocChanged() {
 // Run in a fresh process per case: the shell caches association lookups for the life of the process that asks.
 static int Experiment(const std::wstring& name, const std::wstring& dir, const std::wstring& pdf) {
     const wchar_t* thumbIid = L"{E357FCCD-A995-4576-B01F-234630154E96}";
-    const wchar_t* competitor = L"{6B7C2D10-5A1E-4F3B-9C11-0A5B6D6B0003}"; // the ExeServer class: a different handler that draws a checkerboard
+    // The competitor is a classic in-process class of the handler DLL ({...0004}: a checkerboard, no ShellHost), registered by hand under HKCU\Software\Classes\CLSID
+    // with InProcServer32 pointing at a copy of the DLL next to this executable. (An ExeServer class cannot serve: the first attempt got REGDB_E_CLASSNOTREG.)
+    const wchar_t* competitor = L"{6B7C2D10-5A1E-4F3B-9C11-0A5B6D6B0004}";
+    wchar_t self[MAX_PATH];
+    GetModuleFileNameW(nullptr, self, MAX_PATH);
+    PathRemoveFileSpecW(self);
+    const std::wstring competitorDll = std::wstring(self) + L"\\s6b_handler.dll";
+    const std::wstring clsidKey = std::wstring(L"Software\\Classes\\CLSID\\") + competitor + L"\\InProcServer32";
+    if (name != L"none") {
+        SetDefaultValue(clsidKey, competitorDll.c_str());
+        HKEY k = nullptr;
+        if (RegOpenKeyExW(HKEY_CURRENT_USER, clsidKey.c_str(), 0, KEY_SET_VALUE, &k) == ERROR_SUCCESS) { RegSetValueExW(k, L"ThreadingModel", 0, REG_SZ, (const BYTE*)L"Both", 5 * sizeof(wchar_t)); RegCloseKey(k); }
+    }
     wchar_t prog[256] = L"";
     DWORD sz = sizeof(prog);
     RegGetValueW(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\FileExts\\.pdf\\UserChoice", L"ProgId", RRF_RT_REG_SZ, nullptr, prog, &sz);
@@ -384,16 +396,16 @@ static int Experiment(const std::wstring& name, const std::wstring& dir, const s
     wchar_t file[MAX_PATH];
     swprintf_s(file, L"%ls\\exp-%ls-%lu%ls", dir.c_str(), name.c_str(), GetCurrentProcessId(), control ? L".s6bcomp" : L".pdf");
     CopyFixture(pdf, file);
-    const int ours0 = CountIn("C:\\s6b-log\\handler.log", "GetThumbnail cx="), theirs0 = CountIn("C:\\s6b-log\\comserver.log", "GetThumbnail cx="), init0 = CountIn("C:\\s6b-log\\comserver.log", "Initialize: stream size"), start0 = CountIn("C:\\s6b-log\\comserver.log", "env:");
+    const int ours0 = CountIn("C:\\s6b-log\\handler.log", "GetThumbnail cx="), theirs0 = CountIn("C:\\s6b-log\\handler.log", "COMPETITOR thumbnail cx=");
     HRESULT hr;
     int w = 0, h = 0, nw = 0;
     double ms = GetThumb(file, 256, &hr, &w, &h, &nw);
     P("  GetImage(.pdf): %s hr=0x%08lx %.1f ms %dx%d non-white %d%%", ms >= 0 ? "ok" : "FAILED", (unsigned long)hr, ms, w, h, nw);
-    P("  served by: MikePDF packaged handler +%d, competitor (ExeServer) +%d GetThumbnail; the competitor was started %d time(s) and initialised %d time(s)", CountIn("C:\\s6b-log\\handler.log", "GetThumbnail cx=") - ours0, CountIn("C:\\s6b-log\\comserver.log", "GetThumbnail cx=") - theirs0, CountIn("C:\\s6b-log\\comserver.log", "env:") - start0, CountIn("C:\\s6b-log\\comserver.log", "Initialize: stream size") - init0);
+    P("  served by: MikePDF packaged handler +%d, classic competitor +%d (a competitor draws a checkerboard: ~100%% non-white)", CountIn("C:\\s6b-log\\handler.log", "GetThumbnail cx=") - ours0, CountIn("C:\\s6b-log\\handler.log", "COMPETITOR thumbnail cx=") - theirs0);
     if (name == L"ext-level" || name == L"both") RegDeleteTreeW(HKEY_CURRENT_USER, extKey.c_str());
     if (name == L"progid-level" || name == L"both") RegDeleteTreeW(HKEY_CURRENT_USER, progKey.c_str());
     if (control) RegDeleteTreeW(HKEY_CURRENT_USER, L"Software\\Classes\\.s6bcomp");
-    if (name != L"none") AssocChanged();
+    if (name != L"none") { RegDeleteTreeW(HKEY_CURRENT_USER, (std::wstring(L"Software\\Classes\\CLSID\\") + competitor).c_str()); AssocChanged(); }
     return 0;
 }
 

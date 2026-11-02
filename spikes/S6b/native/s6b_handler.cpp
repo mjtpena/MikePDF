@@ -579,18 +579,58 @@ public:
     STDMETHODIMP SetTextColor(COLORREF) override { return S_OK; }
 };
 
+// CI-only "competitor": a classic in-process thumbnail provider that draws a checkerboard and never touches ShellHost. The precedence experiment registers it by hand in HKCU on a
+// disposable runner (HKCU\Software\Classes\CLSID\{...0004}\InProcServer32) to learn which of two registered handlers the shell picks for .pdf.
+static const CLSID CLSID_S6bCompetitor = {0x6B7C2D10, 0x5A1E, 0x4F3B, {0x9C, 0x11, 0x0A, 0x5B, 0x6D, 0x6B, 0x00, 0x04}};
+
+class Competitor final : public IInitializeWithStream, public IThumbnailProvider {
+    std::atomic<long> ref{1};
+
+public:
+    Competitor() { ++g_objects; }
+    ~Competitor() { --g_objects; }
+    STDMETHODIMP QueryInterface(REFIID r, void** p) override {
+        return QI(this, r, p, {{&IID_IInitializeWithStream, (IInitializeWithStream*)this}, {&IID_IThumbnailProvider, (IThumbnailProvider*)this}});
+    }
+    STDMETHODIMP_(ULONG) AddRef() override { return ++ref; }
+    STDMETHODIMP_(ULONG) Release() override { long r = --ref; if (!r) delete this; return r; }
+    STDMETHODIMP Initialize(IStream*, DWORD) override { return S_OK; }
+    STDMETHODIMP GetThumbnail(UINT cx, HBITMAP* ph, WTS_ALPHATYPE* pa) override {
+        LogEnvironmentOnce();
+        Log("COMPETITOR thumbnail cx=%u", cx);
+        const int n = (int)std::max(16u, std::min(cx, 1024u));
+        BITMAPINFO bi{};
+        bi.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
+        bi.bmiHeader.biWidth = n;
+        bi.bmiHeader.biHeight = -n;
+        bi.bmiHeader.biPlanes = 1;
+        bi.bmiHeader.biBitCount = 32;
+        bi.bmiHeader.biCompression = BI_RGB;
+        void* bits = nullptr;
+        HBITMAP bmp = CreateDIBSection(nullptr, &bi, DIB_RGB_COLORS, &bits, nullptr, 0);
+        if (!bmp) return E_OUTOFMEMORY;
+        auto* px = (uint32_t*)bits;
+        for (int y = 0; y < n; ++y) for (int x = 0; x < n; ++x) px[y * n + x] = 0xFF000000u | (((x / 32 + y / 32) & 1) ? 0x2060C0u : 0xE0E0E0u);
+        *ph = bmp;
+        *pa = WTSAT_ARGB;
+        return S_OK;
+    }
+};
+
 class Factory final : public IClassFactory {
     std::atomic<long> ref{1};
     bool preview;
+    bool competitor = false;
 
 public:
-    explicit Factory(bool p) : preview(p) {}
+    explicit Factory(bool p, bool c = false) : preview(p), competitor(c) {}
     STDMETHODIMP QueryInterface(REFIID r, void** p) override { return QI(this, r, p, {{&IID_IClassFactory, (IClassFactory*)this}}); }
     STDMETHODIMP_(ULONG) AddRef() override { return ++ref; }
     STDMETHODIMP_(ULONG) Release() override { long r = --ref; if (!r) delete this; return r; }
     STDMETHODIMP CreateInstance(IUnknown* outer, REFIID riid, void** ppv) override {
         if (outer) return CLASS_E_NOAGGREGATION;
-        IUnknown* obj = preview ? (IUnknown*)(IPreviewHandler*)new (std::nothrow) Preview() : (IUnknown*)(IThumbnailProvider*)new (std::nothrow) Thumb();
+        IUnknown* obj = competitor ? (IUnknown*)(IThumbnailProvider*)new (std::nothrow) Competitor()
+                                    : preview ? (IUnknown*)(IPreviewHandler*)new (std::nothrow) Preview() : (IUnknown*)(IThumbnailProvider*)new (std::nothrow) Thumb();
         if (!obj) return E_OUTOFMEMORY;
         HRESULT hr = obj->QueryInterface(riid, ppv);
         obj->Release();
@@ -605,8 +645,8 @@ BOOL WINAPI DllMain(HINSTANCE h, DWORD reason, void*) {
     return TRUE;
 }
 STDAPI DllGetClassObject(REFCLSID clsid, REFIID riid, void** ppv) {
-    if (!IsEqualCLSID(clsid, CLSID_S6bThumb) && !IsEqualCLSID(clsid, CLSID_S6bPreview)) return CLASS_E_CLASSNOTAVAILABLE;
-    auto* f = new (std::nothrow) Factory(IsEqualCLSID(clsid, CLSID_S6bPreview));
+    if (!IsEqualCLSID(clsid, CLSID_S6bThumb) && !IsEqualCLSID(clsid, CLSID_S6bPreview) && !IsEqualCLSID(clsid, CLSID_S6bCompetitor)) return CLASS_E_CLASSNOTAVAILABLE;
+    auto* f = new (std::nothrow) Factory(IsEqualCLSID(clsid, CLSID_S6bPreview), IsEqualCLSID(clsid, CLSID_S6bCompetitor));
     if (!f) return E_OUTOFMEMORY;
     HRESULT hr = f->QueryInterface(riid, ppv);
     f->Release();
