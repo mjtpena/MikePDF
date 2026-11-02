@@ -165,8 +165,10 @@ internal sealed class ShellEnginePool(IShellEngineFactory factory, Func<int> max
                 }
                 catch (Exception e) when (e is not OutOfMemoryException)
                 {
-                    ReleaseSlot();
-                    throw new EngineWaitException(EngineWaitFailure.StartFailed);
+                    // The spare failed to start. That says nothing about this request's engine: give the slot back (without starting another spare that may fail the same way
+                    // while the cause is still there) and start one for this request, which is what fails the request if an engine really cannot start.
+                    DropSlot();
+                    continue;
                 }
 
                 if (engine.IsAlive)
@@ -263,6 +265,14 @@ internal sealed class ShellEnginePool(IShellEngineFactory factory, Func<int> max
         }
 
         ReleaseSlot();
+    }
+
+    private void DropSlot()
+    {
+        lock (_gate)
+        {
+            _live--;
+        }
     }
 
     /// <summary>A slot is free (an engine died or was killed): hand it to the newest waiter, else start a spare.</summary>
