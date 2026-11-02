@@ -23,8 +23,9 @@ public sealed class JourneyTests : IDisposable
                 Directory.Delete(_work, recursive: true);
             }
         }
-        catch (IOException)
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException)
         {
+            // The decoy engine's executable can stay locked for a moment after its process ends.
         }
     }
 

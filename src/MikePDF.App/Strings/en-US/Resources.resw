@@ -128,7 +128,7 @@
   <data name="ForwardButton.Label" xml:space="preserve"><value>Forward</value></data>
   <data name="ForwardButton.ToolTipService.ToolTip" xml:space="preserve"><value>Forward (Alt+Right)</value></data>
   <data name="ZoomActualSize.Text" xml:space="preserve"><value>Actual size</value></data>
-  <data name="ZoomActualSize.KeyboardAcceleratorTextOverride" xml:space="preserve"><value>Ctrl+Shift+0</value></data>
+  <data name="ZoomActualSize.KeyboardAcceleratorTextOverride" xml:space="preserve"><value>Ctrl+Alt+0</value></data>
   <data name="PageColourButton.Label" xml:space="preserve"><value>Page colour</value></data>
   <data name="PageColourButton.ToolTipService.ToolTip" xml:space="preserve"><value>Page colour: normal, dark pages or sepia. The file is not changed.</value></data>
   <data name="PageColourNormal.Text" xml:space="preserve"><value>Normal</value></data>

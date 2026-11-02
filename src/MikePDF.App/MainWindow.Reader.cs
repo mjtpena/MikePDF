@@ -143,8 +143,9 @@ public sealed partial class MainWindow
     // Esc leaves full screen, unless the find bar is open: that Esc is the find bar's, and the next one is ours.
     private void OnRootPreviewKeyDown(object sender, KeyRoutedEventArgs e)
     {
-        // Ctrl+Shift+0 is actual size. It is not an accelerator: Ctrl+0 is one, and the framework gives a key with more modifiers to the one with fewer.
-        if (e.Key is VirtualKey.Number0 or VirtualKey.NumberPad0 && IsKeyDown(VirtualKey.Control) && IsKeyDown(VirtualKey.Shift) && !IsKeyDown(VirtualKey.Menu))
+        // Ctrl+Alt+0 is actual size. It is not an accelerator, because Ctrl+0 is one and the framework gives a key with more modifiers to the one with
+        // fewer. (Ctrl+Shift+0 was tried first: Windows takes it for the input-method hotkeys, and the window never sees the 0.)
+        if (e.Key is VirtualKey.Number0 or VirtualKey.NumberPad0 && IsKeyDown(VirtualKey.Control) && IsKeyDown(VirtualKey.Menu) && !IsKeyDown(VirtualKey.Shift))
         {
             e.Handled = true;
             _session?.PhysicalSize(RawMonitorDpi());
@@ -233,6 +234,7 @@ public sealed partial class MainWindow
         }
 
         _propertiesOpen = true;
+        var released = false; // set once this dialog has closed and the flag has been given back: a later call may own it by then
         using var cancel = new CancellationTokenSource();
         try
         {
@@ -253,17 +255,47 @@ public sealed partial class MainWindow
                 DefaultButton = ContentDialogButton.Close,
             };
             AutomationProperties.SetAutomationId(dialog, "PropertiesDialog");
+            // Free again the moment the dialog has closed (not when ShowAsync's continuation gets round to it): the framework hands the keyboard
+            // back to the pages first, and a person (or a screen reader) who asks again right away must not be told no.
+            dialog.Closed += (_, _) =>
+            {
+                released = true;
+                _propertiesOpen = false;
+            };
             var fill = FillPropertiesAsync(dialog, session, cancel.Token);
-            await dialog.ShowAsync();
+            await ShowWhenTheLastDialogIsGoneAsync(dialog);
             await cancel.CancelAsync();
-            await fill;
+            // Closing the dialog does not wait for the engine: a read still in flight is abandoned (it has been told to stop) and is not awaited,
+            // so the next press of Ctrl+D is never held up by it. Its outcome is only ever shown in a dialog that is no longer there.
+            _ = fill.ContinueWith(static task => _ = task.Exception, CancellationToken.None, TaskContinuationOptions.OnlyOnFaulted, TaskScheduler.Default);
         }
         finally
         {
-            _propertiesOpen = false;
+            if (!released)
+            {
+                _propertiesOpen = false; // the dialog never opened
+            }
         }
 
         Pages.FocusPages();
+    }
+
+    // A ContentDialog that has just been closed can still be going away when the next one is asked for, and the framework refuses a second one
+    // ("only one at a time") for a moment. Ask again shortly, a few times, rather than losing the person's request.
+    private static async Task ShowWhenTheLastDialogIsGoneAsync(ContentDialog dialog)
+    {
+        for (var attempt = 1; ; attempt++)
+        {
+            try
+            {
+                await dialog.ShowAsync();
+                return;
+            }
+            catch (Exception e) when (attempt < 10 && e is InvalidOperationException or COMException)
+            {
+                await Task.Delay(100);
+            }
+        }
     }
 
     private static async Task FillPropertiesAsync(ContentDialog dialog, DocumentSession session, CancellationToken token)

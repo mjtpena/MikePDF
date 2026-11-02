@@ -334,8 +334,8 @@ public sealed partial class ReaderGapsJourneyTests : IDisposable
         app.PressWithControl(VirtualKeyShort.KEY_0);
         app.WaitFor("100% again", () => app.ZoomPercent == 100);
         app.FocusPages();
-        app.Chord(VirtualKeyShort.CONTROL, VirtualKeyShort.SHIFT, VirtualKeyShort.KEY_0);
-        app.WaitFor("the physical size by Ctrl+Shift+0", () => app.ZoomPercent == expected);
+        app.Chord(VirtualKeyShort.CONTROL, VirtualKeyShort.ALT, VirtualKeyShort.KEY_0);
+        app.WaitFor("the physical size by Ctrl+Alt+0", () => app.ZoomPercent == expected);
     }
 
     // ---- 4. find options ---------------------------------------------------------------------------------------------------------------------
@@ -555,8 +555,8 @@ public sealed partial class ReaderGapsJourneyTests : IDisposable
         app.FocusPages();
         Assert.Equal("Properties", app.Require("PropertiesButton").Name);
 
-        app.PressWithControl(VirtualKeyShort.KEY_D);
-        app.Require("PropertiesDialog");
+        app.Click("PropertiesButton"); // by the toolbar button first; the second time is Ctrl+D
+        app.WaitFor("the dialog opened by the button", () => app.Find("PropertiesDialog") is not null);
         string Row(string id) => app.Require(id).Name;
         app.WaitFor("the rows", () => app.Find("Prop_Title") is not null, TimeSpan.FromSeconds(20));
         Assert.Equal("Title: Quarterly report", Row("Prop_Title"));
@@ -591,10 +591,23 @@ public sealed partial class ReaderGapsJourneyTests : IDisposable
         app.Require("PropertiesDialog").FindFirstDescendant(cf => cf.ByName("Close"))!.AsButton().Invoke();
         // While a dialog is open the window behind it is out of reach of UI Automation: the toolbar being found again means the dialog is gone.
         app.WaitFor("the dialog closed", () => app.Find("Prop_Title") is null && app.Find("PropertiesButton") is not null);
-        app.Click("PropertiesButton");
-        app.Require("PropertiesDialog");
+        // The window gives the pages the keyboard again only when the dialog is entirely finished with; a press before that is ignored on purpose.
+        app.WaitFor("the pages have the keyboard back", () => app.Require("PageSurface").Properties.HasKeyboardFocus.ValueOrDefault);
+        app.PressWithControl(VirtualKeyShort.KEY_D);
+        app.WaitFor("the dialog opened again by Ctrl+D", () => app.Find("PropertiesDialog") is not null);
         app.Press(VirtualKeyShort.ESCAPE);
         app.WaitFor("the dialog closed with Esc", () => app.Find("Prop_Title") is null && app.Find("PropertiesButton") is not null);
+
+        // And the button works again after a dialog that was opened by the key.
+        // The window gives the pages the keyboard again only when the dialog is entirely finished with; a press before that is ignored on purpose.
+        app.WaitFor("the pages have the keyboard back", () => app.Require("PageSurface").Properties.HasKeyboardFocus.ValueOrDefault);
+        // A real click: a UI Automation Invoke of this button straight after a dialog closed did not open the dialog in this environment, while the
+        // same Invoke as the first thing a document does, and a real click here, both do. Recorded as an open question in the completion note.
+        var button = app.Require("PropertiesButton");
+        app.ClickAt(MikePDFApp.CenterOf(button.BoundingRectangle));
+        app.WaitFor("the dialog opened by the button after Ctrl+D", () => app.Find("PropertiesDialog") is not null);
+        app.Press(VirtualKeyShort.ESCAPE);
+        app.WaitFor("the dialog closed once more", () => app.Find("Prop_Title") is null && app.Find("PropertiesButton") is not null);
         Assert.True(app.Require("PageSurface").Properties.HasKeyboardFocus.ValueOrDefault);
     }
 

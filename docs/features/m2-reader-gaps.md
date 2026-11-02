@@ -89,7 +89,7 @@ Already present (verified, and now covered by journeys): Ctrl+= / Ctrl+- zoom in
 
 Added or changed:
 - **Page Down / Page Up** follow §10.2 (next / previous page) when the page in view fits whole in the window, and scroll one screen less a little overlap when it does not (the page is taller than the window). Space and Shift+Space keep scrolling a screen.
-- **Actual size** (Ctrl+Shift+0, and "Actual size" in the zoom menu): the zoom at which one inch of the page is one inch on this monitor. It uses the monitor's physical DPI (`GetDpiForMonitor`, raw DPI) and the display scale: `zoom = rawDpi / (96 x displayScale)`. When Windows does not know the monitor's size (a virtual display, a projector: raw DPI missing or outside 72 to 400) it falls back to 100%. The monitor is the one the window is on at that moment, so it is right after moving the window between monitors.
+- **Actual size** (Ctrl+Alt+0, and "Actual size" in the zoom menu): the zoom at which one inch of the page is one inch on this monitor. It uses the monitor's physical DPI (`GetDpiForMonitor`, raw DPI) and the display scale: `zoom = rawDpi / (96 x displayScale)`. When Windows does not know the monitor's size (a virtual display, a projector: raw DPI missing or outside 72 to 400) it falls back to 100%. The monitor is the one the window is on at that moment, so it is right after moving the window between monitors.
 - **Ctrl+0 stays "100%"** (96 CSS-style pixels per inch, as Edge and Acrobat), the reset in §10.2. **OPEN QUESTION:** the master prompt lists both "reset" and "actual size". They are two commands here. If Opus prefers one, Ctrl+0 can be pointed at actual size by changing one handler.
 - The zoom menu lists "Actual size" first. Its tooltip names the key.
 
@@ -98,7 +98,7 @@ Added or changed:
 - **Z2** `ViewportController.PageDown/PageUp` go to the next/previous page when the current page fits the window, scroll a screen when it does not, and stop at the first and last page. (unit)
 - **Z3** Ctrl+= and Ctrl+- change the zoom by one step each way; Ctrl+0 gives 100%; Ctrl+1 and Ctrl+2 give the fit modes. (UI journey)
 - **Z4** Page Down / Page Up move a whole page in fit-page mode and scroll within a tall page. (UI journey)
-- **Z5** Ctrl+Shift+0 and the menu item "Actual size" set the zoom the physical-size formula gives for the window's monitor (the test reads the monitor's raw DPI itself). (UI journey)
+- **Z5** Ctrl+Alt+0 and the menu item "Actual size" set the zoom the physical-size formula gives for the window's monitor (the test reads the monitor's raw DPI itself). (UI journey)
 - **Z6** Ctrl+Shift+= and Ctrl+Shift+- rotate the view by quarter turns and the page indicator keeps the page. (UI journey)
 - **Z7** Home/End/Right/Left behave as before. (UI journey, existing)
 

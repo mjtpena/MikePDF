@@ -115,7 +115,7 @@ public sealed class ViewportController
     /// <summary>100%: 96 device-independent pixels to the inch (Ctrl+0).</summary>
     public void ActualSize(PointD? viewportAnchor = null) => ZoomTo(1.0, viewportAnchor);
 
-    /// <summary>The zoom at which a point of the page is a 72nd of an inch on the monitor, given the monitor's physical density (Ctrl+Shift+0).</summary>
+    /// <summary>The zoom at which a point of the page is a 72nd of an inch on the monitor, given the monitor's physical density (Ctrl+Alt+0).</summary>
     public void PhysicalSize(double rawMonitorDpi, PointD? viewportAnchor = null) => ZoomTo(ZoomMath.ActualSizeZoom(rawMonitorDpi, _dpiScale), viewportAnchor);
 
     public void FitWidth() => SetFit(FitMode.Width);

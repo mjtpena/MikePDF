@@ -34,6 +34,7 @@ internal sealed class DecoyEngine : IDisposable
             if (!_process.HasExited)
             {
                 _process.Kill();
+                _process.WaitForExit(5000); // the executable is held open until the process is really gone
             }
         }
         catch (InvalidOperationException)

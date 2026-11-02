@@ -17,8 +17,9 @@ public sealed class ProcessScopeTests : IDisposable
                 Directory.Delete(_work, recursive: true);
             }
         }
-        catch (IOException)
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException)
         {
+            // A decoy's executable can stay locked for a moment after its process ends; the folder is in the temp directory.
         }
     }
 
@@ -32,7 +33,7 @@ public sealed class ProcessScopeTests : IDisposable
         try
         {
             var found = new List<(int Id, string Exe)>();
-            for (var attempt = 0; attempt < 50 && found.Count == 0; attempt++)
+            for (var attempt = 0; attempt < 50 && !found.Any(d => string.Equals(d.Exe, "PING.EXE", StringComparison.OrdinalIgnoreCase)); attempt++)
             {
                 found = [.. ProcessTree.DescendantsOf(parent.Id)];
                 Thread.Sleep(100);
@@ -62,7 +63,8 @@ public sealed class ProcessScopeTests : IDisposable
             Assert.DoesNotContain(decoy.Id, engines);
 
             MikePDFApp.KillAll();
-            app.WaitFor("the engines ended with the app", () => engines.All(id => !Exists(id)));
+            var gone = FlaUI.Core.Tools.Retry.WhileFalse(() => engines.All(id => !Exists(id)), TimeSpan.FromSeconds(20), TimeSpan.FromMilliseconds(200));
+            Assert.True(gone.Success, "the app's engines were still running after KillAll");
         }
 
         Assert.False(decoy.HasExited, "KillAll ended an engine that is not an app's");
