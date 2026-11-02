@@ -570,7 +570,7 @@ Read from [MainWindow.xaml](../../src/MikePDF.App/MainWindow.xaml) **[repo]**:
 | Today | Design |
 |---|---|
 | One document per window; title text only | Title-bar `TabView` ([01](screens/01-main-window.md)) |
-| `CommandBar` of 14 icon buttons, including six separate view buttons | Page box, zoom group, one **View** menu, Find, Markup, Print, palette, Details (about 12 visible at L width) |
+| `CommandBar` of 10 icon buttons plus a page-indicator button, 7 of them zoom, fit and rotate | Page box, zoom group, one **View** menu, Find, Markup, Print, palette, Details (11 buttons plus two boxes at L width) |
 | Sidebar toggled with two labelled toggle buttons | `SelectorBar` of icons with up to six panes |
 | Page indicator is a button that opens a dialog | An inline editable page box |
 | Find box has Match case only | Find bar with case, whole word, regex, diacritics, results list, scroll-rail ticks |
