@@ -144,7 +144,7 @@ public sealed class FormLayerTests(SandboxFixture sandbox)
             stitched.AddRange(await BandAsync(document, RenderBandArgs.Annotations | RenderBandArgs.FormFields, top, Math.Min(70, Height - top)));
         }
 
-        Assert.Equal(screenBand, [.. stitched]);
+        Assert.True(screenBand.AsSpan().SequenceEqual(stitched.ToArray()), "the bands do not add up to the page");
     }
 
     [Fact]
