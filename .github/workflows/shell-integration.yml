@@ -32,7 +32,8 @@ permissions:
   contents: read
 
 concurrency:
-  group: shell-integration-${{ github.ref }}
+  # A manual run has a group of its own, so that several can be started side by side (to repeat a flaky check) and none cancels another.
+  group: shell-integration-${{ github.ref }}-${{ github.event_name == 'workflow_dispatch' && github.run_id || 'auto' }}
   # A newer push to a branch supersedes the older run; main's runs are each kept, so that a result is never lost to the next merge.
   cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
