@@ -105,7 +105,7 @@ PDFium's form-fill environment draws fields and can take key events (`FormKeyEve
 4. Checkboxes, radios and push buttons use `FormMouseEvent` and commands, with no overlay.
 5. Spell-check is **off** in field editors by default (names and IDs), with a setting.
 
-**Risk:** the overlay's text layout may differ from the saved appearance (kerning, wrapping, comb spacing). The fidelity test (S4 matrix, `Quire.Fidelity.Tests`) must compare the overlay's value to what other viewers show. A mismatch isn't a layout bug, it's a data bug if the saved *value* differs. The value, not the layout, is the contract. **OPEN QUESTION:** confirm this hybrid in the forms feature spec and a spike on IME input.
+**Risk:** the overlay's text layout may differ from the saved appearance (kerning, wrapping, comb spacing). The fidelity tests (the S4 matrix and the §12.4 harness) must compare the overlay's value to what other viewers show. A mismatch isn't a layout bug, it's a data bug if the saved *value* differs. The value, not the layout, is the contract. **OPEN QUESTION:** confirm this hybrid in the forms feature spec and a spike on IME input.
 
 ### 3.3 Tab order (§8.4, scenario 3)
 
