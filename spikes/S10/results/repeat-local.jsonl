@@ -1,0 +1,20 @@
+{"holder":"broker R|D \u002B engine view","mechanism":"ReplaceFileW","runs":30,"outcomes":"OK x30"}
+{"holder":"broker R|D \u002B engine view","mechanism":"ReplaceFileW\u002Bbackup","runs":30,"outcomes":"OK x30"}
+{"holder":"broker R|D \u002B engine view","mechanism":"RenameEx(REPLACE|POSIX)","runs":30,"outcomes":"OK x30"}
+{"holder":"broker R|D \u002B engine view","mechanism":"swap: rename target away, rename temp in","runs":30,"outcomes":"OK x30"}
+{"holder":"broker R|D \u002B engine view","mechanism":"delete target (POSIX), rename temp in","runs":30,"outcomes":"OK x30"}
+{"holder":"broker R|D \u002B view in ENGINE PROCESS","mechanism":"ReplaceFileW","runs":30,"outcomes":"OK x30"}
+{"holder":"broker R|D \u002B view in ENGINE PROCESS","mechanism":"ReplaceFileW\u002Bbackup","runs":30,"outcomes":"OK x30"}
+{"holder":"broker R|D \u002B view in ENGINE PROCESS","mechanism":"RenameEx(REPLACE|POSIX)","runs":30,"outcomes":"OK x30"}
+{"holder":"broker R|D \u002B view in ENGINE PROCESS","mechanism":"swap: rename target away, rename temp in","runs":30,"outcomes":"OK x30"}
+{"holder":"broker R|D \u002B view in ENGINE PROCESS","mechanism":"delete target (POSIX), rename temp in","runs":30,"outcomes":"OK x30"}
+{"holder":"broker R \u002B engine view (ADR-0005 as built)","mechanism":"ReplaceFileW","runs":30,"outcomes":"fail 32 x30"}
+{"holder":"broker R \u002B engine view (ADR-0005 as built)","mechanism":"ReplaceFileW\u002Bbackup","runs":30,"outcomes":"fail 32 x30"}
+{"holder":"broker R \u002B engine view (ADR-0005 as built)","mechanism":"RenameEx(REPLACE|POSIX)","runs":30,"outcomes":"fail 32 x30"}
+{"holder":"broker R \u002B engine view (ADR-0005 as built)","mechanism":"swap: rename target away, rename temp in","runs":30,"outcomes":"fail 32 x30"}
+{"holder":"broker R \u002B engine view (ADR-0005 as built)","mechanism":"delete target (POSIX), rename temp in","runs":30,"outcomes":"fail 32 x30"}
+{"holder":"broker R \u002B view in ENGINE PROCESS","mechanism":"ReplaceFileW","runs":30,"outcomes":"fail 32 x30"}
+{"holder":"broker R \u002B view in ENGINE PROCESS","mechanism":"ReplaceFileW\u002Bbackup","runs":30,"outcomes":"fail 32 x30"}
+{"holder":"broker R \u002B view in ENGINE PROCESS","mechanism":"RenameEx(REPLACE|POSIX)","runs":30,"outcomes":"fail 32 x30"}
+{"holder":"broker R \u002B view in ENGINE PROCESS","mechanism":"swap: rename target away, rename temp in","runs":30,"outcomes":"fail 32 x30"}
+{"holder":"broker R \u002B view in ENGINE PROCESS","mechanism":"delete target (POSIX), rename temp in","runs":30,"outcomes":"fail 32 x30"}

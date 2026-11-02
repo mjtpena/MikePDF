@@ -1,0 +1,7 @@
+﻿[    0.0s] test folder: C:\Users\mjtpe\OneDrive\MikePDF-S10-test-50a8db4d; waiting up to 300s per step
+[  300.3s] original not synced after 300s (plain local file)
+[  300.3s] POSIX replace under R|D handle + mapped view: OK
+[  300.3s] old mapped view still reads the old bytes: True; path now has the new bytes: True
+[  600.5s] replacement not synced after 300s (plain local file)
+[  600.5s] folder: [doc.pdf]  (a conflict copy would be named doc-<COMPUTERNAME>.pdf or doc (1).pdf)
+[  602.5s] test folder deleted

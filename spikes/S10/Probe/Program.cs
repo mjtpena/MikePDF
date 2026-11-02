@@ -17,7 +17,7 @@ switch (args[0])
     case "stress": Crash.Stress(Dir(args[1]), int.Parse(args[2]), args.ElementAtOrDefault(3)); return 0;
     case "repeat": Matrix.Repeat(Dir(args[1]), int.Parse(args[2]), args.ElementAtOrDefault(3)); return 0;
     case "netshare": NetShare.Run(Dir(args[1])); return 0;
-    case "attrs": Console.WriteLine("0x" + N.GetFileAttributesW(args[1]).ToString("X")); return 0;
+    case "attrs": Console.WriteLine($"GetFileAttributesW 0x{N.GetFileAttributesW(args[1]):X}; File.GetAttributes {File.GetAttributes(args[1])}; enumeration 0x{S10.Cloud.Raw(args[1]):X}"); return 0;
     case "cloud": Cloud.Run(args[1], args[2]); return 0;
     case "cloud-focused": Cloud.RunFocused(args[1], args[2], int.Parse(args[3])); return 0;
     case "hold": Matrix.HoldMain(); return 0;

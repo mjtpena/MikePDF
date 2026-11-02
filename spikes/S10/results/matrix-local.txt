@@ -1,0 +1,81 @@
+# matrix root=C:\Users\mjtpe\AppData\Local\Temp\mikepdf-s10\matrix label=local A=E2794A57DFF2 B=46F934C71D41
+none                                                 | ReplaceFileW                               | OK   | ReplaceFileW OK | target=B viewSees=n/a leftovers=-
+none                                                 | ReplaceFileW+backup                        | OK   | ReplaceFileW OK | target=B viewSees=n/a leftovers=doc.pdf.bak
+none                                                 | MoveFileEx(REPLACE_EXISTING)               | OK   | MoveFileEx OK | target=B viewSees=n/a leftovers=-
+none                                                 | RenameEx(REPLACE|POSIX)                    | OK   | SetFileInformationByHandle OK | target=B viewSees=n/a leftovers=-
+none                                                 | RenameEx(REPLACE)                          | OK   | SetFileInformationByHandle OK | target=B viewSees=n/a leftovers=-
+none                                                 | RenameInfo(ReplaceIfExists)                | OK   | SetFileInformationByHandle OK | target=B viewSees=n/a leftovers=-
+none                                                 | swap: rename target away, rename temp in   | OK   | target->.old OK; .tmp->target OK; delete .old OK | target=B viewSees=n/a leftovers=-
+none                                                 | delete target (POSIX), rename temp in      | OK   | POSIX delete target OK; .tmp->target OK | target=B viewSees=n/a leftovers=-
+broker-handle R (ADR-0005 flags, no view)            | ReplaceFileW                               | FAIL | ReplaceFileW 32 (The process cannot access the file because it is being used by another process.) | target=A viewSees=A(old, intact) leftovers=tmp
+broker-handle R (ADR-0005 flags, no view)            | ReplaceFileW+backup                        | FAIL | ReplaceFileW 32 (The process cannot access the file because it is being used by another process.) | target=A viewSees=A(old, intact) leftovers=tmp
+broker-handle R (ADR-0005 flags, no view)            | MoveFileEx(REPLACE_EXISTING)               | FAIL | MoveFileEx 5 (Access is denied.) | target=A viewSees=A(old, intact) leftovers=tmp
+broker-handle R (ADR-0005 flags, no view)            | RenameEx(REPLACE|POSIX)                    | FAIL | SetFileInformationByHandle 32 (The process cannot access the file because it is being used by another process.) | target=A viewSees=A(old, intact) leftovers=tmp
+broker-handle R (ADR-0005 flags, no view)            | RenameEx(REPLACE)                          | FAIL | SetFileInformationByHandle 5 (Access is denied.) | target=A viewSees=A(old, intact) leftovers=tmp
+broker-handle R (ADR-0005 flags, no view)            | RenameInfo(ReplaceIfExists)                | FAIL | SetFileInformationByHandle 5 (Access is denied.) | target=A viewSees=A(old, intact) leftovers=tmp
+broker-handle R (ADR-0005 flags, no view)            | swap: rename target away, rename temp in   | FAIL | target->.old 32 (The process cannot access the file because it is being used by another process.) | target=A viewSees=A(old, intact) leftovers=tmp
+broker-handle R (ADR-0005 flags, no view)            | delete target (POSIX), rename temp in      | FAIL | open target for delete: 32 (The process cannot access the file because it is being used by another process.) | target=A viewSees=A(old, intact) leftovers=tmp
+broker-handle R|D (no view)                          | ReplaceFileW                               | OK   | ReplaceFileW OK | target=B viewSees=A(old, intact) leftovers=-
+broker-handle R|D (no view)                          | ReplaceFileW+backup                        | OK   | ReplaceFileW OK | target=B viewSees=A(old, intact) leftovers=doc.pdf.bak
+broker-handle R|D (no view)                          | MoveFileEx(REPLACE_EXISTING)               | FAIL | MoveFileEx 5 (Access is denied.) | target=A viewSees=A(old, intact) leftovers=tmp
+broker-handle R|D (no view)                          | RenameEx(REPLACE|POSIX)                    | OK   | SetFileInformationByHandle OK | target=B viewSees=A(old, intact) leftovers=-
+broker-handle R|D (no view)                          | RenameEx(REPLACE)                          | FAIL | SetFileInformationByHandle 5 (Access is denied.) | target=A viewSees=A(old, intact) leftovers=tmp
+broker-handle R|D (no view)                          | RenameInfo(ReplaceIfExists)                | FAIL | SetFileInformationByHandle 5 (Access is denied.) | target=A viewSees=A(old, intact) leftovers=tmp
+broker-handle R|D (no view)                          | swap: rename target away, rename temp in   | OK   | target->.old OK; .tmp->target OK; delete .old OK | target=B viewSees=A(old, intact) leftovers=-
+broker-handle R|D (no view)                          | delete target (POSIX), rename temp in      | OK   | POSIX delete target OK; .tmp->target OK | target=B viewSees=A(old, intact) leftovers=-
+broker R + engine view (ADR-0005 as built)           | ReplaceFileW                               | FAIL | ReplaceFileW 32 (The process cannot access the file because it is being used by another process.) | target=A viewSees=A(old, intact) leftovers=tmp
+broker R + engine view (ADR-0005 as built)           | ReplaceFileW+backup                        | FAIL | ReplaceFileW 32 (The process cannot access the file because it is being used by another process.) | target=A viewSees=A(old, intact) leftovers=tmp
+broker R + engine view (ADR-0005 as built)           | MoveFileEx(REPLACE_EXISTING)               | FAIL | MoveFileEx 5 (Access is denied.) | target=A viewSees=A(old, intact) leftovers=tmp
+broker R + engine view (ADR-0005 as built)           | RenameEx(REPLACE|POSIX)                    | FAIL | SetFileInformationByHandle 32 (The process cannot access the file because it is being used by another process.) | target=A viewSees=A(old, intact) leftovers=tmp
+broker R + engine view (ADR-0005 as built)           | RenameEx(REPLACE)                          | FAIL | SetFileInformationByHandle 5 (Access is denied.) | target=A viewSees=A(old, intact) leftovers=tmp
+broker R + engine view (ADR-0005 as built)           | RenameInfo(ReplaceIfExists)                | FAIL | SetFileInformationByHandle 5 (Access is denied.) | target=A viewSees=A(old, intact) leftovers=tmp
+broker R + engine view (ADR-0005 as built)           | swap: rename target away, rename temp in   | FAIL | target->.old 32 (The process cannot access the file because it is being used by another process.) | target=A viewSees=A(old, intact) leftovers=tmp
+broker R + engine view (ADR-0005 as built)           | delete target (POSIX), rename temp in      | FAIL | open target for delete: 32 (The process cannot access the file because it is being used by another process.) | target=A viewSees=A(old, intact) leftovers=tmp
+broker R|D + engine view                             | ReplaceFileW                               | OK   | ReplaceFileW OK | target=B viewSees=A(old, intact) leftovers=-
+broker R|D + engine view                             | ReplaceFileW+backup                        | OK   | ReplaceFileW OK | target=B viewSees=A(old, intact) leftovers=doc.pdf.bak
+broker R|D + engine view                             | MoveFileEx(REPLACE_EXISTING)               | FAIL | MoveFileEx 5 (Access is denied.) | target=A viewSees=A(old, intact) leftovers=tmp
+broker R|D + engine view                             | RenameEx(REPLACE|POSIX)                    | OK   | SetFileInformationByHandle OK | target=B viewSees=A(old, intact) leftovers=-
+broker R|D + engine view                             | RenameEx(REPLACE)                          | FAIL | SetFileInformationByHandle 5 (Access is denied.) | target=A viewSees=A(old, intact) leftovers=tmp
+broker R|D + engine view                             | RenameInfo(ReplaceIfExists)                | FAIL | SetFileInformationByHandle 5 (Access is denied.) | target=A viewSees=A(old, intact) leftovers=tmp
+broker R|D + engine view                             | swap: rename target away, rename temp in   | OK   | target->.old OK; .tmp->target OK; delete .old OK | target=B viewSees=A(old, intact) leftovers=-
+broker R|D + engine view                             | delete target (POSIX), rename temp in      | OK   | POSIX delete target OK; .tmp->target OK | target=B viewSees=A(old, intact) leftovers=-
+broker R|W|D + engine view                           | ReplaceFileW                               | OK   | ReplaceFileW OK | target=B viewSees=A(old, intact) leftovers=-
+broker R|W|D + engine view                           | ReplaceFileW+backup                        | OK   | ReplaceFileW OK | target=B viewSees=A(old, intact) leftovers=doc.pdf.bak
+broker R|W|D + engine view                           | MoveFileEx(REPLACE_EXISTING)               | FAIL | MoveFileEx 5 (Access is denied.) | target=A viewSees=A(old, intact) leftovers=tmp
+broker R|W|D + engine view                           | RenameEx(REPLACE|POSIX)                    | OK   | SetFileInformationByHandle OK | target=B viewSees=A(old, intact) leftovers=-
+broker R|W|D + engine view                           | RenameEx(REPLACE)                          | FAIL | SetFileInformationByHandle 5 (Access is denied.) | target=A viewSees=A(old, intact) leftovers=tmp
+broker R|W|D + engine view                           | RenameInfo(ReplaceIfExists)                | FAIL | SetFileInformationByHandle 5 (Access is denied.) | target=A viewSees=A(old, intact) leftovers=tmp
+broker R|W|D + engine view                           | swap: rename target away, rename temp in   | OK   | target->.old OK; .tmp->target OK; delete .old OK | target=B viewSees=A(old, intact) leftovers=-
+broker R|W|D + engine view                           | delete target (POSIX), rename temp in      | OK   | POSIX delete target OK; .tmp->target OK | target=B viewSees=A(old, intact) leftovers=-
+engine view only, broker closed (opened R)           | ReplaceFileW                               | OK   | ReplaceFileW OK | target=B viewSees=A(old, intact) leftovers=-
+engine view only, broker closed (opened R)           | ReplaceFileW+backup                        | OK   | ReplaceFileW OK | target=B viewSees=A(old, intact) leftovers=doc.pdf.bak
+engine view only, broker closed (opened R)           | MoveFileEx(REPLACE_EXISTING)               | OK   | MoveFileEx OK | target=B viewSees=A(old, intact) leftovers=-
+engine view only, broker closed (opened R)           | RenameEx(REPLACE|POSIX)                    | OK   | SetFileInformationByHandle OK | target=B viewSees=A(old, intact) leftovers=-
+engine view only, broker closed (opened R)           | RenameEx(REPLACE)                          | OK   | SetFileInformationByHandle OK | target=B viewSees=A(old, intact) leftovers=-
+engine view only, broker closed (opened R)           | RenameInfo(ReplaceIfExists)                | OK   | SetFileInformationByHandle OK | target=B viewSees=A(old, intact) leftovers=-
+engine view only, broker closed (opened R)           | swap: rename target away, rename temp in   | OK   | target->.old OK; .tmp->target OK; delete .old OK | target=B viewSees=A(old, intact) leftovers=-
+engine view only, broker closed (opened R)           | delete target (POSIX), rename temp in      | OK   | POSIX delete target OK; .tmp->target OK | target=B viewSees=A(old, intact) leftovers=-
+engine view only, broker closed (opened R|D)         | ReplaceFileW                               | OK   | ReplaceFileW OK | target=B viewSees=A(old, intact) leftovers=-
+engine view only, broker closed (opened R|D)         | ReplaceFileW+backup                        | OK   | ReplaceFileW OK | target=B viewSees=A(old, intact) leftovers=doc.pdf.bak
+engine view only, broker closed (opened R|D)         | MoveFileEx(REPLACE_EXISTING)               | OK   | MoveFileEx OK | target=B viewSees=A(old, intact) leftovers=-
+engine view only, broker closed (opened R|D)         | RenameEx(REPLACE|POSIX)                    | OK   | SetFileInformationByHandle OK | target=B viewSees=A(old, intact) leftovers=-
+engine view only, broker closed (opened R|D)         | RenameEx(REPLACE)                          | OK   | SetFileInformationByHandle OK | target=B viewSees=A(old, intact) leftovers=-
+engine view only, broker closed (opened R|D)         | RenameInfo(ReplaceIfExists)                | OK   | SetFileInformationByHandle OK | target=B viewSees=A(old, intact) leftovers=-
+engine view only, broker closed (opened R|D)         | swap: rename target away, rename temp in   | OK   | target->.old OK; .tmp->target OK; delete .old OK | target=B viewSees=A(old, intact) leftovers=-
+engine view only, broker closed (opened R|D)         | delete target (POSIX), rename temp in      | OK   | POSIX delete target OK; .tmp->target OK | target=B viewSees=A(old, intact) leftovers=-
+broker R + view in ENGINE PROCESS                    | ReplaceFileW                               | FAIL | ReplaceFileW 32 (The process cannot access the file because it is being used by another process.) | target=A viewSees=A(old, intact) leftovers=tmp
+broker R + view in ENGINE PROCESS                    | ReplaceFileW+backup                        | FAIL | ReplaceFileW 32 (The process cannot access the file because it is being used by another process.) | target=A viewSees=A(old, intact) leftovers=tmp
+broker R + view in ENGINE PROCESS                    | MoveFileEx(REPLACE_EXISTING)               | FAIL | MoveFileEx 5 (Access is denied.) | target=A viewSees=A(old, intact) leftovers=tmp
+broker R + view in ENGINE PROCESS                    | RenameEx(REPLACE|POSIX)                    | FAIL | SetFileInformationByHandle 32 (The process cannot access the file because it is being used by another process.) | target=A viewSees=A(old, intact) leftovers=tmp
+broker R + view in ENGINE PROCESS                    | RenameEx(REPLACE)                          | FAIL | SetFileInformationByHandle 5 (Access is denied.) | target=A viewSees=A(old, intact) leftovers=tmp
+broker R + view in ENGINE PROCESS                    | RenameInfo(ReplaceIfExists)                | FAIL | SetFileInformationByHandle 5 (Access is denied.) | target=A viewSees=A(old, intact) leftovers=tmp
+broker R + view in ENGINE PROCESS                    | swap: rename target away, rename temp in   | FAIL | target->.old 32 (The process cannot access the file because it is being used by another process.) | target=A viewSees=A(old, intact) leftovers=tmp
+broker R + view in ENGINE PROCESS                    | delete target (POSIX), rename temp in      | FAIL | open target for delete: 32 (The process cannot access the file because it is being used by another process.) | target=A viewSees=A(old, intact) leftovers=tmp
+broker R|D + view in ENGINE PROCESS                  | ReplaceFileW                               | OK   | ReplaceFileW OK | target=B viewSees=A(old, intact) leftovers=-
+broker R|D + view in ENGINE PROCESS                  | ReplaceFileW+backup                        | OK   | ReplaceFileW OK | target=B viewSees=A(old, intact) leftovers=doc.pdf.bak
+broker R|D + view in ENGINE PROCESS                  | MoveFileEx(REPLACE_EXISTING)               | FAIL | MoveFileEx 5 (Access is denied.) | target=A viewSees=A(old, intact) leftovers=tmp
+broker R|D + view in ENGINE PROCESS                  | RenameEx(REPLACE|POSIX)                    | OK   | SetFileInformationByHandle OK | target=B viewSees=A(old, intact) leftovers=-
+broker R|D + view in ENGINE PROCESS                  | RenameEx(REPLACE)                          | FAIL | SetFileInformationByHandle 5 (Access is denied.) | target=A viewSees=A(old, intact) leftovers=tmp
+broker R|D + view in ENGINE PROCESS                  | RenameInfo(ReplaceIfExists)                | FAIL | SetFileInformationByHandle 5 (Access is denied.) | target=A viewSees=A(old, intact) leftovers=tmp
+broker R|D + view in ENGINE PROCESS                  | swap: rename target away, rename temp in   | OK   | target->.old OK; .tmp->target OK; delete .old OK | target=B viewSees=A(old, intact) leftovers=-
+broker R|D + view in ENGINE PROCESS                  | delete target (POSIX), rename temp in      | OK   | POSIX delete target OK; .tmp->target OK | target=B viewSees=A(old, intact) leftovers=-

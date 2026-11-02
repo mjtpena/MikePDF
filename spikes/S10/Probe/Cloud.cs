@@ -37,7 +37,16 @@ internal static class Cloud
     }
 
     // File.GetAttributes (FindFirstFile-style, what PowerShell and Explorer show). GetFileAttributesW from this process did not show the reparse bit of a placeholder that PowerShell showed, see the report.
-    private static uint Raw(string p) { try { return (uint)File.GetAttributes(p); } catch { return 0xFFFFFFFF; } }
+    // Enumeration-based (FindFirstFile) because GetFileAttributes(Ex) from this process does not show the placeholder's reparse bit while PowerShell's does (see report).
+    public static uint Raw(string p)
+    {
+        try
+        {
+            var fi = new DirectoryInfo(Path.GetDirectoryName(p)!).EnumerateFileSystemInfos(Path.GetFileName(p)).FirstOrDefault();
+            return fi is null ? 0xFFFFFFFF : (uint)fi.Attributes;
+        }
+        catch { return 0xFFFFFFFF; }
+    }
 
     private static bool IsPlaceholder(string path) => (Raw(path) & FILE_ATTRIBUTE_REPARSE_POINT) != 0 && Raw(path) != 0xFFFFFFFF;
 

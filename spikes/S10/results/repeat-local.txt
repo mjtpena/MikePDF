@@ -1,0 +1,20 @@
+broker R|D + engine view                      | ReplaceFileW                               | OK x30
+broker R|D + engine view                      | ReplaceFileW+backup                        | OK x30
+broker R|D + engine view                      | RenameEx(REPLACE|POSIX)                    | OK x30
+broker R|D + engine view                      | swap: rename target away, rename temp in   | OK x30
+broker R|D + engine view                      | delete target (POSIX), rename temp in      | OK x30
+broker R|D + view in ENGINE PROCESS           | ReplaceFileW                               | OK x30
+broker R|D + view in ENGINE PROCESS           | ReplaceFileW+backup                        | OK x30
+broker R|D + view in ENGINE PROCESS           | RenameEx(REPLACE|POSIX)                    | OK x30
+broker R|D + view in ENGINE PROCESS           | swap: rename target away, rename temp in   | OK x30
+broker R|D + view in ENGINE PROCESS           | delete target (POSIX), rename temp in      | OK x30
+broker R + engine view (ADR-0005 as built)    | ReplaceFileW                               | fail 32 x30
+broker R + engine view (ADR-0005 as built)    | ReplaceFileW+backup                        | fail 32 x30
+broker R + engine view (ADR-0005 as built)    | RenameEx(REPLACE|POSIX)                    | fail 32 x30
+broker R + engine view (ADR-0005 as built)    | swap: rename target away, rename temp in   | fail 32 x30
+broker R + engine view (ADR-0005 as built)    | delete target (POSIX), rename temp in      | fail 32 x30
+broker R + view in ENGINE PROCESS             | ReplaceFileW                               | fail 32 x30
+broker R + view in ENGINE PROCESS             | ReplaceFileW+backup                        | fail 32 x30
+broker R + view in ENGINE PROCESS             | RenameEx(REPLACE|POSIX)                    | fail 32 x30
+broker R + view in ENGINE PROCESS             | swap: rename target away, rename temp in   | fail 32 x30
+broker R + view in ENGINE PROCESS             | delete target (POSIX), rename temp in      | fail 32 x30

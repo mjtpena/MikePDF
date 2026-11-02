@@ -1,0 +1,30 @@
+engine: C:\Users\mjtpe\dev\Orqentis\QuirePDF\.claude\worktrees\agent-a8d6a2995cfad5b38\build\out\s10-engine\9960f81c\MikePDF.Engine.exe (AppContainer profile MikePDF.S10Spike)
+
+== broker opens the document with FileShare.Read
+ReplaceFileW                                   -> FAILED   [ReplaceFileW 32 (The process cannot access the file because it is being used by another process.)] | old document still served by the engine: Ok, pages 2 (was 2), render of page 1: Ok | fresh open of the path: 2 page(s) (old file)
+    folder afterwards: [.doc.pdf.mikepdf-0a1b2c3d.tmp (hidden), doc.pdf]
+ReplaceFileW+backup                            -> FAILED   [ReplaceFileW 32 (The process cannot access the file because it is being used by another process.)] | old document still served by the engine: Ok, pages 2 (was 2), render of page 1: Ok | fresh open of the path: 2 page(s) (old file)
+    folder afterwards: [.doc.pdf.mikepdf-0a1b2c3d.tmp (hidden), doc.pdf]
+MoveFileEx(REPLACE_EXISTING)                   -> FAILED   [MoveFileEx 5 (Access is denied.)] | old document still served by the engine: Ok, pages 2 (was 2), render of page 1: Ok | fresh open of the path: 2 page(s) (old file)
+    folder afterwards: [.doc.pdf.mikepdf-0a1b2c3d.tmp (hidden), doc.pdf]
+    (engine start failed, attempt 1: The engine's Hello failed with status EngineCrashed (The engine closed the pipe.). Log: ; retrying)
+RenameEx(REPLACE|POSIX)                        -> FAILED   [SetFileInformationByHandle 32 (The process cannot access the file because it is being used by another process.)] | old document still served by the engine: Ok, pages 2 (was 2), render of page 1: Ok | fresh open of the path: 2 page(s) (old file)
+    folder afterwards: [.doc.pdf.mikepdf-0a1b2c3d.tmp (hidden), doc.pdf]
+swap (rename away, rename in)                  -> FAILED   [target->.old 32 (The process cannot access the file because it is being used by another process.)] | old document still served by the engine: Ok, pages 2 (was 2), render of page 1: Ok | fresh open of the path: 2 page(s) (old file)
+    folder afterwards: [.doc.pdf.mikepdf-0a1b2c3d.tmp (hidden), doc.pdf]
+close the document first, then ReplaceFileW    -> REPLACED [ReplaceFileW after close OK] | document closed | fresh open of the path: 1 page(s) (new file)
+    folder afterwards: [doc.pdf]
+
+== broker opens the document with FileShare.Read, Delete
+ReplaceFileW                                   -> REPLACED [ReplaceFileW OK] | old document still served by the engine: Ok, pages 2 (was 2), render of page 1: Ok | fresh open of the path: 1 page(s) (new file)
+    folder afterwards: [doc.pdf]
+ReplaceFileW+backup                            -> REPLACED [ReplaceFileW OK] | old document still served by the engine: Ok, pages 2 (was 2), render of page 1: Ok | fresh open of the path: 1 page(s) (new file)
+    folder afterwards: [doc.pdf]
+MoveFileEx(REPLACE_EXISTING)                   -> FAILED   [MoveFileEx 5 (Access is denied.)] | old document still served by the engine: Ok, pages 2 (was 2), render of page 1: Ok | fresh open of the path: 2 page(s) (old file)
+    folder afterwards: [.doc.pdf.mikepdf-0a1b2c3d.tmp (hidden), doc.pdf]
+RenameEx(REPLACE|POSIX)                        -> REPLACED [SetFileInformationByHandle OK] | old document still served by the engine: Ok, pages 2 (was 2), render of page 1: Ok | fresh open of the path: 1 page(s) (new file)
+    folder afterwards: [doc.pdf (hidden)]
+swap (rename away, rename in)                  -> REPLACED [target->.old OK; .tmp->target OK] | old document still served by the engine: Ok, pages 2 (was 2), render of page 1: Ok | fresh open of the path: 1 page(s) (new file)
+    folder afterwards: [doc.pdf (hidden), doc.pdf.old]
+close the document first, then ReplaceFileW    -> REPLACED [ReplaceFileW after close OK] | document closed | fresh open of the path: 1 page(s) (new file)
+    folder afterwards: [doc.pdf]

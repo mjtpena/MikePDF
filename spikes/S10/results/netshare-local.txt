@@ -1,0 +1,4 @@
+File.OpenHandle FileShare.Read                   -> other process: write-open denied 32, rename denied 32, read-open ALLOWED
+File.OpenHandle FileShare.Read, Delete           -> other process: write-open denied 32, rename ALLOWED, read-open ALLOWED
+File.OpenHandle FileShare.ReadWrite, Delete      -> other process: write-open ALLOWED, rename ALLOWED, read-open ALLOWED
+File.OpenHandle FileShare.None                   -> other process: write-open denied 32, rename denied 32, read-open denied 32

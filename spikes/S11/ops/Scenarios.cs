@@ -212,6 +212,11 @@ internal static unsafe class Scenarios
 
         // ---- new documents (extract, merge, split)
         foreach (var x in NewDoc("extract-4-6", "Extract pages 4-6 of A into a new document (CreateNewDocument + ImportPagesByIndex)", d => Import(d, a, [3, 4, 5]), Keys("A", 4, 5, 6), ["A"])) yield return x;
+        foreach (var x in NewDoc("extract-4-6-range-string", "Same as extract-4-6 through FPDF_ImportPages with the range string \"4-6\" instead of ImportPagesByIndex", d =>
+        {
+            using var s = PdfDoc.Open(a, false, out _);
+            return P2.FPDF_ImportPages(d, s!.Doc, "4-6", 0) != 0;
+        }, Keys("A", 4, 5, 6), ["A"])) yield return x;
         foreach (var x in NewDoc("extract-forms", "Extract pages 2, 5 and 8 of A (all three carry form fields)", d => Import(d, a, [1, 4, 7]), Keys("A", 2, 5, 8), ["A"])) yield return x;
         foreach (var x in NewDoc("extract-1-3", "Extract pages 1-3 of A (links to pages 4+ and 10 point outside)", d => Import(d, a, [0, 1, 2]), Keys("A", 1, 2, 3), ["A"])) yield return x;
         foreach (var x in NewDoc("extract-3-ocg", "Extract page 3 of A alone (optional content: one layer ON, one OFF)", d => Import(d, a, [2]), Keys("A", 3), ["A"])) yield return x;
