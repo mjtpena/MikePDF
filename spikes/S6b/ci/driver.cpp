@@ -350,12 +350,20 @@ static void ExeServerStream(const std::wstring& dir) {
     }
 }
 
-// ---- who wins when several handlers are registered for .pdf? Registry writes happen only here, only on a disposable CI runner (HKCU\Software\Classes). -------------------
+// ---- who wins when several handlers are registered for .pdf? Registry writes happen only here, only on a disposable GitHub-hosted runner (HKLM\Software\Classes,
+// the way an installer such as Acrobat's registers a handler; a first attempt under HKCU could not activate the class: REGDB_E_CLASSNOTREG). The mode refuses to run anywhere else. ----
+static HKEY g_root = HKEY_LOCAL_MACHINE;
+static bool OnDisposableRunner() {
+    wchar_t a[16] = L"", b[32] = L"";
+    GetEnvironmentVariableW(L"GITHUB_ACTIONS", a, 16);
+    GetEnvironmentVariableW(L"RUNNER_ENVIRONMENT", b, 32);
+    return wcscmp(a, L"true") == 0 && wcscmp(b, L"github-hosted") == 0;
+}
 static void SetDefaultValue(const std::wstring& subkey, const wchar_t* value) {
     HKEY k = nullptr;
-    LONG r = RegCreateKeyExW(HKEY_CURRENT_USER, subkey.c_str(), 0, nullptr, 0, KEY_SET_VALUE, nullptr, &k, nullptr);
+    LONG r = RegCreateKeyExW(g_root, subkey.c_str(), 0, nullptr, 0, KEY_SET_VALUE, nullptr, &k, nullptr);
     if (r == ERROR_SUCCESS) { RegSetValueExW(k, nullptr, 0, REG_SZ, (const BYTE*)value, (DWORD)((wcslen(value) + 1) * sizeof(wchar_t))); RegCloseKey(k); }
-    P("  registry: HKCU\\%ls = %ls (%s)", subkey.c_str(), value, r == ERROR_SUCCESS ? "written" : "FAILED");
+    P("  registry: %s\\%ls = %ls (%s)", g_root == HKEY_LOCAL_MACHINE ? "HKLM" : "HKCU", subkey.c_str(), value, r == ERROR_SUCCESS ? "written" : "FAILED");
 }
 
 // Microsoft: after changing a shell extension handler's registration, SHChangeNotify(SHCNE_ASSOCCHANGED) must be called or the change may not be seen (docs: "Creating Shell Extension Handlers").
@@ -366,6 +374,7 @@ static void AssocChanged() {
 
 // Run in a fresh process per case: the shell caches association lookups for the life of the process that asks.
 static int Experiment(const std::wstring& name, const std::wstring& dir, const std::wstring& pdf) {
+    if (!OnDisposableRunner()) { P("refusing to write registry keys: this is not a GitHub-hosted runner"); return 3; }
     const wchar_t* thumbIid = L"{E357FCCD-A995-4576-B01F-234630154E96}";
     // The competitor is a classic in-process class of the handler DLL ({...0004}: a checkerboard, no ShellHost), registered by hand under HKCU\Software\Classes\CLSID
     // with InProcServer32 pointing at a copy of the DLL next to this executable. (An ExeServer class cannot serve: the first attempt got REGDB_E_CLASSNOTREG.)
@@ -374,11 +383,11 @@ static int Experiment(const std::wstring& name, const std::wstring& dir, const s
     GetModuleFileNameW(nullptr, self, MAX_PATH);
     PathRemoveFileSpecW(self);
     const std::wstring competitorDll = std::wstring(self) + L"\\s6b_handler.dll";
-    const std::wstring clsidKey = std::wstring(L"Software\\Classes\\CLSID\\") + competitor + L"\\InProcServer32";
+    const std::wstring clsidKey = std::wstring(L"Software\\Classes\\CLSID\\") + competitor + L"\\InprocServer32";
     if (name != L"none") {
         SetDefaultValue(clsidKey, competitorDll.c_str());
         HKEY k = nullptr;
-        if (RegOpenKeyExW(HKEY_CURRENT_USER, clsidKey.c_str(), 0, KEY_SET_VALUE, &k) == ERROR_SUCCESS) { RegSetValueExW(k, L"ThreadingModel", 0, REG_SZ, (const BYTE*)L"Both", 5 * sizeof(wchar_t)); RegCloseKey(k); }
+        if (RegOpenKeyExW(g_root, clsidKey.c_str(), 0, KEY_SET_VALUE, &k) == ERROR_SUCCESS) { RegSetValueExW(k, L"ThreadingModel", 0, REG_SZ, (const BYTE*)L"Both", 5 * sizeof(wchar_t)); RegCloseKey(k); }
     }
     wchar_t prog[256] = L"";
     DWORD sz = sizeof(prog);
@@ -402,10 +411,10 @@ static int Experiment(const std::wstring& name, const std::wstring& dir, const s
     double ms = GetThumb(file, 256, &hr, &w, &h, &nw);
     P("  GetImage(.pdf): %s hr=0x%08lx %.1f ms %dx%d non-white %d%%", ms >= 0 ? "ok" : "FAILED", (unsigned long)hr, ms, w, h, nw);
     P("  served by: MikePDF packaged handler +%d, classic competitor +%d (a competitor draws a checkerboard: ~100%% non-white)", CountIn("C:\\s6b-log\\handler.log", "GetThumbnail cx=") - ours0, CountIn("C:\\s6b-log\\handler.log", "COMPETITOR thumbnail cx=") - theirs0);
-    if (name == L"ext-level" || name == L"both") RegDeleteTreeW(HKEY_CURRENT_USER, extKey.c_str());
-    if (name == L"progid-level" || name == L"both") RegDeleteTreeW(HKEY_CURRENT_USER, progKey.c_str());
-    if (control) RegDeleteTreeW(HKEY_CURRENT_USER, L"Software\\Classes\\.s6bcomp");
-    if (name != L"none") { RegDeleteTreeW(HKEY_CURRENT_USER, (std::wstring(L"Software\\Classes\\CLSID\\") + competitor).c_str()); AssocChanged(); }
+    if (name == L"ext-level" || name == L"both") RegDeleteTreeW(g_root, extKey.c_str());
+    if (name == L"progid-level" || name == L"both") RegDeleteTreeW(g_root, progKey.c_str());
+    if (control) RegDeleteTreeW(g_root, L"Software\\Classes\\.s6bcomp");
+    if (name != L"none") { RegDeleteTreeW(g_root, (std::wstring(L"Software\\Classes\\CLSID\\") + competitor).c_str()); AssocChanged(); }
     return 0;
 }
 

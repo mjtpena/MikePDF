@@ -25,7 +25,7 @@ Decisions inside A that the evidence supports (details in the ADR):
 - **A single-flight launch lock.** 16 hosts that all found no ShellHost started 14 extra ShellHost processes, which exited at once; that is wasted work, and it grows with the Explorer folder size.
 - **One engine per file, one spare ahead.** p50 28 ms against 37 ms for none and 8 ms for a shared engine; a shared engine gives up the one-process-per-document isolation for 20 ms.
 
-What this spike could not settle, and the product must not assume: **whether a packaged handler runs at Medium or Low integrity under a real Explorer.** On the runners everything ran at the integrity of the caller (High). If prevhost runs our handler at Low, **on-demand launch from the handler cannot work** (a Low process cannot start a working ShellHost: measured). See OQ-SHELL-10 below and "Not verified".
+What this spike could not settle, and the product must not assume: **the integrity level of a packaged handler under a real Explorer.** On the runners every activated host (`DllHost.exe`, `prevhost.exe`, ShellHost, the ExeServer) logged `integrity=high`, **whatever the caller's level**: a driver started at Medium got High hosts, because DCOM starts a server with the user's session token and the runner's session token is High (an elevated administrator, no UAC filtering). No host was ever Low, although the documentation says prevhost runs handlers at Low by default. On a standard-user machine the session token is Medium, so the hosts are *expected* at Medium, where on-demand launch works; that expectation is **untested**. If a host were Low, a handler could not start ShellHost (measured), and a Low *caller* is refused COM activation of our classes (`0x80070005`, measured). See OQ-SHELL-10 and "Not verified".
 
 ## Questions
 
@@ -134,7 +134,7 @@ Through the real shell, packaged, on the hosted runners (`GetImage` on unique `.
 - **A Low-integrity process cannot start a working ShellHost.** With ShellHost not running, the Low client's `CreateProcess` succeeded and **no pipe appeared in 15 s and no ShellHost process remained** (`lowil.txt`, case 3). On-demand launch therefore works only when the handler's host is at Medium or higher. The reason inside ShellHost was not isolated.
 - **Option C from Low:** the broker's `AppContainerProfile.CreateOrOpen` fails at Low with `CreateAppContainerProfile failed (HRESULT 0x80070005)` even though the profile exists. With the SID derived by reflection, the next step could not be reached because my synthetic Low token could not see the engine files (a harness limit, `lowil-launch.txt`): `CreateProcess` into an AppContainer from Low is **UNVERIFIED**.
 - **A Low-integrity COM client is refused activation** of every packaged class: `CoCreateInstance` of the preview class and the ExeServer, and `GetImage` itself, returned `0x80070005` (run 2 and 3, both architectures; the thumbnail handler was not invoked). This is about the *caller's* integrity; a Low *handler host* was not tested (it needs Explorer or a Low prevhost).
-- [[RUN4-MEDIUM]]
+- **A Medium-integrity caller works the same, and does not make the hosts Medium.** In run 4 the driver was started from an image carrying a Medium mandatory label (`icacls /setintegritylevel M`; `runas /trustlevel` gave a High process here and `SetTokenInformation` cannot raise Low to Medium, so the label was the one mechanism that worked): it logged `integrity RID 0x2000 (medium)` and got thumbnails (x64: cold 340, 290, 284 ms; warm p50 41.2 ms, p95 47.9 ms; ARM64: 333, 271, 275 ms; warm 49.2 / 55.4 ms), the `.pdf` served by our handler, and previews (first pixel 35 to 45 ms warm, 282 to 338 ms cold). The `prevhost.exe`, `DllHost.exe` and ShellHost that served it logged **`integrity=high`** (and `thread-token=no impersonation` in run 5: the handler's threads do not run under a lower token). So the level of an activated host is the user's session token, not the caller's. This is a measured fact of the runner; it is not a measurement of a standard-user session.
 
 ### 7. The three options, measured and composed
 
@@ -228,7 +228,7 @@ Statuses are the existing ones: `PasswordRequired`, `Damaged`, `Unsupported`, `T
 
 | Id | Question | Who |
 |---|---|---|
-| OQ-SHELL-10 | At what integrity level does Explorer's activation run our packaged handler: Medium (as the CI results suggest for the caller's level) or Low? If Low, the handler cannot start ShellHost, and a launch path across integrity levels is needed (a ShellHost started by the app, a startup task, or a COM server that Windows starts for a Low caller: Low callers were refused activation in CI). Needs a real Explorer run | User and Opus (R1, R2) |
+| OQ-SHELL-10 | At what integrity level does Explorer's activation run our packaged handler on a standard-user machine? The runners showed the user's session token, never Low (so Medium is expected there), but the documentation says prevhost uses Low by default. If Low, the handler cannot start ShellHost, and a launch path across integrity levels is needed (a ShellHost started by the app or by a startup task; a Low caller is refused COM activation of our classes). Needs a real Explorer run on a non-elevated session | User and Opus (R1, R2) |
 | OQ-SHELL-11 | Handler precedence on a machine with Acrobat or Edge's own thumbnail handler, with MikePDF not the default | User (a machine with Acrobat) |
 | OQ-SHELL-12 | Does Explorer's block on previewing downloaded files apply before a third-party handler is created, and should MikePDF say so in its settings text? | Opus with a test on a real Explorer |
 | OQ-SHELL-13 | Should the engine accept a section in `OpenDocument` (saves up to 50 ms at 30 MB)? | Opus (schema v5 owner) |
@@ -236,7 +236,7 @@ Statuses are the existing ones: `PasswordRequired`, `Damaged`, `Unsupported`, `T
 ## Not verified
 
 - **The real Explorer.** No `explorer.exe` thumbnail request, no preview pane, no folder of files. The shell was driven by `IShellItemImageFactory` and COM activation from a test process. How many thumbnails Explorer asks for at once, in how many `dllhost` instances, how long it waits for a handler, what it does when one is slow or fails, and whether it caches a failure: all UNVERIFIED.
-- **Medium integrity and a real user session.** The runner's token is High and elevated. [[RUN4-MEDIUM-NV]]
+- **A standard-user session.** The runner's session token is High and elevated, so every COM-activated host was High. A Medium *caller* was tested (label mechanism), but the hosts it activated were High. What level the hosts have when the session token is Medium (a normal user) was not observed.
 - **Handler precedence against a competing registration, when the competing app is the user's default.** [[RUN4-NV]]
 - **The handler at Low integrity inside a real prevhost.**
 - **The Store-signed package, Smart App Control, SmartScreen, Defender.** The test package is signed by a runner-only certificate; whether any of them delays or blocks starting ShellHost is untested.

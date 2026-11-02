@@ -138,7 +138,7 @@ foreach ($name in 'none', 'control', 'ext-level', 'progid-level', 'both') {
     & $driverExe --experiment $name $expOut $fx2 (Join-Path $logDir 'work-exp') 2>&1 | Out-Null
 }
 if (Test-Path (Join-Path $expOut 'experiment.log')) { Copy-Item (Join-Path $expOut 'experiment.log') (Join-Path $OutDir 'experiment.log') }
-Dump 'reg-after-experiments' { reg query 'HKCU\Software\Classes\.pdf' /s 2>&1 }
+Dump 'reg-after-experiments' { "##### HKCU .pdf"; reg query 'HKCU\Software\Classes\.pdf' /s 2>&1; "##### HKLM .pdf ShellEx"; reg query 'HKLM\SOFTWARE\Classes\.pdf\ShellEx' /s 2>&1; "##### HKLM competitor CLSID"; reg query 'HKLM\SOFTWARE\Classes\CLSID\{6B7C2D10-5A1E-4F3B-9C11-0A5B6D6B0004}' /s 2>&1; "##### HKLM .s6bcomp"; reg query 'HKLM\SOFTWARE\Classes\.s6bcomp' /s 2>&1 }
 
 # ShellHost exits by itself 60 s after its last request (spec 3.2): is it gone?
 Log 'waiting 75 s for the idle exit of ShellHost and the ExeServer ...'

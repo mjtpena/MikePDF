@@ -1,0 +1,7 @@
+
+HKEY_CURRENT_USER\Software\Classes\.pdf\OpenWithProgids
+    AppXc3tc6f9npav80ca6sa5kqk8vagggaejq    REG_NONE    
+
+HKEY_CURRENT_USER\Software\Classes\.pdf\ShellEx
+
+
