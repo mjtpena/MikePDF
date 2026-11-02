@@ -31,7 +31,15 @@ public sealed partial class MainWindow
                 Pages.FocusPages();
                 break;
             case DestinationKind.External:
-                await ShowAddressAsync(session, page, link);
+                if (_services.Settings.Effective("links.behaviour").Text == "Block")
+                {
+                    ShowBannerText(InfoBarSeverity.Informational, Strings.Get("Link_Blocked_Title"), Strings.Get("Link_Blocked_Message"));
+                }
+                else
+                {
+                    await ShowAddressAsync(session, page, link); // also for "ask first": this build opens nothing, so asking would be a promise it cannot keep
+                }
+
                 break;
             case DestinationKind.Other:
                 ShowBanner(InfoBarSeverity.Informational, "Banner_LinkSkipped_Title", null, closable: true, messageText: Strings.Format("Banner_LinkSkipped_Message", Strings.Get("AppName")));
@@ -82,6 +90,7 @@ public sealed partial class MainWindow
         var dialog = new ContentDialog
         {
             XamlRoot = Root.XamlRoot,
+            RequestedTheme = Root.RequestedTheme,
             Title = Strings.Get("Link_ExternalTitle"),
             Content = panel,
             PrimaryButtonText = Strings.Get("Link_Copy"),

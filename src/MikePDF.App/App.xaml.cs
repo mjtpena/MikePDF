@@ -2,7 +2,6 @@ using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
 using Microsoft.Windows.AppLifecycle;
 using MikePDF.App.Services;
-using MikePDF.Core.Persistence;
 using Windows.ApplicationModel.Activation;
 using Windows.Storage;
 
@@ -21,7 +20,7 @@ public partial class App : Application
     protected override void OnLaunched(Microsoft.UI.Xaml.LaunchActivatedEventArgs args)
     {
         _queue = DispatcherQueue.GetForCurrentThread();
-        _window = new MainWindow(new DocumentStore(AppPaths.DocumentStorePath));
+        _window = new MainWindow(AppServices.Create());
         _window.Activate();
 
         var activation = AppInstance.GetCurrent().GetActivatedEventArgs();

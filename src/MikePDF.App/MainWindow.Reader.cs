@@ -11,7 +11,6 @@ using MikePDF.App.Services;
 using MikePDF.Core.Colour;
 using MikePDF.Core.Geometry;
 using MikePDF.Core.Reading;
-using Windows.System;
 using WinRT.Interop;
 
 namespace MikePDF.App;
@@ -34,26 +33,9 @@ public sealed partial class MainWindow
         Root.AddHandler(UIElement.PointerPressedEvent, new PointerEventHandler(OnRootPointerPressed), handledEventsToo: true);
         Root.PreviewKeyDown += OnRootPreviewKeyDown;
         Pages.CopyBlocked += OnCopyBlocked;
-        Pages.PageColour = _store.PageColour;
-        ApplyPageColourMenu();
-    }
-
-    private void UpdateReaderChrome(DocumentSession? session)
-    {
-        BackButton.IsEnabled = session is { IsOpen: true, CanGoBack: true };
-        ForwardButton.IsEnabled = session is { IsOpen: true, CanGoForward: true };
-        PropertiesButton.IsEnabled = session is { IsOpen: true };
     }
 
     // ---- back and forward ----------------------------------------------------------------------------------------------------------
-
-    private void OnBackClick(object sender, RoutedEventArgs e) => GoBack();
-
-    private void OnForwardClick(object sender, RoutedEventArgs e) => GoForward();
-
-    private void OnBackAccelerator(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args) => Run(args, GoBack);
-
-    private void OnForwardAccelerator(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args) => Run(args, GoForward);
 
     private void GoBack()
     {
@@ -102,23 +84,12 @@ public sealed partial class MainWindow
         return monitor != 0 && GetDpiForMonitor(monitor, MonitorRawDpi, out var x, out _) == 0 ? x : 0;
     }
 
-    private void OnPhysicalSizeClick(object sender, RoutedEventArgs e) => _session?.PhysicalSize(RawMonitorDpi());
-
 
     // ---- page colour -----------------------------------------------------------------------------------------------------------------
 
-    private void OnPageColourClick(object sender, RoutedEventArgs e)
-    {
-        if (sender is RadioMenuFlyoutItem { Tag: string tag } && Enum.TryParse<PageColourMode>(tag, out var mode) && Enum.IsDefined(mode))
-        {
-            Pages.PageColour = mode;
-            _store.SetPageColour(mode);
-        }
-    }
-
     private void ApplyPageColourMenu()
     {
-        var mode = _store.PageColour;
+        var mode = Pages.PageColour;
         PageColourNormal.IsChecked = mode == PageColourMode.Normal;
         PageColourInverted.IsChecked = mode == PageColourMode.Inverted;
         PageColourSepia.IsChecked = mode == PageColourMode.Sepia;
@@ -136,32 +107,7 @@ public sealed partial class MainWindow
 
     // ---- full screen -----------------------------------------------------------------------------------------------------------------
 
-    private void OnFullScreenClick(object sender, RoutedEventArgs e) => SetFullScreen(!_fullScreen);
-
-    private void OnFullScreenAccelerator(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args) => Run(args, () => SetFullScreen(!_fullScreen));
-
-    // Esc leaves full screen, unless the find bar is open: that Esc is the find bar's, and the next one is ours.
-    private void OnRootPreviewKeyDown(object sender, KeyRoutedEventArgs e)
-    {
-        // Ctrl+Alt+0 is actual size. It is not an accelerator, because Ctrl+0 is one and the framework gives a key with more modifiers to the one with
-        // fewer. (Ctrl+Shift+0 was tried first: Windows takes it for the input-method hotkeys, and the window never sees the 0.)
-        if (e.Key is VirtualKey.Number0 or VirtualKey.NumberPad0 && IsKeyDown(VirtualKey.Control) && IsKeyDown(VirtualKey.Menu) && !IsKeyDown(VirtualKey.Shift))
-        {
-            e.Handled = true;
-            _session?.PhysicalSize(RawMonitorDpi());
-            return;
-        }
-
-        if (e.Key == VirtualKey.Escape && _fullScreen && !FindOpen)
-        {
-            e.Handled = true;
-            SetFullScreen(false);
-        }
-    }
-
-    private static bool IsKeyDown(VirtualKey key) => InputKeyboardSource.GetKeyStateForCurrentThread(key).HasFlag(Windows.UI.Core.CoreVirtualKeyStates.Down);
-
-    private void SetFullScreen(bool on)
+        private void SetFullScreen(bool on)
     {
         if (on == _fullScreen)
         {
@@ -218,14 +164,6 @@ public sealed partial class MainWindow
 
     // ---- document properties ---------------------------------------------------------------------------------------------------------
 
-    private void OnPropertiesClick(object sender, RoutedEventArgs e) => _ = ShowPropertiesAsync();
-
-    private void OnPropertiesAccelerator(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)
-    {
-        args.Handled = true;
-        _ = ShowPropertiesAsync();
-    }
-
     private async Task ShowPropertiesAsync()
     {
         if (_propertiesOpen || _session is not { IsOpen: true } session)
@@ -249,6 +187,7 @@ public sealed partial class MainWindow
             var dialog = new ContentDialog
             {
                 XamlRoot = Root.XamlRoot,
+                RequestedTheme = Root.RequestedTheme,
                 Title = Strings.Get("Properties_Title"),
                 Content = loading,
                 CloseButtonText = Strings.Get("Dialog_Close"),

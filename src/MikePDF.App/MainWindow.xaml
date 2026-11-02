@@ -5,29 +5,7 @@
     xmlns:views="using:MikePDF.App.Views"
     xmlns:app="using:MikePDF.App">
 
-    <Grid x:Name="Root" AllowDrop="True" DragOver="OnDragOver" Drop="OnDrop" KeyboardAcceleratorPlacementMode="Hidden">
-        <Grid.KeyboardAccelerators>
-            <KeyboardAccelerator Key="O" Modifiers="Control" Invoked="OnOpenAccelerator" />
-            <KeyboardAccelerator Key="G" Modifiers="Control" Invoked="OnGoToPageAccelerator" />
-            <KeyboardAccelerator Key="F" Modifiers="Control" Invoked="OnFindAccelerator" />
-            <KeyboardAccelerator Key="F3" Invoked="OnFindNextAccelerator" />
-            <KeyboardAccelerator Key="F3" Modifiers="Shift" Invoked="OnFindPreviousAccelerator" />
-            <KeyboardAccelerator Key="F4" Invoked="OnSidebarAccelerator" />
-            <KeyboardAccelerator Key="F11" Invoked="OnFullScreenAccelerator" />
-            <KeyboardAccelerator Key="D" Modifiers="Control" Invoked="OnPropertiesAccelerator" />
-            <KeyboardAccelerator Key="Left" Modifiers="Menu" Invoked="OnBackAccelerator" />
-            <KeyboardAccelerator Key="Right" Modifiers="Menu" Invoked="OnForwardAccelerator" />
-            <KeyboardAccelerator Key="Number0" Modifiers="Control" Invoked="OnActualSizeAccelerator" />
-            <KeyboardAccelerator Key="NumberPad0" Modifiers="Control" Invoked="OnActualSizeAccelerator" />
-            <KeyboardAccelerator Key="Number1" Modifiers="Control" Invoked="OnFitPageAccelerator" />
-            <KeyboardAccelerator Key="Number2" Modifiers="Control" Invoked="OnFitWidthAccelerator" />
-            <KeyboardAccelerator Key="Add" Modifiers="Control" Invoked="OnZoomInAccelerator" />
-            <KeyboardAccelerator Key="Subtract" Modifiers="Control" Invoked="OnZoomOutAccelerator" />
-            <KeyboardAccelerator x:Name="ZoomInOemAccelerator" Modifiers="Control" Invoked="OnZoomInAccelerator" />
-            <KeyboardAccelerator x:Name="ZoomOutOemAccelerator" Modifiers="Control" Invoked="OnZoomOutAccelerator" />
-            <KeyboardAccelerator x:Name="RotateRightOemAccelerator" Modifiers="Control,Shift" Invoked="OnRotateRightAccelerator" />
-            <KeyboardAccelerator x:Name="RotateLeftOemAccelerator" Modifiers="Control,Shift" Invoked="OnRotateLeftAccelerator" />
-        </Grid.KeyboardAccelerators>
+    <Grid x:Name="Root" AllowDrop="True" DragOver="OnDragOver" Drop="OnDrop">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
@@ -50,58 +28,58 @@
         <CommandBar x:Name="Commands" Grid.Row="1" DefaultLabelPosition="Collapsed" Background="Transparent" IsOpen="False">
             <CommandBar.Content>
                 <StackPanel Orientation="Horizontal" Margin="8,0,0,0">
-                    <Button x:Name="PageIndicator" x:Uid="PageIndicator" AutomationProperties.AutomationId="PageIndicator"
-                            Click="OnPageIndicatorClick" MinWidth="92" Padding="12,4" IsEnabled="False" />
+                    <Button x:Name="PageIndicator" AutomationProperties.AutomationId="PageIndicator"
+                            MinWidth="92" Padding="12,4" IsEnabled="False" />
                 </StackPanel>
             </CommandBar.Content>
-            <AppBarButton x:Name="OpenButton" x:Uid="OpenButton" AutomationProperties.AutomationId="OpenButton" Icon="OpenFile" Click="OnOpenClick" />
+            <AppBarButton x:Name="OpenButton" AutomationProperties.AutomationId="OpenButton" Icon="OpenFile" />
             <AppBarSeparator />
-            <AppBarButton x:Name="BackButton" x:Uid="BackButton" AutomationProperties.AutomationId="BackButton" Icon="Back" Click="OnBackClick" IsEnabled="False" />
-            <AppBarButton x:Name="ForwardButton" x:Uid="ForwardButton" AutomationProperties.AutomationId="ForwardButton" Icon="Forward" Click="OnForwardClick" IsEnabled="False" />
+            <AppBarButton x:Name="BackButton" AutomationProperties.AutomationId="BackButton" Icon="Back" IsEnabled="False" />
+            <AppBarButton x:Name="ForwardButton" AutomationProperties.AutomationId="ForwardButton" Icon="Forward" IsEnabled="False" />
             <AppBarSeparator />
-            <AppBarToggleButton x:Name="SidebarButton" x:Uid="SidebarButton" AutomationProperties.AutomationId="SidebarButton" IsEnabled="False"
+            <AppBarToggleButton x:Name="SidebarButton" AutomationProperties.AutomationId="SidebarButton" IsEnabled="False"
                                 Checked="OnSidebarToggled" Unchecked="OnSidebarToggled">
                 <AppBarToggleButton.Icon>
                     <FontIcon Glyph="&#xE700;" />
                 </AppBarToggleButton.Icon>
             </AppBarToggleButton>
-            <AppBarButton x:Name="FindButton" x:Uid="FindButton" AutomationProperties.AutomationId="FindButton" Icon="Find" Click="OnFindClick" IsEnabled="False" />
+            <AppBarButton x:Name="FindButton" AutomationProperties.AutomationId="FindButton" Icon="Find" IsEnabled="False" />
             <AppBarSeparator />
-            <AppBarButton x:Name="ZoomOutButton" x:Uid="ZoomOutButton" AutomationProperties.AutomationId="ZoomOutButton" Icon="ZoomOut" Click="OnZoomOutClick" IsEnabled="False" />
+            <AppBarButton x:Name="ZoomOutButton" AutomationProperties.AutomationId="ZoomOutButton" Icon="ZoomOut" IsEnabled="False" />
             <AppBarButton x:Name="ZoomButton" x:Uid="ZoomButton" AutomationProperties.AutomationId="ZoomButton" IsEnabled="False" LabelPosition="Default" MinWidth="64">
                 <AppBarButton.Icon>
                     <FontIcon Glyph="&#xE71E;" />
                 </AppBarButton.Icon>
                 <AppBarButton.Flyout>
                     <MenuFlyout x:Name="ZoomMenu">
-                        <MenuFlyoutItem x:Uid="ZoomActualSize" AutomationProperties.AutomationId="ZoomActualSize" Click="OnPhysicalSizeClick" />
-                        <MenuFlyoutItem x:Uid="ZoomFitWidth" AutomationProperties.AutomationId="ZoomFitWidth" Click="OnFitWidthClick" />
-                        <MenuFlyoutItem x:Uid="ZoomFitPage" AutomationProperties.AutomationId="ZoomFitPage" Click="OnFitPageClick" />
+                        <MenuFlyoutItem x:Name="ZoomActualSizeItem" AutomationProperties.AutomationId="ZoomActualSize" />
+                        <MenuFlyoutItem x:Name="ZoomFitWidthItem" AutomationProperties.AutomationId="ZoomFitWidth" />
+                        <MenuFlyoutItem x:Name="ZoomFitPageItem" AutomationProperties.AutomationId="ZoomFitPage" />
                         <MenuFlyoutSeparator />
-                        <MenuFlyoutItem Text="50%" Tag="0.5" Click="OnZoomPresetClick" AutomationProperties.AutomationId="Zoom50" />
-                        <MenuFlyoutItem Text="75%" Tag="0.75" Click="OnZoomPresetClick" AutomationProperties.AutomationId="Zoom75" />
-                        <MenuFlyoutItem Text="100%" Tag="1" Click="OnZoomPresetClick" AutomationProperties.AutomationId="Zoom100" />
-                        <MenuFlyoutItem Text="125%" Tag="1.25" Click="OnZoomPresetClick" AutomationProperties.AutomationId="Zoom125" />
-                        <MenuFlyoutItem Text="150%" Tag="1.5" Click="OnZoomPresetClick" AutomationProperties.AutomationId="Zoom150" />
-                        <MenuFlyoutItem Text="200%" Tag="2" Click="OnZoomPresetClick" AutomationProperties.AutomationId="Zoom200" />
-                        <MenuFlyoutItem Text="400%" Tag="4" Click="OnZoomPresetClick" AutomationProperties.AutomationId="Zoom400" />
+                        <MenuFlyoutItem Text="50%" Tag="0.5" AutomationProperties.AutomationId="Zoom50" />
+                        <MenuFlyoutItem Text="75%" Tag="0.75" AutomationProperties.AutomationId="Zoom75" />
+                        <MenuFlyoutItem Text="100%" Tag="1" AutomationProperties.AutomationId="Zoom100" />
+                        <MenuFlyoutItem Text="125%" Tag="1.25" AutomationProperties.AutomationId="Zoom125" />
+                        <MenuFlyoutItem Text="150%" Tag="1.5" AutomationProperties.AutomationId="Zoom150" />
+                        <MenuFlyoutItem Text="200%" Tag="2" AutomationProperties.AutomationId="Zoom200" />
+                        <MenuFlyoutItem Text="400%" Tag="4" AutomationProperties.AutomationId="Zoom400" />
                     </MenuFlyout>
                 </AppBarButton.Flyout>
             </AppBarButton>
-            <AppBarButton x:Name="ZoomInButton" x:Uid="ZoomInButton" AutomationProperties.AutomationId="ZoomInButton" Icon="ZoomIn" Click="OnZoomInClick" IsEnabled="False" />
+            <AppBarButton x:Name="ZoomInButton" AutomationProperties.AutomationId="ZoomInButton" Icon="ZoomIn" IsEnabled="False" />
             <AppBarSeparator />
-            <AppBarButton x:Name="FitWidthButton" x:Uid="FitWidthButton" AutomationProperties.AutomationId="FitWidthButton" Click="OnFitWidthClick" IsEnabled="False">
+            <AppBarButton x:Name="FitWidthButton" AutomationProperties.AutomationId="FitWidthButton" IsEnabled="False">
                 <AppBarButton.Icon>
                     <FontIcon Glyph="&#xE9A6;" />
                 </AppBarButton.Icon>
             </AppBarButton>
-            <AppBarButton x:Name="FitPageButton" x:Uid="FitPageButton" AutomationProperties.AutomationId="FitPageButton" Click="OnFitPageClick" IsEnabled="False">
+            <AppBarButton x:Name="FitPageButton" AutomationProperties.AutomationId="FitPageButton" IsEnabled="False">
                 <AppBarButton.Icon>
                     <FontIcon Glyph="&#xE7C3;" />
                 </AppBarButton.Icon>
             </AppBarButton>
             <AppBarSeparator />
-            <AppBarButton x:Name="RotateLeftButton" x:Uid="RotateLeftButton" AutomationProperties.AutomationId="RotateLeftButton" Click="OnRotateLeftClick" IsEnabled="False">
+            <AppBarButton x:Name="RotateLeftButton" AutomationProperties.AutomationId="RotateLeftButton" IsEnabled="False">
                 <AppBarButton.Icon>
                     <FontIcon Glyph="&#xE7AD;" RenderTransformOrigin="0.5,0.5">
                         <FontIcon.RenderTransform>
@@ -110,7 +88,7 @@
                     </FontIcon>
                 </AppBarButton.Icon>
             </AppBarButton>
-            <AppBarButton x:Name="RotateRightButton" x:Uid="RotateRightButton" AutomationProperties.AutomationId="RotateRightButton" Icon="Rotate" Click="OnRotateRightClick" IsEnabled="False" />
+            <AppBarButton x:Name="RotateRightButton" AutomationProperties.AutomationId="RotateRightButton" Icon="Rotate" IsEnabled="False" />
             <AppBarSeparator />
             <AppBarButton x:Name="PageColourButton" x:Uid="PageColourButton" AutomationProperties.AutomationId="PageColourButton">
                 <AppBarButton.Icon>
@@ -118,21 +96,21 @@
                 </AppBarButton.Icon>
                 <AppBarButton.Flyout>
                     <MenuFlyout x:Name="PageColourMenu">
-                        <RadioMenuFlyoutItem x:Name="PageColourNormal" x:Uid="PageColourNormal" GroupName="PageColour" Tag="Normal" Click="OnPageColourClick"
+                        <RadioMenuFlyoutItem x:Name="PageColourNormal" x:Uid="PageColourNormal" GroupName="PageColour" Tag="Normal"
                                              AutomationProperties.AutomationId="PageColourNormal" IsChecked="True" />
-                        <RadioMenuFlyoutItem x:Name="PageColourInverted" x:Uid="PageColourInverted" GroupName="PageColour" Tag="Inverted" Click="OnPageColourClick"
+                        <RadioMenuFlyoutItem x:Name="PageColourInverted" x:Uid="PageColourInverted" GroupName="PageColour" Tag="Inverted"
                                              AutomationProperties.AutomationId="PageColourInverted" />
-                        <RadioMenuFlyoutItem x:Name="PageColourSepia" x:Uid="PageColourSepia" GroupName="PageColour" Tag="Sepia" Click="OnPageColourClick"
+                        <RadioMenuFlyoutItem x:Name="PageColourSepia" x:Uid="PageColourSepia" GroupName="PageColour" Tag="Sepia"
                                              AutomationProperties.AutomationId="PageColourSepia" />
                     </MenuFlyout>
                 </AppBarButton.Flyout>
             </AppBarButton>
-            <AppBarButton x:Name="PropertiesButton" x:Uid="PropertiesButton" AutomationProperties.AutomationId="PropertiesButton" Click="OnPropertiesClick" IsEnabled="False">
+            <AppBarButton x:Name="PropertiesButton" AutomationProperties.AutomationId="PropertiesButton" IsEnabled="False">
                 <AppBarButton.Icon>
                     <FontIcon Glyph="&#xE946;" />
                 </AppBarButton.Icon>
             </AppBarButton>
-            <AppBarButton x:Name="FullScreenButton" x:Uid="FullScreenButton" AutomationProperties.AutomationId="FullScreenButton" Click="OnFullScreenClick">
+            <AppBarButton x:Name="FullScreenButton" AutomationProperties.AutomationId="FullScreenButton">
                 <AppBarButton.Icon>
                     <FontIcon Glyph="&#xE740;" />
                 </AppBarButton.Icon>
@@ -200,16 +178,16 @@
                     <TextBox x:Name="FindBox" x:Uid="FindBox" AutomationProperties.AutomationId="FindBox" Width="220" TextChanged="OnFindTextChanged" MaxLength="128" />
                     <TextBlock x:Name="FindStatus" AutomationProperties.AutomationId="FindStatus" AutomationProperties.LiveSetting="Polite" MinWidth="110" Margin="4,0"
                                VerticalAlignment="Center" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                    <Button x:Name="FindPreviousButton" x:Uid="FindPreviousButton" AutomationProperties.AutomationId="FindPreviousButton" Click="OnFindPreviousClick">
+                    <Button x:Name="FindPreviousButton" x:Uid="FindPreviousButton" AutomationProperties.AutomationId="FindPreviousButton">
                         <FontIcon Glyph="&#xE70E;" FontSize="14" />
                     </Button>
-                    <Button x:Name="FindNextButton" x:Uid="FindNextButton" AutomationProperties.AutomationId="FindNextButton" Click="OnFindNextClick">
+                    <Button x:Name="FindNextButton" x:Uid="FindNextButton" AutomationProperties.AutomationId="FindNextButton">
                         <FontIcon Glyph="&#xE70D;" FontSize="14" />
                     </Button>
                     <ToggleButton x:Name="FindMatchCaseToggle" x:Uid="FindMatchCaseToggle" AutomationProperties.AutomationId="FindMatchCaseToggle" Checked="OnFindOptionChanged" Unchecked="OnFindOptionChanged" />
                     <ToggleButton x:Name="FindWholeWordToggle" x:Uid="FindWholeWordToggle" AutomationProperties.AutomationId="FindWholeWordToggle" Checked="OnFindOptionChanged" Unchecked="OnFindOptionChanged" />
                     <ToggleButton x:Name="FindRegexToggle" x:Uid="FindRegexToggle" AutomationProperties.AutomationId="FindRegexToggle" Checked="OnFindRegexChanged" Unchecked="OnFindRegexChanged" />
-                    <Button x:Name="FindCloseButton" x:Uid="FindCloseButton" AutomationProperties.AutomationId="FindCloseButton" Click="OnFindCloseClick">
+                    <Button x:Name="FindCloseButton" x:Uid="FindCloseButton" AutomationProperties.AutomationId="FindCloseButton">
                         <FontIcon Glyph="&#xE711;" FontSize="14" />
                     </Button>
                 </StackPanel>
@@ -220,7 +198,7 @@
                 <StackPanel MaxWidth="640" Margin="24,32,24,24" Spacing="16" HorizontalAlignment="Center">
                     <TextBlock x:Uid="EmptyTitle" Style="{StaticResource TitleTextBlockStyle}" AutomationProperties.AutomationId="EmptyTitle" />
                     <TextBlock x:Uid="EmptyHint" TextWrapping="Wrap" Style="{StaticResource BodyTextBlockStyle}" />
-                    <Button x:Name="EmptyOpenButton" x:Uid="EmptyOpenButton" AutomationProperties.AutomationId="EmptyOpenButton" Style="{StaticResource AccentButtonStyle}" Click="OnOpenClick" />
+                    <Button x:Name="EmptyOpenButton" x:Uid="EmptyOpenButton" AutomationProperties.AutomationId="EmptyOpenButton" Style="{StaticResource AccentButtonStyle}" />
                     <TextBlock x:Uid="RecentHeading" Style="{StaticResource SubtitleTextBlockStyle}" Margin="0,16,0,0" />
                     <TextBlock x:Name="NoRecentText" x:Uid="NoRecent" TextWrapping="Wrap" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
                     <ListView x:Name="RecentList" x:Uid="RecentList" AutomationProperties.AutomationId="RecentList" SelectionMode="None" IsItemClickEnabled="True"
@@ -237,15 +215,20 @@
                 </StackPanel>
             </ScrollViewer>
 
+            <!-- Settings (Ctrl+,): a page over the document area. -->
+            <views:SettingsView x:Name="SettingsPage" Visibility="Collapsed" AutomationProperties.AutomationId="SettingsPage" />
             <InfoBar x:Name="Banner" AutomationProperties.AutomationId="Banner" VerticalAlignment="Top" HorizontalAlignment="Center" Margin="16,8,16,0" MaxWidth="720"
                      IsOpen="False" IsClosable="True">
                 <InfoBar.ActionButton>
-                    <Button x:Name="BannerAction" AutomationProperties.AutomationId="BannerAction" Visibility="Collapsed" Click="OnBannerActionClick" />
+                    <Button x:Name="BannerAction" AutomationProperties.AutomationId="BannerAction" Visibility="Collapsed" />
                 </InfoBar.ActionButton>
             </InfoBar>
 
             <ProgressRing x:Name="Busy" x:Uid="Busy" AutomationProperties.AutomationId="Busy" IsActive="False" Width="48" Height="48" HorizontalAlignment="Center" VerticalAlignment="Center" />
         </Grid>
         </SplitView>
+
+        <!-- The command palette (Ctrl+Shift+P): over the top centre of the window. -->
+        <views:CommandPaletteView x:Name="Palette" Grid.Row="1" Grid.RowSpan="2" Visibility="Collapsed" VerticalAlignment="Top" HorizontalAlignment="Center" Margin="16,4,16,0" />
     </Grid>
 </Window>

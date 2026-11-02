@@ -6,7 +6,6 @@ using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Controls;
-using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
 using MikePDF.App.Services;
 using MikePDF.Broker;
@@ -38,9 +37,10 @@ public sealed partial class MainWindow : Window
     private DocumentSession? _session;
     private bool _closed;
 
-    internal MainWindow(DocumentStore store)
+    internal MainWindow(AppServices services)
     {
-        _store = store;
+        _services = services;
+        _store = services.Documents;
         // Creating the sandbox profile and putting the verified engine in place takes a moment; do it while the window comes up.
         _host = Task.Run(EngineHost.Create);
         InitializeComponent();
@@ -48,10 +48,6 @@ public sealed partial class MainWindow : Window
         Pages.Copied += OnCopied;
         SystemBackdrop = new MicaBackdrop();
         ConfigureTitleBar();
-        ZoomInOemAccelerator.Key = (Windows.System.VirtualKey)187;      // =
-        ZoomOutOemAccelerator.Key = (Windows.System.VirtualKey)189;     // -
-        RotateRightOemAccelerator.Key = (Windows.System.VirtualKey)187; // Ctrl+Shift+=
-        RotateLeftOemAccelerator.Key = (Windows.System.VirtualKey)189;  // Ctrl+Shift+-
         _bannerTimer = DispatcherQueue.GetForCurrentThread().CreateTimer();
         _bannerTimer.IsRepeating = false;
         _bannerTimer.Tick += (_, _) =>
@@ -62,6 +58,7 @@ public sealed partial class MainWindow : Window
         Closed += OnClosed;
         AppWindow.Changed += OnAppWindowChanged;
         InitializeReaderGaps();
+        InitializeCommands();
         RefreshRecent();
         UpdateChrome();
         Title = Strings.Get("AppName");
@@ -248,6 +245,7 @@ public sealed partial class MainWindow : Window
 
     private void ShowDocument()
     {
+        CloseSettings();
         EmptyState.Visibility = Visibility.Collapsed;
         Pages.Visibility = Visibility.Visible;
         RefreshRecent();
@@ -288,6 +286,8 @@ public sealed partial class MainWindow : Window
                 Strings.Format("Recent_Automation", System.IO.Path.GetFileName(r.Path), System.IO.Path.GetDirectoryName(r.Path) ?? string.Empty)))
             .ToList();
         RecentList.ItemsSource = items;
+        _hasRecent = items.Count > 0;
+        _hasRecent = items.Count > 0;
         RecentList.Visibility = items.Count == 0 ? Visibility.Collapsed : Visibility.Visible;
         NoRecentText.Visibility = items.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
     }
@@ -298,12 +298,7 @@ public sealed partial class MainWindow : Window
     {
         var session = _session;
         var open = session is { IsOpen: true };
-        UpdateReaderChrome(session);
-        foreach (var button in new Control[] { ZoomOutButton, ZoomInButton, ZoomButton, FitWidthButton, FitPageButton, RotateLeftButton, RotateRightButton, PageIndicator })
-        {
-            button.IsEnabled = open;
-        }
-
+        RefreshCommands();
         if (!open)
         {
             PageIndicator.Content = Strings.Get("PageIndicator_None");
@@ -362,6 +357,7 @@ public sealed partial class MainWindow : Window
 
     private void ShowBanner(InfoBarSeverity severity, string titleKey, string? messageKey, bool closable, string? messageText = null)
     {
+        _retrySettings = false;
         Banner.Severity = severity;
         Banner.Title = Strings.Get(titleKey);
         Banner.Message = messageText ?? (messageKey is null ? string.Empty : Strings.Get(messageKey));
@@ -369,13 +365,18 @@ public sealed partial class MainWindow : Window
         Banner.IsOpen = true;
     }
 
+    // The banner's one button: "Open again" after the viewer failed, or "Try again" after settings could not be saved.
     private async void OnBannerActionClick(object sender, RoutedEventArgs e)
     {
-        if (_session is { } session)
+        Banner.IsOpen = false;
+        if (_retrySettings)
         {
-            Banner.IsOpen = false;
-            await OpenPathAsync(session.Path);
+            _retrySettings = false;
+            _services.Settings.Flush();
+            return;
         }
+
+        await RunCommandAsync("file.reload");
     }
 
     // ---- dialogs -----------------------------------------------------------------------------
@@ -397,6 +398,7 @@ public sealed partial class MainWindow : Window
         var dialog = new ContentDialog
         {
             XamlRoot = Root.XamlRoot,
+            RequestedTheme = Root.RequestedTheme,
             Title = Strings.Get("Password_Title"),
             Content = panel,
             PrimaryButtonText = Strings.Get("Password_Open"),
@@ -417,6 +419,7 @@ public sealed partial class MainWindow : Window
         var dialog = new ContentDialog
         {
             XamlRoot = Root.XamlRoot,
+            RequestedTheme = Root.RequestedTheme,
             Title = Strings.Get("Error_Title"),
             Content = new TextBlock { Text = text, TextWrapping = TextWrapping.Wrap },
             CloseButtonText = Strings.Get("Dialog_Close"),
@@ -448,6 +451,7 @@ public sealed partial class MainWindow : Window
         var dialog = new ContentDialog
         {
             XamlRoot = Root.XamlRoot,
+            RequestedTheme = Root.RequestedTheme,
             Title = Strings.Get("GoTo_Title"),
             Content = box,
             PrimaryButtonText = Strings.Get("GoTo_Go"),
@@ -476,63 +480,7 @@ public sealed partial class MainWindow : Window
         }
     }
 
-    // ---- commands ----------------------------------------------------------------------------
-
-    private async void OnOpenClick(object sender, RoutedEventArgs e) => await PickAndOpenAsync();
-
-    private async void OnOpenAccelerator(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)
-    {
-        args.Handled = true;
-        await PickAndOpenAsync();
-    }
-
-    private async void OnPageIndicatorClick(object sender, RoutedEventArgs e) => await GoToPageAsync();
-
-    private async void OnGoToPageAccelerator(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)
-    {
-        args.Handled = true;
-        await GoToPageAsync();
-    }
-
-    private void OnZoomInClick(object sender, RoutedEventArgs e) => _session?.ZoomStep(+1);
-
-    private void OnZoomOutClick(object sender, RoutedEventArgs e) => _session?.ZoomStep(-1);
-
-    private void OnFitWidthClick(object sender, RoutedEventArgs e) => _session?.FitWidth();
-
-    private void OnFitPageClick(object sender, RoutedEventArgs e) => _session?.FitPage();
-
-    private void OnRotateLeftClick(object sender, RoutedEventArgs e) => _session?.Rotate(-1);
-
-    private void OnRotateRightClick(object sender, RoutedEventArgs e) => _session?.Rotate(+1);
-
-    private void OnZoomPresetClick(object sender, RoutedEventArgs e)
-    {
-        if (sender is MenuFlyoutItem { Tag: string tag } && double.TryParse(tag, NumberStyles.Float, CultureInfo.InvariantCulture, out var zoom))
-        {
-            _session?.ZoomTo(zoom);
-        }
-    }
-
-    private void OnActualSizeAccelerator(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args) => Run(args, () => _session?.ActualSize());
-
-    private void OnFitPageAccelerator(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args) => Run(args, () => _session?.FitPage());
-
-    private void OnFitWidthAccelerator(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args) => Run(args, () => _session?.FitWidth());
-
-    private void OnZoomInAccelerator(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args) => Run(args, () => _session?.ZoomStep(+1));
-
-    private void OnZoomOutAccelerator(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args) => Run(args, () => _session?.ZoomStep(-1));
-
-    private void OnRotateRightAccelerator(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args) => Run(args, () => _session?.Rotate(+1));
-
-    private void OnRotateLeftAccelerator(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args) => Run(args, () => _session?.Rotate(-1));
-
-    private static void Run(KeyboardAcceleratorInvokedEventArgs args, Action action)
-    {
-        args.Handled = true;
-        action();
-    }
+    // ---- recent files --------------------------------------------------------------------------------------------------------
 
     private async void OnRecentClick(object sender, ItemClickEventArgs e)
     {

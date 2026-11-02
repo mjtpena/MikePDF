@@ -49,25 +49,8 @@
   <data name="Error_Unsupported" xml:space="preserve"><value>MikePDF can't open {0}.</value></data>
   <data name="Error_SandboxUnavailable" xml:space="preserve"><value>MikePDF couldn't start its protected viewer, so it did not open {0}. Nothing was read.</value></data>
   <data name="Error_Unknown" xml:space="preserve"><value>Something went wrong while opening {0}.</value></data>
-  <data name="OpenButton.Label" xml:space="preserve"><value>Open</value></data>
-  <data name="OpenButton.ToolTipService.ToolTip" xml:space="preserve"><value>Open a PDF (Ctrl+O)</value></data>
-  <data name="ZoomOutButton.Label" xml:space="preserve"><value>Zoom out</value></data>
-  <data name="ZoomOutButton.ToolTipService.ToolTip" xml:space="preserve"><value>Zoom out (Ctrl+-)</value></data>
-  <data name="ZoomInButton.Label" xml:space="preserve"><value>Zoom in</value></data>
-  <data name="ZoomInButton.ToolTipService.ToolTip" xml:space="preserve"><value>Zoom in (Ctrl+=)</value></data>
   <data name="ZoomButton.Label" xml:space="preserve"><value>Zoom</value></data>
   <data name="ZoomButton.ToolTipService.ToolTip" xml:space="preserve"><value>Zoom options</value></data>
-  <data name="ZoomFitWidth.Text" xml:space="preserve"><value>Fit width</value></data>
-  <data name="ZoomFitPage.Text" xml:space="preserve"><value>Fit page</value></data>
-  <data name="FitWidthButton.Label" xml:space="preserve"><value>Fit width</value></data>
-  <data name="FitWidthButton.ToolTipService.ToolTip" xml:space="preserve"><value>Fit to width (Ctrl+2)</value></data>
-  <data name="FitPageButton.Label" xml:space="preserve"><value>Fit page</value></data>
-  <data name="FitPageButton.ToolTipService.ToolTip" xml:space="preserve"><value>Fit whole page (Ctrl+1)</value></data>
-  <data name="RotateLeftButton.Label" xml:space="preserve"><value>Rotate left</value></data>
-  <data name="RotateLeftButton.ToolTipService.ToolTip" xml:space="preserve"><value>Rotate the view left (Ctrl+Shift+-). The file is not changed.</value></data>
-  <data name="RotateRightButton.Label" xml:space="preserve"><value>Rotate right</value></data>
-  <data name="RotateRightButton.ToolTipService.ToolTip" xml:space="preserve"><value>Rotate the view right (Ctrl+Shift+=). The file is not changed.</value></data>
-  <data name="PageIndicator.ToolTipService.ToolTip" xml:space="preserve"><value>Go to page (Ctrl+G)</value></data>
   <data name="PageSurface.AutomationProperties.Name" xml:space="preserve"><value>Document pages</value></data>
   <data name="Busy.AutomationProperties.Name" xml:space="preserve"><value>Opening</value></data>
   <data name="EmptyTitle.Text" xml:space="preserve"><value>Open a PDF</value></data>
@@ -76,10 +59,6 @@
   <data name="RecentHeading.Text" xml:space="preserve"><value>Recent</value></data>
   <data name="NoRecent.Text" xml:space="preserve"><value>Files you open will be listed here. The list stays on this device.</value></data>
   <data name="RecentList.AutomationProperties.Name" xml:space="preserve"><value>Recent files</value></data>
-  <data name="SidebarButton.Label" xml:space="preserve"><value>Sidebar</value></data>
-  <data name="SidebarButton.ToolTipService.ToolTip" xml:space="preserve"><value>Show or hide the thumbnails and bookmarks (F4)</value></data>
-  <data name="FindButton.Label" xml:space="preserve"><value>Find</value></data>
-  <data name="FindButton.ToolTipService.ToolTip" xml:space="preserve"><value>Find in this document (Ctrl+F)</value></data>
   <data name="SidebarTabs.AutomationProperties.Name" xml:space="preserve"><value>Sidebar view</value></data>
   <data name="ThumbnailsTab.Content" xml:space="preserve"><value>Thumbnails</value></data>
   <data name="BookmarksTab.Content" xml:space="preserve"><value>Bookmarks</value></data>
@@ -123,21 +102,11 @@
   <data name="Link_ExternalHostAscii" xml:space="preserve"><value>The site's name is also written {0}. Look-alike letters can make one site pass for another.</value></data>
   <data name="Link_AddressName" xml:space="preserve"><value>Link address: {0}</value></data>
   <data name="Link_Copy" xml:space="preserve"><value>Copy address</value></data>
-  <data name="BackButton.Label" xml:space="preserve"><value>Back</value></data>
-  <data name="BackButton.ToolTipService.ToolTip" xml:space="preserve"><value>Back to where you were (Alt+Left)</value></data>
-  <data name="ForwardButton.Label" xml:space="preserve"><value>Forward</value></data>
-  <data name="ForwardButton.ToolTipService.ToolTip" xml:space="preserve"><value>Forward (Alt+Right)</value></data>
-  <data name="ZoomActualSize.Text" xml:space="preserve"><value>Actual size</value></data>
-  <data name="ZoomActualSize.KeyboardAcceleratorTextOverride" xml:space="preserve"><value>Ctrl+Alt+0</value></data>
   <data name="PageColourButton.Label" xml:space="preserve"><value>Page colour</value></data>
   <data name="PageColourButton.ToolTipService.ToolTip" xml:space="preserve"><value>Page colour: normal, dark pages or sepia. The file is not changed.</value></data>
   <data name="PageColourNormal.Text" xml:space="preserve"><value>Normal</value></data>
   <data name="PageColourInverted.Text" xml:space="preserve"><value>Dark pages</value></data>
   <data name="PageColourSepia.Text" xml:space="preserve"><value>Sepia</value></data>
-  <data name="PropertiesButton.Label" xml:space="preserve"><value>Properties</value></data>
-  <data name="PropertiesButton.ToolTipService.ToolTip" xml:space="preserve"><value>Document properties (Ctrl+D)</value></data>
-  <data name="FullScreenButton.Label" xml:space="preserve"><value>Full screen</value></data>
-  <data name="FullScreenButton.ToolTipService.ToolTip" xml:space="preserve"><value>Full screen (F11). Esc leaves it.</value></data>
   <data name="FindWholeWordToggle.Content" xml:space="preserve"><value>[ab]</value></data>
   <data name="FindWholeWordToggle.AutomationProperties.Name" xml:space="preserve"><value>Whole word</value></data>
   <data name="FindWholeWordToggle.ToolTipService.ToolTip" xml:space="preserve"><value>Whole word: not inside a longer word</value></data>
@@ -491,7 +460,7 @@
   <data name="About_Title" xml:space="preserve"><value>About MikePDF</value></data>
   <data name="About_Version" xml:space="preserve"><value>Version {0}, {1}</value></data>
   <data name="About_Engine" xml:space="preserve"><value>PDF engine: PDFium, in a separate protected process</value></data>
-  <data name="About_NoTelemetry" xml:space="preserve"><value>No telemetry. No account. Nothing leaves this device.</value></data>
+  <data name="About_NoTracking" xml:space="preserve"><value>No telemetry. No account. Nothing leaves this device.</value></data>
   <data name="About_Managed_Header" xml:space="preserve"><value>Managed by your organisation</value></data>
   <data name="About_Policy_Line" xml:space="preserve"><value>{0}: {1}. {2}</value></data>
   <data name="About_Policy_Received" xml:space="preserve"><value>set to {0}</value></data>
@@ -568,4 +537,7 @@
   <data name="Banner_Disabled_Title" xml:space="preserve"><value>{0} is not available</value></data>
   <data name="Command_Palette_Opened" xml:space="preserve"><value>Command palette</value></data>
   <data name="ShortcutDialog_Name" xml:space="preserve"><value>Change shortcut</value></data>
+  <data name="Settings_On" xml:space="preserve"><value>On</value></data>
+  <data name="Settings_Off" xml:space="preserve"><value>Off</value></data>
+  <data name="Settings_Row_Locked" xml:space="preserve"><value>{0}: {1}. Locked. Managed by your organisation.</value></data>
 </root>
