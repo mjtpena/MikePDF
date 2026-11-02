@@ -1,5 +1,4 @@
 using MikePDF.Fuzz.Shared;
-using SharpFuzz;
 
 namespace MikePDF.Protocol.Fuzz;
 
@@ -7,37 +6,30 @@ namespace MikePDF.Protocol.Fuzz;
 /// Feeds arbitrary bytes to every decoder in MikePDF.Protocol. A crash, an unexpected exception or a broken invariant is a
 /// finding. Modes:
 /// <list type="bullet">
-/// <item><c>--mutate N ...</c>: the dependency-free mutational fuzzer (see MutationalFuzzer; no coverage feedback).</item>
+/// <item><c>--mutate N ...</c>: the dependency-free mutational fuzzer, the fallback (see MutationalFuzzer; no coverage feedback).</item>
 /// <item>file arguments: replay those inputs, to reproduce a finding.</item>
-/// <item>no arguments: SharpFuzz's libFuzzer entry point (needs an instrumented assembly and libfuzzer-dotnet; see README.md).</item>
+/// <item><c>--libfuzzer</c> (or no arguments): the coverage-guided child mode for libfuzzer_dotnet.exe (see LibFuzzerEntry and README.md).</item>
 /// </list>
 /// </summary>
 internal static class Program
 {
     private static int Main(string[] args)
     {
-        if (MutationalFuzzer.Handles(args))
-        {
-            var target = new MutationalFuzzer.Target(
-                "protocol",
-                Outcome,
-                SeedExtensions: [".bin"],
-                // A golden file is a frame; the decoders also take a bare body, so seed those too.
-                DerivedSeeds: seed => seed.Length > ProtocolCodec.FrameHeaderBytes ? [seed[ProtocolCodec.FrameHeaderBytes..]] : []);
-            return MutationalFuzzer.Run(target, args);
-        }
+        var target = new MutationalFuzzer.Target(
+            "protocol",
+            Outcome,
+            SeedExtensions: [".bin"],
+            // A golden file is a frame; the decoders also take a bare body, so seed those too.
+            DerivedSeeds: seed => seed.Length > ProtocolCodec.FrameHeaderBytes ? [seed[ProtocolCodec.FrameHeaderBytes..]] : []);
 
-        if (args.Length == 0)
-        {
-            Fuzzer.LibFuzzer.Run(Target);
-            return 0;
-        }
+        if (MutationalFuzzer.Handles(args)) return MutationalFuzzer.Run(target, args);
 
-        foreach (var path in args) Target(File.ReadAllBytes(path));
+        // No arguments is what libfuzzer-dotnet's --target_arg-less launch runs; --libfuzzer is the explicit spelling.
+        if (args.Length == 0 || LibFuzzerEntry.Handles(args)) return LibFuzzerEntry.Run(target, args);
+
+        foreach (var path in args) _ = Outcome(File.ReadAllBytes(path));
         return 0;
     }
-
-    private static void Target(ReadOnlySpan<byte> input) => _ = Outcome(input.ToArray());
 
     /// <summary>Runs every decoder and the invariant checks; the result summarises the verdicts, for the mutational fuzzer's novelty test.</summary>
     internal static long Outcome(byte[] bytes)

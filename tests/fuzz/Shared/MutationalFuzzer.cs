@@ -248,6 +248,9 @@ internal static partial class MutationalFuzzer
     [System.Runtime.InteropServices.LibraryImport("kernel32.dll")]
     private static partial uint SetErrorMode(uint mode);
 
+    /// <summary>A process that crashes on purpose (a stack overflow is a finding) must not raise a Windows error dialog and wait for a click.</summary>
+    internal static void DisableErrorDialogs() => _ = SetErrorMode(ErrorModeNoDialogs);
+
     private static int RunWorker(Target target, Options o)
     {
         // A worker that crashes on purpose (a stack overflow is a finding) must not raise a Windows error dialog and wait for a click.
