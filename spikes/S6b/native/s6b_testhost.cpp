@@ -134,7 +134,7 @@ static int RunThumbnail(const Opts& o, HMODULE dll) {
         if (!SUCCEEDED(hr)) POUT("# call failed: hr=0x%08lx connectError=%lu launchError=%lu\n", (unsigned long)hr, (unsigned long)t.connectError, (unsigned long)t.launchError);
         BITMAP bm{};
         if (bmp) GetObjectW(bmp, sizeof(bm), &bm);
-        POUT("%d,%d,0x%08lx,%.2f,%.2f,%.2f,%.0f,%.2f,%.2f,%.2f,%.2f,%u,%u,%u,%u,%u,%u,%d,%d,%u\n", i, SUCCEEDED(hr), (unsigned long)hr, total, t.copyMs, t.connectMs, t.launchedShellHost, t.openRtMs,
+        POUT("%d,%d,0x%08lx,%.2f,%.2f,%.2f,%.0f,%.2f,%.2f,%.2f,%.2f,%u,%u,%u,%u,%u,%u,%u,%u,%d,%d,%u\n", i, SUCCEEDED(hr), (unsigned long)hr, total, t.copyMs, t.connectMs, t.launchedShellHost, t.openRtMs,
             t.renderRtMs, t.closeRtMs, t.convertMs, t.open.tStageUs, t.open.tSpawnUs, t.open.tOpenUs, t.render.tRenderUs, t.render.tOutUs, t.open.tTotalUs, t.render.tTotalUs, t.render.enginePeakKb, bm.bmWidth, bm.bmHeight, t.open.pageCount);
         if (bmp && i == 0 && !o.save.empty()) {
             // raw BGRA + a tiny header line, converted to PNG by the driver script

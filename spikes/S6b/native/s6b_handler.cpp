@@ -122,7 +122,9 @@ static DWORD Budget(DWORD def) {
 static bool Launch(const std::wstring& exe) {
     wchar_t extra[1024];
     DWORD n = GetEnvironmentVariableW(L"S6B_SHELLHOST_ARGS", extra, 1024);
-    std::wstring cmd = L"\"" + exe + L"\"" + (n && n < 1024 ? std::wstring(L" ") + extra : L"");
+    std::wstring args = n && n < 1024 ? std::wstring(L" ") + extra : L"";
+    if (!(n && n < 1024) && GetFileAttributesA("C:\\s6b-log") != INVALID_FILE_ATTRIBUTES) args = L" --log C:\\s6b-log\\shellhost.log"; // CI packages: no environment, a shared log folder
+    std::wstring cmd = L"\"" + exe + L"\"" + args;
     STARTUPINFOW si{sizeof(si)};
     PROCESS_INFORMATION pi{};
     // CREATE_BREAKAWAY_FROM_JOB first: the host that loads us (dllhost, prevhost) may be in a job that would end ShellHost with it.
@@ -438,7 +440,11 @@ public:
         *ph = nullptr;
         if (!stream) return E_UNEXPECTED;
         Rendered r;
+        STATSTG st{};
+        stream->Stat(&st, STATFLAG_NONAME);
+        Log("GetThumbnail cx=%u stream size=%llu", cx, (unsigned long long)st.cbSize.QuadPart);
         HRESULT hr = RenderViaShellHost(stream, cx, cx, 0, r);
+        Log("GetThumbnail done hr=0x%08lx total %.2f ms (copy %.2f, connect %.2f, launched %.0f, open %.2f, render %.2f)", (unsigned long)hr, g_last.totalMs, g_last.copyMs, g_last.connectMs, g_last.launchedShellHost, g_last.openRtMs, g_last.renderRtMs);
         g_last.hr = (uint32_t)hr;
         if (SUCCEEDED(hr)) { *ph = r.bitmap; *pa = WTSAT_ARGB; }
         return hr;
@@ -472,6 +478,7 @@ class Preview final : public IInitializeWithStream, public IPreviewHandler, publ
                 char b[64];
                 _snprintf_s(b, _TRUNCATE, "%.3f", NowMs() - self->doPreviewMs);
                 SetPropW(h, L"S6B_FIRST_PIXEL_MS", (HANDLE)(INT_PTR)(int)(atof(b) * 1000)); // microseconds since DoPreview
+                Log("preview: first pixel %s ms after DoPreview", b);
                 InvalidateRect(h, nullptr, TRUE);
             }
             return 0;

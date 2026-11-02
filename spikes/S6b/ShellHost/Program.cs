@@ -363,7 +363,7 @@ internal static class Program
         var profile = AppContainerProfile.CreateOrOpen("MikePDF.S6bShell", "S6b shell host", "S6b spike");
         string enginePath;
         string? deployed = null;
-        if (package is not null)
+        if (package is not null || args.EngineDir is null)
         {
             // Packaged: in place (ADR-0004 A2).
             enginePath = Path.Combine(AppContext.BaseDirectory, "..", "Engine", "MikePDF.Engine.exe");
