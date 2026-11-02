@@ -50,8 +50,8 @@ public sealed record RenderLimits
     /// <summary>The size of one slot of the print ring.</summary>
     public int SlotBytes { get; init; } = DefaultBandBytes;
 
-    /// <summary>The limits for a job: the options (image mode) and the document's permission (low quality).</summary>
-    public static RenderLimits For(PrintOptions options, bool lowQualityOnly, int slotBytesForImage = 64 << 20)
+    /// <summary>The limits for a job: the options (image mode), the document's permission (low quality) and the size of one slot of the ring the engine renders into.</summary>
+    public static RenderLimits For(PrintOptions options, bool lowQualityOnly, int slotBytes = 64 << 20)
     {
         ArgumentNullException.ThrowIfNull(options);
         var maxDpi = DefaultMaxDpi;
@@ -65,9 +65,10 @@ public sealed record RenderLimits
             maxDpi = Math.Min(maxDpi, LowQualityMaxDpi);
         }
 
+        // The slot is what the engine's ring really has: a band is never larger than it, and a whole page for "print as image" has to fit it.
         return options.AsImage
-            ? new RenderLimits { MaxDpi = maxDpi, SingleBand = true, SlotBytes = slotBytesForImage, BandBytes = slotBytesForImage }
-            : new RenderLimits { MaxDpi = maxDpi };
+            ? new RenderLimits { MaxDpi = maxDpi, SingleBand = true, SlotBytes = slotBytes, BandBytes = slotBytes }
+            : new RenderLimits { MaxDpi = maxDpi, SlotBytes = slotBytes, BandBytes = Math.Min(DefaultBandBytes, slotBytes) };
     }
 }
 
