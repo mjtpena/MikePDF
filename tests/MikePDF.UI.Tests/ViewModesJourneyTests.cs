@@ -65,6 +65,17 @@ public sealed class ViewModesJourneyTests : IDisposable
         return box!.Value;
     }
 
+    // Moves the pointer the way a mouse does, in steps WinUI sees as movement (a jump by SetCursorPos is not one).
+    private static void MoveMouseTo(Point target)
+    {
+        NativeMouse.MoveTo(new Point(target.X - 12, target.Y - 6));
+        Thread.Sleep(80);
+        NativeMouse.MoveTo(new Point(target.X - 4, target.Y - 2));
+        Thread.Sleep(80);
+        NativeMouse.MoveTo(target);
+        Thread.Sleep(120);
+    }
+
     private static Point Centre(AutomationElement element)
     {
         var r = element.BoundingRectangle;
@@ -197,7 +208,7 @@ public sealed class ViewModesJourneyTests : IDisposable
         app.WaitFor("the first page", () => app.CurrentPage == 1);
 
         // The wheel: a page that fits turns at each notch (never twice in a flick).
-        Mouse.MoveTo(Centre(app.Require("PageSurface")));
+        MoveMouseTo(Centre(app.Require("PageSurface")));
         Mouse.Scroll(-1);
         app.WaitFor("page 2 by the wheel", () => app.CurrentPage == 2);
         Mouse.Scroll(1);
@@ -511,10 +522,17 @@ public sealed class ViewModesJourneyTests : IDisposable
         app.Press(VirtualKeyShort.ESCAPE);
         Thread.Sleep(300);
         Assert.True(app.Exists("PresentationSurface"), "the first Esc only drops the typed number");
+        lock (heard)
+        {
+            heard.Clear();
+        }
+
         app.Press(VirtualKeyShort.ENTER);
         WaitForSlide(app, 6, 9); // and the 8 was dropped: Enter is just "next"
 
         // A page turn is announced once: "Page 6 of 9".
+        app.WaitFor("the turn announced", () => Heard(heard, "Page 6 of 9").Count >= 1);
+        Thread.Sleep(600);
         Assert.Single(Heard(heard, "Page 6 of 9"));
 
         // Black and white screens, and any navigation key brings the page back.
@@ -569,18 +587,89 @@ public sealed class ViewModesJourneyTests : IDisposable
     public void PV15_TheExitButtonAppearsWithTheMouseAndEndsThePresentation()
     {
         using var app = Open("exit.pdf", 3);
-        Mouse.MoveTo(Centre(app.Require("PageSurface"))); // away from where the bar will be
+        MoveMouseTo(Centre(app.Require("PageSurface"))); // away from where the bar will be
         app.PressWithControl(VirtualKeyShort.KEY_L);
         WaitForSlide(app, 1, 3);
         app.WaitFor("the bar with Exit, at the start", () => app.Exists("PresentationExit"));
         app.WaitFor("the bar gone again", () => !app.Exists("PresentationExit"), TimeSpan.FromSeconds(10));
-        Mouse.MoveTo(Centre(app.Require("PresentationSurface")));
-        Mouse.MoveBy(40, 0);
+        MoveMouseTo(Centre(app.Require("PresentationSurface")));
+        MoveMouseTo(new Point(Centre(app.Require("PresentationSurface")).X + 40, Centre(app.Require("PresentationSurface")).Y));
         app.WaitFor("the bar back on pointer movement", () => app.Exists("PresentationExit"));
         Assert.Equal("Exit presentation", app.Require("PresentationExit").Name);
         Assert.Contains("1 / 3", app.Require("PresentationPage").Name, StringComparison.Ordinal);
         app.Click("PresentationExit");
         app.WaitFor("out of the presentation", () => app.Exists("OpenButton") && !app.Exists("PresentationSurface"));
+    }
+
+    // ---- dark pages (the engine draws them; the GPU must not invert them again) --------------------------------------------------------------------------------
+
+    private static (int Green, double Brightness) Look(AutomationElement surface)
+    {
+        using var capture = FlaUI.Core.Capturing.Capture.Element(surface);
+        var bitmap = capture.Bitmap;
+        var green = 0;
+        double total = 0;
+        var count = 0;
+        for (var y = 0; y < bitmap.Height; y += 3)
+        {
+            for (var x = 0; x < bitmap.Width; x += 3)
+            {
+                var c = bitmap.GetPixel(x, y);
+                if (c.G > c.R + 60 && c.G > c.B + 60)
+                {
+                    green++;
+                }
+
+                total += (c.R + c.G + c.B) / 3.0;
+                count++;
+            }
+        }
+
+        return (green, total / count);
+    }
+
+    [UiFact]
+    public void DarkPagesAreDrawnByTheEngineSoAPhotographKeepsItsColoursAndSepiaStaysOnTheGpu()
+    {
+        var pdf = TestPdfs.WithPhoto(_work, "photo.pdf");
+        using var app = MikePDFApp.Launch(pdf);
+        app.WaitForDocument(1);
+        app.ResizeTo(1600, 960);
+        app.FocusPages();
+        app.PressWithControl(VirtualKeyShort.KEY_1);
+        var surface = app.Require("PageSurface");
+        Thread.Sleep(1200);
+        var (normalGreen, normalLight) = Look(surface);
+        Assert.True(normalGreen > 100, $"the photograph's green corner shows ({normalGreen} pixels)");
+
+        app.Click("PageColourButton");
+        app.Click("PageColourInverted");
+        app.WaitFor("dark pages", () => Look(surface).Brightness < normalLight - 40, TimeSpan.FromSeconds(20));
+        Thread.Sleep(800);
+        var (darkGreen, darkLight) = Look(surface);
+        Assert.True(darkGreen > normalGreen / 2, $"the photograph kept its colours: {darkGreen} green pixels dark against {normalGreen} normal (inverted twice or on the GPU it would have none)");
+        app.Capture("dark-pages-photo");
+
+        // Back to normal, and sepia (the GPU's) still tints the photograph.
+        app.Click("PageColourButton");
+        app.Click("PageColourNormal");
+        app.WaitFor("normal again", () => Look(surface).Brightness > normalLight - 15, TimeSpan.FromSeconds(20));
+        Assert.True(Look(surface).Green > normalGreen / 2);
+        app.Click("PageColourButton");
+        app.Click("PageColourSepia");
+        app.WaitFor("sepia", () => Look(surface).Green < normalGreen, TimeSpan.FromSeconds(20));
+        _ = darkLight;
+    }
+
+    [UiFact]
+    public void AboutShowsThePdfiumVersionWithNoDocumentOpen()
+    {
+        using var app = MikePDFApp.Launch();
+        app.Palette.Run("about", "About MikePDF,");
+        app.WaitFor("the dialog", () => app.Exists("AboutDialog"));
+        app.WaitFor("the version", () => app.Require("AboutPdfium").Name.StartsWith("PDFium version ", StringComparison.Ordinal) && !app.Require("AboutPdfium").Name.Contains("reading", StringComparison.Ordinal), TimeSpan.FromSeconds(30));
+        Assert.Matches(@"PDFium version \d+\.\d+\.\d+", app.Require("AboutPdfium").Name);
+        app.Press(VirtualKeyShort.ESCAPE);
     }
 
     [UiFact]

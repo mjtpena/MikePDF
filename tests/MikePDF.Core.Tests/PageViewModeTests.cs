@@ -318,13 +318,31 @@ public sealed class PageViewModeTests
         {
             var c = Controller(40, ModeNumber(fromMode));
             c.GoToPage(startPage);
-            var first = c.TopPosition.Page;
+            var first = c.CurrentPage;
             c.SetMode(ModeNumber(toMode));
             var view = c.Snapshot();
             var (a, b) = view.Layout.VisiblePages(view.ScrollY, view.ScrollY + view.ViewportHeight);
             Assert.InRange(first, a, b);
             var rect = PageProjection.For(view, first)!.PageRect;
             Assert.True(rect.Intersects(new RectD(0, 0, view.ViewportWidth, view.ViewportHeight)), $"page {first} left the view going from mode {fromMode} to {toMode} (start {startPage})");
+        }
+    }
+
+    [Fact]
+    public void PV06_ChangingModeOverAndOverNeverWalksBackThroughTheDocument()
+    {
+        // The margin is deeper than the gap between spreads, so after a jump a sliver of the spread above shows; going by it, every change used to step one spread back.
+        var c = Controller(40, default, 1400, 900);
+        c.GoToPage(20);
+        var start = c.CurrentPage;
+        for (var round = 0; round < 12; round++)
+        {
+            foreach (var n in new[] { 1, 2, 5, 4, 0, 3 })
+            {
+                c.SetMode(ModeNumber(n));
+                var (first, last) = c.CurrentPages;
+                Assert.True(start >= first && start <= last, $"round {round}, mode {n}: the page we began on, {start}, is not in {first}-{last}");
+            }
         }
     }
 

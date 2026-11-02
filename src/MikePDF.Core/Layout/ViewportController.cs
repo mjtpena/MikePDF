@@ -40,6 +40,9 @@ public sealed class ViewportController
     private int _pagedSpread;
     private long _lastTurnTick = long.MinValue / 2;
     private PresentationBackup? _backup;
+    private int _modePage = -1;
+    private double _modeScrollX;
+    private double _modeScrollY;
 
     private sealed record PresentationBackup(ViewMode Mode, double Zoom, FitMode Fit, int Page, double Fraction);
 
@@ -173,10 +176,39 @@ public sealed class ViewportController
         Rearrange(() => _documentDirection = direction);
     }
 
+    /// <summary>
+    /// The first page of the first spread that is really in view: a sliver of the spread above (the margin is deeper than the gap, so after a jump a few pixels of it show) does not count, or
+    /// every change of mode would step one spread back.
+    /// </summary>
+    private int FirstSubstantialPage()
+    {
+        var (firstPage, lastPage) = _layout.VisiblePages(ScrollY, ScrollY + _viewportHeight);
+        if (lastPage < firstPage)
+        {
+            return Math.Max(0, TopAnchor().Page);
+        }
+
+        var first = _layout.SpreadOf(firstPage);
+        var last = _layout.SpreadOf(lastPage);
+        var sliver = _layout.MarginPx + _layout.GapPx + 2;
+        for (var s = first; s < last; s++)
+        {
+            var visible = Math.Min(ScrollY + _viewportHeight, _layout.SpreadTop(s) + _layout.SpreadHeight(s)) - Math.Max(ScrollY, _layout.SpreadTop(s));
+            if (visible > sliver)
+            {
+                return _map.FirstPage(s);
+            }
+        }
+
+        return _map.FirstPage(last);
+    }
+
     // Changes what is in a spread and keeps the first visible page in view.
     private void Rearrange(Action change)
     {
-        var page = _layout.PageCount > 0 ? Math.Max(0, TopAnchor().Page) : -1;
+        // Where the view is, by page: the page that was kept by the last change of mode, if nothing has moved the view since (facing and cover pair the pages differently, so the first page of a
+        // spread is not a stable thing to hold on to when the mode changes back and forth); otherwise the first page really in view.
+        var page = _layout.PageCount > 0 ? (_modePage >= 0 && ScrollX == _modeScrollX && ScrollY == _modeScrollY ? _modePage : FirstSubstantialPage()) : -1;
         change();
         RefreshMap();
         ApplyFit(page >= 0 ? page : null);
@@ -184,6 +216,7 @@ public sealed class ViewportController
         if (page >= 0)
         {
             GoToPage(page);
+            (_modePage, _modeScrollX, _modeScrollY) = (page, ScrollX, ScrollY);
         }
     }
 
@@ -198,8 +231,10 @@ public sealed class ViewportController
             return;
         }
 
-        var (_, fraction) = TopPosition;
-        _backup = new PresentationBackup(Mode, Zoom, Fit, Math.Max(0, CurrentPage), fraction);
+        var page = Math.Max(0, CurrentPage);
+        var (anchorPage, anchorFraction) = TopPosition;
+        var fraction = anchorPage >= 0 && _layout.SpreadOf(anchorPage) == _layout.SpreadOf(page) ? anchorFraction : 0; // the offset is of the page shown, not of a sliver of the one above
+        _backup = new PresentationBackup(Mode, Zoom, Fit, page, fraction);
         Presenting = true;
         Mode = new ViewMode(PageArrangement.OnePage, PageFlow.Paged, Mode.Direction);
         Fit = FitMode.Page;
