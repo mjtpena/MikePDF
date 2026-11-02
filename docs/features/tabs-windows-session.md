@@ -44,7 +44,7 @@ Document identity is the **file ID** (volume serial number plus 128-bit file ID 
 | Ctrl+O, drop, Recent list, activation, command line | Resolve identity. If a tab for it exists in **any** window, activate that tab and bring its window forward. Otherwise open a new tab. |
 | New tab position | User-initiated (Ctrl+O, drop, Recent): immediately right of the active tab. Activation from outside (Explorer, alias): at the end of the strip. |
 | Active tab is an empty tab (no document) | Reuse it instead of adding a tab. |
-| Several files in one activation | Open all, activate the first. At most **25** per activation; for more, ask "Open all N files?" (proposed limit; it exists to stop a hostile or accidental launch from starting hundreds of documents). |
+| Several files in one activation | Open all, activate the first. **More than 10** in one activation asks "Open all N files?" first (decisions.md Q12; the first draft said 25), and at most 100 are read from one activation; both limits exist to stop a hostile or accidental launch from starting hundreds of documents. |
 | Same file, second view | Not supported in v1. One live view per file, because two views would give two edit histories for one file (see [save-pipeline](save-pipeline.md)). Activating the existing tab is the answer. |
 | Window for activation from outside | Setting `windows.openFromShell`: `LastActiveWindow` (default), `NewWindow`, `ActiveWindowOfThisDesktop`. OPEN QUESTION OQ-TAB-3 covers virtual desktops. |
 
@@ -157,7 +157,7 @@ Note a conflict with §10.2: **Ctrl+1 and Ctrl+2 are fit page and fit width** in
 - **Encrypted documents:** see 3.6 and 3.8. Permissions are re-read on resume.
 - **Huge documents:** a 5,000-page tab suspended and resumed must not re-fetch all page sizes before painting (existing lazy layout). The stored page fraction must be clamped when the file changed on disk and now has fewer pages.
 - **File changed on disk while suspended or while restoring:** the position is clamped; a tab whose file ID changed but path matches is treated as the same file.
-- **Hostile input:** activation arguments are untrusted strings: bounded length, no device paths, no alternate data stream names, at most 25 files. `session.json` is user-writable only by the user and SYSTEM (protected DACL) but is still parsed defensively: size cap 1 MiB, at most 64 windows and 1,000 tabs, every numeric field range-checked, unknown keys ignored.
+- **Hostile input:** activation arguments are untrusted strings: bounded length, no device paths, no alternate data stream names, at most 100 files read, and a question above 10. `session.json` is user-writable only by the user and SYSTEM (protected DACL) but is still parsed defensively: size cap 1 MiB, at most 64 windows and 1,000 tabs, every numeric field range-checked, unknown keys ignored.
 - **Two monitors with different DPI:** tear-out onto the other monitor re-rasterises tiles once, at the new scale.
 - **Display removed while the app is running:** windows on it move to the primary display (Windows does this; the model must re-clamp stored bounds on `WM_DISPLAYCHANGE`).
 - **Sleep and resume, lock screen:** engines survive. If the watchdog killed an engine during sleep, the existing crash path restores it.
@@ -244,7 +244,7 @@ Telemetry: none. The product has no telemetry (§14); if opt-in diagnostics are 
 | TAB-01 | Document identity: all path spellings of one file (case, 8.3, symlink, UNC vs mapped) resolve to one identity; two files with the same name in different folders do not. | Unit (`MikePDF.Core.Tests`) |
 | TAB-02 | Opening a file that has a tab in any window activates that tab and that window; no second session is created. | Integration |
 | TAB-03 | Opening from an empty tab reuses the empty tab; otherwise a new tab appears right of the active one for user actions and at the end for outside activations. | Unit (tab model) |
-| TAB-04 | An activation with 30 files opens none until confirmed, then opens all; with 25 files it opens all without a prompt. | Unit + UI journey |
+| TAB-04 | An activation with 30 files opens none until confirmed, then opens all; with 10 files it opens all without a prompt, with 11 it asks (decisions.md Q12). | Unit + UI journey |
 | TAB-05 | A 51st tab in a window opens in a new window. | Unit |
 | TAB-06 | Tab titles: document title, else file name; duplicates in one window gain the folder name; the tooltip is the full path. | Unit |
 | TAB-07 | Moving a tab to another window keeps the same engine process IDs, the same undo stack object and the same edit journal file; no `OpenDocument` is sent to a new engine. | Integration |
@@ -309,3 +309,14 @@ Measured facts about WinUI's `TabView` in Windows App SDK 2.5.1 (answers to OQ-T
 - `DisplayArea.FindAll()` cannot be enumerated with `foreach` (an `InvalidCastException`); an index loop works.
 
 Not done, or not verified: see the completion note.
+
+## 16. Test seams
+
+The journeys steer the app through four environment variables. **Every one is read through `TestSeamGate` (`MikePDF.Core`) and `TestSeams` (the app), and none is read when the app runs from a Store-signed package** (`Package.Current.SignatureKind == PackageSignatureKind.Store`; if the kind cannot be read the app counts as shipped and ignores them). `TestSeamGateTests` checks the gate with an injectable signature kind, that no other code reads a `MIKEPDF_TEST_` variable, and that this list is the whole list.
+
+| Variable | What it does |
+|---|---|
+| `MIKEPDF_TEST_POLICY_KEY` | Names a throwaway key under `HKCU\Software\MikePDF.Tests`, read as more user-level policy (which can only tighten). |
+| `MIKEPDF_TEST_RESTORE` | Overrides the `startup.restore` setting (`Always`, `Ask`, `Never`). The harness passes `Never` unless a journey is about the session. |
+| `MIKEPDF_TEST_FAKE_DIRTY` | `1` marks every opened document as having unsaved edits, so the close prompts can be driven before the save pipeline exists. |
+| `MIKEPDF_TEST_JUMPLIST_DUMP` | A file name in the private folder; the app writes the Jump List items it saved there. |

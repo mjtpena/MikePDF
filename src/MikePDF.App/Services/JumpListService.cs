@@ -28,7 +28,7 @@ internal static partial class JumpListService
             await list.SaveAsync();
 
             // A journey asks for what was saved (the Jump List itself is Windows' to show): "MIKEPDF_TEST_JUMPLIST_DUMP" names a file in the private folder.
-            if (Environment.GetEnvironmentVariable("MIKEPDF_TEST_JUMPLIST_DUMP") is { Length: > 0 } name && name.IndexOfAny(Path.GetInvalidFileNameChars()) < 0)
+            if (TestSeams.Get(MikePDF.Core.TestSeamGate.JumpListDump) is { Length: > 0 } name && name.IndexOfAny(Path.GetInvalidFileNameChars()) < 0)
             {
                 var saved = await JumpList.LoadCurrentAsync();
                 await File.WriteAllLinesAsync(Path.Combine(AppPaths.PrivateDirectory, name), saved.Items.Select(i => i.Arguments + "|" + i.DisplayName + "|" + i.GroupName));

@@ -1,4 +1,5 @@
 using Microsoft.UI.Dispatching;
+using MikePDF.Core;
 using MikePDF.Core.Persistence;
 using MikePDF.Core.Windowing;
 using DispatcherQueueTimer = Microsoft.UI.Dispatching.DispatcherQueueTimer;
@@ -76,7 +77,7 @@ internal sealed class AppHost
     /// <summary>The setting <c>startup.restore</c>. A journey can name another value in <c>MIKEPDF_TEST_RESTORE</c> (the harness sets Never so that a killed run does not ask the next one).</summary>
     public RestoreMode CurrentRestoreMode()
     {
-        var test = Environment.GetEnvironmentVariable("MIKEPDF_TEST_RESTORE");
+        var test = TestSeams.Get(TestSeamGate.Restore);
         return SessionPolicy.Parse(test is { Length: < 16 } ? test : Services.Settings.Value<string>("startup.restore"));
     }
 

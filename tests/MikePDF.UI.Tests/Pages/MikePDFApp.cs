@@ -80,6 +80,7 @@ public sealed class MikePDFApp : IDisposable
         // A killed run must not make the next one ask to restore it: journeys start with the setting Never unless they are about the session (the app reads this only for that).
         start.Environment["MIKEPDF_TEST_RESTORE"] = restore;
         start.Environment["MIKEPDF_TEST_FAKE_DIRTY"] = fakeDirty ? "1" : "0";
+        WaitUntilNoInstance(); // the previous instance's process, and with it its single-instance registration, must be gone: a launch that finds one is handed to it and ends
         foreach (var (name, value) in environment ?? new Dictionary<string, string>())
         {
             start.Environment[name] = value;
@@ -108,8 +109,36 @@ public sealed class MikePDFApp : IDisposable
             }
         }
 
-        var process = Retry.WhileNull(() => Process.GetProcessesByName("MikePDF").FirstOrDefault(p => p.MainWindowHandle != 0), Patience, TimeSpan.FromMilliseconds(200)).Result
-            ?? throw new TimeoutException("MikePDF did not show a window.");
+        // If the launch was still handed to an instance that was going away, no MikePDF is left and no window comes: start it again (a few times) rather than fail on the race.
+        Process? process = null;
+        for (var launch = 1; process is null; launch++)
+        {
+            var deadline = DateTime.UtcNow + TimeSpan.FromSeconds(launch < 3 ? 12 : 30);
+            while (process is null && DateTime.UtcNow < deadline)
+            {
+                process = Process.GetProcessesByName("MikePDF").FirstOrDefault(p => p.MainWindowHandle != 0);
+                if (process is null)
+                {
+                    Thread.Sleep(200);
+                    if (launch < 3 && Process.GetProcessesByName("MikePDF").Length == 0 && DateTime.UtcNow > deadline - TimeSpan.FromSeconds(8))
+                    {
+                        break; // nothing is running and nothing will show: launch again
+                    }
+                }
+            }
+
+            if (process is null)
+            {
+                if (launch >= 3)
+                {
+                    throw new TimeoutException("MikePDF did not show a window.");
+                }
+
+                WaitUntilNoInstance();
+                Process.Start(start)?.Dispose();
+            }
+        }
+
         var automation = new UIA3Automation();
         var application = Application.Attach(process);
         var window = Retry.WhileNull(() => application.GetMainWindow(automation), Patience).Result ?? throw new TimeoutException("No main window.");
@@ -156,6 +185,26 @@ public sealed class MikePDFApp : IDisposable
         catch (Exception e) when (e is ArgumentException or InvalidOperationException or System.ComponentModel.Win32Exception)
         {
             // Already gone.
+        }
+    }
+
+    /// <summary>Waits until no MikePDF process has existed for about a second: the previous instance has exited, so its single-instance registration is gone.</summary>
+    public static void WaitUntilNoInstance()
+    {
+        var quietSince = DateTime.UtcNow;
+        var limit = DateTime.UtcNow + TimeSpan.FromSeconds(20);
+        while (DateTime.UtcNow < limit)
+        {
+            if (Process.GetProcessesByName("MikePDF").Length > 0)
+            {
+                quietSince = DateTime.UtcNow;
+            }
+            else if (DateTime.UtcNow - quietSince > TimeSpan.FromMilliseconds(1000))
+            {
+                return;
+            }
+
+            Thread.Sleep(100);
         }
     }
 

@@ -5,6 +5,7 @@ using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
 using MikePDF.App.Services;
 using MikePDF.Broker;
+using MikePDF.Core;
 using MikePDF.Core.Errors;
 using MikePDF.Core.Windowing;
 using Windows.Graphics;
@@ -899,7 +900,7 @@ public sealed partial class MainWindow
         }
     }
 
-    private static bool FakeDirty => Environment.GetEnvironmentVariable("MIKEPDF_TEST_FAKE_DIRTY") == "1";
+    private static bool FakeDirty => TestSeams.Get(TestSeamGate.FakeDirty) == "1";
 
     private async Task FailEntryAsync(TabEntry entry, DocumentErrorKind kind, string path, string? detail, bool removeOnFailure, bool restored, bool tooMany = false)
     {
