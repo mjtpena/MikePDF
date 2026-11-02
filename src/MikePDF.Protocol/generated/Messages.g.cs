@@ -2314,6 +2314,456 @@ public sealed class ValidateStructureReply : IReplyMessage
     }
 }
 
+/// <summary>The request payload of AppendAnnotations (message type 1025).</summary>
+public sealed class AppendAnnotations : IRequestMessage
+{
+    public ulong BaseHandle { get; set; }
+    public ulong EditsHandle { get; set; }
+    /// <summary>The blob's length in bytes, at most 256 MiB.</summary>
+    public ulong EditsLength { get; set; }
+    public ulong OutputHandle { get; set; }
+    public uint PageCount { get; set; }
+
+    public MessageType MessageType => MessageType.AppendAnnotations;
+
+    /// <summary>
+    /// The only decoder for this type. Reads exactly the declared fields, enforcing wire types and every limit as it goes;
+    /// there is no other decoder (see StrictReader).
+    /// </summary>
+    internal static AppendAnnotations Read(ref MessagePackReader reader)
+    {
+        StrictReader.ExpectArray(ref reader, 5);
+        var message = new AppendAnnotations();
+        message.BaseHandle = StrictReader.ReadU64(ref reader, 1UL, ulong.MaxValue);
+        message.EditsHandle = StrictReader.ReadU64(ref reader, 1UL, ulong.MaxValue);
+        message.EditsLength = StrictReader.ReadU64(ref reader, 1UL, 268435456UL);
+        message.OutputHandle = StrictReader.ReadU64(ref reader, 1UL, ulong.MaxValue);
+        message.PageCount = StrictReader.ReadU32(ref reader, 0u, 10000000u);
+        return message;
+    }
+
+    /// <summary>Writes the payload array. Does not validate; the codec validates before it writes.</summary>
+    public void Write(ref MessagePackWriter writer)
+    {
+        writer.WriteArrayHeader(5);
+        writer.Write(BaseHandle);
+        writer.Write(EditsHandle);
+        writer.Write(EditsLength);
+        writer.Write(OutputHandle);
+        writer.Write(PageCount);
+    }
+
+    /// <summary>Checks every schema limit. Returns null when the message is valid.</summary>
+    public ProtocolFailure? Validate()
+    {
+        if (BaseHandle < 1UL) return ProtocolFailure.Invalid("AppendAnnotations.baseHandle violates its limit");
+        if (EditsHandle < 1UL) return ProtocolFailure.Invalid("AppendAnnotations.editsHandle violates its limit");
+        if (EditsLength < 1UL || EditsLength > 268435456UL) return ProtocolFailure.Invalid("AppendAnnotations.editsLength violates its limit");
+        if (OutputHandle < 1UL) return ProtocolFailure.Invalid("AppendAnnotations.outputHandle violates its limit");
+        if (PageCount > 10000000u) return ProtocolFailure.Invalid("AppendAnnotations.pageCount violates its limit");
+        return null;
+    }
+}
+
+/// <summary>The reply payload of AppendAnnotations (message type 1025).</summary>
+public sealed class AppendAnnotationsReply : IReplyMessage
+{
+    public bool Ok { get; set; }
+    public uint AnnotationsAdded { get; set; }
+    public uint AnnotationsRemoved { get; set; }
+    public uint ObjectsWritten { get; set; }
+    public ulong BytesWritten { get; set; }
+    /// <summary>More issues were found than fit.</summary>
+    public bool Truncated { get; set; }
+    public uint[] IssueCodes { get; set; } = [];
+    public string[] IssueMessages { get; set; } = [];
+
+    public MessageType MessageType => MessageType.AppendAnnotations;
+
+    /// <summary>
+    /// The only decoder for this type. Reads exactly the declared fields, enforcing wire types and every limit as it goes;
+    /// there is no other decoder (see StrictReader).
+    /// </summary>
+    internal static AppendAnnotationsReply Read(ref MessagePackReader reader)
+    {
+        StrictReader.ExpectArray(ref reader, 8);
+        var message = new AppendAnnotationsReply();
+        message.Ok = StrictReader.ReadBool(ref reader);
+        message.AnnotationsAdded = StrictReader.ReadU32(ref reader, 0u, 100000000u);
+        message.AnnotationsRemoved = StrictReader.ReadU32(ref reader, 0u, 100000000u);
+        message.ObjectsWritten = StrictReader.ReadU32(ref reader, 0u, 100000000u);
+        message.BytesWritten = StrictReader.ReadU64(ref reader, 0UL, 2147483647UL);
+        message.Truncated = StrictReader.ReadBool(ref reader);
+        var issueCodesCount = StrictReader.ReadArrayHeader(ref reader, 256);
+        var issueCodes = new uint[issueCodesCount];
+        for (var i = 0; i < issueCodes.Length; i++)
+        {
+            issueCodes[i] = StrictReader.ReadU32(ref reader, 0u, 65535u);
+        }
+
+        message.IssueCodes = issueCodes;
+        var issueMessagesCount = StrictReader.ReadArrayHeader(ref reader, 256);
+        var issueMessages = new string[issueMessagesCount];
+        for (var i = 0; i < issueMessages.Length; i++)
+        {
+            issueMessages[i] = StrictReader.ReadString(ref reader, 192);
+        }
+
+        message.IssueMessages = issueMessages;
+        return message;
+    }
+
+    /// <summary>Writes the payload array. Does not validate; the codec validates before it writes.</summary>
+    public void Write(ref MessagePackWriter writer)
+    {
+        writer.WriteArrayHeader(8);
+        writer.Write(Ok);
+        writer.Write(AnnotationsAdded);
+        writer.Write(AnnotationsRemoved);
+        writer.Write(ObjectsWritten);
+        writer.Write(BytesWritten);
+        writer.Write(Truncated);
+        writer.WriteArrayHeader(IssueCodes.Length);
+        foreach (var v in IssueCodes)
+        {
+            writer.Write(v);
+        }
+
+        writer.WriteArrayHeader(IssueMessages.Length);
+        foreach (var v in IssueMessages)
+        {
+            writer.Write(v);
+        }
+
+    }
+
+    /// <summary>Checks every schema limit. Returns null when the message is valid.</summary>
+    public ProtocolFailure? Validate()
+    {
+        if (AnnotationsAdded > 100000000u) return ProtocolFailure.Invalid("AppendAnnotationsReply.annotationsAdded violates its limit");
+        if (AnnotationsRemoved > 100000000u) return ProtocolFailure.Invalid("AppendAnnotationsReply.annotationsRemoved violates its limit");
+        if (ObjectsWritten > 100000000u) return ProtocolFailure.Invalid("AppendAnnotationsReply.objectsWritten violates its limit");
+        if (BytesWritten > 2147483647UL) return ProtocolFailure.Invalid("AppendAnnotationsReply.bytesWritten violates its limit");
+        if (IssueCodes is null || IssueCodes.Length > 256) return ProtocolFailure.Invalid("AppendAnnotationsReply.issueCodes is null or has more than 256 elements");
+        for (var i = 0; i < IssueCodes.Length; i++)
+        {
+            if (IssueCodes[i] > 65535u) return ProtocolFailure.Invalid("AppendAnnotationsReply.issueCodes[" + i + "] violates its limit");
+        }
+
+        if (IssueMessages is null || IssueMessages.Length > 256) return ProtocolFailure.Invalid("AppendAnnotationsReply.issueMessages is null or has more than 256 elements");
+        for (var i = 0; i < IssueMessages.Length; i++)
+        {
+            if (!ProtocolText.IsValid(IssueMessages[i], 192)) return ProtocolFailure.Invalid("AppendAnnotationsReply.issueMessages[" + i + "] violates its limit");
+        }
+
+        if (IssueMessages.Length != IssueCodes.Length) return ProtocolFailure.Invalid("AppendAnnotationsReply.issueMessages must have as many elements as issueCodes");
+        return null;
+    }
+}
+
+/// <summary>The request payload of RewriteDocument (message type 1029).</summary>
+public sealed class RewriteDocument : IRequestMessage
+{
+    public ulong BaseHandle { get; set; }
+    public ulong OutputHandle { get; set; }
+    public uint Flags { get; set; }
+
+    public MessageType MessageType => MessageType.RewriteDocument;
+
+    /// <summary>
+    /// The only decoder for this type. Reads exactly the declared fields, enforcing wire types and every limit as it goes;
+    /// there is no other decoder (see StrictReader).
+    /// </summary>
+    internal static RewriteDocument Read(ref MessagePackReader reader)
+    {
+        StrictReader.ExpectArray(ref reader, 3);
+        var message = new RewriteDocument();
+        message.BaseHandle = StrictReader.ReadU64(ref reader, 1UL, ulong.MaxValue);
+        message.OutputHandle = StrictReader.ReadU64(ref reader, 1UL, ulong.MaxValue);
+        message.Flags = StrictReader.ReadU32(ref reader, 0u, 3u);
+        return message;
+    }
+
+    /// <summary>Writes the payload array. Does not validate; the codec validates before it writes.</summary>
+    public void Write(ref MessagePackWriter writer)
+    {
+        writer.WriteArrayHeader(3);
+        writer.Write(BaseHandle);
+        writer.Write(OutputHandle);
+        writer.Write(Flags);
+    }
+
+    /// <summary>Checks every schema limit. Returns null when the message is valid.</summary>
+    public ProtocolFailure? Validate()
+    {
+        if (BaseHandle < 1UL) return ProtocolFailure.Invalid("RewriteDocument.baseHandle violates its limit");
+        if (OutputHandle < 1UL) return ProtocolFailure.Invalid("RewriteDocument.outputHandle violates its limit");
+        if (Flags > 3u) return ProtocolFailure.Invalid("RewriteDocument.flags violates its limit");
+        return null;
+    }
+}
+
+/// <summary>The reply payload of RewriteDocument (message type 1029).</summary>
+public sealed class RewriteDocumentReply : IReplyMessage
+{
+    public bool Ok { get; set; }
+    public uint PagesChanged { get; set; }
+    public uint AnnotationsFlattened { get; set; }
+    public uint AnnotationsRemoved { get; set; }
+    public uint ObjectsWritten { get; set; }
+    public ulong BytesWritten { get; set; }
+    public bool Truncated { get; set; }
+    public uint[] IssueCodes { get; set; } = [];
+    public string[] IssueMessages { get; set; } = [];
+
+    public MessageType MessageType => MessageType.RewriteDocument;
+
+    /// <summary>
+    /// The only decoder for this type. Reads exactly the declared fields, enforcing wire types and every limit as it goes;
+    /// there is no other decoder (see StrictReader).
+    /// </summary>
+    internal static RewriteDocumentReply Read(ref MessagePackReader reader)
+    {
+        StrictReader.ExpectArray(ref reader, 9);
+        var message = new RewriteDocumentReply();
+        message.Ok = StrictReader.ReadBool(ref reader);
+        message.PagesChanged = StrictReader.ReadU32(ref reader, 0u, 10000000u);
+        message.AnnotationsFlattened = StrictReader.ReadU32(ref reader, 0u, 100000000u);
+        message.AnnotationsRemoved = StrictReader.ReadU32(ref reader, 0u, 100000000u);
+        message.ObjectsWritten = StrictReader.ReadU32(ref reader, 0u, 100000000u);
+        message.BytesWritten = StrictReader.ReadU64(ref reader, 0UL, 2147483647UL);
+        message.Truncated = StrictReader.ReadBool(ref reader);
+        var issueCodesCount = StrictReader.ReadArrayHeader(ref reader, 256);
+        var issueCodes = new uint[issueCodesCount];
+        for (var i = 0; i < issueCodes.Length; i++)
+        {
+            issueCodes[i] = StrictReader.ReadU32(ref reader, 0u, 65535u);
+        }
+
+        message.IssueCodes = issueCodes;
+        var issueMessagesCount = StrictReader.ReadArrayHeader(ref reader, 256);
+        var issueMessages = new string[issueMessagesCount];
+        for (var i = 0; i < issueMessages.Length; i++)
+        {
+            issueMessages[i] = StrictReader.ReadString(ref reader, 192);
+        }
+
+        message.IssueMessages = issueMessages;
+        return message;
+    }
+
+    /// <summary>Writes the payload array. Does not validate; the codec validates before it writes.</summary>
+    public void Write(ref MessagePackWriter writer)
+    {
+        writer.WriteArrayHeader(9);
+        writer.Write(Ok);
+        writer.Write(PagesChanged);
+        writer.Write(AnnotationsFlattened);
+        writer.Write(AnnotationsRemoved);
+        writer.Write(ObjectsWritten);
+        writer.Write(BytesWritten);
+        writer.Write(Truncated);
+        writer.WriteArrayHeader(IssueCodes.Length);
+        foreach (var v in IssueCodes)
+        {
+            writer.Write(v);
+        }
+
+        writer.WriteArrayHeader(IssueMessages.Length);
+        foreach (var v in IssueMessages)
+        {
+            writer.Write(v);
+        }
+
+    }
+
+    /// <summary>Checks every schema limit. Returns null when the message is valid.</summary>
+    public ProtocolFailure? Validate()
+    {
+        if (PagesChanged > 10000000u) return ProtocolFailure.Invalid("RewriteDocumentReply.pagesChanged violates its limit");
+        if (AnnotationsFlattened > 100000000u) return ProtocolFailure.Invalid("RewriteDocumentReply.annotationsFlattened violates its limit");
+        if (AnnotationsRemoved > 100000000u) return ProtocolFailure.Invalid("RewriteDocumentReply.annotationsRemoved violates its limit");
+        if (ObjectsWritten > 100000000u) return ProtocolFailure.Invalid("RewriteDocumentReply.objectsWritten violates its limit");
+        if (BytesWritten > 2147483647UL) return ProtocolFailure.Invalid("RewriteDocumentReply.bytesWritten violates its limit");
+        if (IssueCodes is null || IssueCodes.Length > 256) return ProtocolFailure.Invalid("RewriteDocumentReply.issueCodes is null or has more than 256 elements");
+        for (var i = 0; i < IssueCodes.Length; i++)
+        {
+            if (IssueCodes[i] > 65535u) return ProtocolFailure.Invalid("RewriteDocumentReply.issueCodes[" + i + "] violates its limit");
+        }
+
+        if (IssueMessages is null || IssueMessages.Length > 256) return ProtocolFailure.Invalid("RewriteDocumentReply.issueMessages is null or has more than 256 elements");
+        for (var i = 0; i < IssueMessages.Length; i++)
+        {
+            if (!ProtocolText.IsValid(IssueMessages[i], 192)) return ProtocolFailure.Invalid("RewriteDocumentReply.issueMessages[" + i + "] violates its limit");
+        }
+
+        if (IssueMessages.Length != IssueCodes.Length) return ProtocolFailure.Invalid("RewriteDocumentReply.issueMessages must have as many elements as issueCodes");
+        return null;
+    }
+}
+
+/// <summary>The request payload of VerifyAnnotations (message type 1030).</summary>
+public sealed class VerifyAnnotations : IRequestMessage
+{
+    public ulong BaseHandle { get; set; }
+    public ulong OutputHandle { get; set; }
+    public uint PageCount { get; set; }
+    public uint[] Pages { get; set; } = [];
+    public uint[] Added { get; set; } = [];
+    public uint[] Removed { get; set; } = [];
+
+    public MessageType MessageType => MessageType.VerifyAnnotations;
+
+    /// <summary>
+    /// The only decoder for this type. Reads exactly the declared fields, enforcing wire types and every limit as it goes;
+    /// there is no other decoder (see StrictReader).
+    /// </summary>
+    internal static VerifyAnnotations Read(ref MessagePackReader reader)
+    {
+        StrictReader.ExpectArray(ref reader, 6);
+        var message = new VerifyAnnotations();
+        message.BaseHandle = StrictReader.ReadU64(ref reader, 1UL, ulong.MaxValue);
+        message.OutputHandle = StrictReader.ReadU64(ref reader, 1UL, ulong.MaxValue);
+        message.PageCount = StrictReader.ReadU32(ref reader, 0u, 10000000u);
+        var pagesCount = StrictReader.ReadArrayHeader(ref reader, 2048);
+        var pages = new uint[pagesCount];
+        for (var i = 0; i < pages.Length; i++)
+        {
+            pages[i] = StrictReader.ReadU32(ref reader, 0u, 9999999u);
+        }
+
+        message.Pages = pages;
+        var addedCount = StrictReader.ReadArrayHeader(ref reader, 2048);
+        var added = new uint[addedCount];
+        for (var i = 0; i < added.Length; i++)
+        {
+            added[i] = StrictReader.ReadU32(ref reader, 0u, 100000000u);
+        }
+
+        message.Added = added;
+        var removedCount = StrictReader.ReadArrayHeader(ref reader, 2048);
+        var removed = new uint[removedCount];
+        for (var i = 0; i < removed.Length; i++)
+        {
+            removed[i] = StrictReader.ReadU32(ref reader, 0u, 100000000u);
+        }
+
+        message.Removed = removed;
+        return message;
+    }
+
+    /// <summary>Writes the payload array. Does not validate; the codec validates before it writes.</summary>
+    public void Write(ref MessagePackWriter writer)
+    {
+        writer.WriteArrayHeader(6);
+        writer.Write(BaseHandle);
+        writer.Write(OutputHandle);
+        writer.Write(PageCount);
+        writer.WriteArrayHeader(Pages.Length);
+        foreach (var v in Pages)
+        {
+            writer.Write(v);
+        }
+
+        writer.WriteArrayHeader(Added.Length);
+        foreach (var v in Added)
+        {
+            writer.Write(v);
+        }
+
+        writer.WriteArrayHeader(Removed.Length);
+        foreach (var v in Removed)
+        {
+            writer.Write(v);
+        }
+
+    }
+
+    /// <summary>Checks every schema limit. Returns null when the message is valid.</summary>
+    public ProtocolFailure? Validate()
+    {
+        if (BaseHandle < 1UL) return ProtocolFailure.Invalid("VerifyAnnotations.baseHandle violates its limit");
+        if (OutputHandle < 1UL) return ProtocolFailure.Invalid("VerifyAnnotations.outputHandle violates its limit");
+        if (PageCount > 10000000u) return ProtocolFailure.Invalid("VerifyAnnotations.pageCount violates its limit");
+        if (Pages is null || Pages.Length > 2048) return ProtocolFailure.Invalid("VerifyAnnotations.pages is null or has more than 2048 elements");
+        for (var i = 0; i < Pages.Length; i++)
+        {
+            if (Pages[i] > 9999999u) return ProtocolFailure.Invalid("VerifyAnnotations.pages[" + i + "] violates its limit");
+        }
+
+        if (Added is null || Added.Length > 2048) return ProtocolFailure.Invalid("VerifyAnnotations.added is null or has more than 2048 elements");
+        for (var i = 0; i < Added.Length; i++)
+        {
+            if (Added[i] > 100000000u) return ProtocolFailure.Invalid("VerifyAnnotations.added[" + i + "] violates its limit");
+        }
+
+        if (Removed is null || Removed.Length > 2048) return ProtocolFailure.Invalid("VerifyAnnotations.removed is null or has more than 2048 elements");
+        for (var i = 0; i < Removed.Length; i++)
+        {
+            if (Removed[i] > 100000000u) return ProtocolFailure.Invalid("VerifyAnnotations.removed[" + i + "] violates its limit");
+        }
+
+        if (Added.Length != Pages.Length) return ProtocolFailure.Invalid("VerifyAnnotations.added must have as many elements as pages");
+        if (Removed.Length != Pages.Length) return ProtocolFailure.Invalid("VerifyAnnotations.removed must have as many elements as pages");
+        return null;
+    }
+}
+
+/// <summary>The reply payload of VerifyAnnotations (message type 1030).</summary>
+public sealed class VerifyAnnotationsReply : IReplyMessage
+{
+    /// <summary>Both files parse strictly and the output has pageCount pages.</summary>
+    public bool Ok { get; set; }
+    public uint[] Mismatches { get; set; } = [];
+
+    public MessageType MessageType => MessageType.VerifyAnnotations;
+
+    /// <summary>
+    /// The only decoder for this type. Reads exactly the declared fields, enforcing wire types and every limit as it goes;
+    /// there is no other decoder (see StrictReader).
+    /// </summary>
+    internal static VerifyAnnotationsReply Read(ref MessagePackReader reader)
+    {
+        StrictReader.ExpectArray(ref reader, 2);
+        var message = new VerifyAnnotationsReply();
+        message.Ok = StrictReader.ReadBool(ref reader);
+        var mismatchesCount = StrictReader.ReadArrayHeader(ref reader, 2048);
+        var mismatches = new uint[mismatchesCount];
+        for (var i = 0; i < mismatches.Length; i++)
+        {
+            mismatches[i] = StrictReader.ReadU32(ref reader, 0u, 9999999u);
+        }
+
+        message.Mismatches = mismatches;
+        return message;
+    }
+
+    /// <summary>Writes the payload array. Does not validate; the codec validates before it writes.</summary>
+    public void Write(ref MessagePackWriter writer)
+    {
+        writer.WriteArrayHeader(2);
+        writer.Write(Ok);
+        writer.WriteArrayHeader(Mismatches.Length);
+        foreach (var v in Mismatches)
+        {
+            writer.Write(v);
+        }
+
+    }
+
+    /// <summary>Checks every schema limit. Returns null when the message is valid.</summary>
+    public ProtocolFailure? Validate()
+    {
+        if (Mismatches is null || Mismatches.Length > 2048) return ProtocolFailure.Invalid("VerifyAnnotationsReply.mismatches is null or has more than 2048 elements");
+        for (var i = 0; i < Mismatches.Length; i++)
+        {
+            if (Mismatches[i] > 9999999u) return ProtocolFailure.Invalid("VerifyAnnotationsReply.mismatches[" + i + "] violates its limit");
+        }
+
+        return null;
+    }
+}
+
 /// <summary>The request payload of ShellOpen (message type 2048).</summary>
 public sealed class ShellOpen : IRequestMessage
 {

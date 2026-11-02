@@ -9,7 +9,7 @@
     "Messages have no nesting: variable-size collections are parallel arrays tied together with sameLengthAs.",
     "Every variable-size field has a limit and the generator rejects a schema in which any legal message cannot fit in one frame."
   ],
-  "schemaVersion": 5,
+  "schemaVersion": 6,
   "envelope": { "maxFrameBytes": 65536, "maxDeadlineMs": 86400000 },
 
   "enums": [
@@ -393,6 +393,81 @@
           { "key": 1, "name": "truncated", "type": "bool", "doc": "More issues were found than fit." },
           { "key": 2, "name": "issueCodes", "type": "array", "of": "u32", "maxCount": 256, "max": 65535 },
           { "key": 3, "name": "issueMessages", "type": "array", "of": "string", "maxCount": 256, "maxBytes": 192, "sameLengthAs": "issueCodes" }
+        ]
+      }
+    },
+    {
+      "id": 1025, "name": "AppendAnnotations", "documentId": "none",
+      "$comment": "MikePDF.WriterHost only (schema 6, save-pipeline 3.3 stage 4). Appends one incremental update for the annotation edits in the edit blob (save-pipeline 11.3: a second format, MessagePack, read from editsHandle; not a frame) to the base document and writes base plus update to outputHandle. Every file is a handle duplicated into the host: baseHandle and editsHandle are read-only, outputHandle has write access and is empty. pageCount is the base's page count the edits were made against; a different count is InvalidArgument. A status other than Ok carries no payload, so a refusal the broker needs the reason for is an Ok reply with ok false and issueCodes (PdfErrorCode) and issueMessages in the shape of ValidateStructureReply: the strict parser refuses the base, the base is encrypted or over a limit, the page count differs, an edit's expectation does not hold. InvalidArgument: a handle that is not a file, an edits length that is not the file's, a blob that does not decode. Timeout and PermissionDenied as for ValidateStructure.",
+      "request": {
+        "type": "AppendAnnotations",
+        "fields": [
+          { "key": 0, "name": "baseHandle", "type": "u64", "min": 1 },
+          { "key": 1, "name": "editsHandle", "type": "u64", "min": 1 },
+          { "key": 2, "name": "editsLength", "type": "u64", "min": 1, "max": 268435456, "doc": "The blob's length in bytes, at most 256 MiB." },
+          { "key": 3, "name": "outputHandle", "type": "u64", "min": 1 },
+          { "key": 4, "name": "pageCount", "type": "u32", "max": 10000000 }
+        ]
+      },
+      "reply": {
+        "type": "AppendAnnotationsReply",
+        "fields": [
+          { "key": 0, "name": "ok", "type": "bool" },
+          { "key": 1, "name": "annotationsAdded", "type": "u32", "max": 100000000 },
+          { "key": 2, "name": "annotationsRemoved", "type": "u32", "max": 100000000 },
+          { "key": 3, "name": "objectsWritten", "type": "u32", "max": 100000000 },
+          { "key": 4, "name": "bytesWritten", "type": "u64", "max": 2147483647 },
+          { "key": 5, "name": "truncated", "type": "bool", "doc": "More issues were found than fit." },
+          { "key": 6, "name": "issueCodes", "type": "array", "of": "u32", "maxCount": 256, "max": 65535 },
+          { "key": 7, "name": "issueMessages", "type": "array", "of": "string", "maxCount": 256, "maxBytes": 192, "sameLengthAs": "issueCodes" }
+        ]
+      }
+    },
+    {
+      "id": 1029, "name": "RewriteDocument", "documentId": "none",
+      "$comment": "MikePDF.WriterHost only (schema 6, save-pipeline 3.3): a full rewrite of the base into outputHandle, for Save As 'Rewrite the whole file' and for a flattened copy. flags: bit 0 draw form fields into the pages and remove them, bit 1 draw comments and markup into the pages and remove them (max 3). The output holds only what the catalog can reach: no older revision, no flattened annotation. Handles as for AppendAnnotations. The reply says what was done; ok is false with issues as for AppendAnnotations, and the statuses are as there.",
+      "request": {
+        "type": "RewriteDocument",
+        "fields": [
+          { "key": 0, "name": "baseHandle", "type": "u64", "min": 1 },
+          { "key": 1, "name": "outputHandle", "type": "u64", "min": 1 },
+          { "key": 2, "name": "flags", "type": "u32", "max": 3 }
+        ]
+      },
+      "reply": {
+        "type": "RewriteDocumentReply",
+        "fields": [
+          { "key": 0, "name": "ok", "type": "bool" },
+          { "key": 1, "name": "pagesChanged", "type": "u32", "max": 10000000 },
+          { "key": 2, "name": "annotationsFlattened", "type": "u32", "max": 100000000 },
+          { "key": 3, "name": "annotationsRemoved", "type": "u32", "max": 100000000 },
+          { "key": 4, "name": "objectsWritten", "type": "u32", "max": 100000000 },
+          { "key": 5, "name": "bytesWritten", "type": "u64", "max": 2147483647 },
+          { "key": 6, "name": "truncated", "type": "bool" },
+          { "key": 7, "name": "issueCodes", "type": "array", "of": "u32", "maxCount": 256, "max": 65535 },
+          { "key": 8, "name": "issueMessages", "type": "array", "of": "string", "maxCount": 256, "maxBytes": 192, "sameLengthAs": "issueCodes" }
+        ]
+      }
+    },
+    {
+      "id": 1030, "name": "VerifyAnnotations", "documentId": "none",
+      "$comment": "MikePDF.WriterHost only (schema 6, save-pipeline 3.3 stage 5): a second, independent strict parse of the base and of a finished output. It checks that the output has pageCount pages and that, for each page named in pages, the number of annotations that are not links, popups or widgets is the base's number plus added minus removed, where added and removed are the broker's model (what the edits say). mismatches lists the pages (from pages) whose count differs. The broker sends at most 2048 pages per call and calls again for more. Both handles are read-only and valid in the host.",
+      "request": {
+        "type": "VerifyAnnotations",
+        "fields": [
+          { "key": 0, "name": "baseHandle", "type": "u64", "min": 1 },
+          { "key": 1, "name": "outputHandle", "type": "u64", "min": 1 },
+          { "key": 2, "name": "pageCount", "type": "u32", "max": 10000000 },
+          { "key": 3, "name": "pages", "type": "array", "of": "u32", "maxCount": 2048, "max": 9999999 },
+          { "key": 4, "name": "added", "type": "array", "of": "u32", "maxCount": 2048, "max": 100000000, "sameLengthAs": "pages" },
+          { "key": 5, "name": "removed", "type": "array", "of": "u32", "maxCount": 2048, "max": 100000000, "sameLengthAs": "pages" }
+        ]
+      },
+      "reply": {
+        "type": "VerifyAnnotationsReply",
+        "fields": [
+          { "key": 0, "name": "ok", "type": "bool", "doc": "Both files parse strictly and the output has pageCount pages." },
+          { "key": 1, "name": "mismatches", "type": "array", "of": "u32", "maxCount": 2048, "max": 9999999 }
         ]
       }
     },

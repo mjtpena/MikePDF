@@ -8,7 +8,7 @@
 
 namespace mikepdf::protocol {
 
-inline constexpr std::uint32_t kSchemaVersion = 5;
+inline constexpr std::uint32_t kSchemaVersion = 6;
 inline constexpr std::size_t kMaxFrameBytes = 65536;
 inline constexpr std::uint32_t kMaxDeadlineMs = 86400000;
 
@@ -101,6 +101,9 @@ enum class MessageType : std::uint16_t {
     CancelBefore = 33,
     RenderBand = 34,
     ValidateStructure = 1024,
+    AppendAnnotations = 1025,
+    RewriteDocument = 1029,
+    VerifyAnnotations = 1030,
     ShellOpen = 2048,
     ShellRenderPage = 2049,
     ShellClose = 2050,
@@ -128,6 +131,9 @@ enum class MessageType : std::uint16_t {
         case 33:
         case 34:
         case 1024:
+        case 1025:
+        case 1029:
+        case 1030:
         case 2048:
         case 2049:
         case 2050:
@@ -183,6 +189,12 @@ enum class DocumentIdRule : std::uint8_t {
         case MessageType::RenderBand:
             return DocumentIdRule::Required;
         case MessageType::ValidateStructure:
+            return DocumentIdRule::None;
+        case MessageType::AppendAnnotations:
+            return DocumentIdRule::None;
+        case MessageType::RewriteDocument:
+            return DocumentIdRule::None;
+        case MessageType::VerifyAnnotations:
             return DocumentIdRule::None;
         case MessageType::ShellOpen:
             return DocumentIdRule::None;
