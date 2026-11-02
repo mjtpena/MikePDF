@@ -102,15 +102,20 @@ internal sealed class RenderRun
             Expected = item.Expected,
         };
         using var limit = CancellationTokenSource.CreateLinkedTokenSource(runToken);
-        limit.CancelAfter(_options.FileTimeout);
+        var cutOff = false;
         var crashesBefore = _host.CrashesSeen;
         _host.SetContext("open");
         try
         {
+            // The file's time limit is about the file. Bringing an engine up (the first file, or the one after a cut-off or a crash loop) can take seconds on a busy machine, and
+            // charging that to a file made a one-second limit end the file before its first page was even listed. The clock starts when an engine is there.
+            await _host.GetSupervisorAsync(runToken).ConfigureAwait(false);
+            limit.CancelAfter(_options.FileTimeout);
             await OpenAndRenderAsync(item, file, limit.Token).ConfigureAwait(false);
         }
         catch (OperationCanceledException) when (!runToken.IsCancellationRequested)
         {
+            cutOff = true;
             file.Problems.Add($"The file did not finish within {_options.FileTimeout.TotalSeconds:0} s and was cut off.");
             foreach (var page in file.Pages.Where(p => p.Status == RenderStatus.NotRun))
             {
@@ -149,6 +154,13 @@ internal sealed class RenderRun
             await SettleEngineEventsAsync(item, file, crashesBefore).ConfigureAwait(false);
             _host.SetContext(null);
             file.EngineEvents.AddRange(_host.DrainEvents());
+        }
+
+        if (cutOff)
+        {
+            // The engine may still be unwinding the render that ran out of time (PDFium looks for a cancel only now and then, and a page of heavy operations can take seconds to notice
+            // it). The next file should not queue behind that, so it gets a fresh engine, started before its own clock.
+            await _host.RecycleAsync().ConfigureAwait(false);
         }
 
         return file;

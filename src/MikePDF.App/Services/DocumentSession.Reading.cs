@@ -541,7 +541,7 @@ internal sealed partial class DocumentSession
             pixelHeight = (int)Math.Max(1, PageTransform.EngineRounding(size.Height * scale));
         }
 
-        var args = new RenderTileArgs((uint)page, (float)scale, 0, 0, 0, (uint)pixelWidth, (uint)pixelHeight);
+        var args = new RenderTileArgs((uint)page, (float)scale, 0, 0, 0, (uint)pixelWidth, (uint)pixelHeight, RenderTileArgs.Annotations | RenderTileArgs.FormFields); // a thumbnail shows what the page shows, filled fields included
         var result = await document.RenderTileAsync(args, 0, TileDeadline, CancellationToken.None).ConfigureAwait(false);
         if (result.Value is not { } lease)
         {

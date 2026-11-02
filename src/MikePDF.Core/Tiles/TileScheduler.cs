@@ -70,6 +70,7 @@ public sealed class TileScheduler : IAsyncDisposable
     private ulong _generation;
     private int _disposed;
     private int _wakePending;
+    private long _retryWakeAt; // the timestamp a back-off wake-up is already scheduled for, 0 when none (guarded by _gate)
 
     // tiles: renders sharp tiles (the document's engine). lowRes: renders the placeholders (the pool engine); may be the same renderer.
     public TileScheduler(ITileRenderer tiles, ITileRenderer lowRes, ITilePresenter presenter, TileCache cache, TileSchedulerOptions? options = null, TimeProvider? time = null)
@@ -254,6 +255,7 @@ public sealed class TileScheduler : IAsyncDisposable
     {
         var plan = TilePlanner.Plan(view, _cache, _options.Planner);
         var starts = new List<(PlannedItem Item, bool LowRes, ulong Generation, CancellationTokenSource Cts)>();
+        long retryAt;
         lock (_gate)
         {
             _plan = plan;
@@ -278,12 +280,72 @@ public sealed class TileScheduler : IAsyncDisposable
                     starts.Add((item, lowRes, _generation, cts));
                 }
             }
+
+            retryAt = EarliestBackOffLocked(plan);
         }
+
+        ScheduleRetryWake(retryAt);
 
         foreach (var (item, lowRes, generation, cts) in starts)
         {
             _ = Task.Run(() => RunOneAsync(item, lowRes, generation, cts));
         }
+    }
+
+    /// <summary>When the first wanted tile that is only waiting out its back-off may be tried again, or 0 when none is. Gate held.</summary>
+    private long EarliestBackOffLocked(TilePlan plan)
+    {
+        var now = _time.GetTimestamp();
+        var earliest = 0L;
+        foreach (var key in plan.Wanted)
+        {
+            if (_retryAt.TryGetValue(key, out var at) && now < at && !_inFlight.ContainsKey(key) && !_cache.Contains(key) && (earliest == 0 || at < earliest))
+            {
+                earliest = at;
+            }
+        }
+
+        return earliest;
+    }
+
+    /// <summary>
+    /// Makes sure the scheduler looks again when the earliest back-off is over. A timer started for a back-off is not enough on its own: a timer can fire a little before the
+    /// timestamp it was meant to reach (timers count whole milliseconds, the clock does not), the look-again then finds the tile still backing off and starts nothing, and with no
+    /// other event to follow it the tile is never tried again. So the look that finds a tile still waiting is the one that sets the next timer, for what is left of the wait.
+    /// </summary>
+    private void ScheduleRetryWake(long at)
+    {
+        if (at == 0 || _stop.IsCancellationRequested)
+        {
+            return;
+        }
+
+        lock (_gate)
+        {
+            if (_retryWakeAt != 0 && _retryWakeAt <= at)
+            {
+                return; // a wake-up at or before this one is on its way and will look again
+            }
+
+            _retryWakeAt = at;
+        }
+
+        var remaining = TimeSpan.FromSeconds((double)(at - _time.GetTimestamp()) / _time.TimestampFrequency);
+        var wait = remaining < TimeSpan.FromMilliseconds(1) ? TimeSpan.FromMilliseconds(1) : remaining;
+        _ = Task.Delay(wait, _time).ContinueWith(
+            _ =>
+            {
+                lock (_gate)
+                {
+                    if (_retryWakeAt == at)
+                    {
+                        _retryWakeAt = 0;
+                    }
+                }
+
+                Wake();
+            },
+            TaskScheduler.Default);
     }
 
     private int InFlightCountLocked(bool lowRes) => _inFlight.Values.Count(f => f.LowRes == lowRes);
@@ -402,12 +464,7 @@ public sealed class TileScheduler : IAsyncDisposable
                 Raise(() => PageStatus?.Invoke(item.Key.Page, status));
             }
 
-            if (backoff > TimeSpan.Zero && !_stop.IsCancellationRequested)
-            {
-                // Look again when the back-off is over.
-                _ = Task.Delay(backoff, _time).ContinueWith(_ => Wake(), TaskScheduler.Default);
-            }
-
+            // The look-again that follows (Wake) finds the tile backing off and schedules the wake-up for the end of the back-off (ScheduleRetryWake).
             Wake();
         }
     }

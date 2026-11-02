@@ -189,10 +189,10 @@ TEST_F(BandTest, ABandThatDoesNotFitOrDoesNotExistIsRefusedAndNothingIsWritten) 
     EXPECT_EQ(std::count(buffer.begin(), buffer.end(), std::uint8_t{0xCD}), static_cast<std::ptrdiff_t>(buffer.size()));
 }
 
-TEST_F(BandTest, FormFieldsAreNotDrawnYetAndPrintingModeIsAccepted) {
+TEST_F(BandTest, TheFormFlagAndPrintingModeAreAccepted) {
     Document doc = open(bytes_);
     std::vector<std::uint8_t> buffer(400 * 100 * 4);
-    EXPECT_EQ(doc.render_band(band(400, 400, 0, 100, 2), buffer, 1600, kNever), Status::Unsupported);
+    EXPECT_EQ(doc.render_band(band(400, 400, 0, 100, 2), buffer, 1600, kNever), Status::Ok);  // what the form layer draws is in forms_tests.cpp
     EXPECT_EQ(doc.render_band(band(400, 400, 0, 100, 1 | 4), buffer, 1600, kNever), Status::Ok);
 }
 

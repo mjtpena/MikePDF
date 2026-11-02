@@ -56,6 +56,17 @@ public sealed class EngineJob : IDisposable
 
     internal HANDLE Handle => _job.Value;
 
+    /// <summary>The per-process commit limit the operating system holds for this job, read back from the job itself (not remembered): what a test or a diagnostic needs to know the policy arrived.</summary>
+    public unsafe long QueryProcessMemoryLimitBytes()
+    {
+        var limits = default(JOBOBJECT_EXTENDED_LIMIT_INFORMATION);
+        uint returned = 0;
+        Win32.ThrowIfFalse(
+            PInvoke.QueryInformationJobObject(_job.Value, JOBOBJECTINFOCLASS.JobObjectExtendedLimitInformation, &limits, (uint)sizeof(JOBOBJECT_EXTENDED_LIMIT_INFORMATION), &returned),
+            "QueryInformationJobObject(limits)");
+        return (long)limits.ProcessMemoryLimit;
+    }
+
     /// <param name="processMemoryLimitBytes">The per-process commit limit.</param>
     /// <param name="onEvent">Subscribed before the event thread starts, so no message can be missed.</param>
     public static unsafe EngineJob Create(long processMemoryLimitBytes, Action<EngineJobEvent>? onEvent = null)
