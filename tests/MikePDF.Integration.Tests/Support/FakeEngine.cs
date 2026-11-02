@@ -43,6 +43,9 @@ internal sealed class FakeEngine : IAsyncDisposable
 
     public List<RequestEnvelope> Received { get; } = [];
 
+    /// <summary>The progress counter the default Pong reports. A test moves it, or leaves it standing, to make the engine look busy or stuck.</summary>
+    public Func<ulong> PongProgress { get; set; } = () => 0;
+
     /// <summary>The broker side of the pipe: hand this to an <see cref="EngineClient"/>.</summary>
     public Stream ClientStream => _client;
 
@@ -151,7 +154,7 @@ internal sealed class FakeEngine : IAsyncDisposable
                 yield return Response(request.RequestId, Status.Ok, request.MessageType, new HelloReply { SchemaVersion = ProtocolInfo.SchemaVersion, PdfiumVersion = "fake" });
                 break;
             case Ping ping:
-                yield return Response(request.RequestId, Status.Ok, request.MessageType, new Pong { Nonce = ping.Nonce });
+                yield return Response(request.RequestId, Status.Ok, request.MessageType, new Pong { Nonce = ping.Nonce, Progress = PongProgress() });
                 break;
             case Shutdown:
                 yield return Response(request.RequestId, Status.Ok, request.MessageType, new ShutdownReply());
@@ -184,6 +187,21 @@ internal sealed class FakeEngine : IAsyncDisposable
                     Status.Ok,
                     request.MessageType,
                     new RenderTileReply { SlotIndex = tile.SlotIndex, Width = tile.TileWidth, Height = tile.TileHeight, Stride = tile.TileWidth * 4, Generation = tile.Generation });
+                break;
+            case RenderBand band:
+                FillSlot((int)band.SlotIndex, (int)band.PageWidthPx, (int)band.BandHeight, (int)band.PageWidthPx * 4);
+                yield return Response(
+                    request.RequestId,
+                    Status.Ok,
+                    request.MessageType,
+                    new RenderBandReply { SlotIndex = band.SlotIndex, Width = band.PageWidthPx, Height = band.BandHeight, Stride = band.PageWidthPx * 4, Generation = band.Generation });
+                break;
+            case GetViewerPreferences:
+                yield return Response(
+                    request.RequestId,
+                    Status.Ok,
+                    request.MessageType,
+                    new GetViewerPreferencesReply { Direction = 1, PrintScaling = 1, NumCopies = 2, Duplex = 3, RangeFirsts = [0], RangeLasts = [1] });
                 break;
             case AttachSlotRing:
                 yield return Response(request.RequestId, Status.Ok, request.MessageType, new AttachSlotRingReply());

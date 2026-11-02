@@ -106,6 +106,12 @@ public sealed class EngineSupervisor : IAsyncDisposable
     {
         Running,
         Restarting,
+
+        /// <summary>No engine process on purpose (the budget needed the slot); the documents, their file handles and passwords are kept. The next call resumes.</summary>
+        Suspended,
+
+        /// <summary>A call asked for a suspended engine: a process is being started and the documents reopened in it.</summary>
+        Resuming,
         Failed,
         Disposed,
     }
@@ -123,6 +129,14 @@ public sealed class EngineSupervisor : IAsyncDisposable
     private Task _recovery = Task.CompletedTask;
     private int _restartCount;
     private long _pingNonce;
+
+    // Suspension (EngineBudget). All guarded by _gate unless said otherwise.
+    private int _activeCalls;        // calls in flight: an engine with one is never suspended
+    private int _pins;               // callers that need the engine to stay (a visible tab, a save, a print job)
+    private Task _resume = Task.CompletedTask;
+    private Task _suspendDone = Task.CompletedTask; // ends when the process of the latest suspension has exited and its slot has been returned
+    private Status _resumeFailure = Status.Ok;
+    private long _lastUsed;          // Volatile
 
     private EngineSupervisor(EngineSupervisorOptions options)
     {
@@ -146,6 +160,36 @@ public sealed class EngineSupervisor : IAsyncDisposable
     public event EventHandler<EngineCrashedEventArgs>? Failed;
 
     public int RestartCount => Volatile.Read(ref _restartCount);
+
+    /// <summary>The engine was shut down on purpose to free its slot, or is being brought back (see <see cref="EngineBudget"/>). Documents stay open to their callers.</summary>
+    public bool IsSuspended
+    {
+        get
+        {
+            lock (_gate)
+            {
+                return _state is State.Suspended or State.Resuming;
+            }
+        }
+    }
+
+    /// <summary>How recently a call used this engine: the budget's clock when it did (0 when it never has). Larger is more recent.</summary>
+    internal long LastUsed => Volatile.Read(ref _lastUsed);
+
+    /// <summary>The budget's clock; set by the budget, read when a call uses the engine.</summary>
+    internal Func<long>? UseClock { get; set; }
+
+    /// <summary>Called when the engine became idle (its last call ended or the last pin was dropped), so a document waiting for a slot can look again.</summary>
+    internal Action? Idled { get; set; }
+
+    /// <summary>
+    /// Called before a suspended engine is started again, to obtain the slot it needs. Returns false if none became free: the call that asked fails with
+    /// <c>Timeout</c> and the engine stays suspended.
+    /// </summary>
+    internal Func<EngineSupervisor, CancellationToken, Task<bool>>? ResumeGate { get; set; }
+
+    /// <summary>Raised with the new state when the engine is suspended, starts resuming, runs again after a resume or fails. Runs on the thread that caused it.</summary>
+    internal Action<DocumentEngineState>? LifeChanged { get; set; }
 
     public bool IsFailed
     {
@@ -262,46 +306,54 @@ public sealed class EngineSupervisor : IAsyncDisposable
             return EngineResult<SupervisedDocument>.Fail(Status.PermissionDenied, e.Message);
         }
 
-        var (instance, _) = await AcquireAsync(null, cancellationToken).ConfigureAwait(false);
+        var acquired = await AcquireAsync(null, cancellationToken, countCall: true).ConfigureAwait(false);
+        var instance = acquired.Instance;
         if (instance is null)
         {
             file.Dispose();
-            return EngineResult<SupervisedDocument>.Fail(Status.EngineCrashed, "No engine is available.");
+            return EngineResult<SupervisedDocument>.Fail(acquired.Failure, "No engine is available.");
         }
 
-        ulong remote;
-        EngineResult<OpenDocumentReply> opened;
-        try
+        try // the call is counted as in flight until the document is registered, so the engine cannot be suspended in between
         {
-            remote = instance.DuplicateIntoEngine(file);
-            opened = await instance.Client.OpenDocumentAsync(remote, password, _options.DefaultRequestDeadline, cancellationToken).ConfigureAwait(false);
-        }
-        catch (System.ComponentModel.Win32Exception e)
-        {
-            file.Dispose();
-            return EngineResult<SupervisedDocument>.Fail(Status.EngineCrashed, e.Message);
-        }
-
-        if (!opened.IsOk || opened.Value is null)
-        {
-            file.Dispose();
-            return EngineResult<SupervisedDocument>.Fail(opened.Status, opened.Detail);
-        }
-
-        var document = new SupervisedDocument(this, file, password, opened.Value.DocumentId, opened.Value.PageCount) { Engine = instance };
-        lock (_gate)
-        {
-            // If the engine was replaced in the meantime, this document missed the restore: the caller retries.
-            if (_state != State.Running || !ReferenceEquals(_instance, instance))
+            ulong remote;
+            EngineResult<OpenDocumentReply> opened;
+            try
             {
-                document.DisposeHandle();
-                return EngineResult<SupervisedDocument>.Fail(Status.EngineCrashed, "The engine was replaced while the document was opening.");
+                remote = instance.DuplicateIntoEngine(file);
+                opened = await instance.Client.OpenDocumentAsync(remote, password, _options.DefaultRequestDeadline, cancellationToken).ConfigureAwait(false);
+            }
+            catch (System.ComponentModel.Win32Exception e)
+            {
+                file.Dispose();
+                return EngineResult<SupervisedDocument>.Fail(Status.EngineCrashed, e.Message);
             }
 
-            _documents.Add(document);
-        }
+            if (!opened.IsOk || opened.Value is null)
+            {
+                file.Dispose();
+                return EngineResult<SupervisedDocument>.Fail(opened.Status, opened.Detail);
+            }
 
-        return new EngineResult<SupervisedDocument>(Status.Ok, document);
+            var document = new SupervisedDocument(this, file, password, opened.Value.DocumentId, opened.Value.PageCount) { Engine = instance };
+            lock (_gate)
+            {
+                // If the engine was replaced in the meantime, this document missed the restore: the caller retries.
+                if (_state != State.Running || !ReferenceEquals(_instance, instance))
+                {
+                    document.DisposeHandle();
+                    return EngineResult<SupervisedDocument>.Fail(Status.EngineCrashed, "The engine was replaced while the document was opening.");
+                }
+
+                _documents.Add(document);
+            }
+
+            return new EngineResult<SupervisedDocument>(Status.Ok, document);
+        }
+        finally
+        {
+            EndCall();
+        }
     }
 
     public async ValueTask DisposeAsync()
@@ -324,10 +376,11 @@ public sealed class EngineSupervisor : IAsyncDisposable
         try
         {
             await _recovery.ConfigureAwait(false);
+            await _resume.ConfigureAwait(false);
         }
         catch (Exception e) when (e is not OutOfMemoryException)
         {
-            // Recovery reports its failures through events; nothing more to say while shutting down.
+            // Recovery and resuming report their failures through events and statuses; nothing more to say while shutting down.
         }
 
         if (instance is not null)
@@ -354,9 +407,18 @@ public sealed class EngineSupervisor : IAsyncDisposable
 
     // ---- used by SupervisedDocument ------------------------------------------------------------
 
-    /// <summary>The current engine and, for a document, the id it has there. Waits out a restart. Null instance: the supervisor is failed or disposed.</summary>
-    internal async Task<(EngineInstance? Instance, uint EngineDocumentId)> AcquireAsync(SupervisedDocument? document, CancellationToken cancellationToken)
+    /// <summary>What <see cref="AcquireAsync"/> found: the engine (null when there is none) and why not.</summary>
+    internal readonly record struct Acquired(EngineInstance? Instance, uint EngineDocumentId, Status Failure);
+
+    /// <summary>
+    /// The current engine and, for a document, the id it has there. Waits out a restart and, for a suspended engine, <b>resumes it</b> (unless <paramref name="resume"/> is
+    /// false, for a call that has nothing to do with a suspended engine, such as closing a document: then the instance is null). With <paramref name="countCall"/> the call is
+    /// counted as in flight, which keeps the engine from being suspended, until <see cref="EndCall"/>. Null instance: the supervisor failed or was disposed, or a resume
+    /// found no slot (<see cref="Acquired.Failure"/> says which).
+    /// </summary>
+    internal async Task<Acquired> AcquireAsync(SupervisedDocument? document, CancellationToken cancellationToken, bool countCall = false, bool resume = true)
     {
+        var waitedForResume = false;
         while (true)
         {
             Task ready;
@@ -364,18 +426,259 @@ public sealed class EngineSupervisor : IAsyncDisposable
             {
                 if (_state == State.Running && _instance is not null)
                 {
-                    return (_instance, document?.EngineDocumentId ?? 0);
+                    if (countCall)
+                    {
+                        _activeCalls++;
+                    }
+
+                    Volatile.Write(ref _lastUsed, UseClock?.Invoke() ?? 0);
+                    return new Acquired(_instance, document?.EngineDocumentId ?? 0, Status.Ok);
                 }
 
                 if (_state is State.Failed or State.Disposed)
                 {
-                    return (null, 0);
+                    return new Acquired(null, 0, Status.EngineCrashed);
                 }
 
+                if (_state == State.Suspended)
+                {
+                    if (!resume)
+                    {
+                        return new Acquired(null, 0, Status.EngineCrashed);
+                    }
+
+                    if (waitedForResume && _resumeFailure != Status.Ok)
+                    {
+                        return new Acquired(null, 0, _resumeFailure); // the resume this call waited for did not happen: no slot came free
+                    }
+
+                    // (A resume that worked and was undone by the budget before this call could use it is simply done again.)
+
+                    _state = State.Resuming;
+                    _ready = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+                    _resumeFailure = Status.Ok;
+                    _resume = Task.Run(ResumeAsync);
+                }
+
+                waitedForResume |= _state == State.Resuming;
                 ready = _ready.Task;
             }
 
             await ready.WaitAsync(cancellationToken).ConfigureAwait(false);
+        }
+    }
+
+    /// <summary>A counted call ended. When it was the last, a document waiting for a slot may now find this engine idle.</summary>
+    internal void EndCall()
+    {
+        bool idle;
+        lock (_gate)
+        {
+            idle = --_activeCalls == 0 && _pins == 0;
+        }
+
+        if (idle)
+        {
+            Idled?.Invoke();
+        }
+    }
+
+    /// <summary>Keeps the engine from being suspended until the returned lease is disposed (a visible tab, a save or print job). A suspended engine is not resumed by this.</summary>
+    internal IDisposable Pin()
+    {
+        lock (_gate)
+        {
+            _pins++;
+        }
+
+        return new PinLease(this);
+    }
+
+    private sealed class PinLease(EngineSupervisor owner) : IDisposable
+    {
+        private EngineSupervisor? _owner = owner;
+
+        public void Dispose()
+        {
+            if (Interlocked.Exchange(ref _owner, null) is { } supervisor)
+            {
+                supervisor.Unpin();
+            }
+        }
+    }
+
+    private void Unpin()
+    {
+        bool idle;
+        lock (_gate)
+        {
+            idle = --_pins == 0 && _activeCalls == 0;
+        }
+
+        if (idle)
+        {
+            Idled?.Invoke();
+        }
+    }
+
+    /// <summary>Starts the engine again if it is suspended and waits until it runs. The failure status when it cannot (no slot, or the engine will not start).</summary>
+    internal async Task<Status> EnsureRunningAsync(CancellationToken cancellationToken)
+    {
+        var acquired = await AcquireAsync(null, cancellationToken).ConfigureAwait(false);
+        return acquired.Instance is null ? acquired.Failure : Status.Ok;
+    }
+
+    /// <summary>
+    /// Shuts the engine down to free its slot if it is idle: running, no call in flight, nobody pinning it. The documents stay open to their callers and the next call
+    /// starts a new engine (see <see cref="ResumeAsync"/>). False, and nothing changed, when the engine is busy, pinned, restarting, suspended or gone. When this returns
+    /// true the process has exited.
+    /// </summary>
+    internal async Task<bool> TrySuspendAsync(Action? afterExit = null)
+    {
+        EngineInstance instance;
+        var done = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        lock (_gate)
+        {
+            if (_state != State.Running || _instance is null || _activeCalls > 0 || _pins > 0)
+            {
+                return false;
+            }
+
+            instance = _instance;
+            _instance = null; // reports about the old process are ignored from here on, and nothing can pick it up
+            _state = State.Suspended;
+            _ready = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            _suspendDone = done.Task;
+            foreach (var document in _documents)
+            {
+                document.Engine = null; // its engine-side id died with the process; the next resume gives it a new one
+            }
+        }
+
+        NotifyLife(DocumentEngineState.Suspended);
+        try
+        {
+            await instance.ShutdownAsync(TimeSpan.FromSeconds(2)).ConfigureAwait(false);
+            await instance.DisposeAsync().ConfigureAwait(false);
+            afterExit?.Invoke(); // the process is gone: give its slot back (the budget's) before anything can ask for it again
+        }
+        finally
+        {
+            done.TrySetResult(); // a resume that was asked for meanwhile has been waiting for exactly this
+        }
+
+        return true;
+    }
+
+    /// <summary>Starts an engine for a suspended supervisor and reopens its documents from the broker's own handles, as after a crash but without the events or the banner.</summary>
+    private async Task ResumeAsync()
+    {
+        NotifyLife(DocumentEngineState.Resuming);
+        Task suspending;
+        lock (_gate)
+        {
+            suspending = _suspendDone;
+        }
+
+        await suspending.ConfigureAwait(false); // the old process must be gone, and its slot returned, before a new one is asked for
+        var failure = Status.EngineCrashed;
+        EngineInstance? instance = null;
+        var failed = false;
+        try
+        {
+            if (ResumeGate is { } gate && !await gate(this, _shutdown.Token).ConfigureAwait(false))
+            {
+                failure = Status.Timeout; // no slot became free: stay suspended, the caller can try again
+            }
+            else
+            {
+                for (var attempt = 1; attempt <= _options.MaxStartAttempts && instance is null && !_shutdown.IsCancellationRequested; attempt++)
+                {
+                    EngineInstance? candidate = null;
+                    try
+                    {
+                        candidate = await EngineInstance.StartAsync(_options, _launcher, _ring, _options.Client, _shutdown.Token, attempt).ConfigureAwait(false);
+                        await ReopenDocumentsAsync(candidate).ConfigureAwait(false);
+                        instance = candidate;
+                    }
+                    catch (Exception e) when (e is EngineStartException or System.ComponentModel.Win32Exception or OperationCanceledException or InvalidOperationException)
+                    {
+                        if (candidate is not null)
+                        {
+                            await candidate.DisposeAsync().ConfigureAwait(false);
+                        }
+
+                        await Task.Delay(TimeSpan.FromMilliseconds(100 * attempt), CancellationToken.None).ConfigureAwait(false);
+                    }
+                }
+
+                failed = instance is null;
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            failed = false; // disposed while waiting for a slot
+        }
+
+        var adopted = false;
+        lock (_gate)
+        {
+            if (_state == State.Disposed)
+            {
+                // Disposed meanwhile: whatever was started goes again below.
+            }
+            else if (instance is not null)
+            {
+                _instance = instance;
+                _state = State.Running;
+                adopted = true;
+                Volatile.Write(ref _lastUsed, UseClock?.Invoke() ?? 0); // the freshest engine there is: the calls that woke it must get to use it before it is anybody's victim
+            }
+            else
+            {
+                _state = failed ? State.Failed : State.Suspended;
+                _resumeFailure = failure;
+            }
+
+            _ready.TrySetResult();
+        }
+
+        if (instance is not null && !adopted)
+        {
+            await instance.DisposeAsync().ConfigureAwait(false);
+            return;
+        }
+
+        if (adopted)
+        {
+            Attach(instance!);
+            if (instance!.Client.IsFaulted || instance.Process.HasExited)
+            {
+                Fail(instance, EngineFailureReason.ProcessExited, "The resumed engine died while it was being attached.");
+            }
+
+            NotifyLife(DocumentEngineState.Running);
+        }
+        else if (failed)
+        {
+            NotifyLife(DocumentEngineState.Failed);
+            Raise(Failed, new EngineCrashedEventArgs(EngineFailureReason.ProcessExited, "The engine could not be started again after being suspended.", 0, RestartCount));
+        }
+        else
+        {
+            NotifyLife(DocumentEngineState.Suspended); // no slot came free (or it was disposed): back to waiting for the next call
+        }
+    }
+
+    private void NotifyLife(DocumentEngineState state)
+    {
+        try
+        {
+            LifeChanged?.Invoke(state);
+        }
+        catch (Exception e) when (e is not OutOfMemoryException)
+        {
+            // A subscriber's failure is the subscriber's problem.
         }
     }
 
@@ -394,7 +697,7 @@ public sealed class EngineSupervisor : IAsyncDisposable
     private void Attach(EngineInstance instance)
     {
         instance.Client.Faulted += fault => Fail(instance, fault.Kind == EngineFaultKind.ProtocolViolation ? EngineFailureReason.ProtocolViolation : EngineFailureReason.PipeClosed, fault.Detail);
-        instance.Client.RequestOverdue += type => Fail(instance, EngineFailureReason.Hung, $"A {type} request was not answered in time.");
+        instance.Client.RequestOverdue += type => Fail(instance, EngineFailureReason.Hung, $"A {type} request is overdue and the engine is not getting it done: it has made no progress, or has held the request for too long.");
         instance.Process.Job.EventRaised += job =>
         {
             switch (job.Kind)
@@ -689,6 +992,14 @@ public sealed class SupervisedDocument : IAsyncDisposable
     public Task<EngineResult<TileLease>> RenderTileAsync(RenderTileArgs args, ulong generation, TimeSpan? deadline = null, CancellationToken cancellationToken = default) =>
         CallAsync((client, id, defaultDeadline) => client.RenderTileAsync(id, args, generation, deadline ?? defaultDeadline, cancellationToken), cancellationToken);
 
+    /// <summary>The document's /ViewerPreferences: reading direction, print defaults and page ranges (schema 5).</summary>
+    public Task<EngineResult<GetViewerPreferencesReply>> GetViewerPreferencesAsync(CancellationToken cancellationToken = default) =>
+        CallAsync((client, id, deadline) => client.GetViewerPreferencesAsync(id, deadline, cancellationToken), cancellationToken);
+
+    /// <summary>One band of a page for printing (schema 5). See <see cref="EngineClient.RenderBandAsync"/>; the ring's slots must be large enough for the band.</summary>
+    public Task<EngineResult<TileLease>> RenderBandAsync(RenderBandArgs args, ulong generation, TimeSpan? deadline = null, CancellationToken cancellationToken = default) =>
+        CallAsync((client, id, defaultDeadline) => client.RenderBandAsync(id, args, generation, deadline ?? defaultDeadline, cancellationToken), cancellationToken);
+
     public Task<EngineResult<CancelBeforeReply>> CancelBeforeAsync(ulong generation, CancellationToken cancellationToken = default) =>
         CallAsync((client, id, _) => client.CancelBeforeAsync(id, generation, TimeSpan.FromSeconds(5), cancellationToken), cancellationToken);
 
@@ -700,10 +1011,21 @@ public sealed class SupervisedDocument : IAsyncDisposable
         }
 
         _owner.Forget(this);
-        var (instance, id) = await _owner.AcquireAsync(this, CancellationToken.None).ConfigureAwait(false);
-        if (instance is not null && ReferenceEquals(instance, Engine) && LostStatus is null)
+        // Closing a document in a suspended engine has no engine to tell: it is not worth starting one for (resume: false).
+        var acquired = await _owner.AcquireAsync(this, CancellationToken.None, countCall: true, resume: false).ConfigureAwait(false);
+        if (acquired.Instance is { } instance)
         {
-            await instance.Client.CloseDocumentAsync(id, TimeSpan.FromSeconds(5)).ConfigureAwait(false);
+            try
+            {
+                if (ReferenceEquals(instance, Engine) && LostStatus is null)
+                {
+                    await instance.Client.CloseDocumentAsync(acquired.EngineDocumentId, TimeSpan.FromSeconds(5)).ConfigureAwait(false);
+                }
+            }
+            finally
+            {
+                _owner.EndCall();
+            }
         }
 
         DisposeHandle();
@@ -719,17 +1041,25 @@ public sealed class SupervisedDocument : IAsyncDisposable
             return EngineResult<T>.Fail(Status.InvalidArgument, "The document is closed.");
         }
 
-        (EngineInstance? instance, uint id) = await _owner.AcquireAsync(this, cancellationToken).ConfigureAwait(false);
-        if (instance is null)
+        // A suspended engine is resumed here; the call is counted as in flight so the engine is not suspended again under it.
+        var acquired = await _owner.AcquireAsync(this, cancellationToken, countCall: true).ConfigureAwait(false);
+        if (acquired.Instance is not { } instance)
         {
-            return EngineResult<T>.Fail(Status.EngineCrashed, "No engine is available.");
+            return EngineResult<T>.Fail(acquired.Failure, acquired.Failure == Status.Timeout ? "No engine slot became free in time." : "No engine is available.");
         }
 
-        if (LostStatus is { } lost)
+        try
         {
-            return EngineResult<T>.Fail(lost, "The document could not be reopened after an engine restart.");
-        }
+            if (LostStatus is { } lost)
+            {
+                return EngineResult<T>.Fail(lost, "The document could not be reopened after an engine restart.");
+            }
 
-        return await call(instance.Client, id, _owner.DefaultDeadline).ConfigureAwait(false);
+            return await call(instance.Client, acquired.EngineDocumentId, _owner.DefaultDeadline).ConfigureAwait(false);
+        }
+        finally
+        {
+            _owner.EndCall();
+        }
     }
 }

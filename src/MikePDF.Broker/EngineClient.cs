@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using MikePDF.Protocol;
 
 namespace MikePDF.Broker;
@@ -20,8 +21,29 @@ public sealed record EngineFault(EngineFaultKind Kind, string Detail);
 
 public sealed record EngineClientOptions
 {
-    /// <summary>How long past a request's deadline the engine gets to answer before the request counts as overdue (a hung engine).</summary>
+    /// <summary>
+    /// How long past a request's deadline the engine gets to answer before the request counts as <b>overdue</b>: the caller gets <c>Timeout</c> then.
+    /// Overdue is not hung. PDFium looks at the deadline only about every 100 drawing operations, so a heavy page can overshoot it by seconds while the
+    /// engine is working as it should. An overdue request makes the broker look at the engine's progress (see <see cref="StallTimeout"/>).
+    /// </summary>
     public TimeSpan OverdueGrace { get; init; } = TimeSpan.FromSeconds(2);
+
+    /// <summary>
+    /// A request is overdue <i>and</i> the engine's progress counter (carried by every Pong) has not moved for this long: the engine thread is stuck,
+    /// and the engine is reported hung. The counter moves whenever the engine thread starts or finishes a request or PDFium polls it for an interrupt
+    /// (about every 100 drawing operations), so what this tolerates is the longest stretch of drawing between two polls, not the length of the call.
+    /// A single drawing operation that takes longer than this cannot be told from a hang.
+    /// </summary>
+    public TimeSpan StallTimeout { get; init; } = TimeSpan.FromSeconds(10);
+
+    /// <summary>
+    /// The upper bound per call: a request still unanswered this long after it became overdue is reported hung even though the engine keeps making
+    /// progress (an endless loop that happens to poll). Measured from the end of the grace period.
+    /// </summary>
+    public TimeSpan HardCallLimit { get; init; } = TimeSpan.FromSeconds(90);
+
+    /// <summary>How often overdue requests are looked at again. Pongs look too, so this only matters when none arrive (a client nobody pings).</summary>
+    public TimeSpan LivenessInterval { get; init; } = TimeSpan.FromMilliseconds(250);
 
     /// <summary>Requests in flight that wait for the engine thread. Kept below the engine's own queue limit, which ends the process.</summary>
     public int MaxInFlightEngineRequests { get; init; } = 128;
@@ -51,6 +73,12 @@ public sealed class EngineClient : IAsyncDisposable
     private EngineFault? _fault;
     private long _nextRequestId;
 
+    // Liveness (guarded by _gate). The engine's progress counter as the last Pong showed it, and when it last changed (or when a request reached an idle engine).
+    private ulong _progress;
+    private long _progressChangedAt = Stopwatch.GetTimestamp();
+    private Timer? _liveness;
+    private bool _overdueReported;
+
     /// <param name="pipe">The connected pipe to the peer.</param>
     /// <param name="ring">The slot ring tiles are rendered into; null for a peer that has none (the WriterHost).</param>
     /// <param name="options">Tuning.</param>
@@ -67,7 +95,11 @@ public sealed class EngineClient : IAsyncDisposable
     /// <summary>Raised once, from whichever thread noticed. Handlers must not block or throw.</summary>
     public event Action<EngineFault>? Faulted;
 
-    /// <summary>Raised when a request was not answered within its deadline plus the grace period. The request has already ended with <c>Timeout</c>.</summary>
+    /// <summary>
+    /// Raised once when the engine must be treated as hung: a request that never reaches the engine thread (Ping, Hello, ...) was not answered in time, or a
+    /// request that does is overdue and the engine has made no progress for <see cref="EngineClientOptions.StallTimeout"/> or has held it for
+    /// <see cref="EngineClientOptions.HardCallLimit"/>. The request has already ended with <c>Timeout</c>.
+    /// </summary>
     public event Action<MessageType>? RequestOverdue;
 
     public EngineFault? Fault
@@ -196,6 +228,72 @@ public sealed class EngineClient : IAsyncDisposable
     private Task<EngineResult<T>> ReadAsync<T>(IRequestMessage request, uint documentId, TimeSpan deadline, CancellationToken cancellationToken)
         where T : class =>
         CallAsync<T>(request, documentId, deadline, WithGrace(deadline), new Pending { EngineQueue = true, Request = request }, cancellationToken);
+
+    /// <summary>The document's /ViewerPreferences (schema 5): reading direction, print defaults, page ranges. Every value is bounded; the ranges are checked against the page count.</summary>
+    public Task<EngineResult<GetViewerPreferencesReply>> GetViewerPreferencesAsync(uint documentId, TimeSpan deadline, CancellationToken cancellationToken = default) =>
+        TryGetPageCount(documentId, out _)
+            ? ReadAsync<GetViewerPreferencesReply>(new GetViewerPreferences(), documentId, deadline, cancellationToken)
+            : Task.FromResult(EngineResult<GetViewerPreferencesReply>.Fail(Status.InvalidArgument, "unknown document"));
+
+    /// <summary>
+    /// Renders rows <c>BandTop</c> to <c>BandTop + BandHeight</c> of a page laid out at <c>PageWidthPx</c> x <c>PageHeightPx</c> device pixels into a slot (schema 5,
+    /// printing). The band is checked against the ring before it is sent (it has to fit a slot) and the reply against the request: width, height, stride and slot
+    /// must be what was asked for. Cancelling and <paramref name="generation"/> work as for <see cref="RenderTileAsync"/>. The tile lease it returns is the band.
+    /// </summary>
+    public async Task<EngineResult<TileLease>> RenderBandAsync(uint documentId, RenderBandArgs args, ulong generation, TimeSpan deadline, CancellationToken cancellationToken = default)
+    {
+        if (_ring is null)
+        {
+            return EngineResult<TileLease>.Fail(Status.InvalidArgument, "this peer has no slot ring");
+        }
+
+        if (!TryGetPageCount(documentId, out var pageCount) || args.Page >= pageCount)
+        {
+            return EngineResult<TileLease>.Fail(Status.InvalidArgument, "unknown document or page out of range");
+        }
+
+        if (args.Dpi is < 72 or > 1200 || args.PageWidthPx is < 1 or > 65536 || args.PageHeightPx is < 1 or > 65536 || args.BandHeight is < 1 or > 16384 || (ulong)args.BandTop + args.BandHeight > args.PageHeightPx
+            || args.Flags > 7 || args.Rotation > 3)
+        {
+            return EngineResult<TileLease>.Fail(Status.InvalidArgument, "the band is outside the page or the limits of the protocol");
+        }
+
+        if ((ulong)args.PageWidthPx * 4 * args.BandHeight > (ulong)_ring.SlotSize)
+        {
+            return EngineResult<TileLease>.Fail(Status.InvalidArgument, "the band does not fit a slot");
+        }
+
+        SlotLease lease;
+        try
+        {
+            lease = await _ring.RentAsync(cancellationToken).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException)
+        {
+            return EngineResult<TileLease>.Fail(Status.Cancelled);
+        }
+
+        var request = new RenderBand
+        {
+            Page = args.Page,
+            Dpi = args.Dpi,
+            Rotation = args.Rotation,
+            PageWidthPx = args.PageWidthPx,
+            PageHeightPx = args.PageHeightPx,
+            BandTop = args.BandTop,
+            BandHeight = args.BandHeight,
+            Flags = args.Flags,
+            SlotIndex = (uint)lease.Index,
+            Generation = generation,
+        };
+        var pending = new Pending { EngineQueue = true, Band = request, Slot = lease };
+        if (generation < ulong.MaxValue)
+        {
+            pending.OnCancel = () => _ = CancelBeforeAsync(documentId, generation + 1, TimeSpan.FromSeconds(2));
+        }
+
+        return await CallAsync<TileLease>(request, documentId, deadline, WithGrace(deadline), pending, cancellationToken).ConfigureAwait(false);
+    }
 
     public Task<EngineResult<CancelBeforeReply>> CancelBeforeAsync(uint documentId, ulong generation, TimeSpan timeout, CancellationToken cancellationToken = default) =>
         CallAsync<CancelBeforeReply>(new CancelBefore { Generation = generation }, documentId, timeout, timeout, new Pending(), cancellationToken);
@@ -338,6 +436,12 @@ public sealed class EngineClient : IAsyncDisposable
                 return new Outcome(Status.EngineCrashed, null, null, _fault.Detail);
             }
 
+            if (pending.EngineQueue && !_pending.Values.Any(p => p.EngineQueue))
+            {
+                // The engine thread was idle and is about to be given work: an idle counter standing still is not a stall, so the clock starts now.
+                _progressChangedAt = Stopwatch.GetTimestamp();
+            }
+
             _pending.Add(requestId, pending);
         }
 
@@ -404,15 +508,105 @@ public sealed class EngineClient : IAsyncDisposable
             }
 
             pending.Abandoned = true;
+            if (overdue)
+            {
+                pending.OverdueSince = Stopwatch.GetTimestamp();
+            }
         }
 
         pending.Completion.TrySetResult(new Outcome(status, null, null, detail));
         if (overdue)
         {
-            Notify(() => RequestOverdue?.Invoke(pending.Type));
+            if (pending.EngineQueue)
+            {
+                // Overdue is not hung: the engine may be working through a heavy page. Whether it is stuck is decided from its progress.
+                WatchLiveness();
+            }
+            else
+            {
+                // A request the I/O thread answers by itself (Ping, Hello, ...) has no excuse: that thread is not responding.
+                Notify(() => RequestOverdue?.Invoke(pending.Type));
+            }
         }
 
         return true;
+    }
+
+    // ---- liveness: busy or stuck (W2-engine item 2) -----------------------------------------------
+
+    /// <summary>Starts looking at the overdue requests: now, on every Pong, and on a timer for as long as one is overdue.</summary>
+    private void WatchLiveness()
+    {
+        lock (_gate)
+        {
+            if (_fault is null && _liveness is null)
+            {
+                _liveness = new Timer(_ => EvaluateLiveness(), null, _options.LivenessInterval, _options.LivenessInterval);
+            }
+        }
+
+        EvaluateLiveness();
+    }
+
+    /// <summary>
+    /// The engine is hung when a request is overdue and either its progress counter has stood still for the stall timeout (the engine thread is stuck, the
+    /// I/O thread still answering pings) or the request has been overdue for the hard limit (an engine that polls forever). A request that is merely slow, with
+    /// the counter moving, is not.
+    /// </summary>
+    private void EvaluateLiveness()
+    {
+        MessageType type = default;
+        var hung = false;
+        lock (_gate)
+        {
+            if (_fault is not null || _overdueReported)
+            {
+                return;
+            }
+
+            var now = Stopwatch.GetTimestamp();
+            var stalled = Stopwatch.GetElapsedTime(_progressChangedAt, now) >= _options.StallTimeout;
+            var anyOverdue = false;
+            foreach (var pending in _pending.Values)
+            {
+                if (pending.OverdueSince == 0)
+                {
+                    continue;
+                }
+
+                anyOverdue = true;
+                if (stalled || Stopwatch.GetElapsedTime(pending.OverdueSince, now) >= _options.HardCallLimit)
+                {
+                    hung = true;
+                    type = pending.Type;
+                    break;
+                }
+            }
+
+            if (!anyOverdue)
+            {
+                _liveness?.Dispose();
+                _liveness = null;
+                return;
+            }
+
+            _overdueReported = hung;
+        }
+
+        if (hung)
+        {
+            Notify(() => RequestOverdue?.Invoke(type));
+        }
+    }
+
+    /// <summary>A Pong's progress counter. A different value than last time (it counts up and wraps) is progress. Gate held.</summary>
+    private void ObserveProgress(ulong progress)
+    {
+        if (progress != _progress)
+        {
+            _progress = progress;
+            _progressChangedAt = Stopwatch.GetTimestamp();
+        }
     }
 
     private void ReleaseUnsent(Pending pending)
@@ -525,6 +719,11 @@ public sealed class EngineClient : IAsyncDisposable
         }
 
         pending.Slot?.Dispose();
+        if (response.Payload is Pong)
+        {
+            EvaluateLiveness(); // the counter in this Pong may be the evidence that an overdue request is, or is not, a hang
+        }
+
         return true;
     }
 
@@ -537,9 +736,10 @@ public sealed class EngineClient : IAsyncDisposable
         MessageType.OpenDocument => status is Status.Ok or Status.InvalidArgument or Status.Unsupported or Status.PasswordRequired
             or Status.PasswordIncorrect or Status.UnsupportedEncryption or Status.Damaged or Status.Timeout or Status.PermissionDenied,
         MessageType.GetDocumentInfo or MessageType.GetPageSizes or MessageType.GetOutline or MessageType.GetPageLinks or MessageType.GetPageBoxes
-            or MessageType.GetPageText or MessageType.SearchPage or MessageType.GetDocumentDetails => status is Status.Ok or Status.InvalidArgument or Status.Damaged or Status.Timeout,
+            or MessageType.GetPageText or MessageType.SearchPage or MessageType.GetDocumentDetails or MessageType.GetViewerPreferences
+            => status is Status.Ok or Status.InvalidArgument or Status.Damaged or Status.Timeout,
         MessageType.GetLinkUri => status is Status.Ok or Status.InvalidArgument or Status.Unsupported or Status.Damaged or Status.Timeout,
-        MessageType.RenderTile => status is Status.Ok or Status.PartiallyRendered or Status.Cancelled or Status.InvalidArgument
+        MessageType.RenderTile or MessageType.RenderBand => status is Status.Ok or Status.PartiallyRendered or Status.Cancelled or Status.InvalidArgument
             or Status.Unsupported or Status.Damaged or Status.Timeout,
         _ => false, // EngineCrashed and ProtocolError are never the peer's to send
     };
@@ -561,6 +761,10 @@ public sealed class EngineClient : IAsyncDisposable
                 return pending.Sizes is { } asked && sizes.Widths.Length == asked.Count ? null : "wrong number of page sizes";
             case RenderTileReply tile:
                 return ValidateTile(pending, tile);
+            case RenderBandReply band:
+                return ValidateBand(pending, band);
+            case GetViewerPreferencesReply preferences:
+                return _documents.TryGetValue(pending.DocumentId, out var documentPages) ? ReplyChecks.CheckPreferences(preferences, documentPages) : "preferences for an unknown document";
             case GetOutlineReply outline:
                 return ValidateOutline(pending, outline);
             case GetPageLinksReply links:
@@ -648,6 +852,36 @@ public sealed class EngineClient : IAsyncDisposable
         return tile.Generation != asked.Generation ? "tile generation differs from the request" : null;
     }
 
+    private string? ValidateBand(Pending pending, RenderBandReply band)
+    {
+        if (_ring is null || pending.Band is not { } asked || pending.Slot is not { } slot)
+        {
+            return "band reply without a band request";
+        }
+
+        if (band.SlotIndex != asked.SlotIndex || band.SlotIndex >= (uint)_ring.SlotCount || band.SlotIndex != (uint)slot.Index)
+        {
+            return "band reply names a slot that was not requested";
+        }
+
+        if (band.Width != asked.PageWidthPx || band.Height != asked.BandHeight)
+        {
+            return "band dimensions differ from the request";
+        }
+
+        if (band.Stride != band.Width * 4UL)
+        {
+            return "band stride is not four bytes a pixel";
+        }
+
+        if ((ulong)band.Stride * band.Height > (ulong)_ring.SlotSize)
+        {
+            return "band does not fit in its slot";
+        }
+
+        return band.Generation != asked.Generation ? "band generation differs from the request" : null;
+    }
+
     /// <summary>Applies the effects of a validated reply and builds what the caller receives. Gate held.</summary>
     private Outcome BuildOutcome(Pending pending, ResponseEnvelope response)
     {
@@ -663,6 +897,13 @@ public sealed class EngineClient : IAsyncDisposable
                 var lease = pending.Slot!;
                 pending.Slot = null; // now the tile's
                 return new Outcome(response.Status, null, new TileLease(lease, (int)tile.Width, (int)tile.Height, (int)tile.Stride, tile.Generation, response.Status == Status.PartiallyRendered), null);
+            case RenderBandReply band:
+                var bandLease = pending.Slot!;
+                pending.Slot = null; // now the band's
+                return new Outcome(response.Status, null, new TileLease(bandLease, (int)band.Width, (int)band.Height, (int)band.Stride, band.Generation, response.Status == Status.PartiallyRendered), null);
+            case Pong pong:
+                ObserveProgress(pong.Progress);
+                break;
             default:
                 break;
         }
@@ -686,6 +927,8 @@ public sealed class EngineClient : IAsyncDisposable
             fault = _fault = new EngineFault(kind, detail);
             doomed = [.. _pending.Values];
             _pending.Clear();
+            _liveness?.Dispose();
+            _liveness = null;
         }
 
         foreach (var pending in doomed)
@@ -728,10 +971,12 @@ public sealed class EngineClient : IAsyncDisposable
         public bool EngineQueue;
         public bool InFlightTaken;
         public bool Abandoned; // guarded by the client's gate
+        public long OverdueSince; // Stopwatch timestamp of the moment the request became overdue, 0 while it is not; guarded by the client's gate
         public ulong PingNonce;
         public GetPageSizes? Sizes;
         public IRequestMessage? Request; // the reading services: what was asked, for ValidateReply
         public RenderTile? Render;
+        public RenderBand? Band;
         public SlotLease? Slot;
         public Action? OnCancel;
         public Timer? Timer;

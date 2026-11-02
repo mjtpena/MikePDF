@@ -80,6 +80,24 @@ public sealed class EngineClientValidationTests
         return [Reply(r, Status.Ok, MessageType.RenderTile, reply)];
     };
 
+    private static RenderBandArgs Band() => new(0, 150, 0, 16, 64, 8, 8);
+
+    private static Func<RequestEnvelope, byte[][]> ForgedBand(Action<RenderBand, RenderBandReply> change) => r =>
+    {
+        var asked = (RenderBand)r.Payload;
+        var reply = new RenderBandReply { SlotIndex = asked.SlotIndex, Width = asked.PageWidthPx, Height = asked.BandHeight, Stride = asked.PageWidthPx * 4, Generation = asked.Generation };
+        change(asked, reply);
+        return [Reply(r, Status.Ok, MessageType.RenderBand, reply)];
+    };
+
+    private static Func<EngineClient, uint, Task<Status>> BandCall() =>
+        async (client, document) =>
+        {
+            var result = await client.RenderBandAsync(document, Band(), 3, Wait);
+            result.Value?.Dispose();
+            return result.Status;
+        };
+
     private static Func<EngineClient, uint, Task<Status>> RenderCall() =>
         async (client, document) =>
         {
@@ -177,6 +195,22 @@ public sealed class EngineClientValidationTests
             r => [Reply(r, Status.Ok, MessageType.GetDocumentDetails, Details(complete: true, pagesScanned: 1))]),
         new("details-answered-with-cancelled", MessageType.GetDocumentDetails, 1, async (c, d) => (await c.GetDocumentDetailsAsync(d, Wait)).Status,
             r => [Reply(r, Status.Cancelled, MessageType.GetDocumentDetails)]),
+        // ---- print bands and viewer preferences (schema 5) ----
+        new("band-wider-than-asked", MessageType.RenderBand, 1, BandCall(), ForgedBand((_, reply) => reply.Width += 1)),
+        new("band-taller-than-asked", MessageType.RenderBand, 1, BandCall(), ForgedBand((_, reply) => reply.Height += 1)),
+        new("band-in-another-slot", MessageType.RenderBand, 1, BandCall(), ForgedBand((asked, reply) => reply.SlotIndex = (asked.SlotIndex + 1) % 4)),
+        new("band-in-a-slot-outside-the-ring", MessageType.RenderBand, 1, BandCall(), ForgedBand((_, reply) => reply.SlotIndex = 1000)),
+        new("band-stride-below-one-row", MessageType.RenderBand, 1, BandCall(), ForgedBand((_, reply) => reply.Stride = 60)),
+        new("band-stride-above-one-row", MessageType.RenderBand, 1, BandCall(), ForgedBand((_, reply) => reply.Stride = 128)),
+        new("band-of-another-generation", MessageType.RenderBand, 1, BandCall(), ForgedBand((_, reply) => reply.Generation += 1)),
+        new("band-answered-with-a-status-a-band-never-has", MessageType.RenderBand, 1, BandCall(),
+            r => [Reply(r, Status.PasswordRequired, MessageType.RenderBand)]),
+        new("preferences-range-beyond-the-document", MessageType.GetViewerPreferences, 1, async (c, d) => (await c.GetViewerPreferencesAsync(d, Wait)).Status,
+            r => [Reply(r, Status.Ok, MessageType.GetViewerPreferences, new GetViewerPreferencesReply { Direction = 2, RangeFirsts = [0], RangeLasts = [FakeEngine.FakePageCount] })]),
+        new("preferences-range-reversed", MessageType.GetViewerPreferences, 1, async (c, d) => (await c.GetViewerPreferencesAsync(d, Wait)).Status,
+            r => [Reply(r, Status.Ok, MessageType.GetViewerPreferences, new GetViewerPreferencesReply { Direction = 2, RangeFirsts = [2], RangeLasts = [1] })]),
+        new("preferences-answered-with-cancelled", MessageType.GetViewerPreferences, 1, async (c, d) => (await c.GetViewerPreferencesAsync(d, Wait)).Status,
+            r => [Reply(r, Status.Cancelled, MessageType.GetViewerPreferences)]),
         new("garbage-bytes", MessageType.Ping, 1, async (c, _) => (await c.PingAsync(1, Wait)).Status,
             _ => [[5, 0, 0, 0, 0xC1, 0xC1, 0xC1, 0xC1, 0xC1]]),
         new("length-prefix-above-the-frame-limit", MessageType.Ping, 1, async (c, _) => (await c.PingAsync(1, Wait)).Status,
@@ -266,6 +300,52 @@ public sealed class EngineClientValidationTests
 
         Assert.Equal(Status.Ok, (await client.CloseDocumentAsync(document, Wait)).Status);
         Assert.Equal(Status.InvalidArgument, (await client.GetDocumentInfoAsync(document, Wait)).Status); // refused locally now
+        Assert.False(client.IsFaulted);
+    }
+
+    [Fact]
+    public async Task ABandAndThePreferencesOfAValidSessionArriveIntact()
+    {
+        await using var fake = await FakeEngine.StartAsync();
+        await using var client = new EngineClient(fake.ClientStream, fake.Ring);
+        var document = (await client.OpenDocumentAsync(1, null, Wait)).Value!.DocumentId;
+
+        var band = await client.RenderBandAsync(document, new RenderBandArgs(1, 300, 1, 16, 64, 24, 8, RenderBandArgs.Annotations | RenderBandArgs.Printing), 5, Wait);
+        Assert.Equal(Status.Ok, band.Status);
+        using (var lease = band.Value!)
+        {
+            Assert.Equal((16, 8, 64, 5UL), (lease.Width, lease.Height, lease.Stride, lease.Generation));
+            Assert.Equal(255, lease.Pixels[3]);
+        }
+
+        var request = Assert.IsType<RenderBand>(fake.Received.Last(r => r.Payload is RenderBand).Payload);
+        Assert.Equal((1u, 300u, (ushort)1, 16u, 64u, 24u, 8u, 5u), (request.Page, request.Dpi, request.Rotation, request.PageWidthPx, request.PageHeightPx, request.BandTop, request.BandHeight, request.Flags));
+
+        var preferences = await client.GetViewerPreferencesAsync(document, Wait);
+        Assert.Equal(Status.Ok, preferences.Status);
+        Assert.Equal((1, 1, 2, 3), (preferences.Value!.Direction, preferences.Value.PrintScaling, preferences.Value.NumCopies, preferences.Value.Duplex));
+        AssertEverySlotIsFree(fake.Ring);
+        Assert.False(client.IsFaulted);
+    }
+
+    [Fact]
+    public async Task ABandThatCannotBeRightIsRefusedBeforeItIsSent()
+    {
+        await using var fake = await FakeEngine.StartAsync(); // 4 slots of 64 KiB
+        await using var client = new EngineClient(fake.ClientStream, fake.Ring);
+        var document = (await client.OpenDocumentAsync(1, null, Wait)).Value!.DocumentId;
+        var sent = fake.Received.Count;
+
+        Assert.Equal(Status.InvalidArgument, (await client.RenderBandAsync(document, new RenderBandArgs(3, 150, 0, 16, 64, 0, 8), 1, Wait)).Status);        // page 3 of 3
+        Assert.Equal(Status.InvalidArgument, (await client.RenderBandAsync(document + 1, new RenderBandArgs(0, 150, 0, 16, 64, 0, 8), 1, Wait)).Status);    // unknown document
+        Assert.Equal(Status.InvalidArgument, (await client.RenderBandAsync(document, new RenderBandArgs(0, 150, 0, 16, 64, 60, 8), 1, Wait)).Status);       // rows 60 to 68 of 64
+        Assert.Equal(Status.InvalidArgument, (await client.RenderBandAsync(document, new RenderBandArgs(0, 150, 0, 16, 64, 0, 0), 1, Wait)).Status);        // no rows
+        Assert.Equal(Status.InvalidArgument, (await client.RenderBandAsync(document, new RenderBandArgs(0, 71, 0, 16, 64, 0, 8), 1, Wait)).Status);         // dpi outside the schema
+        Assert.Equal(Status.InvalidArgument, (await client.RenderBandAsync(document, new RenderBandArgs(0, 150, 0, 16, 64, 0, 8, 8), 1, Wait)).Status);     // the reserved flag
+        Assert.Equal(Status.InvalidArgument, (await client.RenderBandAsync(document, new RenderBandArgs(0, 150, 4, 16, 64, 0, 8), 1, Wait)).Status);        // rotation 4
+        Assert.Equal(Status.InvalidArgument, (await client.RenderBandAsync(document, new RenderBandArgs(0, 150, 0, 4096, 4096, 0, 8), 1, Wait)).Status);    // 128 KiB into 64 KiB slots
+        Assert.Equal(sent, fake.Received.Count);
+        AssertEverySlotIsFree(fake.Ring);
         Assert.False(client.IsFaulted);
     }
 
@@ -360,7 +440,8 @@ public sealed class EngineClientValidationTests
 
             return null;
         });
-        await using var client = new EngineClient(fake.ClientStream, fake.Ring, new EngineClientOptions { OverdueGrace = TimeSpan.FromMilliseconds(150) });
+        // Nobody pings this client, so no progress is ever reported: from the moment the request was sent the engine has made none, and a short stall timeout says so.
+        await using var client = new EngineClient(fake.ClientStream, fake.Ring, new EngineClientOptions { OverdueGrace = TimeSpan.FromMilliseconds(150), StallTimeout = TimeSpan.FromMilliseconds(400) });
         var overdue = new TaskCompletionSource<MessageType>(TaskCreationOptions.RunContinuationsAsynchronously);
         client.RequestOverdue += type => overdue.TrySetResult(type);
         var document = (await client.OpenDocumentAsync(1, null, Wait)).Value!.DocumentId;

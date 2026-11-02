@@ -81,7 +81,7 @@ public sealed class WriterHostClient : IAsyncDisposable
 
         using (file)
         {
-            var (instance, _) = await _supervisor.AcquireAsync(null, cancellationToken).ConfigureAwait(false);
+            var instance = (await _supervisor.AcquireAsync(null, cancellationToken).ConfigureAwait(false)).Instance;
             if (instance is null)
             {
                 return EngineResult<ValidateStructureReply>.Fail(Status.EngineCrashed, "No writer host is available.");

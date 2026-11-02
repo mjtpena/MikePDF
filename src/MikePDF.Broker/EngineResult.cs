@@ -33,6 +33,26 @@ public readonly record struct RenderTileArgs(
 }
 
 /// <summary>
+/// One band of a page for printing (schema 5): rows <see cref="BandTop"/> to <see cref="BandTop"/> + <see cref="BandHeight"/> of the page laid out at
+/// <see cref="PageWidthPx"/> x <see cref="PageHeightPx"/> device pixels after the rotation. <see cref="Dpi"/> is the resolution the layout was made for
+/// (72 to 1200); the engine draws the page to fit the pixels, so it is informational there and what the broker's permission rules key on.
+/// </summary>
+public readonly record struct RenderBandArgs(
+    uint Page,
+    uint Dpi,
+    ushort Rotation,
+    uint PageWidthPx,
+    uint PageHeightPx,
+    uint BandTop,
+    uint BandHeight,
+    uint Flags = RenderBandArgs.Annotations | RenderBandArgs.Printing)
+{
+    public const uint Annotations = 1;
+    public const uint FormFields = 2;
+    public const uint Printing = 4;
+}
+
+/// <summary>
 /// A rendered tile: BGRA over opaque white, <see cref="Stride"/> bytes per row, in a slot of the ring. Dispose it to give the slot
 /// back. The engine is untrusted: the dimensions here were checked against the request, but the pixels are whatever it wrote.
 /// </summary>
