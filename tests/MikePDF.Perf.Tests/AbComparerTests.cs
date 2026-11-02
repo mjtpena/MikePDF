@@ -74,10 +74,20 @@ public sealed class AbComparerTests
     [Fact]
     public void AnythingUnderTheMetricsFloorIsNoise()
     {
-        // 1.0 ms to 1.2 ms in every round is 20%, but 0.2 ms, under the 0.25 ms floor.
-        var item = One(Rounds(Tile, 1.0, Enumerable.Repeat(1.0, 8), Enumerable.Repeat(1.2, 8)));
+        // 0.20 ms to 0.23 ms in every round is 15% worse but 0.03 ms, under the 0.04 ms floor the A/B gate uses for a tile.
+        var item = One(Rounds(Tile, 0.20, Enumerable.Repeat(1.0, 8), Enumerable.Repeat(1.15, 8)));
         Assert.Equal(Verdict.Ok, item.Verdict);
         Assert.Contains("floor", item.Note, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void TheABGateUsesItsOwnFloorNotTheOneForStoredBaselines()
+    {
+        // 1.0 ms to 1.2 ms is 0.2 ms: over the A/B floor (0.04 ms), under the 0.25 ms floor a stored baseline from another runner needs.
+        Assert.Equal(0.04, Tile.FloorForAb);
+        Assert.Equal(0.25, Tile.Floor);
+        Assert.Equal(Verdict.Regressed, One(Rounds(Tile, 1.0, Enumerable.Repeat(1.0, 8), Enumerable.Repeat(1.2, 8))).Verdict);
+        Assert.Equal(5, new MetricDefinition("x", "ms", "lower", "x", null, 5).FloorForAb); // no A/B floor given: the other one
     }
 
     [Fact]

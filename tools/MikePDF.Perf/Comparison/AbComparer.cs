@@ -128,7 +128,7 @@ public static class AbComparer
         var ratioLower = lowerIsBetter ? 1 + interval.Lower : 1 - interval.Upper;
         var ratioUpper = lowerIsBetter ? 1 + interval.Upper : 1 - interval.Lower;
 
-        var floor = definition?.Floor ?? 0;
+        var floor = definition?.FloorForAb ?? 0;
         var worseBy = lowerIsBetter ? headMedian - baseMedian : baseMedian - headMedian;
         var verdict = Verdict.Ok;
         var note = string.Empty;
