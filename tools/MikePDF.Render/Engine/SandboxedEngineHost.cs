@@ -26,6 +26,8 @@ internal sealed class SandboxedEngineHost : IAsyncDisposable
     private EngineSupervisor? _supervisor;
     private volatile string? _context;
     private int _generation;
+    private int _crashes;
+    private int _recoveries;
 
     private SandboxedEngineHost(string deployDirectory, AppContainerProfile profile, TimeSpan openDeadline, TimeSpan overdueGrace, Stopwatch clock)
     {
@@ -64,6 +66,33 @@ internal sealed class SandboxedEngineHost : IAsyncDisposable
 
     /// <summary>Names what the run is doing, so events the engine raises on its own thread can be attributed.</summary>
     public void SetContext(string? context) => _context = context;
+
+    /// <summary>How many times an engine process has gone down since this host started.</summary>
+    public int CrashesSeen => Volatile.Read(ref _crashes);
+
+    /// <summary>
+    /// The supervisor reports a crash or a hang kill on its own thread, a little after the request that suffered it has already returned (a request that went
+    /// unanswered is answered as a timeout first and the process is killed after). Called at the end of a file, this waits until the crash that went with it has been
+    /// reported and the engine replaced, so that the event is filed under the file that caused it and not under the next one. Returns when
+    /// <paramref name="limit"/> has passed even if no crash came (a timeout does not always mean one did).
+    /// </summary>
+    /// <param name="crashesBefore"><see cref="CrashesSeen"/> from before the file started.</param>
+    /// <param name="limit">The longest to wait.</param>
+    /// <param name="cancellationToken">Ends the wait early.</param>
+    public async Task SettleAsync(int crashesBefore, TimeSpan limit, CancellationToken cancellationToken)
+    {
+        var clock = Stopwatch.StartNew();
+        while (clock.Elapsed < limit)
+        {
+            var crashes = CrashesSeen;
+            if (crashes > crashesBefore && Volatile.Read(ref _recoveries) >= crashes)
+            {
+                return;
+            }
+
+            await Task.Delay(25, cancellationToken).ConfigureAwait(false);
+        }
+    }
 
     /// <summary>Takes the events that arrived since the last call.</summary>
     public List<EngineEvent> DrainEvents()
@@ -143,8 +172,22 @@ internal sealed class SandboxedEngineHost : IAsyncDisposable
         TryDo(() => Directory.Delete(_deployDirectory, recursive: true));
     }
 
-    private void Record(EngineEvent engineEvent) =>
+    private void Record(EngineEvent engineEvent)
+    {
+        switch (engineEvent.Kind)
+        {
+            case "crashed":
+                Interlocked.Increment(ref _crashes);
+                break;
+            case "restored" or "failed":
+                Interlocked.Increment(ref _recoveries);
+                break;
+            default:
+                break;
+        }
+
         _events.Enqueue(engineEvent with { AtMs = _clock.ElapsedMilliseconds, During = _context });
+    }
 
     /// <summary>An earlier run that was killed leaves its deployment (and an ACE for the profile) behind; take away the ones that are hours old, never a run that may still be starting.</summary>
     private static void SweepStaleDeployments(string parent, AppContainerProfile profile)
