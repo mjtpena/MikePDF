@@ -356,7 +356,15 @@ public sealed class EngineSupervisor : IAsyncDisposable
         }
     }
 
-    public async ValueTask DisposeAsync()
+    public ValueTask DisposeAsync() => DisposeCoreAsync(graceful: true);
+
+    /// <summary>
+    /// Ends the engine now: the process is killed without being asked to leave, and nothing is restarted. For a caller that has decided the engine's work is no longer
+    /// wanted (ShellHost, when its client gave up or a deadline passed): <see cref="DisposeAsync"/> would give a stuck engine two seconds to answer Shutdown first.
+    /// </summary>
+    public ValueTask KillAsync() => DisposeCoreAsync(graceful: false);
+
+    private async ValueTask DisposeCoreAsync(bool graceful)
     {
         EngineInstance? instance;
         lock (_gate)
@@ -385,7 +393,11 @@ public sealed class EngineSupervisor : IAsyncDisposable
 
         if (instance is not null)
         {
-            await instance.ShutdownAsync(TimeSpan.FromSeconds(2)).ConfigureAwait(false);
+            if (graceful)
+            {
+                await instance.ShutdownAsync(TimeSpan.FromSeconds(2)).ConfigureAwait(false);
+            }
+
             await instance.DisposeAsync().ConfigureAwait(false);
         }
 

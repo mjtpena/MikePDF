@@ -50,7 +50,7 @@ internal sealed class RawEngine : IAsyncDisposable
     /// Starts the engine. <paramref name="brokerStallAfterResume"/> is how long the broker does nothing between letting the engine run and
     /// listening on its pipe: what a broker thread that is preempted on a busy machine looks like.
     /// </summary>
-    public static async Task<RawEngine> StartAsync(SandboxFixture sandbox, int slotCount = 8, int slotSize = 4 << 20, TimeSpan brokerStallAfterResume = default)
+    public static async Task<RawEngine> StartAsync(SandboxFixture sandbox, int slotCount = 8, int slotSize = 4 << 20, TimeSpan brokerStallAfterResume = default, string kind = "document")
     {
         // A process that is lost between CreateProcess and its first instruction is not what these tests are about, and the product retries it too
         // (EngineSupervisor); a test that talks to the engine frame by frame does the same, and says so, instead of failing for it. One CI run on
@@ -63,7 +63,7 @@ internal sealed class RawEngine : IAsyncDisposable
             SandboxedProcess? process = null;
             try
             {
-                process = launcher.Launch(new SandboxLaunchRequest(sandbox.EnginePath, $"--pipe {server.Name} --parent {Environment.ProcessId} --kind document") { StartSuspended = true });
+                process = launcher.Launch(new SandboxLaunchRequest(sandbox.EnginePath, $"--pipe {server.Name} --parent {Environment.ProcessId} --kind {kind}") { StartSuspended = true });
                 var ringHandle = ring.DuplicateInto(process); // nothing is inherited: the ring is duplicated in, and announced by AttachSlotRing
                 process.Resume();
                 if (brokerStallAfterResume > TimeSpan.Zero)

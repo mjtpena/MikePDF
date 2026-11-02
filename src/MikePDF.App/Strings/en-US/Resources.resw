@@ -542,6 +542,19 @@
   <data name="Setting_markup_authorName_Description" xml:space="preserve"><value>The name written into comments you add.</value></data>
   <data name="Setting_engines_maxLiveTabs_Name" xml:space="preserve"><value>Documents kept ready</value></data>
   <data name="Setting_engines_maxLiveTabs_Description" xml:space="preserve"><value>How many open documents keep their viewer running.</value></data>
+  <data name="Setting_shell_thumbnails_Name" xml:space="preserve"><value>Show page thumbnails in File Explorer</value></data>
+  <data name="Setting_shell_thumbnails_Description" xml:space="preserve"><value>Windows keeps its own cache of thumbnails. Turning this off doesn't delete thumbnails Windows already saved. While it is off, File Explorer shows the generic PDF icon.</value></data>
+  <data name="Setting_shell_preview_Name" xml:space="preserve"><value>Show previews in the File Explorer preview pane</value></data>
+  <data name="Setting_shell_preview_Description" xml:space="preserve"><value>While it is off, the preview pane says that the preview is turned off. Windows does not preview files downloaded from the internet until they are unblocked in their Properties.</value></data>
+  <data name="Setting_shell_maxEngines_Name" xml:space="preserve"><value>Viewers for File Explorer</value></data>
+  <data name="Setting_shell_maxEngines_Description" xml:space="preserve"><value>The most viewer processes that File Explorer's thumbnails and previews may start at once.</value></data>
+  <data name="Shell_Preview_Name" xml:space="preserve"><value>PDF preview</value></data>
+  <data name="Shell_Preview_Value" xml:space="preserve"><value>Page {0} of {1}</value></data>
+  <data name="Shell_Preview_Loading" xml:space="preserve"><value>Loading...</value></data>
+  <data name="Shell_Preview_Unavailable" xml:space="preserve"><value>Preview isn't available for this file</value></data>
+  <data name="Shell_Preview_Password" xml:space="preserve"><value>This file is protected by a password. Open it in MikePDF to read it.</value></data>
+  <data name="Shell_Preview_Off" xml:space="preserve"><value>Preview is turned off</value></data>
+  <data name="Shell_Preview_OffPolicy" xml:space="preserve"><value>Preview is turned off by your organisation</value></data>
   <!-- Policies: names, effects and sources -->
   <data name="Policy_Source_Machine" xml:space="preserve"><value>Registry policy, machine</value></data>
   <data name="Policy_Source_User" xml:space="preserve"><value>Registry policy, user</value></data>
@@ -594,6 +607,8 @@
   <data name="Policy_EngineMemoryLimitMB_Effect" xml:space="preserve"><value>Each viewer process may use up to {0} MB</value></data>
   <data name="Policy_MaxLiveTabs_Name" xml:space="preserve"><value>Documents kept ready</value></data>
   <data name="Policy_MaxLiveTabs_Effect" xml:space="preserve"><value>Up to {0} open documents keep their viewer running</value></data>
+  <data name="Policy_ShellMaxEngines_Name" xml:space="preserve"><value>Viewers for File Explorer</value></data>
+  <data name="Policy_ShellMaxEngines_Effect" xml:space="preserve"><value>File Explorer thumbnails and previews may start up to {0} viewer processes at once</value></data>
   <data name="Policy_PrintingEnabled_Name" xml:space="preserve"><value>Printing</value></data>
   <data name="Policy_PrintingEnabled_Value_0" xml:space="preserve"><value>Printing is turned off</value></data>
   <data name="Policy_PrintingEnabled_Value_1" xml:space="preserve"><value>Printing is allowed</value></data>

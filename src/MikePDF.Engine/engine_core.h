@@ -26,10 +26,33 @@ using Clock = std::chrono::steady_clock;
 enum class EngineKind : std::uint8_t {
     Document,  // one open document at a time
     Pool,      // thumbnails and search: several documents
+    Shell,     // ShellHost's engine for one Explorer thumbnail or preview (ADR-0018): one document, and only the messages in is_served_by_shell_kind()
 };
 
 inline constexpr std::size_t kMaxDocumentsDocumentKind = 1;
 inline constexpr std::size_t kMaxDocumentsPoolKind = 32;
+inline constexpr std::size_t kMaxDocumentsShellKind = 1;
+
+/// The allow-list of the Shell kind (docs/features/shell-extensions.md section 11): the session and handshake messages, opening and closing the one document,
+/// its size and page sizes, one tile at a time, and cancelling. Outlines, links, boxes, text, search, details, bands and everything else are not served: a
+/// shell host never asks for them, so an engine that answers them would be attack surface for nothing.
+[[nodiscard]] constexpr bool is_served_by_shell_kind(protocol::MessageType type) noexcept {
+    switch (type) {
+        case protocol::MessageType::Hello:
+        case protocol::MessageType::AttachSlotRing:
+        case protocol::MessageType::Ping:
+        case protocol::MessageType::Shutdown:
+        case protocol::MessageType::OpenDocument:
+        case protocol::MessageType::CloseDocument:
+        case protocol::MessageType::GetDocumentInfo:
+        case protocol::MessageType::GetPageSizes:
+        case protocol::MessageType::RenderTile:
+        case protocol::MessageType::CancelBefore:
+            return true;
+        default:
+            return false;
+    }
+}
 
 struct Reply {
     protocol::Status status{protocol::Status::Ok};

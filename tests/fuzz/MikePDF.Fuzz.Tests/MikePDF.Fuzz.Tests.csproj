@@ -9,6 +9,7 @@
   <ItemGroup>
     <ProjectReference Include="..\MikePDF.Protocol.Fuzz\MikePDF.Protocol.Fuzz.csproj" />
     <ProjectReference Include="..\MikePDF.PdfWriter.Fuzz\MikePDF.PdfWriter.Fuzz.csproj" />
+    <ProjectReference Include="..\MikePDF.ShellHost.Fuzz\MikePDF.ShellHost.Fuzz.csproj" />
     <Compile Include="..\Shared\MutationalFuzzer.cs" Link="Shared\MutationalFuzzer.cs" />
   </ItemGroup>
   <ItemGroup>
@@ -19,6 +20,8 @@
     <Content Include="..\..\MikePDF.PdfWriter.Tests\Fixtures\pdfium\*.pdf" LinkBase="seeds\pdf" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="..\..\MikePDF.Integration.Tests\Fixtures\*.pdf" LinkBase="seeds\pdf-integration" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="..\dictionaries\*.dict" LinkBase="dictionaries" CopyToOutputDirectory="PreserveNewest" />
+    <!-- The shell targets' seeds (SHELL-18), made by seeds/make_shell_seeds.py. -->
+    <Content Include="..\seeds\shell-request\*.bin" LinkBase="seeds\shell-request" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
   <ItemGroup>
     <!-- Where the harness apphosts are built (the same configuration and framework as this project). -->

@@ -1,0 +1,4 @@
+LIBRARY mikepdf_shell_competitor
+EXPORTS
+    DllGetClassObject PRIVATE
+    DllCanUnloadNow PRIVATE

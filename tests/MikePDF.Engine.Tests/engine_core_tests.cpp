@@ -196,6 +196,97 @@ TEST_F(EngineCoreTest, APoolEngineHoldsSeveralDocuments) {
     EXPECT_EQ(pool.open_document_count(), 0u);
 }
 
+// ---- the Shell kind (ADR-0018): one document, an allow-list, everything else Unsupported ----------------
+
+class ShellKindTest : public ::testing::Test {
+protected:
+    ShellKindTest() : slots_memory_(kSlotSize * kSlotCount, 0xCD), core_(EngineKind::Shell, SlotMemory{slots_memory_.data(), kSlotCount, kSlotSize}) {}
+
+    ~ShellKindTest() override { core_.close_all(); }
+
+    Status status_of(MessageType type, std::uint32_t document_id, protocol::RequestPayload payload) {
+        auto request = make(type, document_id, std::move(payload));
+        return core_.execute(request, kNoDeadline).status;
+    }
+
+    std::uint32_t open(const std::string& fixture) {
+        protocol::OpenDocument payload;
+        payload.handle = open_handle(support::fixture_path(fixture));
+        auto request = make(MessageType::OpenDocument, 0, payload);
+        const auto reply = core_.execute(request, kNoDeadline);
+        EXPECT_EQ(reply.status, Status::Ok) << fixture;
+        return reply.payload ? std::get<protocol::OpenDocumentReply>(*reply.payload).document_id : 0;
+    }
+
+    pdfium::Library library_;
+    std::vector<std::uint8_t> slots_memory_;
+    EngineCore core_;
+};
+
+TEST_F(ShellKindTest, HoldsOneDocumentAndClosesTheSurplusHandle) {
+    EXPECT_EQ(open("hello_world.pdf"), 1u);
+    const support::TempCopy copy("hello_world_2_pages.pdf");
+    protocol::OpenDocument second;
+    second.handle = open_handle(copy.path);
+    ASSERT_FALSE(support::no_handles_left(copy.path));
+    EXPECT_EQ(status_of(MessageType::OpenDocument, 0, second), Status::Unsupported);
+    EXPECT_TRUE(support::no_handles_left(copy.path)) << "the engine must close a handle it refuses";
+    EXPECT_EQ(core_.open_document_count(), 1u);
+}
+
+TEST_F(ShellKindTest, ServesOpenInfoPageSizesOneTileAndClose) {
+    const std::uint32_t id = open("rectangles.pdf");
+    ASSERT_EQ(id, 1u);
+    EXPECT_EQ(status_of(MessageType::GetDocumentInfo, id, protocol::GetDocumentInfo{}), Status::Ok);
+    protocol::GetPageSizes sizes;
+    sizes.first = 0;
+    sizes.count = 1;
+    EXPECT_EQ(status_of(MessageType::GetPageSizes, id, sizes), Status::Ok);
+    protocol::RenderTile render;
+    render.scale = 0.1f;
+    render.tile_width = 16;
+    render.tile_height = 16;
+    render.generation = 1;
+    EXPECT_EQ(status_of(MessageType::RenderTile, id, render), Status::Ok);
+    EXPECT_EQ(core_.cancel_before(id, 5).status, Status::Ok);
+    EXPECT_EQ(status_of(MessageType::CloseDocument, id, protocol::CloseDocument{}), Status::Ok);
+    EXPECT_EQ(core_.open_document_count(), 0u);
+}
+
+TEST_F(ShellKindTest, AnswersUnsupportedToEverythingOffTheAllowList) {
+    const std::uint32_t id = open("hello_world.pdf");
+    ASSERT_EQ(id, 1u);
+    EXPECT_EQ(status_of(MessageType::GetOutline, id, protocol::GetOutline{}), Status::Unsupported);
+    EXPECT_EQ(status_of(MessageType::GetPageLinks, id, protocol::GetPageLinks{}), Status::Unsupported);
+    EXPECT_EQ(status_of(MessageType::GetLinkUri, id, protocol::GetLinkUri{}), Status::Unsupported);
+    EXPECT_EQ(status_of(MessageType::GetPageBoxes, id, protocol::GetPageBoxes{}), Status::Unsupported);
+    EXPECT_EQ(status_of(MessageType::GetPageText, id, protocol::GetPageText{}), Status::Unsupported);
+    EXPECT_EQ(status_of(MessageType::SearchPage, id, protocol::SearchPage{}), Status::Unsupported);
+    EXPECT_EQ(status_of(MessageType::GetDocumentDetails, id, protocol::GetDocumentDetails{}), Status::Unsupported);
+    EXPECT_EQ(status_of(MessageType::GetViewerPreferences, id, protocol::GetViewerPreferences{}), Status::Unsupported);
+    EXPECT_EQ(status_of(MessageType::RenderBand, id, protocol::RenderBand{}), Status::Unsupported);
+    EXPECT_EQ(core_.open_document_count(), 1u) << "refusing a message must not disturb the document";
+}
+
+TEST(ShellKindAllowList, IsExactlyTheTenMessagesOfTheSpec) {
+    using engine::is_served_by_shell_kind;
+    const std::vector<MessageType> allowed = {MessageType::Hello,        MessageType::AttachSlotRing, MessageType::Ping,         MessageType::Shutdown,
+                                              MessageType::OpenDocument, MessageType::CloseDocument,  MessageType::GetDocumentInfo, MessageType::GetPageSizes,
+                                              MessageType::RenderTile,   MessageType::CancelBefore};
+    for (const MessageType type : allowed) {
+        EXPECT_TRUE(is_served_by_shell_kind(type)) << static_cast<int>(type);
+    }
+    int served = 0;
+    for (int value = 0; value < 4096; ++value) {
+        served += is_served_by_shell_kind(static_cast<MessageType>(value)) ? 1 : 0;
+    }
+    EXPECT_EQ(served, static_cast<int>(allowed.size())) << "a message type outside the list is served";
+    // The handler-pipe messages belong to ShellHost, never to an engine.
+    EXPECT_FALSE(is_served_by_shell_kind(MessageType::ShellOpen));
+    EXPECT_FALSE(is_served_by_shell_kind(MessageType::ShellRenderPage));
+    EXPECT_FALSE(is_served_by_shell_kind(MessageType::ShellClose));
+}
+
 TEST_F(EngineCoreTest, PasswordsAndDamageAreTypedAndTheHandleIsAlwaysConsumed) {
     const support::TempCopy copy("encrypted.pdf");
     protocol::OpenDocument locked;
@@ -337,6 +428,13 @@ TEST(CommandLineTest, ParsesTheFullCommandLine) {
     EXPECT_EQ(parsed.pipe_name, L"0123456789abcdef0123456789abcdef");
     EXPECT_EQ(parsed.parent_pid, 1234u);
     EXPECT_EQ(parsed.kind, EngineKind::Pool);
+}
+
+TEST(CommandLineTest, ParsesTheShellKind) {
+    const std::vector<std::wstring_view> args = {L"--pipe", L"0123456789abcdef0123456789abcdef", L"--parent", L"1234", L"--kind", L"shell"};
+    engine::EngineArguments parsed;
+    EXPECT_EQ(engine::parse_command_line(args, parsed), "");
+    EXPECT_EQ(parsed.kind, EngineKind::Shell);
 }
 
 TEST(CommandLineTest, RefusesAnythingElse) {

@@ -50,10 +50,10 @@ std::string parse_command_line(std::span<const std::wstring_view> args, EngineAr
             out.parent_pid = static_cast<std::uint32_t>(*pid);
             have_parent = true;
         } else if (name == L"--kind") {
-            if (have_kind || (value != L"document" && value != L"pool")) {
+            if (have_kind || (value != L"document" && value != L"pool" && value != L"shell")) {
                 return "bad --kind";
             }
-            out.kind = value == L"pool" ? EngineKind::Pool : EngineKind::Document;
+            out.kind = value == L"pool" ? EngineKind::Pool : value == L"shell" ? EngineKind::Shell : EngineKind::Document;
             have_kind = true;
         } else {
             return "unknown option";

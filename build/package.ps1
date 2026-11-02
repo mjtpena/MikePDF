@@ -5,7 +5,8 @@
   Single architecture (default):
     1. builds the sandboxed engine with CMake (./build.ps1 -SkipManaged), unless -SkipNativeBuild
     2. publishes MikePDF.App: self-contained .NET, ReadyToRun, framework-dependent Windows App SDK (not Native AOT yet: see MikePDF.App.csproj)
-    3. lays out the package: app, Engine\ (MikePDF.Engine.exe + pdfium.dll; the engine runs in place from the package), Licenses\, Assets
+    3. lays out the package: app, Engine\ (MikePDF.Engine.exe + pdfium.dll; the engine runs in place from the package), ShellExt\ (the Explorer thumbnail provider and preview
+       handler DLL, from the native build), ShellHost\ (MikePDF.ShellHost.exe, Native AOT, published here: ADR-0018), Licenses\, Assets
     4. writes AppxManifest.xml from the build's manifest with the identity from build/store/identity.json (parameters override), the version,
        the architecture and MaxVersionTested 10.0.26300.0
     5. packs with makeappx into MikePDF_<version>_<arch>.msix, and the PDBs into MikePDF_<version>_<arch>.appxsym
@@ -158,7 +159,7 @@ if (-not $SkipNativeBuild) {
     & (Join-Path $root 'build.ps1') @nativeArgs
     if ($LASTEXITCODE -ne 0) { throw 'native build failed' }
 }
-foreach ($f in 'MikePDF.Engine.exe', 'pdfium.dll') { if (-not (Test-Path (Join-Path $cmakeBin $f))) { throw "$f not found in $cmakeBin" } }
+foreach ($f in 'MikePDF.Engine.exe', 'pdfium.dll', 'MikePDF.ShellExt.dll') { if (-not (Test-Path (Join-Path $cmakeBin $f))) { throw "$f not found in $cmakeBin" } }
 
 $publish = Join-Path $OutDir "publish-$Arch$suffix"
 if (-not $SkipPublish) {
@@ -175,6 +176,19 @@ if (-not $SkipPublish) {
 }
 if (-not (Test-Path (Join-Path $publish 'MikePDF.exe'))) { throw "No MikePDF.exe in $publish" }
 
+# MikePDF.ShellHost is its own Native AOT executable (ADR-0018 decision 1), published beside the app, not inside it. The AOT compiler finds the MSVC linker through vswhere,
+# which is on PATH on the CI images but not in every shell.
+$shellHostPublish = Join-Path $OutDir "publish-shellhost-$Arch$suffix"
+if (-not $SkipPublish) {
+    Step "Publish MikePDF.ShellHost ($Arch, Native AOT)"
+    $installer = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio\Installer'
+    if ((Test-Path $installer) -and ($env:PATH -notlike "*$installer*")) { $env:PATH = "$env:PATH;$installer" }
+    if (Test-Path $shellHostPublish) { Remove-Item -Recurse -Force $shellHostPublish }
+    dotnet publish (Join-Path $root 'src/MikePDF.ShellHost/MikePDF.ShellHost.csproj') -c Release -r "win-$Arch" "-p:MikePDFArch=$Arch" "-p:Version=$Version" -o $shellHostPublish -nologo -v q
+    if ($LASTEXITCODE -ne 0) { throw 'dotnet publish of MikePDF.ShellHost failed' }
+}
+if (-not (Test-Path (Join-Path $shellHostPublish 'MikePDF.ShellHost.exe'))) { throw "No MikePDF.ShellHost.exe in $shellHostPublish" }
+
 Step 'Lay out the package'
 if (Test-Path $stage) { Remove-Item -Recurse -Force $stage }
 New-Item -ItemType Directory $stage | Out-Null
@@ -185,6 +199,14 @@ Get-ChildItem $stage -Recurse -File | Where-Object { ($_.Extension -in '.pdb', '
 $engineDir = Join-Path $stage 'Engine'
 New-Item -ItemType Directory $engineDir | Out-Null
 foreach ($f in 'MikePDF.Engine.exe', 'pdfium.dll') { Copy-Item (Join-Path $cmakeBin $f) $engineDir }
+
+# The Explorer handlers (docs/features/shell-extensions.md): the DLL the manifest's com:SurrogateServer classes name, and the Native AOT broker it starts. Only the executable of
+# ShellHost goes in: the AOT publish folder also holds symbols and documentation XML.
+$shellExtDir = Join-Path $stage 'ShellExt'
+$shellHostDir = Join-Path $stage 'ShellHost'
+New-Item -ItemType Directory $shellExtDir, $shellHostDir | Out-Null
+Copy-Item (Join-Path $cmakeBin 'MikePDF.ShellExt.dll') $shellExtDir
+Copy-Item (Join-Path $shellHostPublish 'MikePDF.ShellHost.exe') $shellHostDir
 
 if ($TestBuild) {
     $probeDir = Join-Path $stage 'Probe'
@@ -236,9 +258,13 @@ $hasSelfTest = [System.Text.Encoding]::ASCII.GetString($bytes).Contains('SelfTes
 if ($hasSelfTest -and -not $TestBuild) { $offenders += Get-Item $appDll }
 if (@($offenders).Count -gt 0) { throw "A release package must not contain the sandbox probe, the self-test or the WriterHost. Found: $($offenders.FullName -join ', ')" }
 if (-not $hasSelfTest -and $TestBuild) { throw '-TestBuild was asked for but the self-test is not in MikePDF.dll.' }
-foreach ($required in 'MikePDF.exe', 'AppxManifest.xml', 'resources.pri', 'Engine/MikePDF.Engine.exe', 'Engine/pdfium.dll', 'Licenses/LICENSE.txt', 'Licenses/NOTICE.txt', 'Licenses/THIRD-PARTY-NOTICES.md', 'Licenses/PDFium/pdfium.txt') {
+foreach ($required in 'MikePDF.exe', 'AppxManifest.xml', 'resources.pri', 'Engine/MikePDF.Engine.exe', 'Engine/pdfium.dll', 'ShellExt/MikePDF.ShellExt.dll', 'ShellHost/MikePDF.ShellHost.exe', 'Licenses/LICENSE.txt', 'Licenses/NOTICE.txt', 'Licenses/THIRD-PARTY-NOTICES.md', 'Licenses/PDFium/pdfium.txt') {
     if (-not (Test-Path (Join-Path $stage $required))) { throw "Package content is incomplete: $required" }
 }
+# The handlers are registered by the manifest and laid out where it says; ShellHost is the AOT executable alone (a managed apphost beside a DLL would need a .NET runtime nobody installs for it).
+if ($text -notmatch 'desktop2:ThumbnailHandler' -or $text -notmatch 'desktop2:DesktopPreviewHandler' -or $text -notmatch 'com:SurrogateServer') { throw 'The manifest lost the thumbnail and preview handler registrations.' }
+if (@(Get-ChildItem $shellHostDir -File).Count -ne 1) { throw "ShellHost\ must hold MikePDF.ShellHost.exe alone: $((Get-ChildItem $shellHostDir -File).Name -join ', ')" }
+if (@(Get-ChildItem $shellExtDir -File).Count -ne 1) { throw "ShellExt\ must hold MikePDF.ShellExt.dll alone: $((Get-ChildItem $shellExtDir -File).Name -join ', ')" }
 # MikePDF.App must not carry PDFium itself or its own copy of the engine: only Engine\ has them.
 $strays = Get-ChildItem $stage -Recurse -Filter pdfium.dll | Where-Object { $_.DirectoryName -ne $engineDir }
 if ($strays) { throw "pdfium.dll outside Engine\: $($strays.FullName -join ', ')" }
@@ -250,7 +276,7 @@ if (Test-Path $msixPath) { Remove-Item $msixPath }
 if ($LASTEXITCODE -ne 0) { throw 'makeappx pack failed' }
 
 # Symbols: the app's PDBs and the engine's, for crash analysis of Store builds. Not shipped to users.
-$symbolFiles = @(Get-ChildItem $publish -Recurse -Filter *.pdb) + @(Get-ChildItem $cmakeBin -Filter MikePDF.Engine.pdb)
+$symbolFiles = @(Get-ChildItem $publish -Recurse -Filter *.pdb) + @(Get-ChildItem $cmakeBin -Filter MikePDF.Engine.pdb) + @(Get-ChildItem $cmakeBin -Filter MikePDF.ShellExt.pdb) + @(Get-ChildItem $shellHostPublish -Filter MikePDF.ShellHost.pdb)
 if (Test-Path $symbolsPath) { Remove-Item $symbolsPath }
 $symbolZip = "$symbolsPath.zip"
 if ($symbolFiles.Count -gt 0) {

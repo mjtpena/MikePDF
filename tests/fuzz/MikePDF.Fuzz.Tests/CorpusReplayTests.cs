@@ -28,6 +28,30 @@ public class CorpusReplayTests
     }
 
     [Fact]
+    public void The_shell_request_seeds_and_corpus_pass_ShellHosts_decoder_and_rules()
+    {
+        var seeds = FuzzAssets.Files(FuzzAssets.Directory("seeds", "shell-request"), "*.bin");
+        Assert.True(seeds.Count >= 25, "the shell request seeds are missing");
+        foreach (var file in seeds)
+        {
+            byte[] frame = File.ReadAllBytes(file);
+            MikePDF.ShellHost.Fuzz.Program.Outcome(frame);
+            if (frame.Length > 4) MikePDF.ShellHost.Fuzz.Program.Outcome(frame[4..]);
+            // Every truncation and a byte flip at every position: nothing may throw, whatever the bytes.
+            for (int cut = 0; cut < frame.Length; cut++) MikePDF.ShellHost.Fuzz.Program.Outcome(frame[..cut]);
+            for (int at = 0; at < frame.Length; at++)
+            {
+                byte[] mutated = (byte[])frame.Clone();
+                mutated[at] ^= 0xFF;
+                MikePDF.ShellHost.Fuzz.Program.Outcome(mutated);
+            }
+        }
+
+        foreach (var file in Corpus("shell-request-cs"))
+            MikePDF.ShellHost.Fuzz.Program.Outcome(File.ReadAllBytes(file));
+    }
+
+    [Fact]
     public void The_pdf_seeds_and_corpora_pass_the_current_parser_and_writer()
     {
         foreach (var file in FuzzAssets.Pdfs)

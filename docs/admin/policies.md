@@ -30,13 +30,18 @@ MikePDF reads `HKEY_LOCAL_MACHINE\Software\Policies\MikePDF` first and `HKEY_CUR
 | `EngineMemoryLimitMB` | DWORD | 256 to 8192 | 2048 | 2048 | stricter only (lower is stricter) | The memory limit for each viewer process. Read when a viewer starts. |
 | `MaxLiveTabs` | DWORD | 1 to 32 | 6 | 6 | stricter only (lower is stricter) | Takes effect when tabs ship. Locks the setting `engines.maxLiveTabs`. |
 | `PrintingEnabled` | DWORD | 0, 1 | 1 | 1 | stricter only | 0 turns printing off everywhere, when printing ships. |
-| `ShellThumbnailsEnabled` | DWORD | 0, 1 | 1 | 0 (fail closed) | stricter only | Read by the Explorer thumbnail handler, when it ships. |
-| `ShellPreviewEnabled` | DWORD | 0, 1 | 1 | 0 (fail closed) | stricter only | Read by the Explorer preview handler, when it ships. |
+| `ShellThumbnailsEnabled` | DWORD | 0, 1 | 1 | 0 (fail closed) | stricter only | 0 turns off the Explorer thumbnails and locks the setting `shell.thumbnails`. The thumbnail handler reads this value itself before it does anything, so on a machine where it is 0 the handler never starts MikePDF's shell helper. While it is off, Explorer shows the generic PDF icon (see "What turning the shell handlers off shows" below). 1 changes nothing: the person's own setting stands. |
+| `ShellPreviewEnabled` | DWORD | 0, 1 | 1 | 0 (fail closed) | stricter only | 0 turns off the Explorer preview pane and locks the setting `shell.preview`; the pane says "Preview is turned off by your organisation". Read by the preview handler itself, like `ShellThumbnailsEnabled`. |
+| `ShellMaxEngines` | DWORD | 1 to 6 | 3 | 3 | stricter only (lower is stricter) | The most viewer processes the Explorer thumbnail and preview helper may run at once, the spare one it starts ahead included. Locks the setting `shell.maxEngines`. |
 | `DefaultAppPromptEnabled` | DWORD | 0, 1 | 1 | 0 (fail closed) | machine only | 0 hides the "make MikePDF the default" prompt, when it ships. |
 | `SettingsImportExportEnabled` | DWORD | 0, 1 | 1 | 0 (fail closed) | stricter only | 0 turns off importing and exporting settings and shortcuts, in Settings and in the command palette. |
 | `AnnotationAuthorName` | SZ | 1 to 128 characters | not configured | not configured | machine only | Takes effect when comments ship. Fixes the author written into new comments and locks the setting `markup.authorName`. |
 | `AllowWeakerSandbox` | DWORD | 0 | 0 | 0 | machine only | Not implemented, on purpose: there is no weaker sandbox. Read only so that About can say it is ignored. |
 | `UpdateChannel` | DWORD | 0 | not applicable | not applicable | machine only | No effect. Updates come through the Microsoft Store. |
+
+## What turning the shell handlers off shows
+
+MikePDF's thumbnail and preview handlers are registered by the package, so they apply to every PDF in File Explorer for as long as the package is installed, whichever app is the default for `.pdf` (measured in spike S6b, docs/spikes/S6b-shell-transport.md). The policies and the settings do not unregister them: they make the handlers decline. Explorer does not fall through to another handler when ours declines: it shows the generic PDF icon (measured by the Shell integration workflow on x64 and ARM64 runners with a classic `.pdf` thumbnail handler registered; docs/features/shell-extensions.md section 3.5, OQ-SHELL-14). Settings says so. Thumbnails Windows already cached stay until Windows discards them.
 
 ## Example: scenario 9 (JavaScript off, AI local only, telemetry off)
 

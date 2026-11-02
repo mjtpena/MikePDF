@@ -65,9 +65,10 @@ public sealed class PrivacyTests
             Assert.DoesNotContain($"Name=\"{capability}\"", manifest, StringComparison.Ordinal);
         }
 
-        // No thumbnail or preview handlers in this build (ADR-0015 decision 6).
-        Assert.DoesNotContain("ThumbnailHandler", manifest, StringComparison.Ordinal);
-        Assert.DoesNotContain("PreviewHandler", manifest, StringComparison.Ordinal);
+        // The Explorer thumbnail and preview handlers came back with ADR-0018 (ADR-0015 decision 6 had left them out). They need no capability: the DLL parses nothing and hands
+        // the file to ShellHost and the sandbox. Their registration is checked in ShellManifestTests.
+        Assert.Contains("desktop2:ThumbnailHandler", manifest, StringComparison.Ordinal);
+        Assert.Contains("desktop2:DesktopPreviewHandler", manifest, StringComparison.Ordinal);
     }
 
     [Fact]

@@ -1,7 +1,8 @@
 <#
 .SYNOPSIS
   CI ONLY. Signs a package with an ephemeral self-signed certificate, trusts it on the throwaway runner, installs it with its Windows App SDK
-  framework, and either runs the self-test of a -TestBuild package or the Windows App Certification Kit.
+  framework, and either runs the self-test of a -TestBuild package, the Windows App Certification Kit, or (-Mode Shell) the shell integration probe against the
+  real package: the Explorer thumbnail provider and preview handler through the real shell (docs/features/shell-extensions.md section 14, ADR-0018).
 .DESCRIPTION
   Refuses to run anywhere but a GitHub-hosted runner: it adds a certificate to the machine trust store, which must never happen on a developer
   machine. The certificate's subject is the package's Publisher, its private key stays on the runner, and the signed copy is never uploaded: the
@@ -11,8 +12,13 @@ param(
     [Parameter(Mandatory)] [string] $Msix,
     [Parameter(Mandatory)] [ValidateSet('x64', 'arm64')] [string] $Arch,
     [Parameter(Mandatory)] [string] $OutDir,
-    [Parameter(Mandatory)] [ValidateSet('SelfTest', 'Wack')] [string] $Mode,
-    [string] $Pdf
+    [Parameter(Mandatory)] [ValidateSet('SelfTest', 'Wack', 'Shell')] [string] $Mode,
+    [string] $Pdf,
+    # -Mode Shell: the folder with mikepdf_shell_probe.exe and mikepdf_shell_competitor.dll (the native build output), and the test fixtures.
+    [string] $ProbeDir,
+    [string] $Fixtures,
+    # -Mode Shell: seconds the probe waits for ShellHost's idle exit (75 by default); 0 skips the check.
+    [int] $IdleCheckSeconds = 75
 )
 $ErrorActionPreference = 'Stop'
 if ($env:GITHUB_ACTIONS -ne 'true' -or $env:RUNNER_ENVIRONMENT -ne 'github-hosted') {
@@ -78,6 +84,54 @@ Add-AppxPackage -Path $signed -DependencyPath $framework -ForceApplicationShutdo
 $installed = Get-AppxPackage -Name $packageName
 Write-Host ("installed: {0} at {1}, signature {2}" -f $installed.PackageFullName, $installed.InstallLocation, $installed.SignatureKind)
 if ($installed.InstallLocation -notlike '*\WindowsApps\*') { throw 'The package is not installed under WindowsApps.' }
+
+if ($Mode -eq 'Shell') {
+    $root = (Resolve-Path (Join-Path $PSScriptRoot '../..')).Path
+    $location = $installed.InstallLocation
+    $dll = Join-Path $location 'ShellExt\MikePDF.ShellExt.dll'
+    $shellHost = Join-Path $location 'ShellHost\MikePDF.ShellHost.exe'
+    foreach ($f in $dll, $shellHost, (Join-Path $location 'Engine\MikePDF.Engine.exe')) { if (-not (Test-Path $f)) { throw "Missing from the installed package: $f" } }
+
+    # SHELL-25: the DLL is a native image of this architecture (an emulated one would not load into the native ARM64 Explorer).
+    $bytes = [System.IO.File]::ReadAllBytes($dll)
+    $machine = [BitConverter]::ToUInt16($bytes, [BitConverter]::ToInt32($bytes, 0x3C) + 4)
+    $expected = if ($Arch -eq 'arm64') { 0xAA64 } else { 0x8664 }
+    Write-Host ('SHELL-25: MikePDF.ShellExt.dll machine type 0x{0:X4}, expected 0x{1:X4}' -f $machine, $expected)
+    if ($machine -ne $expected) { throw 'The handler DLL is not a native image of this architecture.' }
+
+    # SHELL-01 evidence: the system registered both classes from the manifest.
+    foreach ($clsid in '{31D801F3-AE53-4B73-B786-601B36D28C99}', '{8A471493-BD13-4956-A0B9-199A67BD325E}') {
+        $key = "Registry::HKEY_CLASSES_ROOT\PackagedCom\Package\$($installed.PackageFullName)\Class\$clsid"
+        Write-Host "PackagedCom $clsid : $(Test-Path $key)"
+        if (-not (Test-Path $key)) { throw "The package did not register $clsid" }
+    }
+
+    $probe = Join-Path $ProbeDir 'mikepdf_shell_probe.exe'
+    if (-not (Test-Path $probe)) { throw "The probe is not in $ProbeDir" }
+    $settings = Join-Path $env:LOCALAPPDATA "Packages\$($installed.PackageFamilyName)\LocalState\private"
+    $probeArgs = @('--run', $OutDir, $Fixtures, $settings)
+    if ($IdleCheckSeconds -eq 0) { $probeArgs += '--skip-idle' }
+    & $probe @probeArgs
+    $probeExit = $LASTEXITCODE
+    Write-Host "probe exit code: $probeExit"
+
+    # The fall-through measurement, for the job summary (OQ-SHELL-14).
+    $runLog = Join-Path $OutDir 'probe-run.log'
+    if ((Test-Path $runLog) -and $env:GITHUB_STEP_SUMMARY) {
+        $lines = Get-Content $runLog | Where-Object { $_ -match '^(CHECK|RESULT|probe done)' }
+        Add-Content $env:GITHUB_STEP_SUMMARY ("### Shell integration probe ($Arch)`n" + '```' + "`n" + ($lines -join "`n") + "`n" + '```')
+    }
+
+    # SHELL-26: the package is removed, and nothing of the handlers is left registered.
+    Remove-AppxPackage -Package $installed.PackageFullName
+    & $probe --after-uninstall $OutDir
+    $afterExit = $LASTEXITCODE
+    Write-Host "after-uninstall exit code: $afterExit"
+    $dataDir = Join-Path $env:LOCALAPPDATA "Packages\$($installed.PackageFamilyName)"
+    Write-Host "app data after uninstall: exists=$(Test-Path $dataDir)"
+    if ($probeExit -ne 0 -or $afterExit -ne 0 -or (Test-Path $dataDir)) { exit 1 }
+    exit 0
+}
 
 $result = Join-Path $OutDir "selftest-$Arch.json"
 $alias = Join-Path $env:LOCALAPPDATA 'Microsoft\WindowsApps\mikepdf.exe'

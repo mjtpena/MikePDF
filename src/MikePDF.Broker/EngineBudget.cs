@@ -117,7 +117,14 @@ public sealed class EngineBudget : IAsyncDisposable
     /// Starts a document engine, suspending the least recently used one first if the cap is reached. Throws <see cref="EngineStartException"/> if no engine can be
     /// started and <see cref="TimeoutException"/> if every slot stayed busy or pinned for <see cref="EngineBudgetOptions.SlotWaitTimeout"/>.
     /// </summary>
-    public async Task<DocumentEngine> CreateDocumentEngineAsync(CancellationToken cancellationToken = default)
+    public Task<DocumentEngine> CreateDocumentEngineAsync(CancellationToken cancellationToken = default) => CreateDocumentEngineAsync(null, cancellationToken);
+
+    /// <summary>
+    /// <see cref="CreateDocumentEngineAsync(CancellationToken)"/> with the document engine's options changed by <paramref name="configure"/> first (a print job asks for a ring of
+    /// larger slots, ADR-0011). The engine takes a slot of the budget like any other document engine: it can suspend the least recently used idle one, and it waits, up to
+    /// <see cref="EngineBudgetOptions.SlotWaitTimeout"/>, when every engine is busy or pinned, so it never evicts the document being read.
+    /// </summary>
+    public async Task<DocumentEngine> CreateDocumentEngineAsync(Func<EngineSupervisorOptions, EngineSupervisorOptions>? configure, CancellationToken cancellationToken = default)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
         var engine = new DocumentEngine(this);
@@ -128,7 +135,8 @@ public sealed class EngineBudget : IAsyncDisposable
 
         try
         {
-            var supervisor = await EngineSupervisor.StartAsync(_options.Document, cancellationToken).ConfigureAwait(false);
+            var options = configure is null ? _options.Document : configure(_options.Document) with { Kind = EngineKind.Document };
+            var supervisor = await EngineSupervisor.StartAsync(options, cancellationToken).ConfigureAwait(false);
             engine.Attach(supervisor);
             supervisor.UseClock = NextTick;
             supervisor.Idled = Pulse;

@@ -23,7 +23,7 @@
 3. **Identity lives in `build/store/identity.json`,** with placeholders until Partner Center issues the real values. Package and bundle scripts read it, so no code changes when the values arrive.
 4. **Versioning:** `MAJOR.MINOR.BUILD.0`. The first Store package is `1.0.0.0`, because the first part can't be 0. The Store listing, not the version number, says it's a preview.
 5. **CI builds the upload.** `.github/workflows/store-release.yml` builds both architectures and produces the `.msixupload`. Automated publishing is present, but stays off until the user sets the repository variable and secrets after the first manual submission.
-6. **No shell thumbnail or preview handlers in the Store preview.** Without a brokered engine they'd parse untrusted files at medium integrity, which ADR-0004 forbids. They return with §8.11.
+6. **No shell thumbnail or preview handlers in the Store preview.** Without a brokered engine they'd parse untrusted files at medium integrity, which ADR-0004 forbids. They return with §8.11. *Update 2026-11-03: they have returned, as [ADR-0018](0018-shell-handler-transport.md) decided (the DLL parses nothing; ShellHost and the sandboxed engine do). The package now registers them (OQ-SHELL-9: a Store resubmission re-runs certification).*
 
 ## Consequences
 - R-18 is resolved for the Store route. A certificate is needed only if direct downloads are added later.

@@ -6,15 +6,22 @@
   - runFullTrust: the UI process is a full-trust desktop app. It starts the sandboxed engine and reads the files the user opens.
   - the .pdf file type association (Open with ...). The user chooses the default app in Windows Settings; MikePDF never changes it.
   - an execution alias (mikepdf.exe) so a document can be opened from a command line.
-  No thumbnail or preview handlers in this build (they would parse untrusted files at medium integrity; ADR-0015 decision 6).
+  - the Explorer thumbnail provider and preview handler (docs/features/shell-extensions.md, ADR-0018; ADR-0015 decision 6 excluded them from the Store preview and this returns them).
+    desktop2:ThumbnailHandler and desktop2:DesktopPreviewHandler under the .pdf association name classes that com:SurrogateServer entries declare, at Application level: the
+    thumbnail class in its own surrogate (dllhost.exe, AppId below), the preview class in the system's PreviewHost. makeappx requires both Clsid values to resolve to a
+    SurrogateServer class (S6b), and tests/MikePDF.Core.Tests/ShellManifestTests.cs checks that they do and that they are the GUIDs the DLL serves (src/MikePDF.ShellExt/shellext_ids.h).
+    The DLL parses nothing: it hands the file to MikePDF.ShellHost (ShellHost\) over a per-user pipe, which starts the sandboxed engine (Engine\).
+    Registration is manifest-only: uninstalling the package removes it, and the DLL has no DllRegisterServer.
 -->
 <Package
   xmlns="http://schemas.microsoft.com/appx/manifest/foundation/windows10"
   xmlns:uap="http://schemas.microsoft.com/appx/manifest/uap/windows10"
   xmlns:uap3="http://schemas.microsoft.com/appx/manifest/uap/windows10/3"
   xmlns:desktop="http://schemas.microsoft.com/appx/manifest/desktop/windows10"
+  xmlns:desktop2="http://schemas.microsoft.com/appx/manifest/desktop/windows10/2"
+  xmlns:com="http://schemas.microsoft.com/appx/manifest/com/windows10"
   xmlns:rescap="http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities"
-  IgnorableNamespaces="uap uap3 desktop rescap">
+  IgnorableNamespaces="uap uap3 desktop desktop2 com rescap">
 
   <Identity Name="MikePDF.Dev" Publisher="CN=MikePDF Dev" Version="1.0.0.0" />
 
@@ -52,8 +59,20 @@
             <uap:Logo>Assets\Square44x44Logo.png</uap:Logo>
             <uap:InfoTip>Open with MikePDF</uap:InfoTip>
             <uap:EditFlags OpenIsSafe="false" />
+            <desktop2:ThumbnailHandler Clsid="31D801F3-AE53-4B73-B786-601B36D28C99" />
+            <desktop2:DesktopPreviewHandler Clsid="8A471493-BD13-4956-A0B9-199A67BD325E" />
           </uap:FileTypeAssociation>
         </uap:Extension>
+        <com:Extension Category="windows.comServer">
+          <com:ComServer>
+            <com:SurrogateServer DisplayName="MikePDF thumbnail provider" AppId="CB4B79C6-C267-4B65-91F3-5791EDE89C58">
+              <com:Class Id="31D801F3-AE53-4B73-B786-601B36D28C99" Path="ShellExt\MikePDF.ShellExt.dll" ThreadingModel="Both" />
+            </com:SurrogateServer>
+            <com:SurrogateServer DisplayName="MikePDF preview handler" AppId="185A129A-78D5-4E20-899F-7742D0281535" SystemSurrogate="PreviewHost">
+              <com:Class Id="8A471493-BD13-4956-A0B9-199A67BD325E" Path="ShellExt\MikePDF.ShellExt.dll" ThreadingModel="STA" />
+            </com:SurrogateServer>
+          </com:ComServer>
+        </com:Extension>
         <uap3:Extension Category="windows.appExecutionAlias" EntryPoint="Windows.FullTrustApplication" Executable="MikePDF.exe">
           <uap3:AppExecutionAlias>
             <desktop:ExecutionAlias Alias="mikepdf.exe" />
