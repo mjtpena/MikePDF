@@ -45,6 +45,12 @@ public sealed partial class MainWindow : Window
         _services = app.Services;
         _store = app.Services.Documents;
         InitializeComponent();
+        Pages.FlowDirection = FlowDirection.LeftToRight; // a document is not mirrored with the window: its pages lie as its binding says
+        if (TestSeams.Get(MikePDF.Core.TestSeamGate.PseudoRtl) == "1")
+        {
+            Root.FlowDirection = FlowDirection.RightToLeft; // a pseudo-RTL build for the journeys (PV-23)
+        }
+
         Pages.LinkActivated += OnLinkActivated;
         Pages.Copied += OnCopied;
         SystemBackdrop = new MicaBackdrop();
