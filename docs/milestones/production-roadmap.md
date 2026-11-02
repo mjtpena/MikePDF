@@ -83,6 +83,9 @@ Found while reviewing wave 1. Each gets a work package or joins one.
 | File activation and Jump List items not built: FA-09 to FA-12, FA-15 to FA-21, and the default-app prompt | W2-tabs | File association WP |
 | The test-seam gate ignores `MIKEPDF_TEST_*` in Store-signed packages; the Store path is unverified until a Store-signed package exists | W2-tabs | First Store submission (user) |
 | TAB-08 (move between monitors with different DPI) and TAB-30 (high contrast, 225% text) need a second monitor and system settings | W2-tabs | The user, or a WP with an accessibility test machine |
+| `HangDetectionTests.AHeavyButAlivePageThatOvershootsItsDeadlineIsNotKilledAsHung` fails under heavy machine load (seen twice locally, never in CI) | W2-tabs, W2-engine-2 | Engine WP |
+| `CommandsSettingsJourneyTests.CMD05_…CtrlCCopiesTheBoxText` timed out on the clipboard once in a full UI run; passes alone | Opus, main verification | W2-views (running) |
+| Large axis-aligned scans render slightly softer in tiles than in a whole-page render (43 corpus pages, about 2.7 levels mean). A whole-page bitmap cache for image-heavy pages would fix it; measure against §11 first-tile and memory budgets first | W2-engine-2 | Engine WP |
 
 ## What only the user can do
 The following gate v1.0, and agents can't do them:
