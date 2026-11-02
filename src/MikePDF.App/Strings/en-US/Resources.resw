@@ -427,6 +427,15 @@
   <data name="Dialog_Ok" xml:space="preserve"><value>OK</value></data>
   <data name="Dialog_Apply" xml:space="preserve"><value>Apply</value></data>
   <!-- Individual settings -->
+  <data name="Setting_startup_restore_Name" xml:space="preserve"><value>Reopen documents on startup</value></data>
+  <data name="Setting_startup_restore_Description" xml:space="preserve"><value>Ask: after MikePDF closed unexpectedly, ask first; after a normal close, reopen your documents only when you had more than one open. Never also stops MikePDF from keeping the list of open documents.</value></data>
+  <data name="Setting_startup_restore_Value_Always" xml:space="preserve"><value>Always reopen the last documents</value></data>
+  <data name="Setting_startup_restore_Value_Ask" xml:space="preserve"><value>Ask after an unexpected close</value></data>
+  <data name="Setting_startup_restore_Value_Never" xml:space="preserve"><value>Never</value></data>
+  <data name="Setting_windows_openFromShell_Name" xml:space="preserve"><value>Open files from other programs in</value></data>
+  <data name="Setting_windows_openFromShell_Description" xml:space="preserve"><value>Where a PDF opens when you double-click it in File Explorer or open it from the Jump List.</value></data>
+  <data name="Setting_windows_openFromShell_Value_LastActiveWindow" xml:space="preserve"><value>A tab in the window you used last</value></data>
+  <data name="Setting_windows_openFromShell_Value_NewWindow" xml:space="preserve"><value>A new window</value></data>
   <data name="Setting_general_theme_Name" xml:space="preserve"><value>Theme</value></data>
   <data name="Setting_general_theme_Description" xml:space="preserve"><value>Light, dark, or follow Windows.</value></data>
   <data name="Setting_general_theme_Value_Dark" xml:space="preserve"><value>Dark</value></data>
