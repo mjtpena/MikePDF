@@ -619,6 +619,12 @@ public sealed class EngineSupervisor : IAsyncDisposable
         {
             failed = false; // disposed while waiting for a slot
         }
+        catch (Exception e) when (e is not OutOfMemoryException)
+        {
+            // Whatever went wrong, a call is waiting for this resume: it must end (the engine failed), not wait for ever.
+            failed = true;
+            instance = null;
+        }
 
         var adopted = false;
         lock (_gate)

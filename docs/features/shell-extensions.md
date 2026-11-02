@@ -139,7 +139,7 @@ No message includes a file path or document content.
 
 Not applicable. These handlers are read-only and never modify, create or lock user files (the handle is opened with full sharing so the shell never blocks another writer).
 
-## 11. Engine and protocol additions (schema v4)
+## 11. Engine and protocol additions (schema v5, in the schema as the shape of candidate A; see ADR-0005 amendment A2)
 
 New `ProcessKind` value `ShellHandler = 3`. ShellHost speaks the same framing as the engine protocol (4-byte length, MessagePack, limits as in ADR-0005). Candidate A's messages, ids from 2048 so they never collide with engine (16 to 63) or writer-host (1024 and up) ids:
 

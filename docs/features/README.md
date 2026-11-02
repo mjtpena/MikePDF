@@ -99,19 +99,19 @@ The order that lets the most work run in parallel without rework. A step may sta
 **M3, in this order**
 1. **Command registry and chord dispatcher** (palette spec section 3.1 to 3.4, plus migrating the accelerators). Everything references command ids.
 2. **Settings store and policy provider** (settings spec 3.1 to 3.4). Tabs, print and shell read settings and policy.
-3. **Schema v4** (one WP): `GetViewerPreferences`, `RenderBand`, `ProcessKind.ShellHandler`, shell messages, C++ client codecs.
-4. Then in parallel, as separate tracks: tabs-windows-session (needs 1, 2); page-view-modes (needs the layout generalisation, then v4); print (needs 2, 3 and ADR-0011); shell-extensions (needs 3 and S6b); palette UI and shortcut remapping (needs 1, 2); policy report and About (needs 2).
+3. **Schema v5** (one WP; done in `m3/engine`, ADR-0005 amendment A2): `GetViewerPreferences` (id 28: 26 went to `GetDocumentDetails` in schema 4), `RenderBand`, `ProcessKind.ShellHandler`, the shell messages (the shape of S6b's candidate A), `Pong.progress`. The C++ client codecs already existed. This spec set was written when the next schema was v4; W1-reader took v4, so every version number in these specs from here on is one higher than the text of the individual specs says (their "schema v5" is v6, their "v6" is v7).
+4. Then in parallel, as separate tracks: tabs-windows-session (needs 1, 2); page-view-modes (needs the layout generalisation, then v5); print (needs 2, 3 and ADR-0011); shell-extensions (needs 3 and S6b); palette UI and shortcut remapping (needs 1, 2); policy report and About (needs 2).
 5. file-association-jumplist after tabs (activations land in tabs) and S13.
 
 **M4, in this order**
-1. **Schema v5** (one WP): annotation read side, `GetTextQuads`, forms messages, `SaveDocument`, `RenderTile` flags, writer-host messages 1025 to 1027, the edit blob schema.
+1. **Schema v6** (one WP): annotation read side, `GetTextQuads`, forms messages, `SaveDocument`, `RenderTile` flags, writer-host messages 1025 to 1027, the edit blob schema.
 2. **`MikePDF.Markup` base, edit model, commands, undo, and the journal with recovery.** No write feature may ship before the journal (§0.2 rule 5).
 3. **Save for annotations** (writer host `AppendAnnotations`, validation, replace) driven by the smallest annotation kind, text markup, because S4 verified its appearance shape. Needs S10.
 4. **Annotation foundation UI**: overlay layer, selection, hit-testing, keyboard navigation, UIA peers. Needs S9.
 5. **Annotation kinds**, mostly parallel after 3 and 4: text markup, then sticky notes and the annotation panel, shapes, free text, stamps (needs the image-import host), ink (needs the `MikePDF.Ink` library, which can start early, and the device run, which cannot).
 6. **Forms**, parallel to step 5 once step 3 exists (needs `NormalizeTail` and the author-artwork rule).
 7. **Print snapshot** for modified documents (after step 3).
-8. **Schema v6** and the **page organiser** last, with merge and split; needs S11.
+8. **Schema v7** and the **page organiser** last, with merge and split; needs S11.
 9. Fidelity harness cells for every kind are added as each kind lands; the Acrobat and Edge pass (R-15) is the user's.
 
 ## 6. Size estimates
@@ -150,35 +150,35 @@ Existing ids: 1 to 4 lifecycle, 16 to 25 document and reading, 32 and 33 renderi
 
 | Id | Message | Process | Schema | Owner spec |
 |---|---|---|---|---|
-| 26 | `GetViewerPreferences` | Engine | v4 | print (used by page-view-modes) |
-| 34 | `RenderBand` | Engine | v4 | print |
-| 2048 | `ShellOpen` | ShellHost | v4 | shell-extensions |
-| 2049 | `ShellRenderPage` | ShellHost | v4 | shell-extensions |
-| 2050 | `ShellClose` | ShellHost | v4 | shell-extensions |
-| n/a | `ProcessKind.ShellHandler = 3`; C++ **client** encoders and decoders in the generator | all | v4 | shell-extensions |
-| 27 | `GetTextQuads` | Engine | v5 | text-markup |
-| 40 | `ListAnnotations` | Engine | v5 | annotation-core |
-| 41 | `GetAnnotation` | Engine | v5 | annotation-core |
-| 42 | `GetInkStroke` | Engine | v5 | annotation-core (ink) |
-| 43 | `SetAnnotationHidden` | Engine | v5 | annotation-core |
-| 44 | `CountAnnotations` | Engine | v5 | annotation-core (panel) |
-| 45 | `GetFormFields` | Engine | v5 | forms |
-| 46 | `GetFormFieldDetail` | Engine | v5 | forms |
-| 47 | `SetFormFieldValue` | Engine | v5 | forms |
-| 48 | `FormAction` | Engine | v5 | forms |
-| 62 | `SaveDocument` | Engine | v5 | save-pipeline |
-| n/a | `RenderTile.flags` maximum 3 to 7 (bit 2: field highlight) | Engine | v5 | forms |
-| 1025 | `AppendAnnotations` | WriterHost | v5 | save-pipeline |
-| 1026 | `NormalizeTail` | WriterHost | v5 | save-pipeline |
-| 1027 | `ImportStampImage` | WriterHost | v5 | stamps |
-| n/a | New schema file `mikepdf.edits.json` (edit blob, not a frame) | WriterHost | v5 | save-pipeline |
-| 56 | `InsertPages` | Engine | v6 | page-organiser |
-| 57 | `InsertBlankPage` | Engine | v6 | page-organiser |
-| 58 | `DeletePages` | Engine | v6 | page-organiser |
-| 59 | `MovePages` | Engine | v6 | page-organiser |
-| 60 | `RotatePages` | Engine | v6 | page-organiser |
-| 61 | `CreateDocument` | Engine (pool or assembly kind) | v6 | page-organiser |
-| 1028 | `AssemblePages` | WriterHost | v6, only if S11 picks the assembler | page-organiser |
+| 28 | `GetViewerPreferences` | Engine | v5 | print (used by page-view-modes) |
+| 34 | `RenderBand` | Engine | v5 | print |
+| 2048 | `ShellOpen` | ShellHost | v5 | shell-extensions |
+| 2049 | `ShellRenderPage` | ShellHost | v5 | shell-extensions |
+| 2050 | `ShellClose` | ShellHost | v5 | shell-extensions |
+| n/a | `ProcessKind.ShellHandler = 3`; C++ **client** encoders and decoders in the generator | all | v5 | shell-extensions |
+| 27 | `GetTextQuads` | Engine | v6 | text-markup |
+| 40 | `ListAnnotations` | Engine | v6 | annotation-core |
+| 41 | `GetAnnotation` | Engine | v6 | annotation-core |
+| 42 | `GetInkStroke` | Engine | v6 | annotation-core (ink) |
+| 43 | `SetAnnotationHidden` | Engine | v6 | annotation-core |
+| 44 | `CountAnnotations` | Engine | v6 | annotation-core (panel) |
+| 45 | `GetFormFields` | Engine | v6 | forms |
+| 46 | `GetFormFieldDetail` | Engine | v6 | forms |
+| 47 | `SetFormFieldValue` | Engine | v6 | forms |
+| 48 | `FormAction` | Engine | v6 | forms |
+| 62 | `SaveDocument` | Engine | v6 | save-pipeline |
+| n/a | `RenderTile.flags` maximum 3 to 7 (bit 2: field highlight) | Engine | v6 | forms |
+| 1025 | `AppendAnnotations` | WriterHost | v6 | save-pipeline |
+| 1026 | `NormalizeTail` | WriterHost | v6 | save-pipeline |
+| 1027 | `ImportStampImage` | WriterHost | v6 | stamps |
+| n/a | New schema file `mikepdf.edits.json` (edit blob, not a frame) | WriterHost | v6 | save-pipeline |
+| 56 | `InsertPages` | Engine | v7 | page-organiser |
+| 57 | `InsertBlankPage` | Engine | v7 | page-organiser |
+| 58 | `DeletePages` | Engine | v7 | page-organiser |
+| 59 | `MovePages` | Engine | v7 | page-organiser |
+| 60 | `RotatePages` | Engine | v7 | page-organiser |
+| 61 | `CreateDocument` | Engine (pool or assembly kind) | v7 | page-organiser |
+| 1028 | `AssemblePages` | WriterHost | v7, only if S11 picks the assembler | page-organiser |
 
 Engine behaviour changes that are not messages: `EngineKind::Shell`; the document kind's limit from 1 to 2 open documents (or an assembly kind); the invariant that `SaveDocument` first restores display-mirror annotation flags.
 

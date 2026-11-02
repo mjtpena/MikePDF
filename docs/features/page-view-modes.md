@@ -168,7 +168,7 @@ None. The view mode is never written into the PDF (no `/PageLayout` write-back).
 
 | Message | Id | Notes |
 |---|---|---|
-| `GetViewerPreferences` | 26 | Defined in [print](print.md) section 11; this feature reads `direction`. |
+| `GetViewerPreferences` | 28 | Defined in [print](print.md) section 11; this feature reads `direction`. |
 
 No other change. Rendering already supports any tile at any page.
 

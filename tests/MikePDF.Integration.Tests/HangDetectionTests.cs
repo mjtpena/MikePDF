@@ -203,7 +203,8 @@ public sealed class HangDetectionTests(SandboxFixture sandbox)
     /// <summary>A page that takes the engine a while to draw, found by trying: at least <paramref name="atLeast"/> for the tile below on this machine.</summary>
     private async Task<(TempFile File, TimeSpan Duration)> HeavyPageAsync(TimeSpan atLeast)
     {
-        for (var layers = 300; ; layers = layers * 3 / 2)
+        // At least 1,000 layers whatever the machine: PDFium polls every 100 objects, so the gap between two polls is a tenth of the render, and it has to stay well inside the stall timeout.
+        for (var layers = 1000; ; layers = layers * 3 / 2)
         {
             var file = new TempFile($"heavy-{layers}.pdf", TestPdf.SlowPage(layers));
             await using var supervisor = await sandbox.StartAsync();
