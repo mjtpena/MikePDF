@@ -264,30 +264,9 @@ internal sealed partial class DocumentSession
     /// <summary>Scrolls just enough to bring a box of a page (page space) into view: not at all if it is already there, otherwise to the middle of the viewport.</summary>
     public void RevealPageRect(int page, RectD pageRect)
     {
-        var projection = PageProjection.For(Controller.Snapshot(), page);
-        if (projection is null)
+        if (Controller.NeedsReveal(page, pageRect))
         {
-            return;
-        }
-
-        var r = projection.PageToViewport(pageRect);
-        var height = Controller.ViewportHeight;
-        var width = Controller.ViewportWidth;
-        double dy = 0;
-        double dx = 0;
-        if (r.Y < 0 || r.Bottom > height)
-        {
-            dy = r.Y + (r.Height / 2) - (height / 2);
-        }
-
-        if (r.X < 0 || r.Right > width)
-        {
-            dx = r.X + (r.Width / 2) - (width / 2);
-        }
-
-        if (dx != 0 || dy != 0)
-        {
-            Change(() => Controller.ScrollBy(dx, dy));
+            Change(() => Controller.RevealPageRect(page, pageRect));
         }
     }
 
