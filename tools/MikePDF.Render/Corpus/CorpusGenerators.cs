@@ -29,6 +29,8 @@ internal static class CorpusGenerators
         ["deep-gstate-nesting"] = DeepGraphicsStateNesting,
         ["transparency-layers"] = TransparencyLayers,
         ["text-standard-fonts"] = StandardFontText,
+        ["engine-crash-form-fanout"] = EngineCrashFormFanOut,
+        ["engine-hang-tiling-step"] = EngineHangTilingStep,
     };
 
     public static byte[] Generate(string name) =>
@@ -186,6 +188,54 @@ internal static class CorpusGenerators
         var stream = pdf.AddStream("", content.ToString());
         var resources = string.Join(' ', fonts.Select(f => $"/F{f.Index} {f.Number} 0 R"));
         var page = pdf.Add($"<< /Type /Page /Parent {tree} 0 R /MediaBox [0 0 612 700] /Contents {stream} 0 R /Resources << /Font << {resources} >> >> >>");
+        pdf.Set(catalog, $"<< /Type /Catalog /Pages {tree} 0 R >>");
+        pdf.Set(tree, $"<< /Type /Pages /Kids [{page} 0 R] /Count 1 >>");
+        return pdf.Build(catalog);
+    }
+
+    /// <summary>
+    /// A file that takes the engine down by running it out of memory (the sandbox's job memory limit ends the process, and the supervisor replaces it). The page invokes a
+    /// Form XObject that invokes the next one three times, thirty levels deep, each form a distinct object: PDFium's guards stop cycles and the nesting depth, but not
+    /// this fan-out, and it builds a page-object tree of 3^30 leaves while it loads the page. It is a valid PDF, 6 KB long. Not a PDFium bug report: a stress shape the
+    /// engine must contain, as a hostile file would.
+    /// </summary>
+    private static byte[] EngineCrashFormFanOut()
+    {
+        const int levels = 30;
+        var pdf = new PdfBuilder();
+        var catalog = pdf.Reserve();
+        var tree = pdf.Reserve();
+        var page = pdf.Reserve();
+        var contents = pdf.AddStream("", "/X1 Do");
+        var forms = Enumerable.Range(0, levels).Select(_ => pdf.Reserve()).ToArray();
+        for (var level = 1; level <= levels; level++)
+        {
+            var last = level == levels;
+            var resources = last ? "<< >>" : $"<< /XObject << /X{level + 1} {forms[level]} 0 R >> >>";
+            var content = last ? "0 0 1 rg 10 10 5 5 re f" : $"/X{level + 1} Do /X{level + 1} Do /X{level + 1} Do";
+            pdf.SetStream(forms[level - 1], $"/Type /XObject /Subtype /Form /BBox [0 0 200 200] /Resources {resources}", Encoding.Latin1.GetBytes(content));
+        }
+
+        pdf.Set(page, $"<< /Type /Page /Parent {tree} 0 R /MediaBox [0 0 200 200] /Contents {contents} 0 R /Resources << /XObject << /X1 {forms[0]} 0 R >> >> >>");
+        pdf.Set(catalog, $"<< /Type /Catalog /Pages {tree} 0 R >>");
+        pdf.Set(tree, $"<< /Type /Pages /Kids [{page} 0 R] /Count 1 >>");
+        return pdf.Build(catalog);
+    }
+
+    /// <summary>
+    /// A file that makes PDFium spin inside one drawing operation: a tiling pattern whose step is 0.0001 point, filled over a 14400-point page. PDFium checks its
+    /// render deadline about every 100 operations, so a single operation that never ends outlasts any deadline, and the engine's watchdog has to notice that the
+    /// request went unanswered and kill the process. On the machine this was made on it ran for over 200 seconds without finishing; whether it would ever end was not
+    /// established, and the gate never waits to find out. The reference renderer would spin the same way, so the manifest turns it off for this file.
+    /// </summary>
+    private static byte[] EngineHangTilingStep()
+    {
+        var pdf = new PdfBuilder();
+        var catalog = pdf.Reserve();
+        var tree = pdf.Reserve();
+        var contents = pdf.AddStream("", "/Pattern cs /P1 scn 0 0 14400 14400 re f");
+        var pattern = pdf.AddStream("/Type /Pattern /PatternType 1 /PaintType 1 /TilingType 1 /BBox [0 0 1 1] /XStep 0.0001 /YStep 0.0001 /Resources << >>", "1 0 0 rg 0 0 1 1 re f");
+        var page = pdf.Add($"<< /Type /Page /Parent {tree} 0 R /MediaBox [0 0 14400 14400] /Contents {contents} 0 R /Resources << /Pattern << /P1 {pattern} 0 R >> >> >>");
         pdf.Set(catalog, $"<< /Type /Catalog /Pages {tree} 0 R >>");
         pdf.Set(tree, $"<< /Type /Pages /Kids [{page} 0 R] /Count 1 >>");
         return pdf.Build(catalog);

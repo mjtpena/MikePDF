@@ -346,6 +346,6 @@ public sealed class CorpusTests
         var manifest = Manifest(Entry("pdfium/a.pdf"), Entry("pdfium/b.pdf") with { Tiers = ["core"] }, Entry("generated/c.pdf"));
         Assert.Equal(["pdfium/a.pdf", "generated/c.pdf"], CorpusStore.InTier(manifest, "smoke").Select(f => f.Id));
         Assert.Equal(["generated/c.pdf"], CorpusStore.InTier(manifest, "smoke", "GENERATED").Select(f => f.Id));
-        Assert.Equal(["pdfium/b.pdf"], CorpusStore.InTier(manifest, "core").Select(f => f.Id));
+        Assert.Equal(["pdfium/a.pdf", "pdfium/b.pdf", "generated/c.pdf"], CorpusStore.InTier(manifest, "core").Select(f => f.Id)); // the tiers nest: core runs the smoke files too
     }
 }

@@ -82,6 +82,43 @@ internal sealed class CorpusFetcher(HttpClient http, TimeSpan? retryDelay = null
 
     private static bool Matches(CorpusFile file, byte[] bytes) => bytes.LongLength == file.Bytes && CorpusStore.Sha256Hex(bytes) == file.Sha256;
 
+    /// <summary>
+    /// Hosts that ask clients for a pause between requests (arXiv: one request every 3 seconds, https://info.arxiv.org/help/api/tou.html). A request to one of them
+    /// waits for its turn, whatever else is downloading.
+    /// </summary>
+    private static readonly Dictionary<string, TimeSpan> HostIntervals = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["arxiv.org"] = TimeSpan.FromSeconds(3),
+        ["export.arxiv.org"] = TimeSpan.FromSeconds(3),
+    };
+
+    private readonly ConcurrentDictionary<string, SemaphoreSlim> _hostTurns = new(StringComparer.OrdinalIgnoreCase);
+    private readonly ConcurrentDictionary<string, DateTime> _lastRequest = new(StringComparer.OrdinalIgnoreCase);
+
+    private async Task WaitForTurnAsync(string url, CancellationToken cancellationToken)
+    {
+        if (!Uri.TryCreate(url, UriKind.Absolute, out var uri) || !HostIntervals.TryGetValue(uri.Host, out var interval))
+        {
+            return;
+        }
+
+        var turn = _hostTurns.GetOrAdd(uri.Host, _ => new SemaphoreSlim(1, 1));
+        await turn.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            if (_lastRequest.TryGetValue(uri.Host, out var last) && DateTime.UtcNow - last is var since && since < interval)
+            {
+                await Task.Delay(interval - since, cancellationToken).ConfigureAwait(false);
+            }
+
+            _lastRequest[uri.Host] = DateTime.UtcNow;
+        }
+        finally
+        {
+            turn.Release();
+        }
+    }
+
     private async Task<byte[]> DownloadAsync(CorpusFile file, CancellationToken cancellationToken)
     {
         var url = file.FetchUrl ?? file.Source;
@@ -89,6 +126,7 @@ internal sealed class CorpusFetcher(HttpClient http, TimeSpan? retryDelay = null
         {
             try
             {
+                await WaitForTurnAsync(url, cancellationToken).ConfigureAwait(false);
                 var body = await http.GetByteArrayAsync(url, cancellationToken).ConfigureAwait(false);
                 return file.FetchEncoding switch
                 {

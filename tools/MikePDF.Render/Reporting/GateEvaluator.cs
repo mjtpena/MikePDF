@@ -46,6 +46,11 @@ internal static class GateEvaluator
             failures.Add(new GateFailure("OpenSuccessBelowTarget", null, null, string.Create(CultureInfo.InvariantCulture, $"{summary.OpenSuccessPercent:0.###}% of the files that should open opened; the target is {OpenSuccessTarget}%.")));
         }
 
+        if (baseline?.OpenSuccessPercent is { } recordedOpen && summary.FilesExpectedToOpen > 0 && summary.OpenSuccessPercent < recordedOpen)
+        {
+            failures.Add(new GateFailure("OpenSuccessRegression", null, null, string.Create(CultureInfo.InvariantCulture, $"{summary.OpenSuccessPercent:0.###}% of the files that should open opened; the baseline has {recordedOpen:0.###}%.")));
+        }
+
         if (summary.SsimCompared > 0 && summary.SsimPassPercent < settings.SsimPassTarget)
         {
             failures.Add(new GateFailure("SsimPassRateBelowTarget", null, null, string.Create(CultureInfo.InvariantCulture, $"{summary.SsimPassPercent:0.###}% of {summary.SsimCompared} compared pages reach SSIM {settings.SsimThreshold}; the target is {settings.SsimPassTarget}%.")));
@@ -113,6 +118,31 @@ internal static class GateEvaluator
                     break;
             }
         }
+
+        CheckExpectedEngineEvent(file, failures);
+    }
+
+    /// <summary>
+    /// A file whose manifest entry says it takes the engine down (<c>expect.engineEvent</c>) is there to exercise recovery. If the run did not see the crash or the
+    /// hang, the file no longer tests anything and the gate says so; if the engine was not replaced afterwards, recovery is what failed.
+    /// </summary>
+    private static void CheckExpectedEngineEvent(FileReport file, List<GateFailure> failures)
+    {
+        if (file.Expected?.EngineEvent is not { } expected)
+        {
+            return;
+        }
+
+        var crashedAt = file.EngineEvents.FindIndex(e => e.Kind == "crashed" && (expected == "hang" ? e.Reason == "Hung" : e.Reason != "Hung"));
+        if (crashedAt < 0)
+        {
+            var seen = !file.EngineEvents.Any(e => e.Kind == "crashed") ? "no engine crash or hang" : "a different kind of engine failure (" + string.Join(", ", file.EngineEvents.Where(e => e.Kind == "crashed").Select(e => e.Reason)) + ")";
+            failures.Add(new GateFailure("ExpectedEngineEventMissing", file.Id, null, $"The manifest says this file makes the engine {(expected == "hang" ? "hang" : "crash")}; the run saw {seen}. The file no longer exercises recovery."));
+        }
+        else if (!file.EngineEvents.Skip(crashedAt + 1).Any(e => e.Kind == "restored"))
+        {
+            failures.Add(new GateFailure("EngineNotRestored", file.Id, null, "The engine went down as expected, but the run did not see it replaced."));
+        }
     }
 
     private static void CheckPage(FileReport file, PageReport page, RunSettings settings, SsimBaseline? baseline, List<GateFailure> failures, List<GateFailure> warnings)
@@ -129,6 +159,9 @@ internal static class GateEvaluator
                 }
 
                 break;
+            case "Timeout" when file.Expected?.AllowsEngineCrash == true:
+                warnings.Add(new GateFailure("Timeout", file.Id, pageName, $"The page did not render within its deadline (a tolerated engine failure).{Detail(page.Detail)}"));
+                return;
             case "Timeout":
                 failures.Add(new GateFailure("Timeout", file.Id, pageName, $"The page did not render within its deadline.{Detail(page.Detail)}"));
                 break;

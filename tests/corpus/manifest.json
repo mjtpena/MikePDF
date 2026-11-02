@@ -2224,6 +2224,67 @@
         "pages": 1,
         "note": "The 14 standard fonts, not embedded"
       }
+    },
+    {
+      "id": "generated/engine-crash-form-fanout.pdf",
+      "origin": "generated",
+      "source": "generated:engine-crash-form-fanout",
+      "generator": "engine-crash-form-fanout",
+      "licence": "Apache-2.0",
+      "redistributable": true,
+      "sha256": "307f25adfc0dae4f3cc3e25da0db2a7fc9175505a05e804f01d784af5f683d2b",
+      "bytes": 6044,
+      "tags": [
+        "engine-crash",
+        "nasty",
+        "recovery"
+      ],
+      "tiers": [
+        "smoke"
+      ],
+      "expect": {
+        "opens": true,
+        "status": "Ok",
+        "pages": 1,
+        "allowsEngineCrash": true,
+        "engineEvent": "crash",
+        "note": "Thirty levels of Form XObjects, each invoking the next three times, build 3^30 page objects while the page loads: the sandbox job runs out of memory and the engine is replaced (MemoryLimit). Seen on x64 on 2026-11-03, 6 s."
+      },
+      "render": {
+        "pages": "1",
+        "reference": false
+      }
+    },
+    {
+      "id": "generated/engine-hang-tiling-step.pdf",
+      "origin": "generated",
+      "source": "generated:engine-hang-tiling-step",
+      "generator": "engine-hang-tiling-step",
+      "licence": "Apache-2.0",
+      "redistributable": true,
+      "sha256": "34fd32729f8428ab671a81edb898d687e738ccd4fe5bb20f9de736936bdbab18",
+      "bytes": 717,
+      "tags": [
+        "engine-hang",
+        "nasty",
+        "recovery"
+      ],
+      "tiers": [
+        "smoke"
+      ],
+      "expect": {
+        "opens": true,
+        "status": "Ok",
+        "pages": 1,
+        "allowsEngineCrash": true,
+        "engineEvent": "hang",
+        "note": "A tiling pattern with step 0.0001 pt filled over a 14400 pt page keeps PDFium inside one drawing operation, past any deadline. The request goes unanswered, the watchdog kills the engine as hung and the supervisor replaces it. Did not finish in 200 s on x64 on 2026-11-03; whether it ever ends is not known."
+      },
+      "render": {
+        "pages": "1",
+        "tileDeadlineMs": 500,
+        "reference": false
+      }
     }
   ],
   "excluded": [

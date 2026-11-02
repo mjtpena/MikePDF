@@ -101,6 +101,12 @@ internal sealed record ExpectedOutcome
 
     /// <summary>Pages that are expected to come back <c>PartiallyRendered</c>.</summary>
     public bool AllowsPartialRender { get; init; }
+
+    /// <summary><c>crash</c> or <c>hang</c> when the file is made to take the engine down: the run must see that, and the engine replaced.</summary>
+    public string? EngineEvent { get; init; }
+
+    /// <summary>Set when the file should open but is known not to (see the manifest): it counts against the open-success rate.</summary>
+    public string? KnownIssue { get; init; }
 }
 
 internal sealed record OpenReport(string Status, string? Detail, long Ms);
@@ -186,6 +192,9 @@ internal sealed record ReportSummary
 
     public int FilesExpectedNotToOpen { get; init; }
 
+    /// <summary>Real files that should open but are known not to (the manifest's <c>expect.knownIssue</c>). They are inside <see cref="FilesExpectedToOpen"/>.</summary>
+    public int FilesKnownIssue { get; init; }
+
     public int UnexpectedOpenOutcomes { get; init; }
 
     public double OpenSuccessPercent { get; init; }
@@ -216,8 +225,21 @@ internal sealed record ReportSummary
 
     public double? SsimMean { get; init; }
 
+    public double? SsimMedian { get; init; }
+
+    /// <summary>The score 5% of the compared pages are at or below.</summary>
+    public double? SsimP05 { get; init; }
+
+    /// <summary>The score 1% of the compared pages are at or below.</summary>
+    public double? SsimP01 { get; init; }
+
+    public IReadOnlyList<SsimBucket> SsimDistribution { get; init; } = [];
+
     public double TotalRenderMs { get; init; }
 }
+
+/// <summary>How many compared pages scored in a band of SSIM.</summary>
+internal sealed record SsimBucket(string Range, int Pages);
 
 internal sealed record GateFailure(string Kind, string? File, string? Page, string Message);
 
