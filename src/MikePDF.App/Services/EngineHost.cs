@@ -14,12 +14,22 @@ internal sealed class EngineHost
     private readonly AppContainerProfile _profile;
     private readonly string _enginePath;
 
-    private EngineHost(AppContainerProfile profile, string enginePath, int maxDocumentEngines)
+    private EngineHost(AppContainerProfile profile, string enginePath, int maxDocumentEngines, int engineMemoryLimitMb)
     {
         _profile = profile;
         _enginePath = enginePath;
-        Budget = new EngineBudget(new EngineBudgetOptions { Document = DocumentOptions(), Pool = PoolOptions(), MaxDocumentEngines = Math.Max(1, maxDocumentEngines) });
+        EngineMemoryLimitMb = engineMemoryLimitMb;
+        Budget = new EngineBudget(new EngineBudgetOptions
+        {
+            Document = DocumentOptions(),
+            Pool = PoolOptions(),
+            MaxDocumentEngines = Math.Max(1, maxDocumentEngines),
+            EngineMemoryLimitMb = engineMemoryLimitMb,
+        });
     }
+
+    /// <summary>The memory limit every engine process runs under, in megabytes: the administrator's <c>EngineMemoryLimitMB</c> policy (2048 when none is set).</summary>
+    public int EngineMemoryLimitMb { get; }
 
     /// <summary>
     /// The engines the app may have at once (ADR-0004 amendment A3): one shared pool engine and at most <c>engines.maxLiveTabs</c> document engines (6 by default, set by policy), the least
@@ -28,8 +38,10 @@ internal sealed class EngineHost
     public EngineBudget Budget { get; }
 
     /// <param name="maxDocumentEngines">The cap on document engines at start-up (<c>engines.maxLiveTabs</c>, after policy); the app changes it later with <see cref="EngineBudget.SetMaxDocumentEngines"/>.</param>
-    public static EngineHost Create(int maxDocumentEngines = 6)
+    /// <param name="engineMemoryLimitMb">The administrator's <c>EngineMemoryLimitMB</c> policy: the job limit of every engine process the host starts, document engines and the pool engine alike. Null reads the policy from the registry.</param>
+    public static EngineHost Create(int maxDocumentEngines = 6, int? engineMemoryLimitMb = null)
     {
+        var memoryLimitMb = engineMemoryLimitMb ?? AppServices.OpenPolicy().Current.EngineMemoryLimitMb;
         if (!AppPaths.IsPackaged)
         {
             // Without package identity the child gets no access to the engine's directory (nothing grants it): development builds are run as a registered layout.
@@ -52,7 +64,7 @@ internal sealed class EngineHost
             throw new EngineStartException("The sandbox could not be set up: " + e.Message, e);
         }
 
-        return new EngineHost(profile, enginePath, maxDocumentEngines);
+        return new EngineHost(profile, enginePath, maxDocumentEngines, memoryLimitMb);
     }
 
     /// <summary>The engine for a document: renders sharp tiles.</summary>
@@ -69,5 +81,6 @@ internal sealed class EngineHost
         Peer = ProcessKind.Engine,
         SlotCount = slotCount,
         SlotSize = slotSize,
+        Policy = SandboxPolicy.Default with { ProcessMemoryLimitBytes = (long)EngineMemoryLimitMb << 20 },
     };
 }

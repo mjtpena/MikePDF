@@ -25,9 +25,23 @@ internal sealed class LeasePixels(TileLease lease) : IPixelBuffer
 /// </summary>
 internal sealed class EngineTileRenderer(SupervisedDocument document, TimeSpan deadline) : ITileRenderer
 {
+    private int _darkPages;
+
+    /// <summary>
+    /// Ask the engine for dark pages (<see cref="RenderTileArgs.DarkPage"/>): the inverted page colour with colour photographs left alone. While it is on, the tiles that come back are
+    /// already dark, so whoever shows them must draw them with <c>PageColourMode.Normal</c> and must empty the tile cache when this changes (the cache holds the other colours).
+    /// </summary>
+    public bool DarkPages
+    {
+        get => Volatile.Read(ref _darkPages) != 0;
+        set => Volatile.Write(ref _darkPages, value ? 1 : 0);
+    }
+
     public async Task<RenderResult> RenderAsync(RenderRequest request, CancellationToken cancellationToken)
     {
-        var args = new RenderTileArgs((uint)request.Key.Page, request.Scale, (ushort)request.Turns, request.X, request.Y, (uint)request.Width, (uint)request.Height);
+        // The form layer: PDFium draws a field's widget only through its form-fill environment, so without bit 1 a filled form shows empty fields. Tiles and printed bands draw them the same way.
+        var args = new RenderTileArgs((uint)request.Key.Page, request.Scale, (ushort)request.Turns, request.X, request.Y, (uint)request.Width, (uint)request.Height,
+            RenderTileArgs.Annotations | RenderTileArgs.FormFields | (DarkPages ? RenderTileArgs.DarkPage : 0));
         EngineResult<TileLease> result;
         try
         {
