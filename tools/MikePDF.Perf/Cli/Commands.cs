@@ -69,6 +69,12 @@ public static class Commands
             await error.WriteLineAsync("Run with --help for usage.");
             return 2;
         }
+        catch (Exception e) when (e is MikePDF.Broker.EngineStartException or System.ComponentModel.Win32Exception or UnauthorizedAccessException)
+        {
+            // The sandbox or the engine could not be brought up on this machine: nothing was measured.
+            await error.WriteLineAsync("error: the sandboxed engine could not be started: " + e.Message);
+            return 3;
+        }
         catch (Exception e) when (e is FileNotFoundException or DirectoryNotFoundException or FormatException or System.Text.Json.JsonException or ArgumentException or InvalidOperationException or IOException)
         {
             await error.WriteLineAsync("error: " + e.Message);

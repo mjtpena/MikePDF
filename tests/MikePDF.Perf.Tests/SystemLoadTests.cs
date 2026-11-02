@@ -40,6 +40,6 @@ public sealed class SystemLoadTests
         await Task.WhenAll(spinners);
 
         Assert.True(busy > 80, $"with a thread spinning on every logical processor the machine should be near 100% busy, not {busy}%");
-        Assert.True(busy > idle, "and busier than it was a moment ago");
+        // Not compared with `idle`: on a machine other programs already saturate, both readings are near 100 and either may be the larger.
     }
 }
