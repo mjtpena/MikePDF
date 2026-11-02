@@ -154,7 +154,7 @@ Writer host stage 4 ([save-pipeline](save-pipeline.md)): one indirect annotation
 | `xs` | array f32 | maxCount 256 (64 quads x 4 corners), -1000000 to 1000000 |
 | `ys` | array f32 | maxCount 256, same range, `sameLengthAs` `xs` |
 
-Corners are in the order TL, TR, BL, BR; the array length must be a multiple of 4 (checked by `ReplyChecks`, which also verifies that `firstQuad + length/4 <= totalQuads` and that `start + count` is inside the page's character total). Worst-case frame about 3 KiB. Uses `FPDFText_GetLooseCharBox`, `FPDFText_GetCharAngle` and `FPDFText_GetMatrix` (names to confirm against the pinned headers).
+Corners are in the order TL, TR, BL, BR; the array length must be a multiple of 4 (checked by `ReplyChecks`, which also verifies that `firstQuad + length/4 <= totalQuads` and that `start + count` is inside the page's character total). Worst-case frame about 3 KiB. Uses `FPDFText_GetLooseCharBox`, `FPDFText_GetCharAngle` and `FPDFText_GetMatrix`, which exist in the pinned `fpdf_text.h` (checked 2026-11-02); how well they describe rotated text is for the engine work package to test.
 
 ## 11. Localisation strings
 

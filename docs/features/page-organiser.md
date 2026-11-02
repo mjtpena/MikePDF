@@ -190,7 +190,7 @@ All engine messages carry `documentId`. Page ranges are two parallel arrays of f
 | `MovePages` | 59 | `pageIndices` (array u32, maxCount 4096, max 9999999, distinct), `destIndex` (u32) | `newPageCount` (unchanged, a check) |
 | `RotatePages` | 60 | `firsts`, `lasts` (as above), `quarterTurns` (u16, 1 to 3) | `newPageCount` |
 | `CreateDocument` | 61 | none; pool or assembly kind only | `documentId` (u32, min 1) |
-| `SaveDocument` | 62 | see [save-pipeline](save-pipeline.md) 11.1 | |
+| `SaveDocument` | 62 | defined in [save-pipeline](save-pipeline.md) 11.1 and shipped earlier, in schema v5 | |
 
 Extract is composed: `CreateDocument`, `InsertPages` from the source, `SaveDocument(full)`; the master prompt's `ExtractPages` is not a separate message. The document kind's limit rises from 1 to 2 open documents (`kMaxDocumentsDocumentKind`); the assembly work for merge and split runs in a pool-kind engine (up to 32 documents, 2 GB limit). Validation: ranges must satisfy first <= last < page count and the arrays must have equal length; `destIndex` at most the page count; the engine refuses an operation that leaves zero pages. Frames are small (at most about 10 KB for 1,024 ranges; 21 KB for 4,096 indices). `ReplyChecks` verifies the reply's page counts against the broker's expectation.
 

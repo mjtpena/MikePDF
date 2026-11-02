@@ -16,7 +16,7 @@ These facts from S4, S5 and ADR-0007/0008 constrain everything below.
 
 - PDFium writes **no `/AP`** for most annotation types on a cold save; pdf.js then draws nothing for Text, FreeText and Stamp. It cannot create Line, Polygon or PolyLine at all, writes `/IRT` and `/Name` as strings, never links `/Popup`, stores annotations as direct dictionaries, and leaves a private `/PDFIUM_HasGeneratedAP` key. Its incremental save is invalid for xref-stream sources (7 of 9 in S4).
 - So **`MikePDF.PdfWriter` owns every annotation dictionary and appearance stream** MikePDF creates or restyles (ADR-0008 decision 1), running only in `MikePDF.WriterHost`. PDFium stays the engine for reading, rendering, text, forms and page operations.
-- The S4 Quire-authored cases Q01 to Q06 (Line, Polygon, PolyLine, Text with Popup and reply and review state, Stamp with a name object, FreeText with its own resources) pass `qpdf --check`, reopen in a fresh PDFium and draw in PDFium and pdf.js. **Acrobat Reader and Edge were not measured.** Every fidelity criterion in the annotation specs is therefore a target until the manual pass (R-15) runs.
+- The S4 cases Q01 to Q06 (authored with the project's own writer, under its old name) (Line, Polygon, PolyLine, Text with Popup and reply and review state, Stamp with a name object, FreeText with its own resources) pass `qpdf --check`, reopen in a fresh PDFium and draw in PDFium and pdf.js. **Acrobat Reader and Edge were not measured.** Every fidelity criterion in the annotation specs is therefore a target until the manual pass (R-15) runs.
 - WinUI 3 has no ink control; the stroke model must be MikePDF's own (ADR-0007).
 
 ## 2. User stories (shared)
@@ -217,7 +217,7 @@ Annotation edits are applied in save stage 4 by the writer host as an incrementa
 
 ## 11. Engine and protocol additions (schema v5, read side)
 
-IDs follow the existing ranges (16 to 25 document and reading, 32 and 33 rendering). All take `documentId` (required) and use windows so that a reply always fits one 64 KiB frame, as ADR-0005 amendment A1 does. PDFium subtype numbers are the `FPDF_ANNOT_SUBTYPE_*` values (UNKNOWN 0 ... REDACT 28); they must be confirmed against the pinned `fpdf_annot.h` (S1 rule). The calls used (`FPDFPage_GetAnnot`, `FPDFAnnot_*` getters) are Experimental (R-12); the wrapper in `MikePDF.Engine.Pdfium` is their only consumer and has a header-diff check.
+IDs follow the existing ranges (16 to 25 document and reading, 32 and 33 rendering). All take `documentId` (required) and use windows so that a reply always fits one 64 KiB frame, as ADR-0005 amendment A1 does. PDFium subtype numbers are the `FPDF_ANNOT_*` values in `fpdf_annot.h` (UNKNOWN 0 to REDACT 28), checked against the pinned chromium/8125 header on 2026-11-02. The calls used (`FPDFPage_GetAnnot`, `FPDFAnnot_*` getters) are Experimental (R-12); the wrapper in `MikePDF.Engine.Pdfium` is their only consumer and has a header-diff check.
 
 **`ListAnnotations` (40).** Request: `page` (u32, max 9999999), `first` (u32, max 99999), `count` (u32, 1 to 64).
 

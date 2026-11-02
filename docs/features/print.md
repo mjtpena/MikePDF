@@ -169,7 +169,7 @@ All engine messages take `documentId` (required) unless noted. Frames are at mos
 | 4 | `rangeFirsts` | array of u32 | maxCount 64, max 9999999 |
 | 5 | `rangeLasts` | array of u32 | maxCount 64, max 9999999, `sameLengthAs` `rangeFirsts` |
 
-PDFium has `FPDF_VIEWERREF_*` functions in `fpdf_doc.h` for these (print scaling, copies, page ranges, duplex, named values such as `Direction`); the names are to be confirmed against the pinned headers (S1 rule: do not guess APIs).
+PDFium has `FPDF_VIEWERREF_GetPrintScaling`, `GetNumCopies`, `GetPrintPageRange`, `GetDuplex` and `GetName` (for named values such as `Direction`) in the pinned `fpdfview.h` (checked 2026-11-02). Their return conventions are for the engine work package to confirm.
 
 **`RenderBand` (id 34).** The broker's `RenderTile` is limited to 1,024 px; print bands are wider.
 

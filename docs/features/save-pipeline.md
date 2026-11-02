@@ -226,7 +226,7 @@ This is the save behaviour. Output requirements for every saved file: original b
 
 ## 11. Engine and protocol additions
 
-### 11.1 Engine: `SaveDocument` (schema v6, id 62)
+### 11.1 Engine: `SaveDocument` (schema v5, id 62; forms need it before page operations arrive in v6)
 
 | Request field | Type | Limits |
 |---|---|---|
