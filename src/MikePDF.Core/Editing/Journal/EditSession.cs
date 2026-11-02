@@ -86,22 +86,42 @@ public static class JournalPrivacy
 /// <summary>
 /// One document's edits: the <see cref="EditModel"/>, its journal and the failure policy. <see cref="EditModel"/> asks this for the journal, so
 /// a command reaches the model only after its record is on disk (save-pipeline 3.4, 3.7).
+/// <para>
+/// With a <see cref="JournalStore"/> the journal is created when the first command arrives, against the file as it is then, and removed by
+/// <see cref="ClearJournal"/> after a save or a discard: the next edit starts a new one against the saved file (save-pipeline 3.7).
+/// </para>
 /// </summary>
 public sealed class EditSession : IEditJournal, IDisposable
 {
+    private readonly JournalStore? _store;
+    private readonly string? _documentPath;
+    private readonly string _appVersion;
+    private JournalWriter? _writer;
     private long _localSeq;
 
+    /// <summary>A session over a journal that already exists (a restored one, or a test's).</summary>
     public EditSession(JournalWriter? journal, JournalFailureMode mode = JournalFailureMode.Degraded)
     {
-        Journal = journal;
+        _writer = journal;
+        _appVersion = string.Empty;
         FailureMode = mode;
         _localSeq = journal?.LastSequence ?? 0;
         Model = new EditModel(this);
     }
 
+    /// <summary>A session whose journal starts with the first command, or continues <paramref name="existing"/> (a journal that recovery read back).</summary>
+    public EditSession(JournalStore store, string documentPath, string appVersion, JournalFailureMode mode = JournalFailureMode.Degraded, JournalWriter? existing = null)
+        : this(existing, mode)
+    {
+        _store = store ?? throw new ArgumentNullException(nameof(store));
+        _documentPath = documentPath ?? throw new ArgumentNullException(nameof(documentPath));
+        _appVersion = appVersion ?? string.Empty;
+    }
+
     public EditModel Model { get; }
 
-    public JournalWriter? Journal { get; }
+    /// <summary>The current journal; null until the first command of a session that creates its own.</summary>
+    public JournalWriter? Journal => _writer;
 
     public JournalFailureMode FailureMode { get; }
 
@@ -110,11 +130,29 @@ public sealed class EditSession : IEditJournal, IDisposable
 
     public long Command(EditCommand command)
     {
-        if (Journal is not null && BackedUp)
+        if (_writer is null && _store is not null && BackedUp)
         {
             try
             {
-                var seq = Journal.Command(JournalPrivacy.ForJournal(command));
+                _writer = _store.Create(_documentPath!, JournalStore.HeaderFor(_documentPath!, _appVersion));
+                _localSeq = 0;
+            }
+            catch (Exception e) when (e is JournalUnavailableException or IOException or UnauthorizedAccessException)
+            {
+                if (FailureMode == JournalFailureMode.Strict)
+                {
+                    throw new JournalUnavailableException("The journal could not be started.", e);
+                }
+
+                BackedUp = false;
+            }
+        }
+
+        if (_writer is not null && BackedUp)
+        {
+            try
+            {
+                var seq = _writer.Command(JournalPrivacy.ForJournal(command));
                 _localSeq = seq;
                 return seq;
             }
@@ -133,14 +171,14 @@ public sealed class EditSession : IEditJournal, IDisposable
 
     private void Record(Action<JournalWriter> write)
     {
-        if (Journal is null || !BackedUp)
+        if (_writer is null || !BackedUp)
         {
             return;
         }
 
         try
         {
-            write(Journal);
+            write(_writer);
         }
         catch (JournalUnavailableException) when (FailureMode == JournalFailureMode.Degraded)
         {
@@ -148,5 +186,17 @@ public sealed class EditSession : IEditJournal, IDisposable
         }
     }
 
-    public void Dispose() => Journal?.Dispose();
+    /// <summary>The edits in the journal are in a file now (or were discarded): close it and delete it. The next command starts a new one.</summary>
+    public void ClearJournal()
+    {
+        _writer?.Dispose();
+        _writer = null;
+        if (_store is not null && _documentPath is not null)
+        {
+            _store.Delete(_documentPath);
+            BackedUp = true;
+        }
+    }
+
+    public void Dispose() => _writer?.Dispose();
 }

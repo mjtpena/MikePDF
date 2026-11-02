@@ -205,7 +205,7 @@ public sealed class RecoveryService(JournalStore store)
         }
 
         var writer = store.ResumeAt(candidate.JournalPath, candidate.Read);
-        var session = new EditSession(writer, mode);
+        var session = new EditSession(store, candidate.DocumentPath, string.Empty, mode, writer);
         var report = Replay(candidate.Read, session.Model, canApply);
         return (session, report);
     }

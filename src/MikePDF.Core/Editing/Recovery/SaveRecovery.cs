@@ -14,6 +14,9 @@ public enum InterruptedSave
     /// <summary>The replace happened and only the cleanup did not: the target holds the validated output. The journal can be cleared silently.</summary>
     AlreadySaved,
 
+    /// <summary>The save had committed; the backup or temporary file it had not yet removed was removed. Says nothing about the journal.</summary>
+    CleanedAfterCommit,
+
     /// <summary>The target was missing and was put back from the recorded backup (the <c>ReplaceFileW</c> fallback was killed between its two renames).</summary>
     TargetRestored,
 
@@ -88,21 +91,36 @@ public static class SaveRecovery
 
     private static InterruptedSaveReport RunCore(JournalReadResult journal, List<string> removed)
     {
-        var tail = journal.SinceLastCommit.ToList();
-        var intentIndex = tail.FindLastIndex(static e => e is SaveIntentEntry);
+        var all = journal.Entries.ToList();
+        var intentIndex = all.FindLastIndex(static e => e is SaveIntentEntry);
         if (intentIndex < 0 || journal.Header is null)
         {
             return new InterruptedSaveReport(InterruptedSave.None, removed);
         }
 
-        var intent = (SaveIntentEntry)tail[intentIndex];
-        var begin = tail.Skip(intentIndex + 1).OfType<SaveBeginEntry>().LastOrDefault();
+        var intent = (SaveIntentEntry)all[intentIndex];
+        var after = all.Skip(intentIndex + 1).ToList();
+        var begin = after.OfType<SaveBeginEntry>().LastOrDefault();
         var target = intent.Target;
         var temp = IsPipelineFile(target, intent.Temp, ".tmp") ? intent.Temp : null;
         var backup = intent.Backup is not null && IsPipelineFile(target, intent.Backup, ".bak") ? intent.Backup : null;
         if (!Path.IsPathFullyQualified(target))
         {
             return new InterruptedSaveReport(InterruptedSave.None, removed);
+        }
+
+        if (after.Any(static e => e is SaveCommittedEntry))
+        {
+            // The save finished and said so; only the cleanup after it may not have run (the backup of the ReplaceFileW fallback is removed after the
+            // commit record). Act only while the target is exactly the output the save validated.
+            if (begin is null || !File.Exists(target) || HashOf(target) != begin.OutputSha256)
+            {
+                return new InterruptedSaveReport(InterruptedSave.None, removed);
+            }
+
+            Remove(temp, removed);
+            Remove(backup, removed);
+            return new InterruptedSaveReport(InterruptedSave.CleanedAfterCommit, removed);
         }
 
         var isSaveAs = !string.Equals(Path.GetFullPath(target), Path.GetFullPath(journal.Header.DocPath), StringComparison.OrdinalIgnoreCase);

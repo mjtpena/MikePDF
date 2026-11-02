@@ -278,7 +278,7 @@ public sealed class RecoveryTests : IDisposable
 
     private sealed record Interrupted(string Document, string Temp, string Backup, byte[] Old, byte[] New, JournalReadResult Journal);
 
-    private Interrupted Arrange(bool begin, string? documentName = null, string? target = null, bool backupInIntent = true)
+    private Interrupted Arrange(bool begin, string? documentName = null, string? target = null, bool backupInIntent = true, bool commit = false)
     {
         var name = documentName ?? "a.pdf";
         var document = Document(name, 4000);
@@ -295,6 +295,11 @@ public sealed class RecoveryTests : IDisposable
         if (begin)
         {
             session.Journal.SaveBegin(Sha(next), next.Length);
+        }
+
+        if (commit)
+        {
+            session.Journal.SaveCommitted();
         }
 
         session.Dispose();
@@ -454,6 +459,32 @@ public sealed class RecoveryTests : IDisposable
         SaveRecovery.Run(forged);
 
         Assert.True(File.Exists(sameNameElsewhere));
+    }
+
+    [Fact]
+    public void ACommitThatWasNotFollowedByTheCleanupFinishesTheCleanupOfTheBackupAndNothingMore()
+    {
+        var s = Arrange(begin: true, commit: true);
+        File.WriteAllBytes(s.Document, s.New); // replaced
+        File.WriteAllBytes(s.Backup, s.Old); // ReplaceFileW's backup, not yet removed when the process died
+
+        var report = SaveRecovery.Run(s.Journal);
+
+        Assert.Equal(InterruptedSave.CleanedAfterCommit, report.Outcome);
+        Assert.False(File.Exists(s.Backup));
+        Assert.Equal(s.New, File.ReadAllBytes(s.Document));
+    }
+
+    [Fact]
+    public void ACommittedJournalWhoseTargetIsNotTheValidatedOutputIsLeftAlone()
+    {
+        var s = Arrange(begin: true, commit: true);
+        File.WriteAllBytes(s.Backup, s.Old); // the user has since saved the document from another program
+
+        var report = SaveRecovery.Run(s.Journal);
+
+        Assert.Equal(InterruptedSave.None, report.Outcome);
+        Assert.True(File.Exists(s.Backup));
     }
 
     [Fact]
