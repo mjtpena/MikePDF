@@ -1,7 +1,6 @@
 using System.Diagnostics;
 using System.Globalization;
 using System.Net;
-using System.Net.NetworkInformation;
 using System.Net.Sockets;
 using MikePDF.Broker;
 
@@ -22,7 +21,10 @@ internal sealed record ProbeReport(Dictionary<string, string> Info, List<ProbeRo
 internal sealed class ProbeRunner : IDisposable
 {
     private readonly SandboxFixture _sandbox;
-    private readonly TcpListener _listener = new(IPAddress.Any, 0);
+    // Loopback only: a listener on any address makes Windows Firewall ask the person at the keyboard whether to allow the test program, and the
+    // tests never need to be reachable from the network. The LAN row below connects to this machine's LAN address on the same port with nothing
+    // listening there, so it tells the sandbox's block (WSAEACCES) from a closed port (WSAECONNREFUSED) by the error code.
+    private readonly TcpListener _listener = new(IPAddress.Loopback, 0);
     private readonly string _scratch;
     private readonly string _tempDll;
 
@@ -39,18 +41,13 @@ internal sealed class ProbeRunner : IDisposable
 
     public int LoopbackPort => ((IPEndPoint)_listener.LocalEndpoint).Port;
 
-    public string? LanEndpoint
-    {
-        get
-        {
-            var address = NetworkInterface.GetAllNetworkInterfaces()
-                .Where(n => n.OperationalStatus == OperationalStatus.Up && n.NetworkInterfaceType != NetworkInterfaceType.Loopback)
-                .SelectMany(n => n.GetIPProperties().UnicastAddresses)
-                .Select(a => a.Address)
-                .FirstOrDefault(a => a.AddressFamily == AddressFamily.InterNetwork && !IPAddress.IsLoopback(a));
-            return address is null ? null : address + ":" + LoopbackPort.ToString(CultureInfo.InvariantCulture);
-        }
-    }
+    /// <summary>
+    /// A connect to a machine that is not this one, with nothing of ours listening anywhere but loopback: 192.0.2.1 is TEST-NET-1 (RFC 5737), an
+    /// address reserved for documentation that nothing answers. Measured on a machine with a LAN: an unsandboxed process gets no answer
+    /// (WSAETIMEDOUT) or a refusal, the sandboxed one fails at once with WSAEACCES (10013), which is how the two are told apart. A connect to this
+    /// machine's own LAN address does not work for this: a closed port answers with a refusal before the AppContainer's filter, in both.
+    /// </summary>
+    public static string LanEndpoint => "192.0.2.1:9";
 
     public async Task<ProbeReport> RunControlAsync()
     {
@@ -105,10 +102,7 @@ internal sealed class ProbeRunner : IDisposable
             "--rogue-dll", Quote(Path.Combine(_sandbox.DeployDirectory, "rogue-copy.dll")),
             "--engine-dir", Quote(_sandbox.DeployDirectory),
         };
-        if (LanEndpoint is { } lan)
-        {
-            parts.AddRange(["--tcp-lan", lan]);
-        }
+        parts.AddRange(["--tcp-lan", LanEndpoint]);
 
         if (control)
         {
