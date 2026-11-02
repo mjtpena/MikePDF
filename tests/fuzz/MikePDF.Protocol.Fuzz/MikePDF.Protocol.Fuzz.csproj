@@ -1,10 +1,13 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <Description>SharpFuzz harness for the MikePDF.Protocol decoders (see README.md).</Description>
+    <Description>Fuzz harness for the MikePDF.Protocol decoders: a dependency-free mutational fuzzer, and SharpFuzz entry points (see README.md).</Description>
+    <!-- A fuzz harness catches nothing on purpose (an escaped exception is the finding) and uses System.Random for mutation, not for security. -->
+    <NoWarn>$(NoWarn);CA5394</NoWarn>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="SharpFuzz" />
     <ProjectReference Include="..\..\..\src\MikePDF.Protocol\MikePDF.Protocol.csproj" />
+    <Compile Include="..\Shared\MutationalFuzzer.cs" Link="Shared\MutationalFuzzer.cs" />
   </ItemGroup>
 </Project>
