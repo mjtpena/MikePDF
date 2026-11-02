@@ -291,3 +291,28 @@ On ARM64 the matrix runs with the class drivers only.
 | PRINT-23 | Test matrix cells marked A pass. Cells S and M are recorded in `docs/test-reports/` as pass, fail or **not run**, never omitted. | Integration + manual record |
 | PRINT-24 | A hostile document (page size 14,400 pt, `/NumCopies 2147483647`, `/PrintPageRange` junk) cannot cause allocation beyond the band cap or more than 99 copies. | Integration |
 | PRINT-25 | Fuzz target for `RenderBand` request decoding exists for both codecs and runs in the fuzz workflow. | Unit (fuzz harness build) |
+
+## 16. Implementation status (W2-print-core, `m3/print-core`)
+
+The pipeline behind the print sheet is built and tested; the sheet itself (design 11-print, `file.print`, the progress strip, the settings keys `print.*`, the strings of section 12) is the next work package. Code: `src/MikePDF.Core/Printing` (pure: ranges, options, geometry, band planning, N-up, copies, eligibility) and `src/MikePDF.Printing` (printers, `DevMode`, the GDI device, `PrintSession` on the engine budget, `PrintJob`). Tests: `tests/MikePDF.Core.Tests/Print*Tests.cs` and `tests/MikePDF.Integration.Tests/Printing/`.
+
+| Id | Status | Where |
+|---|---|---|
+| PRINT-01, -02 | Done | `PrintRangeTests` |
+| PRINT-03, -04 | Done | `PrintLayoutTests` (property tests over 2,000 and 400 random cases) |
+| PRINT-05, -07, -25 | Not touched here: the schema, the codecs and the fuzz targets are wave 2's engine and fuzz packages | `tests/MikePDF.Protocol.Tests`, `EngineClientValidationTests`, `tests/fuzz` |
+| PRINT-06 | **Does not hold as written.** Bands of a page equal the whole-page render except for edge pixels of text, hairlines and rectangle edges (0.1% of the pixels, none near a band boundary); solid content is exact (the engine's own test). PDFium puts the band's offset into a float matrix, and an edge on a half pixel rounds differently. Asked of Opus: change the criterion to "within 0.3% of the pixels, none at a boundary" | `PrintContentTests` |
+| PRINT-08 | Engine reply as before; the defaults taken from it are clamped and junk is ignored | `PrintPolicyTests`, `PrintContentTests.HostilePrintPreferences...` |
+| PRINT-09 | Done, in the pipeline as well as in `PrintEligibility` | `PrintPolicyTests`, `PrintJobTests`, `PrintSessionTests` |
+| PRINT-10 | **Reduced.** Broker and engine private bytes from 10 to 60 pages with a discarding printer. The 1,000 page job to Print To PDF is manual and **UNVERIFIED** | `PrintRecoveryTests` |
+| PRINT-11, -12 | Done, with a scripted engine and with the real one (killed twice, and three times) and the real PDF queue | `PrintJobTests`, `PrintRecoveryTests`, `PrintToPdfTests` |
+| PRINT-13 | Pipeline part done (SSIM of each printed page against the source render, box filtered by 4). 0.99 holds at readable sizes; shrunk text gives 0.98 (see the test). The UI journey is the sheet's | `PrintToPdfTests` |
+| PRINT-14 | Done | `PrintContentTests` |
+| PRINT-15 | **Half.** No highlight ever prints. Field contents do **not** print: PDFium draws a widget only through `FPDF_FFLDraw`, `FPDF_ANNOT` never shows one, and the engine refuses `RenderBand` flag bit 1 until it has a form-fill environment (M4). The job asks again without the bit and says so in `PrintResult.FormLayerUnavailable`. The contents test skips itself, with that reason, until the engine accepts the bit | `PrintContentTests` |
+| PRINT-16, -17, -18 | Done | `PrintContentTests`, `PrintJobTests`, `PrintToPdfTests` |
+| PRINT-19, -20 | M4 (the snapshot of a modified document) | not built |
+| PRINT-21, -22 | The sheet | not built |
+| PRINT-23 | The Print To PDF cells marked A pass on this machine; no XPS queue exists here (OQ-PRINT-7) | `PrintToPdfTests` |
+| PRINT-24 | Done (pixel cap, protocol limits, 99 copies, junk `/PrintPageRange`) | `PrintJobTests`, `PrintContentTests` |
+
+Not in v1, by this spec: booklet. N-up is in the pipeline (`PrintOptions.PagesPerSheet`) and not in the section 3.2 options, so the sheet decides whether to offer it.
