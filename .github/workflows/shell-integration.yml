@@ -7,10 +7,14 @@ name: Shell integration
 #
 # Registry writes (the policy values and a competing handler under HKLM) happen only here, only on a GitHub-hosted runner: install-test.ps1 and the probe both refuse to run
 # unless GITHUB_ACTIONS is 'true' and RUNNER_ENVIRONMENT is 'github-hosted'. Nothing is ever registered on a developer machine.
+#
+# When it runs: on every push to main (always, so the branch that everything merges into is never unchecked); on a pull request that touches the shell, the engine, the protocol,
+# the package manifest, the broker or the package scripts; on a push to a milestone branch (m0/..., m1/...) that touches the same paths; and by hand. A push trigger has one
+# filter for all its branches, so the path test for milestone branches is the `scope` job below, and main is exempt from it.
 on:
   workflow_dispatch:
   pull_request:
-    paths: &shell
+    paths:
       - 'src/MikePDF.ShellExt/**'
       - 'src/MikePDF.ShellHost/**'
       - 'src/MikePDF.App/Package.appxmanifest'
@@ -22,19 +26,47 @@ on:
       - 'build/store/install-test.ps1'
       - '.github/workflows/shell-integration.yml'
   push:
-    branches: ['m[0-9]*/**']
-    paths: *shell
+    branches: [main, 'm[0-9]*/**']
 
 permissions:
   contents: read
 
 concurrency:
   group: shell-integration-${{ github.ref }}
-  cancel-in-progress: true
+  # A newer push to a branch supersedes the older run; main's runs are each kept, so that a result is never lost to the next merge.
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 jobs:
+  scope:
+    name: scope
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      run: ${{ steps.decide.outputs.run }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - id: decide
+        name: Decide whether the shell job runs
+        shell: bash
+        env:
+          EVENT: ${{ github.event_name }}
+          REF: ${{ github.ref }}
+          BEFORE: ${{ github.event.before }}
+        run: |
+          run=true
+          if [ "$EVENT" = push ] && [ "$REF" != refs/heads/main ] && [ "$BEFORE" != 0000000000000000000000000000000000000000 ] && git cat-file -e "$BEFORE^{commit}" 2>/dev/null; then
+            changed=$(git diff --name-only "$BEFORE" "$GITHUB_SHA" | grep -E '^(src/MikePDF\.(ShellExt|ShellHost|Engine|Broker|Protocol)/|src/MikePDF\.App/Package\.appxmanifest$|tests/MikePDF\.ShellExt\.Tests/|build/package\.ps1$|build/store/install-test\.ps1$|\.github/workflows/shell-integration\.yml$)' || true)
+            if [ -z "$changed" ]; then run=false; fi
+          fi
+          echo "event=$EVENT ref=$REF run=$run"
+          echo "run=$run" >> "$GITHUB_OUTPUT"
+
   shell:
     name: shell-${{ matrix.arch }}
+    needs: scope
+    if: needs.scope.outputs.run == 'true'
     strategy:
       fail-fast: false
       matrix:
