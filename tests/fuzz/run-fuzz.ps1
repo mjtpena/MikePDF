@@ -66,19 +66,19 @@ if (-not $SkipBuild) {
         $buildDir = Join-Path $root 'build/out/fuzz-x64'
         Write-Host '==> native fuzz targets (MSVC libFuzzer + AddressSanitizer)' -ForegroundColor Cyan
         & $cmake -S $root -B $buildDir -A x64 "-DMIKEPDF_PDFIUM_DIR=$pdfium" -DMIKEPDF_BUILD_TESTS=OFF -DMIKEPDF_BUILD_FUZZERS=ON -DMIKEPDF_REQUIRE_SPECTRE=OFF
-        if ($LASTEXITCODE -ne 0) { Write-Error 'CMake configure failed'; exit 2 }
+        if ($LASTEXITCODE -ne 0) { Write-Host 'CMake configure failed' -ForegroundColor Red; exit 2 }
         & $cmake --build $buildDir --config Release --target fuzz_protocol fuzz_engine_document --parallel
-        if ($LASTEXITCODE -ne 0) { Write-Error 'native fuzz build failed'; exit 2 }
+        if ($LASTEXITCODE -ne 0) { Write-Host 'native fuzz build failed' -ForegroundColor Red; exit 2 }
     }
     if ($Target | Where-Object { $_ -eq 'protocol-cs' }) {
         Write-Host '==> C# protocol fuzz harness' -ForegroundColor Cyan
         dotnet build (Join-Path $root 'tests/fuzz/MikePDF.Protocol.Fuzz') -c Release -o $csBin['protocol-cs']
-        if ($LASTEXITCODE -ne 0) { Write-Error 'build failed'; exit 2 }
+        if ($LASTEXITCODE -ne 0) { Write-Host 'build failed' -ForegroundColor Red; exit 2 }
     }
     if ($Target | Where-Object { $_ -like 'pdfwriter-*' }) {
         Write-Host '==> C# PdfWriter fuzz harness' -ForegroundColor Cyan
         dotnet build (Join-Path $root 'tests/fuzz/MikePDF.PdfWriter.Fuzz') -c Release -o $csBin['pdfwriter-parse']
-        if ($LASTEXITCODE -ne 0) { Write-Error 'build failed'; exit 2 }
+        if ($LASTEXITCODE -ne 0) { Write-Host 'build failed' -ForegroundColor Red; exit 2 }
     }
 }
 
