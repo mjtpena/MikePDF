@@ -116,7 +116,7 @@ Tab states: normal, selected (accent underline 3 epx), modified (dot), loading (
 - Buttons are icon-only with tooltips ("Zoom out (Ctrl+-)"), as today **[repo]**. Tooltips are generated from the command registry, so the shortcut text is always the current binding.
 - Arrow keys move along the bar; `Tab` leaves it. `Enter` and `Space` activate.
 - Disabled commands explain themselves: no document ("Open a document first"), owner restriction ("The document's owner doesn't allow printing") ([README G-SR5](../README.md#66-screen-reader-g-sr)).
-- **Contextual centre.** In Markup mode ([08](08-markup-and-ink.md)), Organise ([10](10-page-organiser.md)) and Form mode ([09](09-forms.md)) the centre groups (View, Find, Markup) cross-fade (`MotionBase`) to that mode's tools, and a **Done** button appears at the trailing edge. `Esc` or **Done** returns. The row height and the page well do not change. Left (Panes, Page, Zoom) and trailing (Commands, Details) groups are constant.
+- **Contextual centre.** In Markup mode ([08](08-markup-and-ink.md)) and Organise pages ([10](10-page-organiser.md)) the centre groups (View, Find, Markup) cross-fade (`MotionBase`) to that mode's tools, and a **Done** button appears at the trailing edge. Forms have no mode: the **Form bar** and the form commands cover them ([09](09-forms.md)). `Esc` or **Done** returns. The row height and the page well do not change. Left (Panes, Page, Zoom) and trailing (Commands, Details) groups are constant.
 
 ### 3.3 Panes ([06](06-side-panes.md))
 
