@@ -1,4 +1,5 @@
 using MikePDF.Core.Commands;
+using MikePDF.Core.Layout;
 using MikePDF.Core.Persistence;
 using MikePDF.Core.Settings;
 
@@ -34,6 +35,9 @@ internal sealed class AppServices : IDisposable
 
     public CommandHistory History { get; }
 
+    /// <summary>Asks for the PDFium version of the engine (set by the host); null before there is a host.</summary>
+    public Func<Task<string?>>? PdfiumVersion { get; set; }
+
     /// <summary>Stored shortcuts that couldn't be read when the app started.</summary>
     public IReadOnlyList<BindingProblem> ShortcutProblems => _sync.Problems;
 
@@ -67,6 +71,7 @@ internal sealed class AppServices : IDisposable
     {
         Documents.RecentLimit = Settings.Value<int>("recent.maxItems");
         Documents.RestorePositions = Settings.Value<bool>("view.restorePosition");
+        Documents.DefaultMode = ViewMode.Parse(Settings.Value<string>("view.defaultArrangement"), Settings.Value<string>("view.defaultFlow"), null);
     }
 
     public void Dispose()

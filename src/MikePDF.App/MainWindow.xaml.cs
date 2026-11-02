@@ -45,6 +45,12 @@ public sealed partial class MainWindow : Window
         _services = app.Services;
         _store = app.Services.Documents;
         InitializeComponent();
+        Pages.FlowDirection = FlowDirection.LeftToRight; // a document is not mirrored with the window: its pages lie as its binding says
+        if (TestSeams.Get(MikePDF.Core.TestSeamGate.PseudoRtl) == "1")
+        {
+            Root.FlowDirection = FlowDirection.RightToLeft; // a pseudo-RTL build for the journeys (PV-23)
+        }
+
         Pages.LinkActivated += OnLinkActivated;
         Pages.Copied += OnCopied;
         SystemBackdrop = new MicaBackdrop();
@@ -62,6 +68,7 @@ public sealed partial class MainWindow : Window
         AppWindow.Changed += OnAppWindowChanged;
         InitializeReaderGaps();
         InitializeCommands();
+        InitializeViews();
         InitializeTabs();
         RefreshRecent();
         UpdateChrome();
@@ -155,6 +162,7 @@ public sealed partial class MainWindow : Window
     {
         _closed = true;
         _policyTimer?.Stop();
+        KeepAwake(false);
         _services.Settings.Flush(); // a change in the last half second is written now, not lost
         var entries = _entries.Values.ToList();
         _app.OnWindowClosed(this);
@@ -274,20 +282,32 @@ public sealed partial class MainWindow : Window
             ((AppBarButton)ZoomButton).Label = Strings.Get("Zoom_None");
             Title = Strings.Get("AppName");
             AutomationProperties.SetName(PageIndicator, Strings.Get("PageIndicator_None"));
+            SyncViewMenu();
             return;
         }
 
         var controller = session!.Controller;
         var page = Math.Max(0, controller.CurrentPage) + 1;
         var total = controller.PageCount;
-        PageIndicator.Content = Strings.Format("PageIndicator_Text", page, total);
-        AutomationProperties.SetName(PageIndicator, Strings.Format("PageIndicator_Automation", page, total));
+        var (firstPage, lastPage) = controller.CurrentPages;
+        if (lastPage > firstPage)
+        {
+            // A spread: both of its pages ("4-5 / 40"; Narrator hears "Pages 4 and 5 of 40").
+            PageIndicator.Content = Strings.Format("PageIndicator_Spread", firstPage + 1, lastPage + 1, total);
+            AutomationProperties.SetName(PageIndicator, Strings.Format("PageIndicator_SpreadAutomation", firstPage + 1, lastPage + 1, total));
+        }
+        else
+        {
+            PageIndicator.Content = Strings.Format("PageIndicator_Text", page, total);
+            AutomationProperties.SetName(PageIndicator, Strings.Format("PageIndicator_Automation", page, total));
+        }
         var percent = Math.Round(controller.Zoom * 100).ToString("0", CultureInfo.CurrentCulture);
         ((AppBarButton)ZoomButton).Label = percent + "%";
         AutomationProperties.SetName(ZoomButton, Strings.Format("Zoom_Automation", percent));
         AutomationProperties.SetItemStatus(Pages, controller.ViewTurns == 0 ? Strings.Get("Surface_NotRotated") : Strings.Format("Surface_Rotated", controller.ViewTurns * 90));
         var title = Strings.Format("Window_Title", session.Title);
         Title = title;
+        SyncViewChrome(session);
     }
 
     // ---- banner ------------------------------------------------------------------------------

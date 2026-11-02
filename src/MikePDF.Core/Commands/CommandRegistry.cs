@@ -119,7 +119,7 @@ public sealed class CommandRegistry
             return new BindingProblem(BindingProblemKind.ReservedChord, id, chord.ToString());
         }
 
-        if (!chord.HasControl && !chord.HasAlt && ChordKeys.IsPrintable(chord.Key) && command.Scope != CommandScope.Reader)
+        if (!chord.HasControl && !chord.HasAlt && ChordKeys.IsPrintable(chord.Key) && command.Scope is not (CommandScope.Reader or CommandScope.Presentation))
         {
             return new BindingProblem(BindingProblemKind.PlainKeyOutsideReader, id, chord.ToString());
         }

@@ -25,6 +25,7 @@ public sealed class DarkPageContractTests
     {
         var source = File.ReadAllText(Path.Combine(ResourceText.RepoRoot(), "src", "MikePDF.App", "Services", "EngineTileRenderer.cs"));
         Assert.Contains("public bool DarkPages", source, StringComparison.Ordinal);
-        Assert.Contains("(DarkPages ? RenderTileArgs.DarkPage : 0)", source, StringComparison.Ordinal);
+        Assert.Contains("var dark = DarkPages;", source, StringComparison.Ordinal); // read once, so a tile drawn across a change of setting can be told from the new ones
+        Assert.Contains("(dark ? RenderTileArgs.DarkPage : 0)", source, StringComparison.Ordinal);
     }
 }

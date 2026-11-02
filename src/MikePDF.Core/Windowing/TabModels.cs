@@ -15,8 +15,8 @@ public enum TabKind
     Settings,
 }
 
-/// <summary>Where a document was left in a tab: kept with the tab, in the session file and in the closed-tab stack.</summary>
-public sealed record TabViewState(int Page, double PageFraction, double Zoom, FitMode Fit, int ViewTurns)
+/// <summary>Where a document was left in a tab, and how it was viewed (page arrangement, flow and reading direction): kept with the tab, in the session file and in the closed-tab stack.</summary>
+public sealed record TabViewState(int Page, double PageFraction, double Zoom, FitMode Fit, int ViewTurns, ViewMode Mode = default)
 {
     public static TabViewState Start { get; } = new(0, 0, 1.0, FitMode.Width, 0);
 }

@@ -26,6 +26,10 @@ internal static class AboutContent
         panel.Children.Add(title);
         panel.Children.Add(Line("AboutVersion", Strings.Format("About_Version", AppPaths.Version, RuntimeInformation.ProcessArchitecture.ToString().ToLowerInvariant())));
         panel.Children.Add(Line("AboutEngine", Strings.Get("About_Engine")));
+        var pdfium = Line("AboutPdfium", Strings.Get("About_Pdfium_Loading"));
+        AutomationProperties.SetLiveSetting(pdfium, AutomationLiveSetting.Polite);
+        panel.Children.Add(pdfium);
+        _ = ShowPdfiumVersionAsync(services, pdfium);
         panel.Children.Add(Line("AboutPrivacy", Strings.Get("About_NoTracking")));
         panel.Children.Add(Line("AboutUpdates", Strings.Get("About_Updates")));
         panel.Children.Add(Line("AboutLicence", Strings.Get("About_Licences")));
@@ -62,6 +66,22 @@ internal static class AboutContent
         panel.Children.Add(copy);
         panel.Children.Add(copied);
         return panel;
+    }
+
+    // The version comes from the engine's Hello, so it needs no document; until it is known the line says it is being read, and if no engine can start it says unavailable.
+    private static async Task ShowPdfiumVersionAsync(AppServices services, TextBlock line)
+    {
+        string? version = null;
+        try
+        {
+            version = services.PdfiumVersion is { } ask ? await ask() : null;
+        }
+        catch (Exception e) when (e is COMException or InvalidOperationException or OperationCanceledException)
+        {
+            // Shown as unavailable below.
+        }
+
+        line.Text = string.IsNullOrEmpty(version) ? Strings.Get("About_Pdfium_Unavailable") : Strings.Format("About_Pdfium", version);
     }
 
     /// <summary>The policy lines as a list: each item is read as one line, "Name: set to value. Effect (source)".</summary>

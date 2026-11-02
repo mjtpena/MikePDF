@@ -312,7 +312,7 @@ Not done, or not verified: see the completion note.
 
 ## 16. Test seams
 
-The journeys steer the app through four environment variables. **Every one is read through `TestSeamGate` (`MikePDF.Core`) and `TestSeams` (the app), and none is read when the app runs from a Store-signed package** (`Package.Current.SignatureKind == PackageSignatureKind.Store`; if the kind cannot be read the app counts as shipped and ignores them). `TestSeamGateTests` checks the gate with an injectable signature kind, that no other code reads a `MIKEPDF_TEST_` variable, and that this list is the whole list.
+The journeys steer the app through seven environment variables. **Every one is read through `TestSeamGate` (`MikePDF.Core`) and `TestSeams` (the app), and none is read when the app runs from a Store-signed package** (`Package.Current.SignatureKind == PackageSignatureKind.Store`; if the kind cannot be read the app counts as shipped and ignores them). `TestSeamGateTests` checks the gate with an injectable signature kind, that no other code reads a `MIKEPDF_TEST_` variable, and that this list is the whole list.
 
 | Variable | What it does |
 |---|---|
@@ -320,3 +320,6 @@ The journeys steer the app through four environment variables. **Every one is re
 | `MIKEPDF_TEST_RESTORE` | Overrides the `startup.restore` setting (`Always`, `Ask`, `Never`). The harness passes `Never` unless a journey is about the session. |
 | `MIKEPDF_TEST_FAKE_DIRTY` | `1` marks every opened document as having unsaved edits, so the close prompts can be driven before the save pipeline exists. |
 | `MIKEPDF_TEST_JUMPLIST_DUMP` | A file name in the private folder; the app writes the Jump List items it saved there. |
+| `MIKEPDF_TEST_PSEUDO_RTL` | `1` lays the whole window out right to left (a pseudo-RTL build, PV-23), so a journey can check that the menus, the command bar and the presentation bar mirror and that the pages do not. |
+| `MIKEPDF_TEST_PRESENT_DUMP` | A file name in the private folder; the app appends `awake` when presentation mode asks Windows to keep the display awake and `asleep` when it lets go (docs/features/page-view-modes.md, PV-14), and `turn <ms to the first frame> <ms to a frame with every tile sharp>` for each page turned in a presentation (PV-17). |
+| `MIKEPDF_TEST_NO_PREFETCH` | `1` turns off the drawing-ahead of the pages beside the one presented, so a journey can measure the turn with and without it. |

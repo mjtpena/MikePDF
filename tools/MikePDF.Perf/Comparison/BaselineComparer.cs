@@ -25,6 +25,9 @@ public enum Verdict
 
     /// <summary>Not run in this run, with a reason.</summary>
     Skipped,
+
+    /// <summary>A/B gate only: looks worse than the threshold, but the evidence (the confidence interval, or the number of paired rounds) does not show it is real. Passes, loudly.</summary>
+    Unconfirmed,
 }
 
 /// <summary><paramref name="Change"/> is a fraction of the baseline, signed so that positive always means worse, whichever way the metric points.</summary>

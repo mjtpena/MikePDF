@@ -75,3 +75,18 @@ The shell-extensions work package applies the ten spec corrections in the S6b re
 | Opening many files (Q12) | Confirm above 10 files, read at most 100. The spec's 25 is replaced |
 | UI journeys and the shell handlers | `build/run-ui-tests.ps1` always registers a copy of the package without the Explorer handlers and COM servers, and refuses to run if any remain. Shell handlers are tested only on hosted runners |
 | Test seams in shipped builds | Every `MIKEPDF_TEST_*` variable goes through one gate that ignores them in Store-signed packages |
+
+## After the page views review (2026-11-03)
+| Item | Decision |
+|---|---|
+| Fit width in two-page modes | Fits the spread on screen, not the widest spread in the document, matching the design and single-page behaviour |
+| Presentation arrangement | Always one page at a time, as the feature spec says (design 04's two-page presentation is replaced) |
+| Layout shortcuts | Ctrl+4 to Ctrl+6 choose the layout and Ctrl+7 toggles continuous; Ctrl+Alt chords aren't allowed as defaults |
+| Pointer hide in presentation | 3 s, as the feature spec says |
+
+## After the page views follow-up (2026-11-03)
+| Item | Decision |
+|---|---|
+| Default layout settings | Two keys, `view.defaultArrangement` and `view.defaultFlow`, as `settings-policies.md` defines them; the feature spec's single `view.defaultMode` is the older name and is replaced. A document with its own saved view keeps it |
+| A document's `/PageLayout` (OQ-PV-5) | Not honoured in v1.0: the PDFium build exposes no call that reads it, and parsing the catalog outside the sandbox is not allowed. The person's default layout applies. Revisit if an engine work package adds a catalog read |
+| Drawing ahead in a presentation | The next spread, the one before and the one after the next, up to 70% of the tile cache, after the page on screen. Peak memory in a real presentation is still to be measured |

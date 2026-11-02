@@ -94,6 +94,29 @@
                 </AppBarButton.Icon>
             </AppBarButton>
             <AppBarSeparator />
+            <AppBarButton x:Name="ViewButton" x:Uid="ViewButton" AutomationProperties.AutomationId="ViewButton" IsEnabled="False">
+                <AppBarButton.Icon>
+                    <FontIcon Glyph="&#xE8A9;" />
+                </AppBarButton.Icon>
+                <AppBarButton.Flyout>
+                    <MenuFlyout x:Name="ViewMenu">
+                        <RadioMenuFlyoutItem x:Name="LayoutSingleItem" GroupName="PageLayout" AutomationProperties.AutomationId="LayoutSingle" />
+                        <RadioMenuFlyoutItem x:Name="LayoutTwoItem" GroupName="PageLayout" AutomationProperties.AutomationId="LayoutTwo" />
+                        <RadioMenuFlyoutItem x:Name="LayoutTwoCoverItem" GroupName="PageLayout" AutomationProperties.AutomationId="LayoutTwoCover" />
+                        <MenuFlyoutSeparator />
+                        <ToggleMenuFlyoutItem x:Name="LayoutContinuousItem" AutomationProperties.AutomationId="LayoutContinuous" />
+                        <ToggleMenuFlyoutItem x:Name="LayoutCoverPageItem" AutomationProperties.AutomationId="LayoutCoverPage" />
+                        <MenuFlyoutSubItem x:Name="DirectionMenu" x:Uid="DirectionMenu" AutomationProperties.AutomationId="DirectionMenu">
+                            <RadioMenuFlyoutItem x:Name="DirectionAutoItem" GroupName="ReadingDirection" AutomationProperties.AutomationId="DirectionAuto" />
+                            <RadioMenuFlyoutItem x:Name="DirectionLtrItem" GroupName="ReadingDirection" AutomationProperties.AutomationId="DirectionLtr" />
+                            <RadioMenuFlyoutItem x:Name="DirectionRtlItem" GroupName="ReadingDirection" AutomationProperties.AutomationId="DirectionRtl" />
+                        </MenuFlyoutSubItem>
+                        <MenuFlyoutSeparator />
+                        <MenuFlyoutItem x:Name="PresentationItem" AutomationProperties.AutomationId="ViewPresentation" />
+                    </MenuFlyout>
+                </AppBarButton.Flyout>
+            </AppBarButton>
+            <AppBarSeparator />
             <AppBarButton x:Name="RotateLeftButton" AutomationProperties.AutomationId="RotateLeftButton" IsEnabled="False">
                 <AppBarButton.Icon>
                     <FontIcon Glyph="&#xE7AD;" RenderTransformOrigin="0.5,0.5">
@@ -254,6 +277,21 @@
                     <Button x:Name="BannerAction" AutomationProperties.AutomationId="BannerAction" Visibility="Collapsed" />
                 </InfoBar.ActionButton>
             </InfoBar>
+
+            <!-- Presentation mode (Ctrl+L): the black or white screen over the page, the page-number bar with Exit, and the page being typed. Collapsed (so not in the accessibility tree) except while they show. -->
+            <Border x:Name="BlankScreen" Visibility="Collapsed" Background="Black" IsHitTestVisible="False" AutomationProperties.AccessibilityView="Raw" />
+            <Border x:Name="PresentationGoTo" Visibility="Collapsed" HorizontalAlignment="Center" VerticalAlignment="Center" Padding="24,12" CornerRadius="8" Background="#CC000000"
+                    AutomationProperties.AccessibilityView="Raw">
+                <TextBlock x:Name="PresentationGoToText" Foreground="White" FontSize="28" />
+            </Border>
+            <Border x:Name="PresentationHint" Visibility="Collapsed" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,24,24" Padding="12,6" CornerRadius="8"
+                    Background="#CC202020" AutomationProperties.AutomationId="PresentationHint" PointerEntered="OnPresentationHintEntered" PointerExited="OnPresentationHintExited">
+                <StackPanel Orientation="Horizontal" Spacing="12">
+                    <TextBlock x:Name="PresentationEscText" Foreground="White" VerticalAlignment="Center" AutomationProperties.AutomationId="PresentationEscText" />
+                    <TextBlock x:Name="PresentationPageText" Foreground="White" VerticalAlignment="Center" AutomationProperties.AutomationId="PresentationPage" />
+                    <Button x:Name="PresentationExit" AutomationProperties.AutomationId="PresentationExit" />
+                </StackPanel>
+            </Border>
 
             <ProgressRing x:Name="Busy" x:Uid="Busy" AutomationProperties.AutomationId="Busy" IsActive="False" Width="48" Height="48" HorizontalAlignment="Center" VerticalAlignment="Center" />
         </Grid>

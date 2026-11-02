@@ -40,8 +40,9 @@ internal sealed class EngineTileRenderer(SupervisedDocument document, TimeSpan d
     public async Task<RenderResult> RenderAsync(RenderRequest request, CancellationToken cancellationToken)
     {
         // The form layer: PDFium draws a field's widget only through its form-fill environment, so without bit 1 a filled form shows empty fields. Tiles and printed bands draw them the same way.
+        var dark = DarkPages;
         var args = new RenderTileArgs((uint)request.Key.Page, request.Scale, (ushort)request.Turns, request.X, request.Y, (uint)request.Width, (uint)request.Height,
-            RenderTileArgs.Annotations | RenderTileArgs.FormFields | (DarkPages ? RenderTileArgs.DarkPage : 0));
+            RenderTileArgs.Annotations | RenderTileArgs.FormFields | (dark ? RenderTileArgs.DarkPage : 0));
         EngineResult<TileLease> result;
         try
         {
@@ -49,6 +50,13 @@ internal sealed class EngineTileRenderer(SupervisedDocument document, TimeSpan d
         }
         catch (OperationCanceledException)
         {
+            return new RenderResult(RenderStatus.Cancelled);
+        }
+
+        if (dark != DarkPages)
+        {
+            // The page colour changed while this tile was being drawn: it is the other colour, and the cache was emptied for the new one. Not kept; the scheduler asks again.
+            result.Value?.Dispose();
             return new RenderResult(RenderStatus.Cancelled);
         }
 
