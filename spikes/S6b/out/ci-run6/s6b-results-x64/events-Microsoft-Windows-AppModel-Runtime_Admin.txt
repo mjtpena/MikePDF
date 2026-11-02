@@ -1,0 +1,305 @@
+
+
+TimeCreated  : 11/2/2026 12:56:45 PM
+Id           : 211
+ProviderName : Microsoft-Windows-AppModel-Runtime
+Message      : Added process 8472 to Desktop AppX container 4b1c03c7-d6bc-11f1-925a-e4fade3cb02b for package MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28.
+
+TimeCreated  : 11/2/2026 12:56:45 PM
+Id           : 211
+ProviderName : Microsoft-Windows-AppModel-Runtime
+Message      : Added process 7560 to Desktop AppX container 4b1c03c7-d6bc-11f1-925a-e4fade3cb02b for package MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28.
+
+TimeCreated  : 11/2/2026 12:56:45 PM
+Id           : 211
+ProviderName : Microsoft-Windows-AppModel-Runtime
+Message      : Added process 3268 to Desktop AppX container 4b1c03c7-d6bc-11f1-925a-e4fade3cb02b for package MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28.
+
+TimeCreated  : 11/2/2026 12:56:44 PM
+Id           : 211
+ProviderName : Microsoft-Windows-AppModel-Runtime
+Message      : Added process 6208 to Desktop AppX container 4b1c03c7-d6bc-11f1-925a-e4fade3cb02b for package MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28.
+
+TimeCreated  : 11/2/2026 12:56:44 PM
+Id           : 211
+ProviderName : Microsoft-Windows-AppModel-Runtime
+Message      : Added process 8424 to Desktop AppX container 4b1c03c7-d6bc-11f1-925a-e4fade3cb02b for package MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28.
+
+TimeCreated  : 11/2/2026 12:56:44 PM
+Id           : 211
+ProviderName : Microsoft-Windows-AppModel-Runtime
+Message      : Added process 8092 to Desktop AppX container 4b1c03c7-d6bc-11f1-925a-e4fade3cb02b for package MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28.
+
+TimeCreated  : 11/2/2026 12:56:44 PM
+Id           : 211
+ProviderName : Microsoft-Windows-AppModel-Runtime
+Message      : Added process 1352 to Desktop AppX container 4b1c03c7-d6bc-11f1-925a-e4fade3cb02b for package MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28.
+
+TimeCreated  : 11/2/2026 12:56:43 PM
+Id           : 211
+ProviderName : Microsoft-Windows-AppModel-Runtime
+Message      : Added process 4680 to Desktop AppX container 4b1c03c7-d6bc-11f1-925a-e4fade3cb02b for package MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28.
+
+TimeCreated  : 11/2/2026 12:56:43 PM
+Id           : 211
+ProviderName : Microsoft-Windows-AppModel-Runtime
+Message      : Added process 8696 to Desktop AppX container 4b1c03c7-d6bc-11f1-925a-e4fade3cb02b for package MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28.
+
+TimeCreated  : 11/2/2026 12:56:43 PM
+Id           : 211
+ProviderName : Microsoft-Windows-AppModel-Runtime
+Message      : Added process 7664 to Desktop AppX container 4b1c03c7-d6bc-11f1-925a-e4fade3cb02b for package MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28.
+
+TimeCreated  : 11/2/2026 12:56:43 PM
+Id           : 211
+ProviderName : Microsoft-Windows-AppModel-Runtime
+Message      : Added process 1628 to Desktop AppX container 4b1c03c7-d6bc-11f1-925a-e4fade3cb02b for package MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28.
+
+TimeCreated  : 11/2/2026 12:56:43 PM
+Id           : 211
+ProviderName : Microsoft-Windows-AppModel-Runtime
+Message      : Added process 6636 to Desktop AppX container 4b1c03c7-d6bc-11f1-925a-e4fade3cb02b for package MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28.
+
+TimeCreated  : 11/2/2026 12:56:43 PM
+Id           : 40
+ProviderName : Microsoft-Windows-AppModel-Runtime
+Message      : AppContainer onecore\ds\security\gina\profile\profext\appcontainer.cpp Line:1863 S6b shell host MikePDF.S6bShell was not created because it already exists.
+
+TimeCreated  : 11/2/2026 12:56:43 PM
+Id           : 211
+ProviderName : Microsoft-Windows-AppModel-Runtime
+Message      : Added process 1528 to Desktop AppX container 4b1c03c7-d6bc-11f1-925a-e4fade3cb02b for package MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28.
+
+TimeCreated  : 11/2/2026 12:56:41 PM
+Id           : 40
+ProviderName : Microsoft-Windows-AppModel-Runtime
+Message      : AppContainer onecore\ds\security\gina\profile\profext\appcontainer.cpp Line:1863 S6b shell host MikePDF.S6bShell was not created because it already exists.
+
+TimeCreated  : 11/2/2026 12:56:41 PM
+Id           : 40
+ProviderName : Microsoft-Windows-AppModel-Runtime
+Message      : AppContainer onecore\ds\security\gina\profile\profext\appcontainer.cpp Line:1863 S6b shell host MikePDF.S6bShell was not created because it already exists.
+
+TimeCreated  : 11/2/2026 12:56:41 PM
+Id           : 40
+ProviderName : Microsoft-Windows-AppModel-Runtime
+Message      : AppContainer onecore\ds\security\gina\profile\profext\appcontainer.cpp Line:1863 S6b shell host MikePDF.S6bShell was not created because it already exists.
+
+TimeCreated  : 11/2/2026 12:56:41 PM
+Id           : 211
+ProviderName : Microsoft-Windows-AppModel-Runtime
+Message      : Added process 5492 to Desktop AppX container 4b1c03c7-d6bc-11f1-925a-e4fade3cb02b for package MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28.
+
+TimeCreated  : 11/2/2026 12:56:40 PM
+Id           : 211
+ProviderName : Microsoft-Windows-AppModel-Runtime
+Message      : Added process 6428 to Desktop AppX container 4b1c03c7-d6bc-11f1-925a-e4fade3cb02b for package MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28.
+
+TimeCreated  : 11/2/2026 12:56:40 PM
+Id           : 211
+ProviderName : Microsoft-Windows-AppModel-Runtime
+Message      : Added process 6420 to Desktop AppX container 4b1c03c7-d6bc-11f1-925a-e4fade3cb02b for package MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28.
+
+TimeCreated  : 11/2/2026 12:56:40 PM
+Id           : 211
+ProviderName : Microsoft-Windows-AppModel-Runtime
+Message      : Added process 4348 to Desktop AppX container 4b1c03c7-d6bc-11f1-925a-e4fade3cb02b for package MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28.
+
+TimeCreated  : 11/2/2026 12:56:40 PM
+Id           : 211
+ProviderName : Microsoft-Windows-AppModel-Runtime
+Message      : Added process 3428 to Desktop AppX container 4b1c03c7-d6bc-11f1-925a-e4fade3cb02b for package MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28.
+
+TimeCreated  : 11/2/2026 12:56:39 PM
+Id           : 211
+ProviderName : Microsoft-Windows-AppModel-Runtime
+Message      : Added process 5744 to Desktop AppX container 4b1c03c7-d6bc-11f1-925a-e4fade3cb02b for package MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28.
+
+TimeCreated  : 11/2/2026 12:56:39 PM
+Id           : 211
+ProviderName : Microsoft-Windows-AppModel-Runtime
+Message      : Added process 1872 to Desktop AppX container 4b1c03c7-d6bc-11f1-925a-e4fade3cb02b for package MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28.
+
+TimeCreated  : 11/2/2026 12:56:39 PM
+Id           : 211
+ProviderName : Microsoft-Windows-AppModel-Runtime
+Message      : Added process 7940 to Desktop AppX container 4b1c03c7-d6bc-11f1-925a-e4fade3cb02b for package MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28.
+
+TimeCreated  : 11/2/2026 12:56:39 PM
+Id           : 211
+ProviderName : Microsoft-Windows-AppModel-Runtime
+Message      : Added process 2832 to Desktop AppX container 4b1c03c7-d6bc-11f1-925a-e4fade3cb02b for package MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28.
+
+TimeCreated  : 11/2/2026 12:56:39 PM
+Id           : 211
+ProviderName : Microsoft-Windows-AppModel-Runtime
+Message      : Added process 4712 to Desktop AppX container 4b1c03c7-d6bc-11f1-925a-e4fade3cb02b for package MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28.
+
+TimeCreated  : 11/2/2026 12:56:38 PM
+Id           : 211
+ProviderName : Microsoft-Windows-AppModel-Runtime
+Message      : Added process 5456 to Desktop AppX container 4b1c03c7-d6bc-11f1-925a-e4fade3cb02b for package MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28.
+
+TimeCreated  : 11/2/2026 12:56:38 PM
+Id           : 40
+ProviderName : Microsoft-Windows-AppModel-Runtime
+Message      : AppContainer onecore\ds\security\gina\profile\profext\appcontainer.cpp Line:1863 S6b shell host MikePDF.S6bShell was not created because it already exists.
+
+TimeCreated  : 11/2/2026 12:56:38 PM
+Id           : 211
+ProviderName : Microsoft-Windows-AppModel-Runtime
+Message      : Added process 1528 to Desktop AppX container 4b1c03c7-d6bc-11f1-925a-e4fade3cb02b for package MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28.
+
+TimeCreated  : 11/2/2026 12:56:37 PM
+Id           : 40
+ProviderName : Microsoft-Windows-AppModel-Runtime
+Message      : AppContainer onecore\ds\security\gina\profile\profext\appcontainer.cpp Line:1863 S6b shell host MikePDF.S6bShell was not created because it already exists.
+
+TimeCreated  : 11/2/2026 12:56:37 PM
+Id           : 40
+ProviderName : Microsoft-Windows-AppModel-Runtime
+Message      : AppContainer onecore\ds\security\gina\profile\profext\appcontainer.cpp Line:1863 S6b shell host MikePDF.S6bShell was not created because it already exists.
+
+TimeCreated  : 11/2/2026 12:56:37 PM
+Id           : 40
+ProviderName : Microsoft-Windows-AppModel-Runtime
+Message      : AppContainer onecore\ds\security\gina\profile\profext\appcontainer.cpp Line:1863 S6b shell host MikePDF.S6bShell was not created because it already exists.
+
+TimeCreated  : 11/2/2026 12:56:36 PM
+Id           : 211
+ProviderName : Microsoft-Windows-AppModel-Runtime
+Message      : Added process 7368 to Desktop AppX container 4b1c03c7-d6bc-11f1-925a-e4fade3cb02b for package MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28.
+
+TimeCreated  : 11/2/2026 12:56:36 PM
+Id           : 211
+ProviderName : Microsoft-Windows-AppModel-Runtime
+Message      : Added process 6552 to Desktop AppX container 4b1c03c7-d6bc-11f1-925a-e4fade3cb02b for package MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28.
+
+TimeCreated  : 11/2/2026 12:56:36 PM
+Id           : 211
+ProviderName : Microsoft-Windows-AppModel-Runtime
+Message      : Added process 2552 to Desktop AppX container 4b1c03c7-d6bc-11f1-925a-e4fade3cb02b for package MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28.
+
+TimeCreated  : 11/2/2026 12:56:35 PM
+Id           : 211
+ProviderName : Microsoft-Windows-AppModel-Runtime
+Message      : Added process 9096 to Desktop AppX container 4b1c03c7-d6bc-11f1-925a-e4fade3cb02b for package MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28.
+
+TimeCreated  : 11/2/2026 12:56:35 PM
+Id           : 211
+ProviderName : Microsoft-Windows-AppModel-Runtime
+Message      : Added process 2444 to Desktop AppX container 4b1c03c7-d6bc-11f1-925a-e4fade3cb02b for package MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28.
+
+TimeCreated  : 11/2/2026 12:56:35 PM
+Id           : 211
+ProviderName : Microsoft-Windows-AppModel-Runtime
+Message      : Added process 7940 to Desktop AppX container 4b1c03c7-d6bc-11f1-925a-e4fade3cb02b for package MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28.
+
+TimeCreated  : 11/2/2026 12:56:34 PM
+Id           : 211
+ProviderName : Microsoft-Windows-AppModel-Runtime
+Message      : Added process 7680 to Desktop AppX container 4b1c03c7-d6bc-11f1-925a-e4fade3cb02b for package MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28.
+
+TimeCreated  : 11/2/2026 12:56:34 PM
+Id           : 211
+ProviderName : Microsoft-Windows-AppModel-Runtime
+Message      : Added process 3128 to Desktop AppX container 4b1c03c7-d6bc-11f1-925a-e4fade3cb02b for package MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28.
+
+TimeCreated  : 11/2/2026 12:56:34 PM
+Id           : 211
+ProviderName : Microsoft-Windows-AppModel-Runtime
+Message      : Added process 1332 to Desktop AppX container 4b1c03c7-d6bc-11f1-925a-e4fade3cb02b for package MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28.
+
+TimeCreated  : 11/2/2026 12:56:34 PM
+Id           : 211
+ProviderName : Microsoft-Windows-AppModel-Runtime
+Message      : Added process 5904 to Desktop AppX container 4b1c03c7-d6bc-11f1-925a-e4fade3cb02b for package MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28.
+
+TimeCreated  : 11/2/2026 12:56:34 PM
+Id           : 211
+ProviderName : Microsoft-Windows-AppModel-Runtime
+Message      : Added process 7396 to Desktop AppX container 4b1c03c7-d6bc-11f1-925a-e4fade3cb02b for package MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28.
+
+TimeCreated  : 11/2/2026 12:56:34 PM
+Id           : 40
+ProviderName : Microsoft-Windows-AppModel-Runtime
+Message      : AppContainer onecore\ds\security\gina\profile\profext\appcontainer.cpp Line:1863 S6b shell host MikePDF.S6bShell was not created because it already exists.
+
+TimeCreated  : 11/2/2026 12:56:34 PM
+Id           : 211
+ProviderName : Microsoft-Windows-AppModel-Runtime
+Message      : Added process 8020 to Desktop AppX container 4b1c03c7-d6bc-11f1-925a-e4fade3cb02b for package MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28.
+
+TimeCreated  : 11/2/2026 12:56:32 PM
+Id           : 40
+ProviderName : Microsoft-Windows-AppModel-Runtime
+Message      : AppContainer onecore\ds\security\gina\profile\profext\appcontainer.cpp Line:1863 S6b shell host MikePDF.S6bShell was not created because it already exists.
+
+TimeCreated  : 11/2/2026 12:56:32 PM
+Id           : 40
+ProviderName : Microsoft-Windows-AppModel-Runtime
+Message      : AppContainer onecore\ds\security\gina\profile\profext\appcontainer.cpp Line:1863 S6b shell host MikePDF.S6bShell was not created because it already exists.
+
+TimeCreated  : 11/2/2026 12:56:32 PM
+Id           : 39
+ProviderName : Microsoft-Windows-AppModel-Runtime
+Message      : Successfully created AppContainer MikePDF.S6bShell.
+
+TimeCreated  : 11/2/2026 12:56:32 PM
+Id           : 211
+ProviderName : Microsoft-Windows-AppModel-Runtime
+Message      : Added process 1924 to Desktop AppX container 4b1c03c7-d6bc-11f1-925a-e4fade3cb02b for package MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28.
+
+TimeCreated  : 11/2/2026 12:56:32 PM
+Id           : 211
+ProviderName : Microsoft-Windows-AppModel-Runtime
+Message      : Added process 6952 to Desktop AppX container 4b1c0254-d6bc-11f1-925a-e4fade3cb02b for package Microsoft.WindowsTerminal_1.23.20211.0_x64__8wekyb3d8bbwe.
+
+TimeCreated  : 11/2/2026 12:56:32 PM
+Id           : 201
+ProviderName : Microsoft-Windows-AppModel-Runtime
+Message      : Created process 5016 for application MikePDF.S6bProbe_gxqed95vwwy28!Driver in package MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28. [FinishPackageActivation]
+
+TimeCreated  : 11/2/2026 12:56:32 PM
+Id           : 211
+ProviderName : Microsoft-Windows-AppModel-Runtime
+Message      : Added process 5016 to Desktop AppX container 4b1c03c7-d6bc-11f1-925a-e4fade3cb02b for package MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28.
+
+TimeCreated  : 11/2/2026 12:56:32 PM
+Id           : 210
+ProviderName : Microsoft-Windows-AppModel-Runtime
+Message      : Created Desktop AppX container {4B1C03C7-D6BC-11F1-925A-E4FADE3CB02B} for package MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28.
+
+TimeCreated  : 11/2/2026 12:56:31 PM
+Id           : 219
+ProviderName : Microsoft-Windows-AppModel-Runtime
+Message      : PSMFlags for Desktop AppX process %1 with applicationID %2 is %3.
+
+TimeCreated  : 11/2/2026 12:56:22 PM
+Id           : 39
+ProviderName : Microsoft-Windows-AppModel-Runtime
+Message      : Successfully created AppContainer MikePDF.S6bProbe_gxqed95vwwy28.
+
+TimeCreated  : 11/2/2026 12:55:01 PM
+Id           : 39
+ProviderName : Microsoft-Windows-AppModel-Runtime
+Message      : Successfully created AppContainer Microsoft.SecHealthUI_8wekyb3d8bbwe.
+
+TimeCreated  : 11/2/2026 12:54:58 PM
+Id           : 39
+ProviderName : Microsoft-Windows-AppModel-Runtime
+Message      : Successfully created AppContainer Microsoft.VCLibs.140.00_8wekyb3d8bbwe.
+
+TimeCreated  : 11/2/2026 12:54:22 PM
+Id           : 211
+ProviderName : Microsoft-Windows-AppModel-Runtime
+Message      : Added process 7284 to Desktop AppX container 4b1c0254-d6bc-11f1-925a-e4fade3cb02b for package Microsoft.WindowsTerminal_1.23.20211.0_x64__8wekyb3d8bbwe.
+
+TimeCreated  : 11/2/2026 12:54:22 PM
+Id           : 211
+ProviderName : Microsoft-Windows-AppModel-Runtime
+Message      : Added process 4692 to Desktop AppX container 4b1c0254-d6bc-11f1-925a-e4fade3cb02b for package Microsoft.WindowsTerminal_1.23.20211.0_x64__8wekyb3d8bbwe.
+
+
+
+

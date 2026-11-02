@@ -1,0 +1,23 @@
+driver pid 7564, integrity RID 0x3000 (high or above), elevated token=1, package (none), family (none), native arch 12
+== experiment none (default .pdf ProgID: MSEdgePDF)
+  GetImage(.pdf): ok hr=0x00000000 160.1 ms 198x256 non-white 21%
+  served by: MikePDF packaged handler +1, competitor (ExeServer) +0
+driver pid 5884, integrity RID 0x3000 (high or above), elevated token=1, package (none), family (none), native arch 12
+== experiment ext-level (default .pdf ProgID: MSEdgePDF)
+  registry: HKCU\Software\Classes\.pdf\ShellEx\{E357FCCD-A995-4576-B01F-234630154E96} = {6B7C2D10-5A1E-4F3B-9C11-0A5B6D6B0003} (written)
+  SHChangeNotify(SHCNE_ASSOCCHANGED) sent, waited 1.5 s
+  GetImage(.pdf): ok hr=0x00000000 87.1 ms 198x256 non-white 21%
+  served by: MikePDF packaged handler +1, competitor (ExeServer) +0
+driver pid 5356, integrity RID 0x3000 (high or above), elevated token=1, package (none), family (none), native arch 12
+== experiment progid-level (default .pdf ProgID: MSEdgePDF)
+  registry: HKCU\Software\Classes\MSEdgePDF\ShellEx\{E357FCCD-A995-4576-B01F-234630154E96} = {6B7C2D10-5A1E-4F3B-9C11-0A5B6D6B0003} (written)
+  SHChangeNotify(SHCNE_ASSOCCHANGED) sent, waited 1.5 s
+  GetImage(.pdf): ok hr=0x00000000 88.0 ms 198x256 non-white 21%
+  served by: MikePDF packaged handler +1, competitor (ExeServer) +0
+driver pid 7112, integrity RID 0x3000 (high or above), elevated token=1, package (none), family (none), native arch 12
+== experiment both (default .pdf ProgID: MSEdgePDF)
+  registry: HKCU\Software\Classes\.pdf\ShellEx\{E357FCCD-A995-4576-B01F-234630154E96} = {6B7C2D10-5A1E-4F3B-9C11-0A5B6D6B0003} (written)
+  registry: HKCU\Software\Classes\MSEdgePDF\ShellEx\{E357FCCD-A995-4576-B01F-234630154E96} = {6B7C2D10-5A1E-4F3B-9C11-0A5B6D6B0003} (written)
+  SHChangeNotify(SHCNE_ASSOCCHANGED) sent, waited 1.5 s
+  GetImage(.pdf): ok hr=0x00000000 91.9 ms 198x256 non-white 21%
+  served by: MikePDF packaged handler +1, competitor (ExeServer) +0

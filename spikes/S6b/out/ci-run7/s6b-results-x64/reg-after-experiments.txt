@@ -1,0 +1,27 @@
+##### HKCU .pdf
+
+HKEY_CURRENT_USER\Software\Classes\.pdf\OpenWithProgids
+    AppXc3tc6f9npav80ca6sa5kqk8vagggaejq    REG_NONE    
+
+##### HKLM .pdf ShellEx
+
+HKEY_LOCAL_MACHINE\SOFTWARE\Classes\.pdf\ShellEx\{8895b1c6-b41f-4c1c-a562-0d564250836f}
+    (Default)    REG_SZ    {3A84F9C2-6164-485C-A7D9-4B27F8AC009E}
+
+##### HKLM competitor CLSID
+reg : ERROR: The system was unable to find the specified registry key or value.
+At D:\a\MikePDF\MikePDF\spikes\S6b\ci\install-and-run.ps1:141 char:213
++ ... tor CLSID"; reg query 'HKLM\SOFTWARE\Classes\CLSID\{6B7C2D10-5A1E-4F3 ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (ERROR: The syst...y key or value.:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+##### HKLM .s6bcomp
+reg : ERROR: The system was unable to find the specified registry key or value.
+At D:\a\MikePDF\MikePDF\spikes\S6b\ci\install-and-run.ps1:141 char:324
++ ...  HKLM .s6bcomp"; reg query 'HKLM\SOFTWARE\Classes\.s6bcomp' /s 2>&1 }
++                      ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (ERROR: The syst...y key or value.:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+

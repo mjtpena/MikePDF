@@ -1,0 +1,11 @@
+##### progids that mention the package family or our extension, under HKCR
+
+End of search: 0 match(es) found.
+
+End of search: 0 match(es) found.
+##### HKCU Classes extension registrations
+
+End of search: 0 match(es) found.
+
+End of search: 0 match(es) found.
+

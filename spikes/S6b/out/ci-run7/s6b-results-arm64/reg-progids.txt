@@ -1,0 +1,16 @@
+##### progids that mention the package family or our extension, under HKCR
+
+End of search: 0 match(es) found.
+
+End of search: 0 match(es) found.
+##### HKCU Classes extension registrations
+reg : ERROR: The system was unable to find the specified registry key or value.
+At C:\a\MikePDF\MikePDF\spikes\S6b\ci\install-and-run.ps1:68 char:5
++     reg query 'HKCU\Software\Classes\Extensions\ContractId\Windows.Fi ...
++     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (ERROR: The syst...y key or value.:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+
+End of search: 0 match(es) found.
+

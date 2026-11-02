@@ -1,0 +1,13 @@
+== control: the same launch test at medium integrity
+OK: low-integrity launcher started the AppContainer engine (pid 90776) and rendered a 200x250 tile
+== the same at LOW integrity (token with the Low mandatory label)
+low-integrity process exit code 0xe0434352
+FAILED before the test: System.ComponentModel.Win32Exception (5): CreateAppContainerProfile failed (HRESULT 0x80070005)
+   at MikePDF.Broker.Native.Win32.ThrowIfFailed(Int32 hresult, String what) in C:\Users\mjtpe\dev\Orqentis\QuirePDF\.claude\worktrees\agent-a20eab59cba996f96\src\MikePDF.Broker\Native\Win32.cs:line 30
+   at MikePDF.Broker.AppContainerProfile.CreateOrOpen(String name, String displayName, String description) in C:\Users\mjtpe\dev\Orqentis\QuirePDF\.claude\worktrees\agent-a20eab59cba996f96\src\MikePDF.Broker\AppContainerProfile.cs:line 49
+   at S6b.Program.OpenProfile() in C:\Users\mjtpe\dev\Orqentis\QuirePDF\.claude\worktrees\agent-a20eab59cba996f96\spikes\S6b\ShellHost\Program.cs:line 486
+   at S6b.Program.Main(String[] argv) in C:\Users\mjtpe\dev\Orqentis\QuirePDF\.claude\worktrees\agent-a20eab59cba996f96\spikes\S6b\ShellHost\Program.cs:line 379
+   at S6b.Program.<Main>(String[] argv)
+== low integrity again, with the profile SID derived from the existing profile (CreateOrOpen is refused at low integrity) so the next step is reached
+low-integrity process exit code 0x00000000
+FAILED: EngineStartException: Starting the engine failed: Executable not found: C:\Users\mjtpe\AppData\LocalLow\s6b\engine\MikePDF.Engine.exe

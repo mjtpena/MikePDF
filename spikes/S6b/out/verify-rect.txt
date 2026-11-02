@@ -1,0 +1,6 @@
+size 171x256 (aspect 0.6680, page aspect 0.6667), wts_alphatype=2
+PASS top-left black (0, 0, 0, 255) expected (0, 0, 0, 255)
+PASS top-right blue (255, 0, 0, 255) expected (255, 0, 0, 255)
+PASS bottom-right green (0, 255, 0, 255) expected (0, 255, 0, 255)
+PASS bottom-left red (0, 0, 255, 255) expected (0, 0, 255, 255)
+PASS paper (255, 255, 255, 255) expected (255, 255, 255, 255)

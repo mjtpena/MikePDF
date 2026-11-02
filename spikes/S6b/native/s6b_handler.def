@@ -1,0 +1,4 @@
+LIBRARY s6b_handler
+EXPORTS
+    DllGetClassObject PRIVATE
+    DllCanUnloadNow PRIVATE

@@ -36,3 +36,12 @@
 | `/DR` resource-name clashes in merges | Rename the clashing resources and rewrite their references |
 
 The ADR-0005, ADR-0008 and spec amendments proposed in the S10 and S11 reports are applied by the save-pipeline and page-organiser work packages, as part of their first change.
+
+## After the S6b spike (2026-11-03)
+| Item | Decision |
+|---|---|
+| Shell handler transport | ADR-0018 accepted: a native handler DLL, a per-user pipe to a Native AOT ShellHost started on demand, one sandboxed engine per file |
+| Section source for `OpenDocument` (OQ-SHELL-13) | Not in v1.0. ShellHost stages to a temp file |
+| Thumbnails when MikePDF isn't the default (OQ-SHELL-14) | Product owner to decide. Default until then: on, with a setting and a policy to turn them off |
+
+The shell-extensions work package applies the ten spec corrections in the S6b report as part of its first change.
