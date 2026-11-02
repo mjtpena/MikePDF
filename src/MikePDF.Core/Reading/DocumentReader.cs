@@ -260,12 +260,73 @@ public sealed class DocumentReader(IReadingEngine engine, int pageCount) : ISear
         return new ReadReply<PageCharacters>(Status.Ok, new PageCharacters(units!, lefts!, bottoms!, rights!, tops!, flags!, truncated));
     }
 
+    // ---- properties ----------------------------------------------------------------------------------------------------------
+
+    /// <summary>
+    /// What the properties dialog shows from the document: the text fields and flags (GetDocumentInfo) and the dates, security and fonts
+    /// (GetDocumentDetails). The second question failing does not fail the first: <see cref="DocumentProperties.DetailsAvailable"/> says so.
+    /// </summary>
+    public async Task<ReadReply<DocumentProperties>> GetPropertiesAsync(CancellationToken cancellationToken)
+    {
+        var infoReply = await engine.GetDocumentInfoAsync(cancellationToken).ConfigureAwait(false);
+        if (!infoReply.IsOk)
+        {
+            return ReadReply.Fail<DocumentProperties>(infoReply.Status, infoReply.Detail);
+        }
+
+        var info = infoReply.Value!;
+        if (info.PageCount != PageCount)
+        {
+            return ReadReply.Fail<DocumentProperties>(Status.Damaged, "the page count changed");
+        }
+
+        var detailsReply = await engine.GetDocumentDetailsAsync(cancellationToken).ConfigureAwait(false);
+        var details = detailsReply.IsOk && DetailsAreConsistent(detailsReply.Value!) ? detailsReply.Value : null;
+        var revision = details is null ? 0 : (int)details.SecurityRevision;
+        var fonts = details is null
+            ? []
+            : details.FontNames.Select((name, i) => DocumentFont.From(DisplayText.Clean(name), (details.FontFlags[i] & 1) != 0)).Where(f => f.Name.Length > 0).ToList();
+        var created = details?.CreationDate ?? string.Empty;
+        var modified = details?.ModificationDate ?? string.Empty;
+        var properties = new DocumentProperties(
+            DisplayText.Clean(info.Title),
+            DisplayText.Clean(info.Author),
+            DisplayText.Clean(info.Subject),
+            DisplayText.Clean(info.Keywords),
+            DisplayText.Clean(info.Creator),
+            DisplayText.Clean(info.Producer),
+            VersionText(info.PdfVersion),
+            (int)info.PageCount,
+            info.IsTagged,
+            info.HasJavaScript,
+            (int)info.SignatureCount,
+            // An unprotected document has every right whatever /P says; PDFium reports all ones for it.
+            revision == 0 ? PdfPermissions.Unrestricted : new PdfPermissions(info.Permissions, revision),
+            details is not null,
+            DisplayText.Clean(created),
+            PdfDate.TryParse(created, out var createdAt) ? createdAt : null,
+            DisplayText.Clean(modified),
+            PdfDate.TryParse(modified, out var modifiedAt) ? modifiedAt : null,
+            details is null ? DocumentFormType.None : (DocumentFormType)details.FormType,
+            details?.UserPermissions ?? info.Permissions,
+            fonts,
+            details?.FontsComplete ?? false,
+            (int)(details?.FontPagesScanned ?? 0));
+        return new ReadReply<DocumentProperties>(Status.Ok, properties);
+    }
+
+    // The broker's client has checked the schema limits; a reply whose parallel arrays differ would still be a lie to the dialog.
+    private bool DetailsAreConsistent(GetDocumentDetailsReply details) =>
+        details.FontNames.Length == details.FontFlags.Length && details.FontPagesScanned <= PageCount && details.FormType <= (uint)DocumentFormType.XfaForeground;
+
+    private static string VersionText(uint tenths) => tenths == 0 ? string.Empty : string.Create(CultureInfo.InvariantCulture, $"{tenths / 10}.{tenths % 10}");
+
     // ---- search --------------------------------------------------------------------------------------------------------------
 
     public async Task<ReadReply<PageMatches>> SearchAsync(int page, SearchOptions options, CancellationToken cancellationToken)
     {
         var query = options.Query;
-        if (!IsPage(page) || options.IsEmpty || query.Contains('\0', StringComparison.Ordinal) || !IsEncodable(query) || Encoding.UTF8.GetByteCount(query) > MaxQueryBytes)
+        if (!IsPage(page) || options.IsEmpty || options.UseRegex || query.Contains('\0', StringComparison.Ordinal) || !IsEncodable(query) || Encoding.UTF8.GetByteCount(query) > MaxQueryBytes)
         {
             return ReadReply.Fail<PageMatches>(Status.InvalidArgument, "search request out of bounds");
         }

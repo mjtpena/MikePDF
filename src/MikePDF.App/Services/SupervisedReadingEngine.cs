@@ -11,6 +11,12 @@ namespace MikePDF.App.Services;
 /// </summary>
 internal sealed class SupervisedReadingEngine(Func<Task<SupervisedDocument?>> document) : IReadingEngine
 {
+    public Task<ReadReply<GetDocumentInfoReply>> GetDocumentInfoAsync(CancellationToken cancellationToken) =>
+        CallAsync(d => d.GetInfoAsync(cancellationToken));
+
+    public Task<ReadReply<GetDocumentDetailsReply>> GetDocumentDetailsAsync(CancellationToken cancellationToken) =>
+        CallAsync(d => d.GetDocumentDetailsAsync(cancellationToken));
+
     public Task<ReadReply<GetOutlineReply>> GetOutlineAsync(IReadOnlyList<uint> path, uint first, uint count, CancellationToken cancellationToken) =>
         CallAsync(d => d.GetOutlineAsync(path, first, count, cancellationToken));
 

@@ -110,7 +110,7 @@ Added or changed:
 - The find bar gets two toggles beside "Match case": **Whole word** and **Regular expression**. All three are on-state toggle buttons with names and tooltips. Changing any restarts the search.
 - **Whole word** (not regex): a match must not be directly preceded or followed by a letter or digit. The engine does this (PDFium whole-word flag).
 - **Regular expression:** the pattern is a .NET regular expression compiled with `RegexOptions.NonBacktracking | CultureInvariant` (plus `IgnoreCase` unless Match case is on) and a match timeout of 2 s per page. It runs in the broker over the characters of the page that were already read (the same numbering as the engine's matches), on a worker thread, never the UI thread.
-  - **Hostile patterns:** `NonBacktracking` guarantees linear matching, so catastrophic patterns (`(a+)+$`) finish. Constructing a regex has no timeout, so a pattern is first checked: at most 128 characters (the box limit), counted repeats `{n,m}` with no bound above 1000, and the product of all the repeat bounds at most 20000. Anything else is refused as "too complex" without being compiled. A pattern that compiles but exceeds the 2 s timeout on a page marks that page as not searched; it does not retry.
+  - **Hostile patterns:** `NonBacktracking` guarantees linear matching, so catastrophic patterns (`(a+)+$`) finish. Constructing a regex has no timeout, so a pattern is first checked: at most 128 characters (the box limit), counted repeats `{n,m}` with no bound above 1000, and the product of all the repeat bounds at most 1000 (measured: the matcher builds its states as it goes; `(a{30}){30}` takes 0.3 s on a 5000-character page, `(a{50}){50}` 1.2 s, `(a{70}){70}` over 2 s and .NET refuses `(a{100}){100}`). Anything else is refused as "too complex" without being compiled. A pattern that compiles but exceeds the 2 s timeout on a page marks that page as not searched and is not retried; after three such pages in a row the rest of the document is given up on without trying.
   - **Unsupported syntax** (backreferences, lookarounds, atomic groups, conditionals: `NonBacktracking` throws `NotSupportedException`) is reported as "unsupported", not as a crash.
   - Empty matches are ignored; at most 2048 matches per page (the engine's limit), with the "truncated" flag.
   - Whole word is switched off while regex is on (a pattern writes `\b` itself).
@@ -126,9 +126,9 @@ Added or changed:
 ### Acceptance criteria
 - **F1** The engine's whole-word flag excludes a match inside a longer word ("margin" does not match "margins") and keeps a standalone one. (integration)
 - **F2** `RegexQuery.TryCompile` accepts a valid pattern and reports `Invalid` for a bad one and `Unsupported` for a lookaround or backreference. (unit)
-- **F3** Patterns over 128 characters, a bound above 1000, or a product of bounds above 20000 are refused as `TooComplex` without compiling. (unit)
+- **F3** Patterns over 128 characters, a bound above 1000, or a product of bounds above 1000 are refused as `TooComplex` without compiling. (unit)
 - **F4** A catastrophic-backtracking pattern over a 200000-character page completes in under 5 s and finds the right matches. (unit)
-- **F5** A match timeout produces a failed page (`Unsupported`), not an exception, and is not retried. (unit)
+- **F5** A match timeout produces a failed page (`Unsupported`), not an exception, and is not retried; three in a row give up on the rest of the document. (unit)
 - **F6** Regex matches carry the right start and length in the engine's character numbering, skip empty matches, honour Match case, and stop at 2048 with the truncated flag. (unit)
 - **F7** A `FindSession` over a regex source finds matches in page order starting at the current page, counts pages that failed, and reports them in its progress. (unit)
 - **F8** Whole word and regex toggles change the count shown in the live region ("margin" with Whole word has fewer matches; `marg.n` finds some; an invalid pattern shows the message and a hostile one does not hang the window). (UI journey)
