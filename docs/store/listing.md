@@ -14,7 +14,7 @@ MikePDF has no account, no ads, no upsell and no telemetry. It never connects to
 ## What's in this preview ("Product features", one per line)
 - Each PDF opens in its own sandbox, with no access to your files or network
 - Continuous scrolling, with pages rendered in the background
-- Zoom from 10% to 6400%, fit to width or page, true actual size on your screen, and rotate the view
+- Zoom from 10% to 6400%, fit to width or page, actual size (as accurate as your display reports its size), and rotate the view
 - Back and forward through where you've been (Alt+Left and Alt+Right, the mouse's side buttons), and links that use named destinations
 - Dark pages and sepia for night reading, a full screen mode (F11), and a document properties dialog (Ctrl+D)
 - Thumbnails, bookmarks and internal links for getting around
