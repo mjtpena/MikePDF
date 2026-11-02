@@ -190,6 +190,81 @@ public sealed class ShellHostPoolTests
         Assert.True(lease.Engine.IsAlive);
     }
 
+    // SHELL-12 on a hosted runner once saw four engine processes with the cap at three. A kill is a request: a second caller returns before the first has finished, and a process
+    // that has been killed is still a process until it has exited. The cap is on processes, so a slot goes back only when the process is gone.
+
+    [Fact]
+    public async Task ASlotIsGivenBackOnlyWhenTheKilledProcessHasExited()
+    {
+        var factory = new FakeShellEngineFactory();
+        await using var pool = new ShellEnginePool(factory, () => 1); // one slot: no spare, the next request needs this one's slot
+        var first = await pool.AcquireAsync(CancellationToken.None);
+        factory.HoldExits(); // killed engines linger, as processes do for a moment
+
+        // What ShellConnection does when the client goes away mid-request: a background kill, while the session is ended and the lease returned. The lease's own kill is
+        // the second caller and returns at once, which is what the real engine's does.
+        await first.Engine.KillAsync();
+        var returned = first.DisposeAsync().AsTask();
+        var second = pool.AcquireAsync(CancellationToken.None);
+
+        await Task.Delay(300);
+        Assert.False(returned.IsCompleted, "the lease was returned while its process was still there");
+        Assert.False(second.IsCompleted, "the next engine was started while the killed one was still there");
+        Assert.Equal(1, factory.Started);
+        Assert.Equal(1, factory.Alive);
+
+        factory.ReleaseExits();
+        await returned.WaitAsync(Wait);
+        await using var next = await second.WaitAsync(Wait);
+        Assert.Equal(2, factory.Started);
+        Assert.Equal(1, factory.Peak);
+        Assert.Equal(1, pool.Peak);
+    }
+
+    [Fact]
+    public async Task TheCapHoldsWhileEveryKilledEngineIsStillExiting()
+    {
+        var factory = new FakeShellEngineFactory { StartDelay = TimeSpan.FromMilliseconds(2) };
+        await using var pool = new ShellEnginePool(factory, () => 3);
+        pool.Prewarm();
+        factory.HoldExits();
+
+        // Three requests hold the three slots and end; the three that wait behind them may not start before an exit, however many kills have been asked for.
+        var held = await Task.WhenAll(Enumerable.Range(0, 3).Select(_ => pool.AcquireAsync(CancellationToken.None)));
+        var waiting = Enumerable.Range(0, 3).Select(_ => pool.AcquireAsync(CancellationToken.None)).ToArray();
+        var endings = held.Select(h => h.DisposeAsync().AsTask()).ToArray();
+        await Task.Delay(300);
+
+        Assert.All(waiting, w => Assert.False(w.IsCompleted));
+        Assert.True(factory.Peak <= 3, $"{factory.Peak} engines were alive at once");
+        Assert.Equal(3, factory.Alive);
+
+        factory.ReleaseExits();
+        await Task.WhenAll(endings).WaitAsync(Wait);
+        var leases = await Task.WhenAll(waiting).WaitAsync(Wait);
+        Assert.True(factory.Peak <= 3, $"{factory.Peak} engines were alive at once");
+        foreach (var lease in leases)
+        {
+            await lease.DisposeAsync();
+        }
+    }
+
+    [Fact]
+    public async Task AProcessThatDoesNotExitDoesNotKeepTheSlotForever()
+    {
+        var factory = new FakeShellEngineFactory();
+        await using var pool = new ShellEnginePool(factory, () => 1, exitWait: TimeSpan.FromMilliseconds(300));
+        var first = await pool.AcquireAsync(CancellationToken.None);
+        factory.HoldExits();
+        var returned = first.DisposeAsync().AsTask();
+        var second = pool.AcquireAsync(CancellationToken.None);
+
+        // After the bound the slot is given back anyway: a wedged process must not wedge ShellHost with it.
+        await returned.WaitAsync(Wait);
+        await using var next = await second.WaitAsync(Wait);
+        factory.ReleaseExits();
+    }
+
     [Fact]
     public async Task ShuttingDownEndsEveryWaiterAndKillsTheSpare()
     {

@@ -8,6 +8,7 @@ internal sealed class FakeShellEngine : IShellEngine
 {
     private readonly FakeShellEngineFactory _factory;
     private readonly CancellationTokenSource _killed = new();
+    private readonly TaskCompletionSource _exited = new(TaskCreationOptions.RunContinuationsAsynchronously);
     private int _ended;
 
     public FakeShellEngine(FakeShellEngineFactory factory, int serial)
@@ -20,7 +21,7 @@ internal sealed class FakeShellEngine : IShellEngine
 
     public uint ProcessId => (uint)(100_000 + Serial);
 
-    public bool IsAlive => Volatile.Read(ref _ended) == 0;
+    public bool IsAlive => Volatile.Read(ref _ended) == 0 && !_killed.IsCancellationRequested;
 
     public bool Killed => _killed.IsCancellationRequested;
 
@@ -44,16 +45,40 @@ internal sealed class FakeShellEngine : IShellEngine
         return await _factory.OnRender(this, page, maxWidth, maxHeight, cancellationToken).ConfigureAwait(false);
     }
 
+    /// <summary>
+    /// A request, as in the real engine: it returns at once (a second caller never waits for the first), and the process is gone when <see cref="FakeShellEngineFactory.HoldExits"/>
+    /// lets it go (at once when nothing holds the exits). <see cref="WaitForExitAsync"/> is how anyone learns that it is.
+    /// </summary>
     public ValueTask KillAsync()
     {
-        if (Interlocked.Exchange(ref _ended, 1) == 0)
+        if (!_killed.IsCancellationRequested)
         {
+            _factory.NoteKilled();
             _killed.Cancel();
-            _factory.NoteEnded(this, killed: true);
+            var hold = _factory.ExitHold;
+            if (hold is null)
+            {
+                Exit();
+            }
+            else
+            {
+                _ = hold.Task.ContinueWith(_ => Exit(), TaskScheduler.Default);
+            }
         }
 
         return ValueTask.CompletedTask;
     }
+
+    private void Exit()
+    {
+        if (Interlocked.Exchange(ref _ended, 1) == 0)
+        {
+            _factory.NoteExited();
+            _exited.TrySetResult();
+        }
+    }
+
+    public async Task<bool> WaitForExitAsync(TimeSpan timeout) => await Task.WhenAny(_exited.Task, Task.Delay(timeout)).ConfigureAwait(false) == _exited.Task;
 
     public ValueTask DisposeAsync() => KillAsync();
 }
@@ -69,6 +94,18 @@ internal sealed class FakeShellEngineFactory : IShellEngineFactory
     public TimeSpan StartDelay { get; set; } = TimeSpan.Zero;
 
     public bool FailToStart { get; set; }
+
+    /// <summary>While set, a killed engine stays "alive" (counted by <see cref="Alive"/>, as a real process still exiting is) until <see cref="ReleaseExits"/>.</summary>
+    internal TaskCompletionSource? ExitHold { get; private set; }
+
+    public void HoldExits() => ExitHold = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+
+    public void ReleaseExits()
+    {
+        var hold = ExitHold;
+        ExitHold = null;
+        hold?.TrySetResult();
+    }
 
     public int Started => Volatile.Read(ref _serial);
 
@@ -128,14 +165,9 @@ internal sealed class FakeShellEngineFactory : IShellEngineFactory
         return engine;
     }
 
-    internal void NoteEnded(FakeShellEngine engine, bool killed)
-    {
-        Interlocked.Decrement(ref _alive);
-        if (killed)
-        {
-            Interlocked.Increment(ref _killed);
-        }
-    }
+    internal void NoteKilled() => Interlocked.Increment(ref _killed);
+
+    internal void NoteExited() => Interlocked.Decrement(ref _alive);
 }
 
 /// <summary>A clock a test moves by hand (the negative cache's ten minutes).</summary>

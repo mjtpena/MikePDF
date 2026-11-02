@@ -97,16 +97,40 @@ bool OnDisposableRunner() {
 
 // ---- processes ------------------------------------------------------------------------------------------------------------------------------------------
 
-int CountRunning(const wchar_t* name) {
-    int count = 0;
+/// What a snapshot says about the processes of one image: `listed` is every entry, `running` only those that have not exited. The snapshot lists a process until the last handle to
+/// it is closed, so an engine that has exited and whose handle a virus scanner or the kernel still holds is listed and is not a process that is alive (SHELL-12 failed once on
+/// "4 engines" counted this way). A process that cannot be opened to ask is counted as running: the cap is checked on the worst reading.
+struct ProcessCount {
+    int listed = 0;
+    int running = 0;
+    std::wstring pids;  // "pid:running|exited ..." for the diagnostic line
+};
+
+ProcessCount CountProcesses(const wchar_t* name) {
+    ProcessCount count;
     HANDLE snapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
     PROCESSENTRY32W entry{sizeof(entry)};
     for (BOOL ok = Process32FirstW(snapshot, &entry); ok; ok = Process32NextW(snapshot, &entry)) {
-        count += _wcsicmp(entry.szExeFile, name) == 0 ? 1 : 0;
+        if (_wcsicmp(entry.szExeFile, name) != 0) {
+            continue;
+        }
+        ++count.listed;
+        bool running = true;
+        HANDLE process = OpenProcess(SYNCHRONIZE, FALSE, entry.th32ProcessID);
+        if (process != nullptr) {
+            running = WaitForSingleObject(process, 0) == WAIT_TIMEOUT;
+            CloseHandle(process);
+        } else if (GetLastError() == ERROR_INVALID_PARAMETER) {
+            running = false;  // gone between the snapshot and now
+        }
+        count.running += running ? 1 : 0;
+        count.pids += std::to_wstring(entry.th32ProcessID) + (running ? L":running " : L":exited ");
     }
     CloseHandle(snapshot);
     return count;
 }
+
+int CountRunning(const wchar_t* name) { return CountProcesses(name).running; }
 
 DWORD FirstPid(const wchar_t* name) {
     DWORD pid = 0;
@@ -517,11 +541,15 @@ void PhaseFlood() {
     }
     std::atomic<bool> stop{false};
     std::atomic<int> peak{0};
+    std::atomic<int> peak_listed{0};
+    std::wstring worst;  // what the sampler saw when the number of engines that had not exited was highest; read after the sampler has joined
     std::thread sampler([&] {
         while (!stop) {
-            const int n = CountRunning(kEngine);
-            int seen = peak.load();
-            while (n > seen && !peak.compare_exchange_weak(seen, n)) {
+            const ProcessCount now = CountProcesses(kEngine);
+            peak_listed = std::max(peak_listed.load(), now.listed);
+            if (now.running > peak.load()) {
+                peak = now.running;
+                worst = now.pids;
             }
             Sleep(5);
         }
@@ -551,7 +579,12 @@ void PhaseFlood() {
         GetProcessMemoryInfo(host, reinterpret_cast<PROCESS_MEMORY_COUNTERS*>(&after), sizeof(after));
         CloseHandle(host);
     }
-    Check("SHELL-12", peak.load() <= 3, "%d requests (%d threads): at most %d engine processes alive at once (limit 3, the spare included)", kThreads * kPerThread, kThreads, peak.load());
+    // The gate is on processes that have not exited. The listed peak is printed beside it: if it is higher, the snapshot saw processes that had gone.
+    Check("SHELL-12", peak.load() <= 3, "%d requests (%d threads): at most %d engine processes alive at once (limit 3, the spare included); the snapshot listed at most %d", kThreads * kPerThread, kThreads,
+          peak.load(), peak_listed.load());
+    if (peak.load() > 3) {
+        P("  at the worst sample: %ls", worst.c_str());
+    }
     Check("SHELL-12", failed.load() == 0 && slow.load() == 0, "%d succeeded, %d failed, %d took longer than 2.5 s; %.1f s in all", ok.load(), failed.load(), slow.load(), elapsed / 1000);
     const double growth = (static_cast<double>(after.PrivateUsage) - static_cast<double>(before.PrivateUsage)) / (1024 * 1024);
     Check("SHELL-12", growth < 128, "ShellHost private bytes: %.1f MB before, %.1f MB after (growth %.1f MB; bound 128 MB until a number is set from R1 and R2 runs)", before.PrivateUsage / 1048576.0,

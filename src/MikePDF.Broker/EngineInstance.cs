@@ -119,17 +119,17 @@ internal sealed class EngineInstance : IAsyncDisposable
         {
             // The process exists but a step of setting it up failed (duplicating the ring into it, resuming it): it was lost while it was being made.
             var fate = Fate(process); // before Cleanup, which kills and closes the process
-            Cleanup();
+            await CleanupAsync().ConfigureAwait(false);
             throw new EngineStartException($"Starting the engine failed: {e.Message}; the process {fate}.", e, isTransient: true);
         }
         catch (Exception e) when (e is not EngineStartException)
         {
-            Cleanup();
+            await CleanupAsync().ConfigureAwait(false);
             throw new EngineStartException("Starting the engine failed: " + e.Message, e);
         }
         catch
         {
-            Cleanup();
+            await CleanupAsync().ConfigureAwait(false);
             throw;
         }
 
@@ -149,9 +149,16 @@ internal sealed class EngineInstance : IAsyncDisposable
         // GetExitCodeProcess answers 259 (STILL_ACTIVE) while the process runs.
         static string Fate(SandboxedProcess process) => process.ExitCode is 259 ? "was still running" : $"had exited with code 0x{process.ExitCode:X}";
 
-        void Cleanup()
+        // A process that failed to start is killed and then waited for: whoever starts the next engine (the supervisor's retry, ShellHost's cap on engine processes) must not
+        // find this one still running.
+        async Task CleanupAsync()
         {
-            process?.Kill();
+            if (process is not null)
+            {
+                process.Kill();
+                await process.WaitForExitAsync(TimeSpan.FromSeconds(2)).ConfigureAwait(false);
+            }
+
             pipe?.Dispose();
             _ = accept?.ContinueWith(static t => _ = t.Exception, TaskContinuationOptions.OnlyOnFaulted);
             if (client is not null)
