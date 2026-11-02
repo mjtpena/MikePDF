@@ -64,8 +64,8 @@ public sealed class PolicyDefinition
     /// <summary>The setting this policy locks, if any (<see cref="SettingsRegistry"/>).</summary>
     public string? SettingKey { get; init; }
 
-    /// <summary>Converts the policy's DWORD to the value of the setting it locks.</summary>
-    public Func<int, object>? ToSetting { get; init; }
+    /// <summary>Converts the policy's DWORD to the value of the setting it locks, or null when this value does not lock it (a switch that is "allowed" leaves the person's choice alone).</summary>
+    public Func<int, object?>? ToSetting { get; init; }
 
     public int MaxLength { get; init; } = 128;
 
@@ -102,7 +102,7 @@ public static class PolicyCatalog
 
     private static readonly Regex SchemePattern = new("^[a-z][a-z0-9+.-]{0,31}$", RegexOptions.CultureInvariant, TimeSpan.FromSeconds(1));
 
-    private static PolicyDefinition Flag(string name, int absent, int? failClosed, PolicyStatus status = PolicyStatus.Active, string? setting = null, PolicyUserScope scope = PolicyUserScope.StricterOnly) => new()
+    private static PolicyDefinition Flag(string name, int absent, int? failClosed, PolicyStatus status = PolicyStatus.Active, string? setting = null, PolicyUserScope scope = PolicyUserScope.StricterOnly, Func<int, object?>? toSetting = null) => new()
     {
         Name = name,
         Kind = PolicyKind.Dword,
@@ -111,6 +111,7 @@ public static class PolicyCatalog
         FailClosedValue = failClosed,
         Status = status,
         SettingKey = setting,
+        ToSetting = toSetting,
         UserScope = scope,
     };
 
@@ -185,8 +186,20 @@ public static class PolicyCatalog
             ToSetting = v => v,
         },
         Flag("PrintingEnabled", absent: 1, failClosed: null),
-        Flag("ShellThumbnailsEnabled", absent: 1, failClosed: 0),
-        Flag("ShellPreviewEnabled", absent: 1, failClosed: 0),
+        // 0 switches the handler off and locks the setting off; 1 only says "allowed", so the person's own choice stands (docs/features/shell-extensions.md 3.5).
+        Flag("ShellThumbnailsEnabled", absent: 1, failClosed: 0, setting: "shell.thumbnails", toSetting: v => v == 0 ? false : null),
+        Flag("ShellPreviewEnabled", absent: 1, failClosed: 0, setting: "shell.preview", toSetting: v => v == 0 ? false : null),
+        new()
+        {
+            Name = "ShellMaxEngines",
+            Kind = PolicyKind.Dword,
+            Min = 1,
+            Max = 6,
+            AbsentValue = 3,
+            UserScope = PolicyUserScope.StricterOnly,
+            SettingKey = "shell.maxEngines",
+            ToSetting = v => v,
+        },
         Flag("DefaultAppPromptEnabled", absent: 1, failClosed: 0, scope: PolicyUserScope.None),
         Flag("SettingsImportExportEnabled", absent: 1, failClosed: 0),
         new()
