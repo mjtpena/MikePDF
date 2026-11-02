@@ -73,14 +73,14 @@ public sealed class CommandLineTests
         var options = RenderOptions.Parse([
             "--tier", "smoke", "--manifest", "m.json", "--corpus-dir", "c", "--filter", "pdfium", "--pages", "1-3", "--password", "pw", "--max-pixels", "2000000",
             "--out", "o", "--png", "--no-reference", "--ssim-threshold", "0.95", "--ssim-target", "90", "--baseline", "b.json", "--write-baseline", "w.json", "--no-gate",
-            "--tile-deadline-ms", "500", "--open-deadline-ms", "700", "--file-timeout-s", "9", "--retries", "3", "--engine-dir", "e", "--pdfium-dir", "p", "--work-dir", "w", "--quiet"]);
+            "--tile-deadline-ms", "500", "--open-deadline-ms", "700", "--file-timeout-s", "9", "--retries", "3", "--hang-grace-ms", "4000", "--engine-dir", "e", "--pdfium-dir", "p", "--work-dir", "w", "--quiet"]);
         Assert.Equal(("smoke", "m.json", "c", "pdfium"), (options.Tier, options.ManifestPath, options.CorpusDirectory, options.Filter));
         Assert.Equal(("1-3", "pw", 2_000_000L, "o"), (options.Pages.Text, options.Password, options.MaxPixels, options.OutDirectory));
         Assert.True(options.WritePng);
         Assert.False(options.Reference);
         Assert.Equal((0.95, 90.0), (options.SsimThreshold, options.SsimTarget));
         Assert.Equal(("b.json", "w.json", true), (options.BaselinePath, options.WriteBaselinePath, options.NoGate));
-        Assert.Equal((TimeSpan.FromMilliseconds(500), TimeSpan.FromMilliseconds(700), TimeSpan.FromSeconds(9), 3), (options.TileDeadline, options.OpenDeadline, options.FileTimeout, options.Retries));
+        Assert.Equal((TimeSpan.FromMilliseconds(500), TimeSpan.FromMilliseconds(700), TimeSpan.FromSeconds(9), 3, TimeSpan.FromSeconds(4)), (options.TileDeadline, options.OpenDeadline, options.FileTimeout, options.Retries, options.HangGrace));
         Assert.Equal(("e", "p", "w", true), (options.EngineDirectory, options.PdfiumDirectory, options.WorkDirectory, options.Quiet));
 
         Assert.Throws<FormatException>(() => RenderOptions.Parse(["--bogus", "x.pdf"]));

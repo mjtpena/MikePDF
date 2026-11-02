@@ -40,6 +40,8 @@ internal sealed class RenderOptions
         Limits and locations
           --tile-deadline-ms <n>  Per tile (default 30000).      --open-deadline-ms <n>  Opening a document (default 30000).
           --file-timeout-s <n>    Whole file, including the reference (default 300).
+          --hang-grace-ms <n>     How long past its deadline a request may go unanswered before the watchdog kills the engine as hung (default 2000).
+                                  PDFium looks at its deadline only every so often (about every 100 drawing operations), so a very heavy page can overshoot it.
           --retries <n>           Render a page again this many times if the engine died under it (default 1).
           --engine-dir <dir>      Folder with MikePDF.Engine.exe and pdfium.dll (default $MIKEPDF_ENGINE_DIR, then build/out/cmake-<arch>/bin/Release).
           --pdfium-dir <dir>      Folder with pdfium.dll for the reference (default build/out/pdfium/<arch>/bin).
@@ -91,6 +93,8 @@ internal sealed class RenderOptions
 
     public int Retries { get; private set; } = 1;
 
+    public TimeSpan HangGrace { get; private set; } = TimeSpan.FromSeconds(2);
+
     public string? EngineDirectory { get; private set; }
 
     public string? PdfiumDirectory { get; private set; }
@@ -137,6 +141,7 @@ internal sealed class RenderOptions
                 case "--open-deadline-ms": options.OpenDeadline = TimeSpan.FromMilliseconds(ParseLong(argument, Next(), 1, 3_600_000)); break;
                 case "--file-timeout-s": options.FileTimeout = TimeSpan.FromSeconds(ParseLong(argument, Next(), 1, 86_400)); break;
                 case "--retries": options.Retries = (int)ParseLong(argument, Next(), 0, 5); break;
+                case "--hang-grace-ms": options.HangGrace = TimeSpan.FromMilliseconds(ParseLong(argument, Next(), 100, 3_600_000)); break;
                 case "--engine-dir": options.EngineDirectory = Next(); break;
                 case "--pdfium-dir": options.PdfiumDirectory = Next(); break;
                 case "--work-dir": options.WorkDirectory = Next(); break;

@@ -83,7 +83,7 @@ internal static class RenderCommand
                 pdfiumVersion = ReadPdfiumVersion(pdfium);
             }
 
-            host = SandboxedEngineHost.Create(engineDirectory, workDirectory, options.OpenDeadline, clock);
+            host = SandboxedEngineHost.Create(engineDirectory, workDirectory, options.OpenDeadline, options.HangGrace, clock);
         }
         catch (Exception e) when (e is FileNotFoundException or IOException or UnauthorizedAccessException or System.ComponentModel.Win32Exception)
         {

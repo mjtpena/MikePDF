@@ -20,17 +20,19 @@ internal sealed class SandboxedEngineHost : IAsyncDisposable
     private readonly string _deployDirectory;
     private readonly AppContainerProfile _profile;
     private readonly TimeSpan _openDeadline;
+    private readonly TimeSpan _overdueGrace;
     private readonly Stopwatch _clock;
     private readonly ConcurrentQueue<EngineEvent> _events = new();
     private EngineSupervisor? _supervisor;
     private volatile string? _context;
     private int _generation;
 
-    private SandboxedEngineHost(string deployDirectory, AppContainerProfile profile, TimeSpan openDeadline, Stopwatch clock)
+    private SandboxedEngineHost(string deployDirectory, AppContainerProfile profile, TimeSpan openDeadline, TimeSpan overdueGrace, Stopwatch clock)
     {
         _deployDirectory = deployDirectory;
         _profile = profile;
         _openDeadline = openDeadline;
+        _overdueGrace = overdueGrace;
         _clock = clock;
     }
 
@@ -40,7 +42,7 @@ internal sealed class SandboxedEngineHost : IAsyncDisposable
     public string EnginePath => Path.Combine(_deployDirectory, "MikePDF.Engine.exe");
 
     /// <summary>Deploys the engine into a private directory the AppContainer can read. Nothing is started yet.</summary>
-    public static SandboxedEngineHost Create(string engineDirectory, string workDirectory, TimeSpan openDeadline, Stopwatch clock, string profileName = ProfileName)
+    public static SandboxedEngineHost Create(string engineDirectory, string workDirectory, TimeSpan openDeadline, TimeSpan overdueGrace, Stopwatch clock, string profileName = ProfileName)
     {
         var profile = AppContainerProfile.CreateOrOpen(profileName, "MikePDF render CLI", "Zero-capability AppContainer for the mikepdf-render tool");
         var parent = Path.GetFullPath(workDirectory);
@@ -54,7 +56,7 @@ internal sealed class SandboxedEngineHost : IAsyncDisposable
             File.Copy(Path.Combine(engineDirectory, file), Path.Combine(deploy, file));
         }
 
-        return new SandboxedEngineHost(deploy, profile, openDeadline, clock);
+        return new SandboxedEngineHost(deploy, profile, openDeadline, overdueGrace, clock);
     }
 
     /// <summary>What the run says it is doing now (see <see cref="SetContext"/>).</summary>
@@ -97,6 +99,7 @@ internal sealed class SandboxedEngineHost : IAsyncDisposable
                 SlotCount = 8,
                 SlotSize = 4 << 20, // a 1024 x 1024 BGRA tile, the largest the protocol allows
                 DefaultRequestDeadline = _openDeadline,
+                Client = new EngineClientOptions { OverdueGrace = _overdueGrace },
             },
             cancellationToken).ConfigureAwait(false);
         supervisor.EngineCrashed += (_, e) => Record(new EngineEvent

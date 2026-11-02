@@ -36,7 +36,7 @@ internal static class LiveEngine
 
     /// <summary>A host with its own AppContainer profile (named for this process) so tests running in other checkouts at the same time do not delete each other's.</summary>
     public static SandboxedEngineHost NewHost(string workDirectory, TimeSpan? openDeadline = null) =>
-        SandboxedEngineHost.Create(EngineDirectory, workDirectory, openDeadline ?? TimeSpan.FromSeconds(30), Stopwatch.StartNew(), $"MikePDF.Render.Tests.{Environment.ProcessId}");
+        SandboxedEngineHost.Create(EngineDirectory, workDirectory, openDeadline ?? TimeSpan.FromSeconds(30), TimeSpan.FromMinutes(2), Stopwatch.StartNew(), $"MikePDF.Render.Tests.{Environment.ProcessId}");
 
     public static void CleanUp(string directory)
     {
