@@ -200,6 +200,14 @@
           "MessagePack": "[3.1.12, )"
         }
       },
+      "mikepdf.shellhost": {
+        "type": "Project",
+        "dependencies": {
+          "MikePDF.Broker": "[1.0.0, )",
+          "MikePDF.Core": "[1.0.0, )",
+          "MikePDF.Protocol": "[1.0.0, )"
+        }
+      },
       "MessagePack": {
         "type": "CentralTransitive",
         "requested": "[3.1.12, )",

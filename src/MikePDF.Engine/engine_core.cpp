@@ -23,7 +23,15 @@ Reply ok_with(Payload&& payload) {
 }
 
 std::size_t max_documents(EngineKind kind) {
-    return kind == EngineKind::Document ? kMaxDocumentsDocumentKind : kMaxDocumentsPoolKind;
+    switch (kind) {
+        case EngineKind::Document:
+            return kMaxDocumentsDocumentKind;
+        case EngineKind::Shell:
+            return kMaxDocumentsShellKind;
+        case EngineKind::Pool:
+            break;
+    }
+    return kMaxDocumentsPoolKind;
 }
 
 }  // namespace
@@ -84,6 +92,9 @@ Reply EngineCore::execute(protocol::RequestEnvelope& request, Clock::time_point 
         ~EndTick() { core.tick(); }
     } end_tick{*this};
     tick();
+    if (kind_ == EngineKind::Shell && !is_served_by_shell_kind(request.message_type)) {
+        return status_only(Status::Unsupported);  // none of these carries a handle, so there is nothing to consume
+    }
     switch (request.message_type) {
         case protocol::MessageType::OpenDocument:
             return open_document(std::get<protocol::OpenDocument>(request.payload), deadline);

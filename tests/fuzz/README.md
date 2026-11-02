@@ -10,6 +10,9 @@ How to run them, how coverage is measured, how findings are triaged and the 24-h
 | `engine_document_fuzz.cpp` | libFuzzer target: the engine's document open and render path through the PDFium wrapper |
 | `CMakeLists.txt` | Builds those two with MSVC `/fsanitize=fuzzer /fsanitize=address` (`-DMIKEPDF_BUILD_FUZZERS=ON`, x64 only) |
 | `MikePDF.Protocol.Fuzz/` | The C# IPC decoders, broker side |
+| `shell_reply_fuzz.cpp`, `shell_reply_fuzz.h` | libFuzzer target (SHELL-18): the Explorer handler's reply decoder and the checks it applies before it builds a bitmap (`src/MikePDF.ShellExt/validation.cpp`). The body is shared with the unit test that replays the seeds on every build (`tests/MikePDF.ShellExt.Tests/fuzz_seed_tests.cpp`) |
+| `MikePDF.ShellHost.Fuzz/` | The C# harness for ShellHost's request decoder and rules (`ShellRequestRules`), SHELL-18 |
+| `seeds/` | The shell targets' seeds, written by `seeds/make_shell_seeds.py` (the SHELL-11 cases among them: width 0, width 5000, stride, a section too small, overflow-sized values) |
 | `MikePDF.PdfWriter.Fuzz/` | `MikePDF.PdfWriter`: parse and validate (`parse`), incremental writer round trip (`append`) |
 | `libfuzzer-dotnet/` | The libFuzzer driver for the SharpFuzz-instrumented C# harnesses: Metalnem's `libfuzzer-dotnet-windows.cc` vendored unchanged (MIT), with a standalone CMake project that builds it against MSVC's libFuzzer (ADR-0017) |
 | `.config/dotnet-tools.json` | Local tool manifest: `SharpFuzz.CommandLine` 2.3.0, which instruments `MikePDF.Protocol.dll` and `MikePDF.PdfWriter.dll` |

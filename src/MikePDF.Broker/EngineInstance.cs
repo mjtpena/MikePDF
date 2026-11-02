@@ -10,6 +10,9 @@ public enum EngineKind
 
     /// <summary>The shared engine for thumbnails and search.</summary>
     Pool,
+
+    /// <summary>ShellHost's engine for one Explorer thumbnail or preview (ADR-0018): one document, and only the messages a shell host needs; everything else is answered <c>Unsupported</c>.</summary>
+    Shell,
 }
 
 /// <summary>
@@ -55,6 +58,8 @@ internal sealed class EngineInstance : IAsyncDisposable
     /// <summary>Set before a deliberate shutdown, so the exit that follows is not mistaken for a crash.</summary>
     public bool Retiring { get; private set; }
 
+    private static string KindArgument(EngineKind kind) => kind switch { EngineKind.Pool => "pool", EngineKind.Shell => "shell", _ => "document" };
+
     public static async Task<EngineInstance> StartAsync(
         EngineSupervisorOptions options,
         SandboxedProcessLauncher launcher,
@@ -73,7 +78,7 @@ internal sealed class EngineInstance : IAsyncDisposable
             var isEngine = options.Peer == ProcessKind.Engine;
             var arguments = string.Create(
                 CultureInfo.InvariantCulture,
-                $"--pipe {pipe.Name} --parent {Environment.ProcessId}{(isEngine ? $" --kind {(options.Kind == EngineKind.Pool ? "pool" : "document")}" : string.Empty)}");
+                $"--pipe {pipe.Name} --parent {Environment.ProcessId}{(isEngine ? $" --kind {KindArgument(options.Kind)}" : string.Empty)}");
 
             // Suspended and with nothing inherited (R1): hand over the slot ring by duplication, then let the process run.
             process = launcher.Launch(new SandboxLaunchRequest(options.EnginePath, arguments) { StartSuspended = true });

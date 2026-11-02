@@ -181,6 +181,18 @@
           "xunit.v3.runner.common": "[4.0.2]"
         }
       },
+      "mikepdf.broker": {
+        "type": "Project",
+        "dependencies": {
+          "MikePDF.Protocol": "[1.0.0, )"
+        }
+      },
+      "mikepdf.core": {
+        "type": "Project",
+        "dependencies": {
+          "MikePDF.Protocol": "[1.0.0, )"
+        }
+      },
       "mikepdf.pdfwriter": {
         "type": "Project"
       },
@@ -201,6 +213,22 @@
         "type": "Project",
         "dependencies": {
           "MikePDF.Protocol": "[1.0.0, )",
+          "SharpFuzz": "[2.3.0, )"
+        }
+      },
+      "mikepdf.shellhost": {
+        "type": "Project",
+        "dependencies": {
+          "MikePDF.Broker": "[1.0.0, )",
+          "MikePDF.Core": "[1.0.0, )",
+          "MikePDF.Protocol": "[1.0.0, )"
+        }
+      },
+      "mikepdf.shellhost.fuzz": {
+        "type": "Project",
+        "dependencies": {
+          "MikePDF.Protocol": "[1.0.0, )",
+          "MikePDF.ShellHost": "[1.0.0, )",
           "SharpFuzz": "[2.3.0, )"
         }
       },

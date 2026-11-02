@@ -34,3 +34,6 @@ Run it before each submission. CI uploads the report as the `wack-report` artifa
 & "C:\Program Files (x86)\Windows Kits\10\App Certification Kit\appcert.exe" reset
 & "C:\Program Files (x86)\Windows Kits\10\App Certification Kit\appcert.exe" test -appxpackagepath <package> -reportoutputpath <report.xml>
 ```
+
+## File Explorer thumbnails and preview pane
+> MikePDF registers a thumbnail provider and a preview handler for .pdf files (desktop2:ThumbnailHandler and desktop2:DesktopPreviewHandler, hosted by com:SurrogateServer classes). The DLL (ShellExt\MikePDF.ShellExt.dll) runs in the system's own thumbnail and preview host processes and parses nothing: it copies the file's bytes into a memory section, asks MikePDF.ShellHost.exe (ShellHost\, started on demand, gone after 60 seconds idle) over a per-user named pipe, and draws the bitmap that comes back after checking it. ShellHost starts the same sandboxed AppContainer engine as the app, one fresh process per file. To see it: put a PDF in a folder, choose Large icons, and open the preview pane (Alt+P). Both can be turned off in Settings (Privacy and data) or by policy (docs/admin/policies.md).

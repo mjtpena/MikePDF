@@ -13,6 +13,8 @@
 | `protocol-cs` | C# IPC decoders, broker side (`ProtocolCodec`): the same four decoders and the same invariants | libFuzzer + SharpFuzz (MSVC libFuzzer, vendored libfuzzer-dotnet driver); `MutationalFuzzer` is the fallback | **edge coverage of `MikePDF.Protocol.dll`** (`ft:`); the fallback: outcome signature only | any exception that escapes, a hang over the timeout, a process crash (stack overflow, out of memory), a broken invariant |
 | `pdfwriter-parse` | `MikePDF.PdfWriter`: strict open, lenient open, `StructureValidator`, object and stream access | libFuzzer + SharpFuzz; mutational fallback | **edge coverage of `MikePDF.PdfWriter.dll`** | as above, plus strict-accepts-but-lenient-refuses, a refused file reported valid, a limit exceeded |
 | `pdfwriter-append` | `MikePDF.PdfWriter` incremental writer: parse, rewrite up to three objects, append, reopen | libFuzzer + SharpFuzz; mutational fallback | **edge coverage of `MikePDF.PdfWriter.dll`** | as above, plus the writer's own self-check failing on a strictly valid base, or the input not being an exact prefix of the output |
+| `shell-reply-cpp` | The Explorer handler's view of a ShellHost reply (`MikePDF.ShellExt`: the generated response decoders of `ShellOpen`, `ShellRenderPage` and `ShellClose`, and `check_render_reply` / `check_open_reply`, the checks it makes before it builds a bitmap), on an 8-byte context (the request's box, the pixel section's size) plus a body; the whole input is also tried as a frame | libFuzzer + AddressSanitizer (MSVC) | coverage of the handler's validation and the protocol codec (compiled in) | any sanitizer report, abort or hang; an accepted reply whose width or height is 0 or above the request, whose stride is not 4 x width, or whose stride x height (64-bit) is outside the section (SHELL-18, SHELL-11) |
+| `shell-request-cs` | ShellHost's view of a handler's request (`ProtocolCodec` request decoders and `ShellRequestRules`: the allow-list after Hello, the Hello check, the budget clamp, the pixel-section rule), whole frame and bare body | libFuzzer + SharpFuzz; mutational fallback | **edge coverage of `MikePDF.Protocol.dll` and `MikePDF.ShellHost.dll`** | as `protocol-cs`, plus a rule that disagrees with an independent 128-bit computation, a budget outside 1 ms to 5 s, an allow-list that changed (SHELL-18) |
 
 Read these limits before reading any result:
 
@@ -20,6 +22,7 @@ Read these limits before reading any result:
 2. **`engine-document` does not fuzz PDFium.** The pinned PDFium is a prebuilt, uninstrumented DLL (ADR-0002). libFuzzer gets no coverage feedback from inside it, and AddressSanitizer cannot see its heap. The target tests MikePDF's wrapper around it and the limits the wrapper enforces. Fuzzing PDFium proper needs a PDFium built from source with ASan and coverage, which is the self-hosted build machine in R-19. Until then the protection against PDFium bugs is the sandbox (ADR-0004), not this fuzzer.
 3. **The engine's request path is not fuzzed.** `EngineCore::execute` (handles, slot ring, the document table) is reached by the integration tests, not by a fuzzer. The decoders that feed it are fuzzed.
 4. **x64 only.** MSVC's libFuzzer and ASan runtimes ship for x64. ARM64 builds are covered by the unit and integration tests, not by fuzzing.
+5. **The two shell targets are new** (`shell-reply-cpp`, `shell-request-cs`, SHELL-18). They have the 60 s smoke on every push and their seeds are replayed on every build (`fuzz_seed_tests.cpp`, `CorpusReplayTests`), with every truncation and byte flip of every seed; they have no fuzz hours yet, and no hour of theirs counts toward the 24-hour or 72-hour plans below until a nightly slice has run them. They test the validation and the decoders, not the handler's COM code or ShellHost's engine handling.
 5. **The seeds are small.** The PDF seeds are the 21 PDFium and integration fixtures (about 160 KB). There is no corpus of large real-world files yet (ADR-0010 is Proposed).
 
 ## Running them
@@ -27,7 +30,7 @@ Read these limits before reading any result:
 Needs Windows 11 x64, the .NET SDK from `global.json`, and Visual Studio or Build Tools with the C++ workload **and the "C++ AddressSanitizer" component** (it carries `clang_rt.fuzzer_*` and `clang_rt.asan_dynamic-x86_64.dll`). CMake is found the same way `build.ps1` finds it.
 
 ```powershell
-./tests/fuzz/run-fuzz.ps1 -Target all -Seconds 60                    # the CI smoke: all five targets, 60 s each
+./tests/fuzz/run-fuzz.ps1 -Target all -Seconds 60                    # the CI smoke: all seven targets, 60 s each
 ./tests/fuzz/run-fuzz.ps1 -Target protocol-cpp -Seconds 900          # one target for 15 minutes
 ./tests/fuzz/run-fuzz.ps1 -Target engine-document -Seconds 3600 -Jobs 4   # four processes sharing one corpus
 ./tests/fuzz/run-fuzz.ps1 -Target pdfwriter-parse -Seconds 900 -CSharpMode mutational   # the C# fallback, no C++ toolchain needed

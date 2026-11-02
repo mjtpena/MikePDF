@@ -1,0 +1,78 @@
+name: Shell integration
+
+# The S6b hosted-runner probe (docs/spikes/S6b-shell-transport.md) as a real integration job (docs/features/shell-extensions.md section 14, ADR-0018 "Verification"). It builds the
+# real MikePDF package, installs it on a disposable GitHub-hosted runner with an ephemeral self-signed certificate, and drives the REAL shell: thumbnails through
+# IShellItemImageFactory, the preview handler as Explorer's host activates it, ShellHost's pipe and its security, the user switch, the enterprise policy and what the shell shows
+# when MikePDF's handler declines (OQ-SHELL-14). Then it uninstalls the package and checks that nothing of the handlers is left.
+#
+# Registry writes (the policy values and a competing handler under HKLM) happen only here, only on a GitHub-hosted runner: install-test.ps1 and the probe both refuse to run
+# unless GITHUB_ACTIONS is 'true' and RUNNER_ENVIRONMENT is 'github-hosted'. Nothing is ever registered on a developer machine.
+on:
+  workflow_dispatch:
+  pull_request:
+    paths: &shell
+      - 'src/MikePDF.ShellExt/**'
+      - 'src/MikePDF.ShellHost/**'
+      - 'src/MikePDF.App/Package.appxmanifest'
+      - 'src/MikePDF.Engine/**'
+      - 'src/MikePDF.Broker/**'
+      - 'src/MikePDF.Protocol/**'
+      - 'tests/MikePDF.ShellExt.Tests/**'
+      - 'build/package.ps1'
+      - 'build/store/install-test.ps1'
+      - '.github/workflows/shell-integration.yml'
+  push:
+    branches: ['m[0-9]*/**']
+    paths: *shell
+
+permissions:
+  contents: read
+
+concurrency:
+  group: shell-integration-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  shell:
+    name: shell-${{ matrix.arch }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Runner labels are pinned explicitly, never *-latest (ADR-0001).
+          - arch: x64
+            runner: windows-2025-vs2026
+          - arch: arm64
+            runner: windows-11-vs2026-arm
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 60
+    env:
+      CI: 'true'
+      DOTNET_NOLOGO: 'true'
+      DOTNET_CLI_TELEMETRY_OPTOUT: 'true'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          dotnet-version: '10.0.4xx' # ADR-0001 pin (10.0.403); global.json rolls forward to it
+      - name: Build the native half (engine, handler DLL, probe) and run the native tests
+        shell: pwsh
+        run: ./build.ps1 -Configuration Release -Arch ${{ matrix.arch }} -SkipManaged -Test
+      - name: Build the real package (release, no self-test, ShellHost Native AOT)
+        shell: pwsh
+        run: ./build/package.ps1 -Arch ${{ matrix.arch }} -Version 1.0.0.0 -SkipNativeBuild
+      - name: Install it on this disposable runner and drive the real shell
+        shell: powershell
+        run: |
+          ./build/store/install-test.ps1 -Mode Shell -Arch ${{ matrix.arch }} `
+            -Msix "build/out/package/MikePDF_1.0.0.0_${{ matrix.arch }}.msix" `
+            -OutDir "$env:GITHUB_WORKSPACE\shell-results-${{ matrix.arch }}" `
+            -ProbeDir "$env:GITHUB_WORKSPACE\build\out\cmake-${{ matrix.arch }}\bin\Release" `
+            -Fixtures "$env:GITHUB_WORKSPACE\tests\MikePDF.Integration.Tests\Fixtures"
+      - name: Upload the probe's logs
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: shell-results-${{ matrix.arch }}
+          path: shell-results-${{ matrix.arch }}/**
+          if-no-files-found: warn

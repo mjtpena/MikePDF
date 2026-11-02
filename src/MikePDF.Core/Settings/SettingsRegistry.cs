@@ -182,6 +182,34 @@ public static class SettingsRegistry
         },
         new SettingDefinition
         {
+            Key = "shell.thumbnails",
+            Kind = SettingKind.Bool,
+            Default = true,
+            Owner = "shell extensions",
+            PolicyName = "ShellThumbnailsEnabled",
+            Section = SettingSection.Privacy,
+        },
+        new SettingDefinition
+        {
+            Key = "shell.preview",
+            Kind = SettingKind.Bool,
+            Default = true,
+            Owner = "shell extensions",
+            PolicyName = "ShellPreviewEnabled",
+            Section = SettingSection.Privacy,
+        },
+        new SettingDefinition
+        {
+            Key = "shell.maxEngines",
+            Kind = SettingKind.Number,
+            Default = 3,
+            Min = 1,
+            Max = 6,
+            Owner = "shell extensions",
+            PolicyName = "ShellMaxEngines",
+        },
+        new SettingDefinition
+        {
             Key = "engines.maxLiveTabs",
             Kind = SettingKind.Number,
             Default = 6,

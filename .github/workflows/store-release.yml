@@ -23,6 +23,8 @@ on:
       - 'src/MikePDF.App/**'
       - 'src/MikePDF.Engine/**'
       - 'src/MikePDF.Broker/**'
+      - 'src/MikePDF.ShellExt/**'
+      - 'src/MikePDF.ShellHost/**'
       - 'Directory.Packages.props'
       - '.github/workflows/store-release.yml'
   push:
