@@ -1,6 +1,7 @@
 using MikePDF.Perf.Cli;
 using MikePDF.Perf.Metrics;
 using MikePDF.Perf.Results;
+using MikePDF.Perf.Runner;
 using MikePDF.Perf.Scenarios;
 
 namespace MikePDF.Perf.Tests;
@@ -87,6 +88,8 @@ public sealed class SuiteTests(HarnessFixture fixture)
         Assert.All(results.Documents, d => Assert.Equal(64, d.Sha256.Length));
         Assert.Equal(64, results.Engine!.ExeSha256.Length);
         Assert.Contains(results.Notes, n => n.Contains("Not reference hardware", StringComparison.Ordinal));
+        Assert.InRange(results.BackgroundCpuBusyPercent!.Value, 0, 100);
+        Assert.Equal(results.BackgroundCpuBusyPercent > PerfRunner.BusyWarningPercent, results.Notes.Any(n => n.Contains("busy with other work", StringComparison.Ordinal)));
         Assert.All(results.Metrics.Where(m => m.Budget is not null), m => Assert.False(m.Budget!.ReferenceHardware));
         Assert.NotNull(results.Find("memory.engine_peak_working_set.text500")!.Budget); // held against §11, marked as not from reference hardware
     }

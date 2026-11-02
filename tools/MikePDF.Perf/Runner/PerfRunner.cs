@@ -62,6 +62,7 @@ public static class PerfRunner
             }
         }
 
+        var background = await SystemLoad.MeasureAsync(TimeSpan.FromMilliseconds(500), cancellationToken);
         using var engine = EngineWorkspace.Create(options.EngineDirectory, options.AppContainerName);
         var documentsDirectory = options.DocumentsDirectory
             ?? (engine.RepositoryRoot.Length > 0 ? Path.Combine(engine.RepositoryRoot, "build", "out", "perf-documents") : Path.Combine(Path.GetTempPath(), "MikePDF.Perf.Documents"));
@@ -102,14 +103,18 @@ public static class PerfRunner
             Runner = new RunnerInfo { Id = options.RunnerId, ReferenceTier = options.ReferenceTier },
             Machine = machine,
             Engine = engine.Info,
+            BackgroundCpuBusyPercent = background,
             Profile = new ProfileInfo(options.Profile.Name, options.Profile.Warmup, options.Profile.Iterations, options.Profile.HeavyIterations),
             Documents = [.. documents.Select(d => new DocumentInfo(d.Spec.Id, d.Spec.Pages, d.Bytes, d.Sha256))],
             Metrics = finalMetrics,
-            Notes = Notes(options, machine, finalMetrics),
+            Notes = Notes(options, machine, finalMetrics, background),
         };
     }
 
-    private static List<string> Notes(PerfRunOptions options, MachineInfo machine, IReadOnlyList<MetricResult> metrics)
+    /// <summary>Above this share of background CPU use the timings are flagged as inflated.</summary>
+    public const double BusyWarningPercent = 15;
+
+    private static List<string> Notes(PerfRunOptions options, MachineInfo machine, IReadOnlyList<MetricResult> metrics, double? background)
     {
         var notes = new List<string>
         {
@@ -118,6 +123,11 @@ public static class PerfRunner
         if (options.ReferenceTier is null)
         {
             notes.Add("Not reference hardware (R1, R2 and R3 are not declared for this run): every comparison with a §11 target is indicative only and proves nothing about the budget.");
+        }
+
+        if (background is > BusyWarningPercent)
+        {
+            notes.Add($"The machine was {background:0}% busy with other work before the run began (all programs, all logical processors): every timing here is inflated by that. Rerun on an idle machine before trusting a number.");
         }
 
         if (machine.CiHosted)

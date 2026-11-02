@@ -122,6 +122,9 @@ public sealed record PerfResults
 
     public EngineInfo? Engine { get; init; }
 
+    /// <summary>How busy the whole machine was (percent of all logical processors) in the half second before the run began, before any work of the harness's own. A high figure means other programs were running and the timings are inflated.</summary>
+    public double? BackgroundCpuBusyPercent { get; init; }
+
     public required ProfileInfo Profile { get; init; }
 
     public IReadOnlyList<DocumentInfo> Documents { get; init; } = [];

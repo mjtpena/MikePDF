@@ -18,7 +18,12 @@ public static class MarkdownReport
         text.AppendLine(CultureInfo.InvariantCulture, $"- RAM: {machine.RamGb:0.#} GB");
         text.AppendLine(CultureInfo.InvariantCulture, $"- GPU: {(machine.Gpus.Count == 0 ? "none found" : string.Join("; ", machine.Gpus))}");
         text.AppendLine(CultureInfo.InvariantCulture, $"- OS: {machine.Os} ({machine.Architecture}); {machine.DotNet}; power plan: {machine.PowerPlan ?? "unknown"}");
-        text.AppendLine(CultureInfo.InvariantCulture, $"- Profile: {results.Profile.Name} (warm-up {results.Profile.Warmup}, {results.Profile.Iterations} iterations, {results.Profile.HeavyIterations} for the heavy scenarios)");
+        if (results.BackgroundCpuBusyPercent is { } busy)
+        {
+            text.AppendLine(CultureInfo.InvariantCulture, $"- Machine busy with other work before the run: {busy:0}%");
+        }
+
+        text.AppendLine(CultureInfo.InvariantCulture, $"- Profile:{results.Profile.Name} (warm-up {results.Profile.Warmup}, {results.Profile.Iterations} iterations, {results.Profile.HeavyIterations} for the heavy scenarios)");
         text.AppendLine(CultureInfo.InvariantCulture, $"- Date: {results.CreatedUtc:yyyy-MM-dd HH:mm} UTC");
         if (results.Engine is { } engine)
         {

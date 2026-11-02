@@ -6,6 +6,7 @@ public static class Program
 {
     public static async Task<int> Main(string[] args)
     {
+        Console.OutputEncoding = new System.Text.UTF8Encoding(encoderShouldEmitUTF8Identifier: false); // the reports contain "§", "≤" and "≥"
         using var cancel = new CancellationTokenSource();
         Console.CancelKeyPress += (_, e) =>
         {

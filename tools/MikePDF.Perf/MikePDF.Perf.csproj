@@ -6,6 +6,7 @@
     <Description>Performance harness (master prompt 11, 15.1): drives the real sandboxed engine through MikePDF.Broker and measures the budgets that can be measured headlessly.</Description>
     <!-- A console tool with no synchronisation context: ConfigureAwait adds nothing. -->
     <NoWarn>$(NoWarn);CA2007</NoWarn>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\src\MikePDF.Broker\MikePDF.Broker.csproj" />
