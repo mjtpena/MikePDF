@@ -14,25 +14,21 @@
 
 | Metric | Unit | n | Median | p95 | CV | §11 target | Baseline | Change | Result |
 |---|---|---:|---:|---:|---:|---:|---:|---:|---|
-| `open.warm.first_tile.text20` | ms | 15 | 32.8 | 43.1 | 8% | ≤ 250 (R1) | - | - | no baseline; engine share only: under target here (not reference hardware), not a pass |
-| `open.cold_engine.first_tile.text1` | ms | 15 | 28.2 | 33.4 | 5% | ≤ 800 (R1) | - | - | no baseline; engine share only: under target here (not reference hardware), not a pass |
-| `open.large.first_tile.text2000` | ms | 15 | 36.0 | 41.3 | 5% | ≤ 1000 (R1) | - | - | no baseline; engine share only: under target here (not reference hardware), not a pass |
-| `open.engine_warm.first_tile.text20` | ms | 15 | 7.58 | 8.13 | 3% | - | - | - | no baseline |
-| `open.engine_warm.first_tile.text2000` | ms | 15 | 10.4 | 15.3 | 12% | - | - | - | no baseline |
-| `search.first_result.text500` | ms | 5 | 11.0 | 11.4 | 3% | ≤ 300 (R1) | - | - | no baseline; within target here (not reference hardware) |
-| `search.full.text500` | ms | 5 | 851 | 875 | 1% | ≤ 3000 (R1) | - | - | no baseline; within target here (not reference hardware) |
-| `memory.engine_peak_working_set.text500` | MB | 5 | 18.2 | 18.4 | 1% | ≤ 600 (R1) | - | - | no baseline; within target here (not reference hardware) |
-| `memory.engine_private_bytes.text500` | MB | 5 | 6.17 | 6.50 | 3% | - | - | - | no baseline |
-| `recovery.crash_to_first_tile` | ms | 15 | 20.6 | 24.7 | 10% | ≤ 2000 (R1) | - | - | no baseline; within target here (not reference hardware) |
-| `recovery.supervisor_restore` | ms | 15 | 14.0 | 17.6 | 10% | - | - | - | no baseline |
-| `render.tile_latency.text20` | ms | 15 | 0.90 | 0.91 | 1% | - | - | - | no baseline |
-| `render.tile_throughput.text20` | tiles/s | 15 | 1015 | 1020 | 3% | - | - | - | no baseline |
+| `open.warm.first_tile.text20` | ms | 15 | 32.8 | 43.1 | 8% | ≤ 250 (R1) | - | - | engine share only: under target here (not reference hardware), not a pass |
+| `open.cold_engine.first_tile.text1` | ms | 15 | 28.2 | 33.4 | 5% | ≤ 800 (R1) | - | - | engine share only: under target here (not reference hardware), not a pass |
+| `open.large.first_tile.text2000` | ms | 15 | 36.0 | 41.3 | 5% | ≤ 1000 (R1) | - | - | engine share only: under target here (not reference hardware), not a pass |
+| `open.engine_warm.first_tile.text20` | ms | 15 | 7.58 | 8.13 | 3% | - | - | - | ok |
+| `open.engine_warm.first_tile.text2000` | ms | 15 | 10.4 | 15.3 | 12% | - | - | - | ok |
+| `search.first_result.text500` | ms | 5 | 11.0 | 11.4 | 3% | ≤ 300 (R1) | - | - | within target here (not reference hardware) |
+| `search.full.text500` | ms | 5 | 851 | 875 | 1% | ≤ 3000 (R1) | - | - | within target here (not reference hardware) |
+| `memory.engine_peak_working_set.text500` | MB | 5 | 18.2 | 18.4 | 1% | ≤ 600 (R1) | - | - | within target here (not reference hardware) |
+| `memory.engine_private_bytes.text500` | MB | 5 | 6.17 | 6.50 | 3% | - | - | - | ok |
+| `recovery.crash_to_first_tile` | ms | 15 | 20.6 | 24.7 | 10% | ≤ 2000 (R1) | - | - | within target here (not reference hardware) |
+| `recovery.supervisor_restore` | ms | 15 | 14.0 | 17.6 | 10% | - | - | - | ok |
+| `render.tile_latency.text20` | ms | 15 | 0.90 | 0.91 | 1% | - | - | - | ok |
+| `render.tile_throughput.text20` | tiles/s | 15 | 1015 | 1020 | 3% | - | - | - | ok |
 | `package.install_size` | MB | - | - | - | - | - | - | - | skipped |
 | `package.msix_file_size` | MB | - | - | - | - | - | - | - | skipped |
-
-## Against the baseline
-
-**No baseline exists for this runner yet, so nothing was compared.** The first results are the candidate baseline: review them and commit them as `docs/perf/baselines/<runner>.json`.
 
 ## Generated documents
 

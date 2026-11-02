@@ -64,7 +64,7 @@ public sealed class SuiteTests(HarnessFixture fixture)
                 continue;
             }
 
-            Assert.Equal(MetricStatus.Measured, metric.Status);
+            Assert.True(metric.Status == MetricStatus.Measured, metric.Id + ": " + metric.Reason);
             Assert.True(metric.Median > 0, metric.Id);
             Assert.Equal(metric.N, metric.Samples.Count);
         }
@@ -159,6 +159,42 @@ public sealed class SuiteTests(HarnessFixture fixture)
         Assert.All(written.Metrics, m => Assert.Equal(3.0, m.Details!["runs"])); // each suspect measured three times, the median of the three runs reported
         Assert.True(File.Exists(Path.Combine(directory, "perf-comparison.json")));
         Assert.Contains("regressed", File.ReadAllText(Path.Combine(directory, "perf-comparison.json")), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task TheGateChoosesTheBaselineOfTheSameCpuFromADirectoryAndOnlyGatesOnThat()
+    {
+        var run = await QuickRunAsync();
+        var cpu = run.Results.Machine.Cpu;
+        var doctored = run.Results with
+        {
+            Metrics = [.. run.Results.Metrics.Where(m => CheapMetrics.Contains(m.Id)).Select(m => m with { Median = m.LowerIsBetter ? m.Median / 5 : m.Median * 5 })],
+        };
+        var only = string.Join(',', CheapMetrics);
+
+        // A much faster baseline, but for another CPU: shown for information, never fails the build.
+        var foreign = NewDirectory();
+        ResultsJson.Save(Path.Combine(foreign, "test-runner.some-other-cpu.json"), doctored with { Machine = doctored.Machine with { Cpu = "Some Other CPU" } });
+        var (foreignExit, foreignOutput, _) = await Invoke(["gate", .. Common(NewDirectory()), "--baseline-dir", foreign, "--only", only]);
+        Assert.Equal(0, foreignExit);
+        Assert.Contains("for information only", foreignOutput, StringComparison.Ordinal);
+        Assert.Contains($"test-runner.{System.Text.RegularExpressions.Regex.Replace(cpu.ToLowerInvariant(), "[^a-z0-9]+", "-").Trim('-')}.json", foreignOutput, StringComparison.Ordinal);
+        Assert.DoesNotContain("REGRESSION", foreignOutput, StringComparison.Ordinal);
+
+        // The same baseline for this CPU: chosen, and the build fails.
+        var matching = NewDirectory();
+        ResultsJson.Save(Path.Combine(matching, "test-runner.this-cpu.json"), doctored);
+        var (matchingExit, matchingOutput, _) = await Invoke(["gate", .. Common(NewDirectory()), "--baseline-dir", matching, "--only", only]);
+        Assert.Equal(1, matchingExit);
+        Assert.Contains("same CPU", matchingOutput, StringComparison.Ordinal);
+        Assert.Contains("REGRESSION", matchingOutput, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task TheGateNeedsExactlyOneKindOfBaseline()
+    {
+        Assert.Equal(2, (await Invoke("gate", "--baseline", "a.json", "--baseline-dir", "dir")).ExitCode);
+        Assert.Equal(2, (await Invoke("gate")).ExitCode);
     }
 
     [Fact]

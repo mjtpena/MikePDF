@@ -29,7 +29,7 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # Runner labels are pinned explicitly, never *-latest (ADR-0001). The baseline file is per runner: ci-<arch>.
+          # Runner labels are pinned explicitly, never *-latest (ADR-0001). Baselines are per runner and per CPU: docs/perf/baselines/ci-<arch>.<cpu>.json.
           - arch: x64
             runner: windows-2025-vs2026
           - arch: arm64
@@ -59,9 +59,8 @@ jobs:
         shell: pwsh
         run: |
           $tool = (Get-ChildItem tools/MikePDF.Perf/bin/Release -Recurse -Filter MikePDF.Perf.exe | Select-Object -First 1).FullName
-          $baseline = 'docs/perf/baselines/ci-${{ matrix.arch }}.json'
           # Exit codes: 0 passed (or no baseline yet), 1 regression, 2 bad usage, 3 a metric could not be measured.
-          & $tool gate --profile ci --runner-id ci-${{ matrix.arch }} --baseline $baseline --out perf-results
+          & $tool gate --profile ci --runner-id ci-${{ matrix.arch }} --baseline-dir docs/perf/baselines --out perf-results
           exit $LASTEXITCODE
       - name: Job summary
         if: always()
@@ -72,7 +71,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          # perf-results.json is also the candidate baseline: commit it as docs/perf/baselines/ci-<arch>.json after review.
+          # perf-results.json is also the candidate baseline: commit it as docs/perf/baselines/ci-<arch>.<cpu>.json (the job output names the file) after review.
           name: perf-results-${{ matrix.arch }}
           path: perf-results/**
           if-no-files-found: warn

@@ -110,7 +110,7 @@ public sealed class EngineScenarioTests(HarnessFixture fixture)
     {
         var definition = MetricCatalog.Find(id)!;
         var result = await OpenScenarios.RunAsync(Context, definition);
-        Assert.Equal(MetricStatus.Measured, result.Status);
+        Assert.True(result.Status == MetricStatus.Measured, result.Id + ": " + result.Reason);
         Assert.Equal(PerfProfile.Quick.Iterations, result.N);
         Assert.Equal(PerfProfile.Quick.Iterations, result.Samples.Count);
         Assert.InRange(result.Median!.Value, 0.5, 20_000);
@@ -140,8 +140,8 @@ public sealed class EngineScenarioTests(HarnessFixture fixture)
         var results = await SearchScenario.RunAsync(Context, CancellationToken.None);
         var first = results.Single(r => r.Id == MetricCatalog.SearchFirst.Id);
         var full = results.Single(r => r.Id == MetricCatalog.SearchFull.Id);
-        Assert.Equal(MetricStatus.Measured, first.Status);
-        Assert.Equal(MetricStatus.Measured, full.Status);
+        Assert.True(first.Status == MetricStatus.Measured, first.Id + ": " + first.Reason);
+        Assert.True(full.Status == MetricStatus.Measured, full.Id + ": " + full.Reason);
         Assert.Equal(PerfProfile.Quick.HeavyIterations, full.N);
         Assert.True(first.Median < full.Median, "the first result (page 5) comes long before the last page (page 500)");
         Assert.InRange(full.Details!["ms_per_page"], 0.01, 100);
@@ -153,8 +153,8 @@ public sealed class EngineScenarioTests(HarnessFixture fixture)
         var results = await MemoryScenario.RunAsync(Context, CancellationToken.None);
         var peak = results.Single(r => r.Id == MetricCatalog.EnginePeakWorkingSet.Id);
         var privateBytes = results.Single(r => r.Id == MetricCatalog.EnginePrivateBytes.Id);
-        Assert.Equal(MetricStatus.Measured, peak.Status);
-        Assert.Equal(MetricStatus.Measured, privateBytes.Status);
+        Assert.True(peak.Status == MetricStatus.Measured, peak.Id + ": " + peak.Reason);
+        Assert.True(privateBytes.Status == MetricStatus.Measured, privateBytes.Id + ": " + privateBytes.Reason);
         Assert.Equal(3000, peak.Details!["tiles"]); // 500 pages x 6 tiles
         Assert.InRange(peak.Median!.Value, 1, 4096);
         Assert.InRange(privateBytes.Median!.Value, 1, 4096);
@@ -168,8 +168,8 @@ public sealed class EngineScenarioTests(HarnessFixture fixture)
         var results = await RecoveryScenario.RunAsync(Context, CancellationToken.None);
         var wall = results.Single(r => r.Id == MetricCatalog.CrashToTile.Id);
         var supervisor = results.Single(r => r.Id == MetricCatalog.SupervisorRestore.Id);
-        Assert.Equal(MetricStatus.Measured, wall.Status);
-        Assert.Equal(MetricStatus.Measured, supervisor.Status);
+        Assert.True(wall.Status == MetricStatus.Measured, wall.Id + ": " + wall.Reason);
+        Assert.True(supervisor.Status == MetricStatus.Measured, supervisor.Id + ": " + supervisor.Reason);
         Assert.Equal(PerfProfile.Quick.Iterations, wall.N);
         Assert.InRange(wall.Median!.Value, 1, 30_000);
         Assert.True(supervisor.Median <= wall.Median + 50, "the supervisor's restore is part of the time to the first tile");
@@ -181,7 +181,7 @@ public sealed class EngineScenarioTests(HarnessFixture fixture)
         var results = await RenderScenario.RunAsync(Context, CancellationToken.None);
         var latency = results.Single(r => r.Id == MetricCatalog.TileLatency.Id);
         var throughput = results.Single(r => r.Id == MetricCatalog.TileThroughput.Id);
-        Assert.Equal(MetricStatus.Measured, latency.Status);
+        Assert.True(latency.Status == MetricStatus.Measured, latency.Id + ": " + latency.Reason);
         Assert.Equal(120, latency.Details!["tiles_per_pass"]);
         Assert.True(latency.Details["tile_p95_ms"] >= latency.Median);
         Assert.True(throughput.Median > 0);
@@ -212,7 +212,7 @@ public sealed class EngineScenarioTests(HarnessFixture fixture)
             var context = WithPackage(path);
             var measured = PackageScenario.Run(context);
             var size = measured.Single(m => m.Id == MetricCatalog.InstallSize.Id);
-            Assert.Equal(MetricStatus.Measured, size.Status);
+            Assert.True(size.Status == MetricStatus.Measured, size.Id + ": " + size.Reason);
             Assert.Equal(8.001, size.Median!.Value, 3);
             Assert.True(measured.Single(m => m.Id == MetricCatalog.MsixFileSize.Id).Median < size.Median); // the zip is smaller than what is in it (these entries are zeros)
 

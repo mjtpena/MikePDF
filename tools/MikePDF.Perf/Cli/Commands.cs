@@ -18,6 +18,7 @@ public static class Commands
           run            Measure the headless suite and write perf-results.json and perf-results.md.
           gate           run, then compare with a baseline; re-measure metrics that look regressed; exit 1 on a regression.
           compare        Compare two result files.
+          report         Render a result file as Markdown (to refresh the .md beside a baseline).
           generate       Write the generated test PDFs.
           trace-metrics  Compute the app-level figures (cold start, first pixel, scroll frames) from event CSVs.
           info           Print what is known about this machine.
@@ -30,7 +31,9 @@ public static class Commands
           --only <id,id,...>        just these metrics
           --appcontainer <name>     AppContainer profile name (default MikePDF.Perf); give runs that overlap different names
         gate options:
-          --baseline <file>  (a missing file means no baseline yet)   --threshold 0.10   --retries 2
+          --baseline <file> (a missing file means no baseline yet) or --baseline-dir <dir> (picks <runner-id>.*.json with the same CPU)
+          --threshold 0.10   --retries 2
+        report options:   --results <file> [--out <file.md>]
         compare options:  --baseline <file> --current <file> [--threshold 0.10] [--out <dir>]
         generate options: --out <dir> [--only text1,text20,text500,text2000]
         trace-metrics options:
@@ -57,6 +60,7 @@ public static class Commands
                 "run" => await RunSuiteAsync(parsed, output, gate: false, cancellationToken),
                 "gate" => await RunSuiteAsync(parsed, output, gate: true, cancellationToken),
                 "compare" => await CompareAsync(parsed, output),
+                "report" => await ReportAsync(parsed, output),
                 "generate" => await GenerateAsync(parsed, output),
                 "trace-metrics" => await TraceMetricsAsync(parsed, output),
                 "info" => await InfoAsync(parsed, output),
@@ -113,21 +117,36 @@ public static class Commands
         void Log(string line) => output.WriteLine(line);
         var options = OptionsFrom(args, Log);
         var outDir = args.Get("out") ?? "perf-results";
-        var baselinePath = gate ? args.Require("baseline") : null;
+        var baselinePath = gate ? args.Get("baseline") : null;
+        var baselineDirectory = gate ? args.Get("baseline-dir") : null;
+        if (gate && (baselinePath is null) == (baselineDirectory is null))
+        {
+            throw new UsageException("gate needs exactly one of --baseline <file> and --baseline-dir <directory>.");
+        }
+
         var threshold = args.GetDouble("threshold", BaselineComparer.DefaultThreshold);
         var retries = args.GetInt("retries", GateRunner.DefaultRetries);
         args.RejectUnused();
 
         PerfResults results;
         ComparisonReport? report = null;
+        string? baselineNote = null;
         if (gate)
         {
-            PerfResults? baseline = baselinePath is not null && File.Exists(baselinePath) ? ResultsJson.Load(baselinePath) : null;
-            if (baseline is null)
+            PerfResults? baseline;
+            if (baselineDirectory is not null)
             {
-                await output.WriteLineAsync($"No baseline at {baselinePath}: this run becomes the candidate baseline and nothing is compared.");
+                var choice = BaselineSelector.Choose(baselineDirectory, options.RunnerId, MachineProbe.Read().Cpu);
+                baseline = choice.Baseline;
+                baselineNote = choice.Message;
+            }
+            else
+            {
+                baseline = baselinePath is not null && File.Exists(baselinePath) ? ResultsJson.Load(baselinePath) : null;
+                baselineNote = baseline is null ? $"No baseline at {baselinePath}: this run becomes the candidate baseline and nothing is compared." : $"Baseline {baselinePath}.";
             }
 
+            await output.WriteLineAsync(baselineNote);
             var outcome = await GateRunner.RunAsync(baseline, only => PerfRunner.RunAsync(only is null ? options : options with { Only = only }, cancellationToken), threshold, retries, Log);
             results = outcome.Results;
             report = outcome.Report;
@@ -139,13 +158,13 @@ public static class Commands
 
         Directory.CreateDirectory(outDir);
         ResultsJson.Save(Path.Combine(outDir, "perf-results.json"), results);
-        await File.WriteAllTextAsync(Path.Combine(outDir, "perf-results.md"), MarkdownReport.Render(results, report), cancellationToken);
+        await File.WriteAllTextAsync(Path.Combine(outDir, "perf-results.md"), MarkdownReport.Render(results, report, baselineNote), cancellationToken);
         if (report is not null)
         {
             await File.WriteAllTextAsync(Path.Combine(outDir, "perf-comparison.json"), ResultsJson.Serialize(report), cancellationToken);
         }
 
-        await output.WriteLineAsync(MarkdownReport.Render(results, report));
+        await output.WriteLineAsync(MarkdownReport.Render(results, report, baselineNote));
         if (report is { Failed: true })
         {
             foreach (var item in report.Regressions)
@@ -194,6 +213,24 @@ public static class Commands
         }
 
         return report.Failed ? 1 : 0;
+    }
+
+    private static async Task<int> ReportAsync(Arguments args, TextWriter output)
+    {
+        var results = ResultsJson.Load(args.Require("results"));
+        var outFile = args.Get("out");
+        args.RejectUnused();
+        var markdown = MarkdownReport.Render(results);
+        if (outFile is null)
+        {
+            await output.WriteLineAsync(markdown);
+        }
+        else
+        {
+            await File.WriteAllTextAsync(outFile, markdown);
+        }
+
+        return 0;
     }
 
     private static async Task<int> GenerateAsync(Arguments args, TextWriter output)

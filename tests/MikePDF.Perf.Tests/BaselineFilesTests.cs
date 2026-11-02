@@ -19,7 +19,8 @@ public sealed class BaselineFilesTests
         {
             var baseline = ResultsJson.Load(file);
             Assert.Equal(PerfResults.CurrentSchema, baseline.Schema);
-            Assert.Equal(Path.GetFileNameWithoutExtension(file), baseline.Runner.Id);
+            // <runner>.json, or <runner>.<cpu>.json for a runner whose machines differ (hosted CI).
+            Assert.Equal(Path.GetFileNameWithoutExtension(file).Split('.')[0], baseline.Runner.Id);
             Assert.False(string.IsNullOrWhiteSpace(baseline.Machine.Cpu));
             Assert.NotEmpty(baseline.Machine.Gpus);
             Assert.True(baseline.Machine.RamGb > 0);

@@ -31,7 +31,7 @@ public enum Verdict
 public sealed record MetricComparison(string Id, string Unit, Verdict Verdict, double? Baseline, double? Current, double? Change, string Note);
 
 /// <summary>The outcome of holding one run against a baseline.</summary>
-public sealed record ComparisonReport(double Threshold, bool HasBaseline, IReadOnlyList<MetricComparison> Items, IReadOnlyList<string> Warnings)
+public sealed record ComparisonReport(double Threshold, bool HasBaseline, IReadOnlyList<MetricComparison> Items, IReadOnlyList<string> Warnings, string? NotComparable = null)
 {
     public IReadOnlyList<MetricComparison> Regressions => [.. Items.Where(i => i.Verdict is Verdict.Regressed or Verdict.Failed)];
 
@@ -54,11 +54,13 @@ public static class BaselineComparer
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(threshold);
         definitions ??= MetricCatalog.Find;
         var warnings = new List<string>();
+        string? notComparable = null;
         if (baseline is not null)
         {
             if (!string.Equals(baseline.Machine.Architecture, current.Machine.Architecture, StringComparison.Ordinal))
             {
                 warnings.Add($"The baseline is from {baseline.Machine.Architecture} and this run is {current.Machine.Architecture}: the comparison is not meaningful.");
+                notComparable = "the baseline is for another architecture";
             }
 
             if (!string.Equals(baseline.Runner.Id, current.Runner.Id, StringComparison.Ordinal))
@@ -68,20 +70,21 @@ public static class BaselineComparer
 
             if (!string.Equals(baseline.Machine.Cpu, current.Machine.Cpu, StringComparison.Ordinal))
             {
-                warnings.Add($"The CPU differs from the baseline's ({baseline.Machine.Cpu} then, {current.Machine.Cpu} now): hosted runners are drawn from a pool, so some noise is expected.");
+                warnings.Add($"The CPU differs from the baseline's ({baseline.Machine.Cpu} then, {current.Machine.Cpu} now): hosted runners are drawn from a pool of different machines, and the same code can run twice as fast on one as on another.");
+                notComparable ??= $"the baseline was measured on a different CPU ({baseline.Machine.Cpu})";
             }
         }
 
         var items = new List<MetricComparison>();
         foreach (var metric in current.Metrics)
         {
-            items.Add(CompareOne(baseline?.Find(metric.Id), metric, threshold, definitions(metric.Id)));
+            items.Add(CompareOne(baseline?.Find(metric.Id), metric, threshold, definitions(metric.Id), notComparable));
         }
 
-        return new ComparisonReport(threshold, baseline is not null, items, warnings);
+        return new ComparisonReport(threshold, baseline is not null, items, warnings, notComparable);
     }
 
-    private static MetricComparison CompareOne(MetricResult? baseline, MetricResult current, double threshold, MetricDefinition? definition)
+    private static MetricComparison CompareOne(MetricResult? baseline, MetricResult current, double threshold, MetricDefinition? definition, string? notComparable)
     {
         switch (current.Status)
         {
@@ -105,8 +108,8 @@ public static class BaselineComparer
         var note = string.Empty;
         if (change > threshold && worse > floor)
         {
-            verdict = definition?.Gate == false ? Verdict.Advisory : Verdict.Regressed;
-            note = $"{change:P1} worse (limit {threshold:P0}, floor {floor:0.###} {current.Unit})";
+            verdict = definition?.Gate == false || notComparable is not null ? Verdict.Advisory : Verdict.Regressed;
+            note = $"{change:P1} worse (limit {threshold:P0}, floor {floor:0.###} {current.Unit})" + (notComparable is null ? string.Empty : $"; advisory only, because {notComparable}");
         }
         else if (change < -threshold && -worse > floor)
         {
