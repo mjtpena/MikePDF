@@ -286,7 +286,17 @@ public sealed class CorpusTests
             var other = Path.Combine(directory, "second");
             var failed = await new CorpusFetcher(new HttpClient(never), TimeSpan.Zero).FetchAsync(manifest, "smoke", other, null, null, CancellationToken.None);
             Assert.Single(failed.Failures);
-            Assert.Equal(5, never.Calls);
+            Assert.Equal(6, never.Calls);
+
+            // A 429 ("you are asking too often") is retried like a server error, and a 404 is not retried at all.
+            var tooOften = 0;
+            using var throttled = new FlakyServer(() => ++tooOften < 3 ? HttpStatusCode.TooManyRequests : HttpStatusCode.OK, content);
+            var third = await new CorpusFetcher(new HttpClient(throttled), TimeSpan.Zero).FetchAsync(manifest, "smoke", Path.Combine(directory, "third"), null, null, CancellationToken.None);
+            Assert.Equal((1, 0, 3), (third.Downloaded, third.Failures.Count, tooOften));
+            using var missing = new FlakyServer(() => HttpStatusCode.NotFound, content);
+            var fourth = await new CorpusFetcher(new HttpClient(missing), TimeSpan.Zero).FetchAsync(manifest, "smoke", Path.Combine(directory, "fourth"), null, null, CancellationToken.None);
+            Assert.Single(fourth.Failures);
+            Assert.Equal(1, missing.Calls);
         }
         finally
         {

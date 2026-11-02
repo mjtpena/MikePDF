@@ -43,6 +43,8 @@ A run fails (exit code 1) on any of:
 
 The **baseline** (`tests/corpus/baselines/<tier>-<arch>.json`, picked up automatically for a tier run, or `--baseline`) records each page's SSIM at the last accepted run, per architecture. Write one with `--write-baseline <file>` after a run you have reviewed, and commit it in the same change as whatever moved the scores.
 
+A manifest entry can also say `allowsDamagedPages` (the document opens, but pages broken on purpose cannot be loaded: those end `Damaged` and are warnings, nothing else is excused), `knownIssue` (a real file that should open and does not: it counts against the open rate) and, under `render`, `pages` (which pages to render), `tileDeadlineMs` and `reference: false`. The nightly workflow (`.github/workflows/nightly-corpus.yml`) runs `--tier core` on x64 and ARM64 with this gate and the per-architecture baseline.
+
 The report (`report.md`) also gives the open rate against both bars, the SSIM distribution (minimum, 1st and 5th percentile, median, mean, and how many pages fall in each band) and a table per tag (scanned, tagged, form, cjk, rtl, encrypted ...) with how many files of each opened and how many pages rendered. Engine events are filed under the file that caused them: a hang is reported by the supervisor a moment after the request it hit has been answered, so at the end of a file the run waits (up to 20 s when the file is meant to take the engine down or a page ended `EngineCrashed`, 3 s when a page only timed out) for that event before it moves on.
 
 ## The corpus

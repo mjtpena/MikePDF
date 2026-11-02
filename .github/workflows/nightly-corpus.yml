@@ -79,8 +79,17 @@ jobs:
       - name: Fetch the corpus
         shell: pwsh
         run: |
-          dotnet run --project tools/MikePDF.Render -c Release --no-build -- corpus fetch --tier $env:TIER
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          # Wikimedia, Gitiles and arXiv throttle a client that asks too fast, and a runner's address is shared. The fetch keeps every file it has verified, so
+          # a second and a third try only ask for what is missing. A file that never arrives, or arrives different, still fails the job: nothing is skipped.
+          $code = 1
+          foreach ($try in 1..3) {
+            dotnet run --project tools/MikePDF.Render -c Release --no-build -- corpus fetch --tier $env:TIER
+            $code = $LASTEXITCODE
+            if ($code -eq 0) { break }
+            Write-Host "Fetch attempt $try left files missing; waiting before the next."
+            Start-Sleep -Seconds 120
+          }
+          exit $code
       - name: Save the corpus cache
         if: steps.cache.outputs.cache-hit != 'true'
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0

@@ -14,7 +14,7 @@ internal sealed record FetchSummary(int Downloaded, int Generated, int AlreadyPr
 /// <param name="retryDelay">The wait before a retry; null for the default (2 s, 4 s, ... or 6 s, 12 s, ... when the server says it is being asked too often).</param>
 internal sealed class CorpusFetcher(HttpClient http, TimeSpan? retryDelay = null)
 {
-    private const int Attempts = 5;
+    private const int Attempts = 6;
     private const int Parallelism = 6;
 
     public async Task<FetchSummary> FetchAsync(CorpusManifest manifest, string tier, string corpusDirectory, string? filter, Action<string>? log, CancellationToken cancellationToken)
@@ -92,7 +92,7 @@ internal sealed class CorpusFetcher(HttpClient http, TimeSpan? retryDelay = null
         ["arxiv.org"] = TimeSpan.FromSeconds(3),
         ["export.arxiv.org"] = TimeSpan.FromSeconds(3),
         ["pdfium.googlesource.com"] = TimeSpan.FromMilliseconds(300),
-        ["upload.wikimedia.org"] = TimeSpan.FromMilliseconds(250),
+        ["upload.wikimedia.org"] = TimeSpan.FromMilliseconds(600),
     };
 
     private readonly ConcurrentDictionary<string, SemaphoreSlim> _hostTurns = new(StringComparer.OrdinalIgnoreCase);
@@ -115,6 +115,12 @@ internal sealed class CorpusFetcher(HttpClient http, TimeSpan? retryDelay = null
                 await Task.Delay(interval - since, cancellationToken).ConfigureAwait(false);
             }
 
+            // A host that answered 429 asked everyone to stop for a while: wait out what it asked for before the next request, not only before the retry of the one that was refused.
+            if (_cooldownUntil.TryGetValue(uri.Host, out var until) && until > DateTime.UtcNow)
+            {
+                await Task.Delay(until - DateTime.UtcNow, cancellationToken).ConfigureAwait(false);
+            }
+
             _lastRequest[uri.Host] = DateTime.UtcNow;
             return turn;
         }
@@ -123,6 +129,22 @@ internal sealed class CorpusFetcher(HttpClient http, TimeSpan? retryDelay = null
             turn.Release();
             throw;
         }
+    }
+
+    private readonly ConcurrentDictionary<string, DateTime> _cooldownUntil = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>Records that a slow host refused for being asked too often: it is left alone for what its Retry-After says, or 30 s, and at most 3 minutes.</summary>
+    private void NoteThrottled(string url, HttpResponseMessage response)
+    {
+        if (response.StatusCode is not (System.Net.HttpStatusCode.TooManyRequests or System.Net.HttpStatusCode.ServiceUnavailable)
+            || !Uri.TryCreate(url, UriKind.Absolute, out var uri) || !SlowHosts.ContainsKey(uri.Host))
+        {
+            return;
+        }
+
+        var asked = response.Headers.RetryAfter is { } retry ? retry.Delta ?? (retry.Date - DateTimeOffset.UtcNow) : null;
+        var wait = TimeSpan.FromSeconds(Math.Clamp((asked ?? TimeSpan.FromSeconds(30)).TotalSeconds, 5, 180));
+        _cooldownUntil[uri.Host] = DateTime.UtcNow + wait;
     }
 
     private async Task<byte[]> DownloadAsync(CorpusFile file, CancellationToken cancellationToken)
@@ -134,7 +156,14 @@ internal sealed class CorpusFetcher(HttpClient http, TimeSpan? retryDelay = null
             try
             {
                 gate = await EnterHostAsync(url, cancellationToken).ConfigureAwait(false);
-                var body = await http.GetByteArrayAsync(url, cancellationToken).ConfigureAwait(false);
+                using var response = await http.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                if (!response.IsSuccessStatusCode)
+                {
+                    NoteThrottled(url, response);
+                    response.EnsureSuccessStatusCode();
+                }
+
+                var body = await response.Content.ReadAsByteArrayAsync(cancellationToken).ConfigureAwait(false);
                 return file.FetchEncoding switch
                 {
                     null => body,
