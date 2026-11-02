@@ -86,6 +86,12 @@ internal static class SearchScenario
 /// <summary>The reading services over a broker document: the same adapter the app uses (MikePDF.App.Services.SupervisedReadingEngine), which is internal to the app.</summary>
 internal sealed class DocumentReadingEngine(SupervisedDocument document) : IReadingEngine
 {
+    public Task<ReadReply<GetDocumentInfoReply>> GetDocumentInfoAsync(CancellationToken cancellationToken) =>
+        CallAsync(document.GetInfoAsync(cancellationToken));
+
+    public Task<ReadReply<GetDocumentDetailsReply>> GetDocumentDetailsAsync(CancellationToken cancellationToken) =>
+        CallAsync(document.GetDocumentDetailsAsync(cancellationToken));
+
     public Task<ReadReply<GetOutlineReply>> GetOutlineAsync(IReadOnlyList<uint> path, uint first, uint count, CancellationToken cancellationToken) =>
         CallAsync(document.GetOutlineAsync(path, first, count, cancellationToken));
 
