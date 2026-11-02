@@ -31,6 +31,7 @@ internal sealed class Args
     public string? Log;
     public long MemLimitMb = 256;
     public int SlotKb = 4096;
+    public string? LaunchTestPdf, LaunchResult, Tmp, EngineInPlace;
     public bool FileCopyViaSection = true;
 
     public static Args Parse(string[] argv)
@@ -50,6 +51,9 @@ internal sealed class Args
                 case "--log": a.Log = Next(); break;
                 case "--mem-mb": a.MemLimitMb = long.Parse(Next()); break;
                 case "--slot-kb": a.SlotKb = int.Parse(Next()); break;
+                case "--launch-test": a.LaunchTestPdf = Next(); a.LaunchResult = Next(); break;
+                case "--tmp": a.Tmp = Next(); break;
+                case "--engine-in-place": a.EngineInPlace = Next(); break;
             }
         }
 
@@ -136,6 +140,12 @@ internal static unsafe partial class Native
     [return: MarshalAs(UnmanagedType.Bool)]
     public static partial bool QueryFullProcessImageName(nint process, uint flags, char* name, ref uint size);
 
+    [LibraryImport("userenv.dll", StringMarshalling = StringMarshalling.Utf16)]
+    public static partial int DeriveAppContainerSidFromAppContainerName(string name, out nint sid);
+
+    [LibraryImport("advapi32.dll")]
+    public static partial nint FreeSid(nint sid);
+
     [StructLayout(LayoutKind.Sequential)]
     public struct SECURITY_ATTRIBUTES
     {
@@ -151,6 +161,42 @@ internal static unsafe partial class Native
         public uint AllocationProtect, PartitionId;
         public nuint RegionSize;
         public uint State, Protect, Type;
+    }
+
+    [LibraryImport("advapi32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static partial bool OpenProcessToken(nint process, uint access, out nint token);
+
+    [LibraryImport("advapi32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static partial bool GetTokenInformation(nint token, int infoClass, byte* info, uint length, out uint returned);
+
+    public static string IntegrityLevel()
+    {
+        if (!OpenProcessToken(GetCurrentProcess(), 8 /* TOKEN_QUERY */, out var token))
+        {
+            return "?";
+        }
+
+        try
+        {
+            var buf = new byte[256];
+            fixed (byte* p = buf)
+            {
+                if (!GetTokenInformation(token, 25 /* TokenIntegrityLevel */, p, (uint)buf.Length, out _))
+                {
+                    return "?";
+                }
+
+                var sid = *(byte**)p; // TOKEN_MANDATORY_LABEL.Label.Sid
+                var rid = *(uint*)(sid + 8 + 4 * (sid[1] - 1));
+                return rid < 0x2000 ? "low" : rid < 0x3000 ? "medium" : rid < 0x4000 ? "high" : "system";
+            }
+        }
+        finally
+        {
+            CloseHandle(token);
+        }
     }
 
     public static string? PackageFullName()
@@ -349,9 +395,15 @@ internal static class Program
     {
         var started = Stopwatch.GetTimestamp();
         var args = Args.Parse(argv);
+        if (args.LaunchResult is not null)
+        {
+            // Low integrity cannot write most places; whatever kills this process before the test runs is recorded where Low can write.
+            AppDomain.CurrentDomain.UnhandledException += (_, e) => File.WriteAllText(args.LaunchResult, "FAILED before the test: " + e.ExceptionObject + Environment.NewLine);
+        }
+
         Log.Init(args.Log);
         var package = Native.PackageFullName();
-        Log.Write($"start pipe={args.PipeName} mode={args.Mode} package={package ?? "(none)"} maxEngines={args.MaxEngines} mem={args.MemLimitMb}MB args={string.Join(' ', argv)}");
+        Log.Write($"start pipe={args.PipeName} mode={args.Mode} integrity={Native.IntegrityLevel()} package={package ?? "(none)"} maxEngines={args.MaxEngines} mem={args.MemLimitMb}MB args={string.Join(' ', argv)}");
 
         using var mutex = new Mutex(true, @"Local\MikePDF-S6b-ShellHost-" + args.PipeName, out var first);
         if (!first)
@@ -360,10 +412,14 @@ internal static class Program
             return 0;
         }
 
-        var profile = AppContainerProfile.CreateOrOpen("MikePDF.S6bShell", "S6b shell host", "S6b spike");
+        var profile = OpenProfile();
         string enginePath;
         string? deployed = null;
-        if (package is not null || args.EngineDir is null)
+        if (args.EngineInPlace is not null)
+        {
+            enginePath = Path.Combine(args.EngineInPlace, "MikePDF.Engine.exe");
+        }
+        else if (package is not null || args.EngineDir is null)
         {
             // Packaged: in place (ADR-0004 A2).
             enginePath = Path.Combine(AppContext.BaseDirectory, "..", "Engine", "MikePDF.Engine.exe");
@@ -389,9 +445,14 @@ internal static class Program
             deployed = null; // kept between runs
         }
 
-        _tempDir = Path.Combine(Path.GetTempPath(), "s6b-docs");
+        _tempDir = Path.Combine(args.Tmp ?? Path.GetTempPath(), "s6b-docs");
         Directory.CreateDirectory(_tempDir);
         var pool = new EnginePool(args, profile, enginePath);
+        if (args.LaunchTestPdf is not null)
+        {
+            return await LaunchTestAsync(args, pool).ConfigureAwait(false);
+        }
+
         pool.Prewarm();
 
         _ = Task.Run(async () =>
@@ -447,6 +508,62 @@ internal static class Program
             }
         }
 
+        return 0;
+    }
+
+    /// <summary>
+    /// CreateOrOpen, and when that is refused (low integrity cannot create or open a profile: 0x80070005, measured), derive the SID of the existing profile and build the
+    /// profile object by reflection (spike only: the product class has no derive-only path). This isolates what comes after the profile step.
+    /// </summary>
+    private static AppContainerProfile OpenProfile()
+    {
+        try
+        {
+            return AppContainerProfile.CreateOrOpen("MikePDF.S6bShell", "S6b shell host", "S6b spike");
+        }
+        catch (System.ComponentModel.Win32Exception) when (Environment.GetEnvironmentVariable("S6B_DERIVE_PROFILE") == "1")
+        {
+            var hr = Native.DeriveAppContainerSidFromAppContainerName("MikePDF.S6bShell", out var psid);
+            if (hr != 0)
+            {
+                throw;
+            }
+
+            var sid = new SecurityIdentifier(psid);
+            Native.FreeSid(psid);
+            var ctor = typeof(AppContainerProfile).GetConstructors(System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)[0];
+            Log.Write("profile: CreateOrOpen refused; derived the SID of the existing profile instead");
+            return (AppContainerProfile)ctor.Invoke(["MikePDF.S6bShell", sid, false]);
+        }
+    }
+
+    /// <summary>Starts a sandboxed engine from THIS process, opens a PDF and renders one tile. Run at low integrity it answers: can a low-integrity host launch the AppContainer engine itself (option c)?</summary>
+    private static async Task<int> LaunchTestAsync(Args args, EnginePool pool)
+    {
+        string result;
+        try
+        {
+            var (engine, _) = await pool.AcquireAsync(Stop.Token).ConfigureAwait(false);
+            var opened = await engine.OpenDocumentAsync(args.LaunchTestPdf!, null, Stop.Token).ConfigureAwait(false);
+            if (!opened.IsOk || opened.Value is null)
+            {
+                result = $"engine started (pid {engine.EngineProcessId}) but OpenDocument failed: {opened.Status} {opened.Detail}";
+            }
+            else
+            {
+                var tile = await opened.Value.RenderTileAsync(new RenderTileArgs(0, 0.4f, 0, 0, 0, 200, 250, RenderTileArgs.Annotations), 1, TimeSpan.FromSeconds(5)).ConfigureAwait(false);
+                result = tile.IsOk && tile.Value is not null ? $"OK: low-integrity launcher started the AppContainer engine (pid {engine.EngineProcessId}) and rendered a {tile.Value.Width}x{tile.Value.Height} tile" : $"render failed: {tile.Status} {tile.Detail}";
+                tile.Value?.Dispose();
+            }
+
+            await pool.ReleaseAsync(engine).ConfigureAwait(false);
+        }
+        catch (Exception e)
+        {
+            result = "FAILED: " + e.GetType().Name + ": " + e.Message;
+        }
+
+        File.WriteAllText(args.LaunchResult!, result + Environment.NewLine);
         return 0;
     }
 

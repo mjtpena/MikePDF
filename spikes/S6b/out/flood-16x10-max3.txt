@@ -1,0 +1,20 @@
+all 16 hosts finished after 4531 ms (wall clock, includes test-host start and the one cold ShellHost start)
+ShellHost after the flood: pid 760, working set 68 MB, private 37 MB, threads 31
+calls: 160, ok: 160, failed: 0
+total_ms (to bitmap): p50 274.0, p95 622.3, max 909.0
+23:11:43.380 [shellhost 10372] another ShellHost owns the mutex; exiting
+23:11:43.381 [shellhost 90504] another ShellHost owns the mutex; exiting
+23:11:43.382 [shellhost 15024] another ShellHost owns the mutex; exiting
+23:11:43.383 [shellhost 90520] another ShellHost owns the mutex; exiting
+23:11:43.399 [shellhost 54140] another ShellHost owns the mutex; exiting
+23:11:43.476 [shellhost 90380] another ShellHost owns the mutex; exiting
+23:11:43.532 [shellhost 53396] another ShellHost owns the mutex; exiting
+23:11:43.541 [shellhost 11020] another ShellHost owns the mutex; exiting
+23:11:43.547 [shellhost 70144] another ShellHost owns the mutex; exiting
+23:11:43.566 [shellhost 86728] another ShellHost owns the mutex; exiting
+23:11:43.598 [shellhost 70524] another ShellHost owns the mutex; exiting
+23:11:43.613 [shellhost 70152] another ShellHost owns the mutex; exiting
+23:11:43.615 [shellhost 81216] another ShellHost owns the mutex; exiting
+23:11:43.617 [shellhost 38192] another ShellHost owns the mutex; exiting
+23:11:47.602 [shellhost 760] exit; peakLiveEngines=3
+engine processes left running (MikePDF.Engine.exe on this machine, including other agents' own): 0

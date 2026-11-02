@@ -62,7 +62,7 @@ jobs:
           "msix=$msix" | Add-Content $env:GITHUB_OUTPUT
       - name: Install and run the probe (Windows PowerShell 5.1)
         shell: powershell
-        run: ./spikes/S6b/ci/install-and-run.ps1 -Msix "${{ steps.pkg.outputs.msix }}" -OutDir "$env:GITHUB_WORKSPACE\s6b-results-${{ matrix.arch }}"
+        run: ./spikes/S6b/ci/install-and-run.ps1 -Msix "${{ steps.pkg.outputs.msix }}" -OutDir "$env:GITHUB_WORKSPACE\s6b-results-${{ matrix.arch }}" -NativeDir "$env:GITHUB_WORKSPACE\spikes\S6b\out\native-${{ matrix.arch }}"
       - name: Upload results
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2

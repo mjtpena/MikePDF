@@ -1,0 +1,54 @@
+driver pid 10728, integrity RID 0x3000 (high or above), elevated token=1, package MikePDF.S6bProbe_1.0.0.0_arm64__gxqed95vwwy28, family MikePDF.S6bProbe_gxqed95vwwy28, native arch 12
+== association: what does the shell resolve for each extension?
+  AssocQueryString(SHELLEXTENSION, .s6bpdf, thumbnail handler {E357FCCD...}) -> hr 0x80070483 ''
+  AssocQueryString(SHELLEXTENSION, .s6bpdf, preview handler {8895B1C6...}) -> hr 0x80070483 ''
+  AssocQueryString(EXECUTABLE, .s6bpdf) -> hr 0x00000000 'C:\Program Files\WindowsApps\MikePDF.S6bProbe_1.0.0.0_arm64__gxqed95vwwy28\S6bDriver.exe'
+  HKCU UserChoice ProgId for .s6bpdf: (no UserChoice)
+  AssocQueryString(SHELLEXTENSION, .pdf, thumbnail handler {E357FCCD...}) -> hr 0x80070483 ''
+  AssocQueryString(SHELLEXTENSION, .pdf, preview handler {8895B1C6...}) -> hr 0x00000000 '{3A84F9C2-6164-485C-A7D9-4B27F8AC009E}'
+  AssocQueryString(EXECUTABLE, .pdf) -> hr 0x00000000 'C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe'
+  HKCU UserChoice ProgId for .pdf: MSEdgePDF
+== thumbnails through the shell: surrogate-dll (extension .s6bpdf)
+  cold call 0: ok hr=0x00000000 473.9 ms, 198x256, non-white 21%
+  cold call 1: ok hr=0x00000000 253.9 ms, 198x256, non-white 21%
+  cold call 2: ok hr=0x00000000 253.2 ms, 198x256, non-white 21%
+  warm (n=30): p50 45.6 ms, p95 56.5 ms, max 62.0 ms
+  succeeded 33, failed 0; handler invoked 33 times (marker 'GetThumbnail cx=' in C:\s6b-log\handler.log)
+== a real .pdf through the shell (the package also registers handlers for .pdf; MikePDF is NOT the default app here)
+  GetImage(real.pdf, THUMBNAILONLY): ok hr=0x00000000 53.4 ms 198x256 non-white 21%; our handler calls: +1
+== Mark of the Web: the same file with and without a Zone.Identifier stream, through the shell
+  wrote Zone.Identifier (ZoneId=3, Internet) on motw-marked.s6bpdf: yes
+  motw-plain.s6bpdf: ok hr=0x00000000 43.8 ms 198x256 non-white 21%; handler GetThumbnail calls: +1
+  motw-marked.s6bpdf: ok hr=0x00000000 43.9 ms 198x256 non-white 21%; handler GetThumbnail calls: +1
+  handler-side stream size lines (a Zone.Identifier stream would not be part of the main data stream):
+    04:13:51.457 [handler 8228] GetThumbnail cx=256 stream size=3564
+== preview handler through COM as Explorer activates it (CLSCTX_LOCAL_SERVER, PreviewHost surrogate)
+  run 0: CoCreateInstance(local server) hr=0x00000000 in 70.6 ms
+    Initialize/QI/SetWindow/DoPreview hr=0x00000000 in 3.1 ms
+    first pixel reported by the handler after 255 ms of waiting: 04:13:51.862 [handler 1432] preview: first pixel 247.346 ms after DoPreview
+  run 1: CoCreateInstance(local server) hr=0x00000000 in 46.2 ms
+    Initialize/QI/SetWindow/DoPreview hr=0x00000000 in 2.8 ms
+    first pixel reported by the handler after 53 ms of waiting: 04:13:51.974 [handler 6948] preview: first pixel 37.485 ms after DoPreview
+  run 2: CoCreateInstance(local server) hr=0x00000000 in 43.9 ms
+    Initialize/QI/SetWindow/DoPreview hr=0x00000000 in 2.5 ms
+    first pixel reported by the handler after 36 ms of waiting: 04:13:52.085 [handler 1316] preview: first pixel 35.148 ms after DoPreview
+  run 3: CoCreateInstance(local server) hr=0x00000000 in 44.2 ms
+    Initialize/QI/SetWindow/DoPreview hr=0x00000000 in 2.6 ms
+    first pixel reported by the handler after 41 ms of waiting: 04:13:52.187 [handler 2372] preview: first pixel 35.503 ms after DoPreview
+  preview host environment as the handler saw it:
+    04:13:52.149 [handler 2372] host exe=C:\Windows\system32\prevhost.exe integrity=high appcontainer=0 package=MikePDF.S6bProbe_1.0.0.0_arm64__gxqed95vwwy28
+== packaged com:ExeServer activation (option b): CoCreateInstance(CLSCTX_LOCAL_SERVER) + one IPersist call
+  cold activation (server process not running; n=8): p50 32.9 ms, p95 36.3 ms, max 37.7 ms
+  first call after cold activation (n=8): p50 0.271 ms, p95 0.303 ms
+  warm activation (server running; n=160): p50 3.970 ms, p95 4.336 ms
+  warm IPersist::GetClassID round trip (n=160): p50 0.120 ms, p95 0.137 ms
+  server environment: 04:13:54.764 [comserver 5624] env: cmdline="C:\Program Files\WindowsApps\MikePDF.S6bProbe_1.0.0.0_arm64__gxqed95vwwy28\S6bComServer.exe" -Embedding integrity=high appcontainer=0 package=MikePDF.S6bProbe_1.0.0.0_arm64__gxqed95vwwy28
+== bytes through a marshaled IStream into the packaged ExeServer (IInitializeWithStream::Initialize; the server reads everything)
+  4096 bytes: Initialize round trip p50 1.35 ms, p95 2.31 ms (n=6)
+    server says: 04:13:54.948 [comserver 5624] Initialize: stream size 4096, read 4096 bytes through the marshaled IStream in 0.62 ms (1 MiB reads)
+  5242880 bytes: Initialize round trip p50 8.39 ms, p95 8.85 ms (n=6)
+    server says: 04:13:55.034 [comserver 5624] Initialize: stream size 5242880, read 5242880 bytes through the marshaled IStream in 7.97 ms (1 MiB reads)
+  31457280 bytes: Initialize round trip p50 43.12 ms, p95 44.68 ms (n=6)
+    server says: 04:13:55.342 [comserver 5624] Initialize: stream size 31457280, read 31457280 bytes through the marshaled IStream in 43.91 ms (1 MiB reads)
+processes still running: S6bShellHost=1 S6bComServer=1
+driver done

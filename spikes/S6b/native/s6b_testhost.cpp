@@ -267,6 +267,29 @@ static int RunAsLowIntegrity(int argc, wchar_t** argv, const Opts& o) {
     return (int)code;
 }
 
+// Runs an arbitrary command line with a LOW integrity token and waits; the command writes its own result where Low can (LocalLow).
+static int g_execRid = 4096; // --il medium = 8192
+static int LowExec(const std::wstring& cmdline) {
+    HANDLE tok = nullptr, dup = nullptr;
+    OpenProcessToken(GetCurrentProcess(), TOKEN_DUPLICATE | TOKEN_QUERY | TOKEN_ASSIGN_PRIMARY | TOKEN_ADJUST_DEFAULT, &tok);
+    DuplicateTokenEx(tok, MAXIMUM_ALLOWED, nullptr, SecurityImpersonation, TokenPrimary, &dup);
+    PSID low = nullptr;
+    ConvertStringSidToSidW(g_execRid == 8192 ? L"S-1-16-8192" : L"S-1-16-4096", &low);
+    TOKEN_MANDATORY_LABEL tml{};
+    tml.Label.Attributes = SE_GROUP_INTEGRITY;
+    tml.Label.Sid = low;
+    if (!SetTokenInformation(dup, TokenIntegrityLevel, &tml, sizeof(tml) + GetLengthSid(low))) { printf("SetTokenInformation failed %lu\n", GetLastError()); return 3; }
+    STARTUPINFOW si{sizeof(si)};
+    PROCESS_INFORMATION pi{};
+    std::wstring cmd = cmdline;
+    if (!CreateProcessAsUserW(dup, nullptr, cmd.data(), nullptr, nullptr, FALSE, CREATE_NO_WINDOW, nullptr, nullptr, &si, &pi)) { printf("CreateProcessAsUser failed %lu\n", GetLastError()); return 3; }
+    WaitForSingleObject(pi.hProcess, 60000);
+    DWORD code = 0;
+    GetExitCodeProcess(pi.hProcess, &code);
+    printf("low-integrity process exit code 0x%08lx\n", code);
+    return (int)code;
+}
+
 int wmain(int argc, wchar_t** argv) {
     Opts o;
     for (int i = 1; i < argc; ++i) {
@@ -285,6 +308,8 @@ int wmain(int argc, wchar_t** argv) {
         else if (a == L"--mem") o.memStats = true;
         else if (a == L"--kill-after") o.killAfter = true;
         else if (a == L"--shutdown") { return ShutdownShellHost() ? 0 : 1; }
+        else if (a == L"--il") { g_execRid = next() == L"medium" ? 8192 : 4096; }
+        else if (a == L"--low-exec") { std::wstring c; for (int k = i + 1; k < argc; ++k) { if (!c.empty()) c += L" "; c += argv[k]; } return LowExec(c); }
     }
     if (!o.out.empty()) { g_out = _wfopen(o.out.c_str(), L"wb"); if (!g_out) return 4; }
     if (o.lowIl) return RunAsLowIntegrity(argc, argv, o);

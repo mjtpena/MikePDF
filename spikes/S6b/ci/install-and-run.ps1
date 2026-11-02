@@ -8,7 +8,8 @@
 #>
 param(
     [Parameter(Mandatory)] [string] $Msix,
-    [Parameter(Mandatory)] [string] $OutDir
+    [Parameter(Mandatory)] [string] $OutDir,
+    [Parameter(Mandatory)] [string] $NativeDir
 )
 $ErrorActionPreference = 'Stop'
 if ($env:GITHUB_ACTIONS -ne 'true' -or $env:RUNNER_ENVIRONMENT -ne 'github-hosted') {
@@ -19,7 +20,10 @@ $log = Join-Path $OutDir 'install.log'
 function Log([string] $m) { $m | Tee-Object -FilePath $log -Append | Out-Host }
 function Dump([string] $name, [scriptblock] $block) {
     Log "---- $name"
+    $old = $ErrorActionPreference
+    $ErrorActionPreference = 'Continue'   # native tools (reg.exe) write errors to stderr, and an absent key is an answer, not a failure
     try { $text = & $block 2>&1 | Out-String -Width 250; $text | Set-Content (Join-Path $OutDir "$name.txt"); Log $text } catch { Log "FAILED: $($_.Exception.Message)" }
+    finally { $ErrorActionPreference = $old }
 }
 
 # A log folder every process can append to, whatever its integrity level or container (the handlers run in surrogates we do not control).
@@ -80,6 +84,38 @@ Log "running $alias"
 $proc = Start-Process -FilePath $alias -ArgumentList '--selftest', "`"$drvOut`"", "`"$fixtures`"" -Wait -PassThru -RedirectStandardOutput (Join-Path $OutDir 'driver-stdout.txt') -RedirectStandardError (Join-Path $OutDir 'driver-stderr.txt')
 Log "driver exit code: $($proc.ExitCode)"
 Get-Content (Join-Path $OutDir 'driver-stdout.txt') -ErrorAction SilentlyContinue | ForEach-Object { Log $_ }
+
+# ---- the same driver at MEDIUM and at LOW integrity, unpackaged (a copy outside the package, so no identity and no registry virtualization) ----------------------------------
+# The runner's token is High integrity, so everything above ran at High. A real Explorer runs at Medium, and prevhost's classic default for stream handlers is Low.
+# These runs lower the integrity of a duplicate of the runner's token (SetTokenInformation(TokenIntegrityLevel)); it is NOT a filtered user session.
+$tools = Join-Path $logDir 'tools'
+$fx2 = Join-Path $logDir 'fixtures'
+New-Item -ItemType Directory -Force $tools, $fx2 | Out-Null
+Copy-Item (Join-Path $NativeDir 'S6bDriver.exe'), (Join-Path $NativeDir 's6b_testhost.exe') $tools
+Copy-Item (Join-Path $fixtures 'text1.pdf') $fx2
+foreach ($il in 'medium', 'low') {
+    $work = Join-Path $logDir "work-$il"
+    $o = Join-Path $logDir "out-$il"
+    New-Item -ItemType Directory -Force $work, $o | Out-Null
+    Log "running the driver at $il integrity"
+    & (Join-Path $tools 's6b_testhost.exe') --il $il --low-exec "`"$(Join-Path $tools 'S6bDriver.exe')`" --selftest `"$o`" `"$fx2`" `"$work`"" 2>&1 | ForEach-Object { Log "$_" }
+    if (Test-Path (Join-Path $o 'driver.log')) { Copy-Item (Join-Path $o 'driver.log') (Join-Path $OutDir "driver-$il.log"); Get-Content (Join-Path $o 'driver.log') | ForEach-Object { Log $_ } } else { Log "no driver.log at $il integrity" }
+}
+
+# ---- who wins when another handler is registered for .pdf? (HKCU\Software\Classes writes: this disposable runner only) ----------------------------------------------------
+$expOut = Join-Path $logDir 'out-experiments'
+New-Item -ItemType Directory -Force $expOut, (Join-Path $logDir 'work-exp') | Out-Null
+foreach ($name in 'none', 'ext-level', 'progid-level', 'both') {
+    & (Join-Path $tools 'S6bDriver.exe') --experiment $name $expOut $fx2 (Join-Path $logDir 'work-exp') 2>&1 | ForEach-Object { Log "$_" }
+}
+if (Test-Path (Join-Path $expOut 'experiment.log')) { Copy-Item (Join-Path $expOut 'experiment.log') (Join-Path $OutDir 'experiment.log') }
+Dump 'reg-after-experiments' { reg query 'HKCU\Software\Classes\.pdf' /s 2>&1 }
+
+# ShellHost exits by itself 60 s after its last request (spec 3.2): is it gone?
+Log 'waiting 75 s for the idle exit of ShellHost and the ExeServer ...'
+Start-Sleep -Seconds 75
+Dump 'processes-after-idle' { Get-CimInstance Win32_Process | Where-Object { $_.Name -match 'S6b|MikePDF.Engine' } | Select-Object ProcessId, Name | Format-Table | Out-String }
+Log "S6bShellHost running after the idle wait: $([bool](Get-Process S6bShellHost -ErrorAction SilentlyContinue)); S6bComServer: $([bool](Get-Process S6bComServer -ErrorAction SilentlyContinue)); engines: $(@(Get-Process MikePDF.Engine -ErrorAction SilentlyContinue).Count)"
 
 # ---- the logs the handlers wrote, and what is still running -------------------------------------------------------------------------------
 foreach ($f in 'handler.log', 'shellhost.log', 'comserver.log') {

@@ -1,0 +1,406 @@
+
+
+TimeCreated  : 11/2/2026 12:12:44 PM
+Id           : 1000
+ProviderName : Microsoft-Windows-LoadPerf
+Message      : Performance counters for the WmiApRpl (WmiApRpl) service were loaded successfully. The Record Data in the data section contains the new index values assigned to this service.
+
+TimeCreated  : 11/2/2026 12:12:44 PM
+Id           : 1001
+ProviderName : Microsoft-Windows-LoadPerf
+Message      : Performance counters for the WmiApRpl (WmiApRpl) service were removed successfully. The Record Data contains the new values of the system Last Counter and Last Help registry entries.
+
+TimeCreated  : 11/2/2026 12:12:33 PM
+Id           : 57
+ProviderName : Microsoft-Windows-CertificateServicesClient-CertEnroll
+Message      : The "Microsoft Azure Integrated HSM Key Storage Provider" provider was not loaded because initialization failed.
+
+TimeCreated  : 11/2/2026 12:12:33 PM
+Id           : 57
+ProviderName : Microsoft-Windows-CertificateServicesClient-CertEnroll
+Message      : The "Microsoft Azure Integrated HSM Key Storage Provider" provider was not loaded because initialization failed.
+
+TimeCreated  : 11/2/2026 12:11:09 PM
+Id           : 10001
+ProviderName : Microsoft-Windows-RestartManager
+Message      : Ending session 0 started ?2026?-?11?-?02T12:11:09.438303900Z.
+
+TimeCreated  : 11/2/2026 12:11:09 PM
+Id           : 10000
+ProviderName : Microsoft-Windows-RestartManager
+Message      : Starting session 0 - ?2026?-?11?-?02T12:11:09.438303900Z.
+
+TimeCreated  : 11/2/2026 12:11:09 PM
+Id           : 1042
+ProviderName : MsiInstaller
+Message      : Ending a Windows Installer transaction: C:\Users\runneradmin\AppData\Local\Temp\ekfdjg3w.z2h\data\510a233a02152a4c99ed330e257c6add-x64.msi. Client Process Id: 5428.
+
+TimeCreated  : 11/2/2026 12:11:09 PM
+Id           : 1033
+ProviderName : MsiInstaller
+Message      : Windows Installer installed the product. Product Name: Microsoft.NET.Workloads.10.0.400 (x64). Product Version: 86.76.61705. Product Language: 1033. Manufacturer: Microsoft Corporation. Installation 
+               success or error status: 0.
+
+TimeCreated  : 11/2/2026 12:11:09 PM
+Id           : 11707
+ProviderName : MsiInstaller
+Message      : Product: Microsoft.NET.Workloads.10.0.400 (x64) -- Installation completed successfully.
+
+TimeCreated  : 11/2/2026 12:11:08 PM
+Id           : 1040
+ProviderName : MsiInstaller
+Message      : Beginning a Windows Installer transaction: C:\Users\runneradmin\AppData\Local\Temp\ekfdjg3w.z2h\data\510a233a02152a4c99ed330e257c6add-x64.msi. Client Process Id: 5428.
+
+TimeCreated  : 11/2/2026 12:10:18 PM
+Id           : 16384
+ProviderName : Microsoft-Windows-Security-SPP
+Message      : Successfully scheduled Software Protection service for re-start at 2026-11-09T12:07:18Z. Reason: RulesEngine.
+
+TimeCreated  : 11/2/2026 12:09:48 PM
+Id           : 16389
+ProviderName : Microsoft-Windows-Security-SPP
+Message      : Grace timer has expired. Hr = 0xC004D30B
+
+TimeCreated  : 11/2/2026 12:09:48 PM
+Id           : 16394
+ProviderName : Microsoft-Windows-Security-SPP
+Message      : Offline downlevel migration succeeded.
+
+TimeCreated  : 11/2/2026 12:09:48 PM
+Id           : 900
+ProviderName : Microsoft-Windows-Security-SPP
+Message      : The Software Protection service is starting.
+               Parameters:<explicit>
+
+TimeCreated  : 11/2/2026 12:09:48 PM
+Id           : 4202
+ProviderName : Microsoft-Windows-MSDTC 2
+Message      : MSDTC started with the following settings: Security Configuration (OFF = 0 and ON = 1): Allow Remote Administrator = 0, Network Clients = 0, Transaction Manager Communication:  Allow Inbound Transactions 
+               = 0, Allow Outbound Transactions = 0, Transaction Internet Protocol (TIP) = 0,  Enable XA Transactions = 0,  Enable SNA LU 6.2 Transactions = 1,  MSDTC Communications Security = Mutual Authentication 
+               Required, Account = NT AUTHORITY\NetworkService,  Firewall Exclusion Detected = 0 Transaction Bridge Installed = 0 Filtering Duplicate Events = 1
+
+TimeCreated  : 11/2/2026 12:09:30 PM
+Id           : 16384
+ProviderName : Microsoft-Windows-Security-SPP
+Message      : Successfully scheduled Software Protection service for re-start at 2026-11-09T12:07:30Z. Reason: RulesEngine.
+
+TimeCreated  : 11/2/2026 12:09:00 PM
+Id           : 1003
+ProviderName : Microsoft-Windows-Security-SPP
+Message      : The Software Protection service has completed licensing status check.
+               Application Id=55c92734-d682-4d71-983e-d6ec3f16059f
+               Licensing Status=
+               1: c052f164-cdf6-409a-a0cb-853ba0f0f55a, 1, 1 [(0 [0x00000000, 1, 0], [(?)( 1 0x00000000)(?)( 2 0x00000000 0 0 msft:rm/algorithm/volume/1.0 0x00000000 259200)(?)(?)( 10 0x00000000 
+               msft:rm/algorithm/flags/1.0)(?)])(1 )(2 )(3 )]
+               
+               
+
+TimeCreated  : 11/2/2026 12:09:00 PM
+Id           : 16389
+ProviderName : Microsoft-Windows-Security-SPP
+Message      : Grace timer has expired. Hr = 0xC004D30B
+
+TimeCreated  : 11/2/2026 12:09:00 PM
+Id           : 16394
+ProviderName : Microsoft-Windows-Security-SPP
+Message      : Offline downlevel migration succeeded.
+
+TimeCreated  : 11/2/2026 12:08:59 PM
+Id           : 903
+ProviderName : Microsoft-Windows-Security-SPP
+Message      : The Software Protection service has stopped.
+               
+
+TimeCreated  : 11/2/2026 12:08:59 PM
+Id           : 16384
+ProviderName : Microsoft-Windows-Security-SPP
+Message      : Successfully scheduled Software Protection service for re-start at 2026-11-09T12:07:59Z. Reason: RulesEngine.
+
+TimeCreated  : 11/2/2026 12:08:27 PM
+Id           : 24
+ProviderName : Microsoft-Windows-AppModel-State
+Message      : Repair of state locations for operation InitializeDataChangedSignaler against package Microsoft.AAD.BrokerPlugin_cw5n1h2txyewy with error -2147024894 returned Error Code: 0
+
+TimeCreated  : 11/2/2026 12:08:27 PM
+Id           : 23
+ProviderName : Microsoft-Windows-AppModel-State
+Message      : Triggered repair of state locations because operation InitializeDataChangedSignaler against package Microsoft.AAD.BrokerPlugin_cw5n1h2txyewy hit error -2147024894.
+
+TimeCreated  : 11/2/2026 12:08:25 PM
+Id           : 24
+ProviderName : Microsoft-Windows-AppModel-State
+Message      : Repair of state locations for operation InitializeDataChangedSignaler against package Microsoft.Windows.StartMenuExperienceHost_cw5n1h2txyewy with error -2147024894 returned Error Code: 0
+
+TimeCreated  : 11/2/2026 12:08:25 PM
+Id           : 23
+ProviderName : Microsoft-Windows-AppModel-State
+Message      : Triggered repair of state locations because operation InitializeDataChangedSignaler against package Microsoft.Windows.StartMenuExperienceHost_cw5n1h2txyewy hit error -2147024894.
+
+TimeCreated  : 11/2/2026 12:08:01 PM
+Id           : 8197
+ProviderName : Microsoft-Windows-Security-SPP
+Message      : SLUI.exe was launched with the following command-line parameters:
+               RuleId=379cccfb-d4e0-48fe-b0f2-0136097be147;Action=CleanupState;AppId=55c92734-d682-4d71-983e-d6ec3f16059f;SkuId=c052f164-cdf6-409a-a0cb-853ba0f0f55a;Trigger=TimerEvent
+
+TimeCreated  : 11/2/2026 12:08:01 PM
+Id           : 8230
+ProviderName : Microsoft-Windows-Security-SPP
+Message      : The rules engine successfully re-evaluated the schedule.
+               Kernel policies:
+               Security-SPP-Action-StateData (REG_SZ) =AppId=55c92734-d682-4d71-983e-d6ec3f16059f;GraceEndDate=2027/05/01:12:08:01;LastConsumptionReason=0x00000000;LastNotificationId=Cleanup;LicenseState=SL_LICENSING_STA
+               TUS_LICENSED;PartialProductKey=YP6DF;ProductKeyType=Volume:GVLK;SkuId=c052f164-cdf6-409a-a0cb-853ba0f0f55a;ruleId=379cccfb-d4e0-48fe-b0f2-0136097be147;uxDifferentiator=ENVIRONMENT;volumeActivationOrder=nor
+               mal
+
+TimeCreated  : 11/2/2026 12:08:01 PM
+Id           : 16398
+ProviderName : Microsoft-Windows-Security-SPP
+Message      : Error occured during grace period 0x80070490 at No grace timer found.
+
+TimeCreated  : 11/2/2026 12:08:01 PM
+Id           : 8197
+ProviderName : Microsoft-Windows-Security-SPP
+Message      : SLUI.exe was launched with the following command-line parameters:
+               RuleId=502ff3ba-669a-4674-bbb1-601f34a3b968;Action=AutoActivateSilent;AppId=55c92734-d682-4d71-983e-d6ec3f16059f;SkuId=c052f164-cdf6-409a-a0cb-853ba0f0f55a;NotificationInterval=1440;Trigger=TimerEvent
+
+TimeCreated  : 11/2/2026 12:08:01 PM
+Id           : 16398
+ProviderName : Microsoft-Windows-Security-SPP
+Message      : Error occured during grace period 0x80070490 at No grace timer found.
+
+TimeCreated  : 11/2/2026 12:08:01 PM
+Id           : 20492
+ProviderName : Microsoft-Windows-Security-SPP
+Message      : Grace period terminated with code 0xC004D30B. 
+               
+
+TimeCreated  : 11/2/2026 12:08:01 PM
+Id           : 1003
+ProviderName : Microsoft-Windows-Security-SPP
+Message      : The Software Protection service has completed licensing status check.
+               Application Id=55c92734-d682-4d71-983e-d6ec3f16059f
+               Licensing Status=
+               1: 0b646350-5349-4013-b1be-4100d1a7fa38, 1, 0 [(0 [0xC004F014, 0, 0], [(?)(?)(?)(?)(?)(?)(?)(?)])(1 )(2 )(3 )]
+               2: 10d661ba-f2e3-445c-8e92-200e1e05e9e1, 1, 0 [(0 [0xC004F014, 0, 0], [(?)(?)(?)(?)(?)(?)(?)(?)])(1 )(2 )(3 )]
+               3: 2033816d-9d16-44bb-8f08-412ff45f38bf, 1, 0 [(0 [0xC004F014, 0, 0], [(?)(?)(?)(?)(?)(?)(?)(?)])(1 )(2 )(3 )]
+               4: 653ae55c-1d53-427b-be51-15bc1841fca7, 1, 0 [(0 [0xC004F014, 0, 0], [(?)(?)(?)(?)(?)(?)(?)(?)])(1 )(2 )(3 )]
+               5: 66c20db7-ff1e-4f87-a915-4e03715da35f, 1, 0 [(0 [0xC004F014, 0, 0], [(?)(?)(?)(?)(?)(?)(?)(?)])(1 )(2 )(3 )]
+               6: 6bad0243-1c35-46b2-b8e6-7a853e37413f, 1, 0 [(0 [0xC004F014, 0, 0], [(?)(?)(?)(?)(?)(?)(?)(?)])(1 )(2 )(3 )]
+               7: 82fcf64d-f9dd-4411-9c79-f2eed16d4eb8, 1, 0 [(0 [0xC004F014, 0, 0], [(?)(?)(?)(?)(?)(?)(?)(?)])(1 )(2 )(3 )]
+               8: 84e331f6-4279-48c4-ab10-b75139181351, 1, 0 [(0 [0xC004F014, 0, 0], [(?)(?)(?)(?)(?)(?)(?)(?)])(1 )(2 )(3 )]
+               9: 9e232465-2ade-4a33-a277-702010a84adb, 1, 0 [(0 [0xC004F014, 0, 0], [(?)(?)(?)(?)(?)(?)(?)(?)])(1 )(2 )(3 )]
+               10: a1da5f8f-7553-42c5-b0b4-6f27c4d74240, 1, 0 [(0 [0xC004F014, 0, 0], [(?)(?)(?)(?)(?)(?)(?)(?)])(1 )(2 )(3 )]
+               11: a2004bef-6ff1-48f9-8328-41ce1cd5ee79, 1, 0 [(0 [0xC004F014, 0, 0], [(?)(?)(?)(?)(?)(?)(?)(?)])(1 )(2 )(3 )]
+               12: c052f164-cdf6-409a-a0cb-853ba0f0f55a, 1, 1 [(0 [0x00000000, 1, 0], [(?)( 1 0x00000000)(?)( 2 0x00000000 0 0 msft:rm/algorithm/volume/1.0 0x00000000 259200)(?)(?)( 10 0x00000000 
+               msft:rm/algorithm/flags/1.0)(?)])(1 )(2 )(3 )]
+               13: e5b79126-7250-4d27-ad42-0eeb23db5771, 1, 0 [(0 [0xC004F014, 0, 0], [(?)(?)(?)(?)(?)(?)(?)(?)])(1 )(2 )(3 )]
+               14: f15a5790-90b7-4674-8fd4-e187ba426ad2, 1, 0 [(0 [0xC004F014, 0, 0], [(?)(?)(?)(?)(?)(?)(?)(?)])(1 )(2 )(3 )]
+               
+               
+
+TimeCreated  : 11/2/2026 12:08:01 PM
+Id           : 16388
+ProviderName : Microsoft-Windows-Security-SPP
+Message      : The current time is 2026-11-02T12:08:01Z : 2026-11-02T12:08:01Z.
+
+TimeCreated  : 11/2/2026 12:08:01 PM
+Id           : 16398
+ProviderName : Microsoft-Windows-Security-SPP
+Message      : Error occured during grace period 0x80070490 at No grace timer found.
+
+TimeCreated  : 11/2/2026 12:08:01 PM
+Id           : 20492
+ProviderName : Microsoft-Windows-Security-SPP
+Message      : Grace period terminated with code 0xC004D30B. 
+               
+
+TimeCreated  : 11/2/2026 12:08:01 PM
+Id           : 1003
+ProviderName : Microsoft-Windows-Security-SPP
+Message      : The Software Protection service has completed licensing status check.
+               Application Id=55c92734-d682-4d71-983e-d6ec3f16059f
+               Licensing Status=
+               1: 0b646350-5349-4013-b1be-4100d1a7fa38, 1, 0 [(0 [0xC004F014, 0, 0], [(?)(?)(?)(?)(?)(?)(?)(?)])(1 )(2 )(3 )]
+               2: 10d661ba-f2e3-445c-8e92-200e1e05e9e1, 1, 0 [(0 [0xC004F014, 0, 0], [(?)(?)(?)(?)(?)(?)(?)(?)])(1 )(2 )(3 )]
+               3: 2033816d-9d16-44bb-8f08-412ff45f38bf, 1, 0 [(0 [0xC004F014, 0, 0], [(?)(?)(?)(?)(?)(?)(?)(?)])(1 )(2 )(3 )]
+               4: 653ae55c-1d53-427b-be51-15bc1841fca7, 1, 0 [(0 [0xC004F014, 0, 0], [(?)(?)(?)(?)(?)(?)(?)(?)])(1 )(2 )(3 )]
+               5: 66c20db7-ff1e-4f87-a915-4e03715da35f, 1, 0 [(0 [0xC004F014, 0, 0], [(?)(?)(?)(?)(?)(?)(?)(?)])(1 )(2 )(3 )]
+               6: 6bad0243-1c35-46b2-b8e6-7a853e37413f, 1, 0 [(0 [0xC004F014, 0, 0], [(?)(?)(?)(?)(?)(?)(?)(?)])(1 )(2 )(3 )]
+               7: 82fcf64d-f9dd-4411-9c79-f2eed16d4eb8, 1, 0 [(0 [0xC004F014, 0, 0], [(?)(?)(?)(?)(?)(?)(?)(?)])(1 )(2 )(3 )]
+               8: 84e331f6-4279-48c4-ab10-b75139181351, 1, 0 [(0 [0xC004F014, 0, 0], [(?)(?)(?)(?)(?)(?)(?)(?)])(1 )(2 )(3 )]
+               9: 9e232465-2ade-4a33-a277-702010a84adb, 1, 0 [(0 [0xC004F014, 0, 0], [(?)(?)(?)(?)(?)(?)(?)(?)])(1 )(2 )(3 )]
+               10: a1da5f8f-7553-42c5-b0b4-6f27c4d74240, 1, 0 [(0 [0xC004F014, 0, 0], [(?)(?)(?)(?)(?)(?)(?)(?)])(1 )(2 )(3 )]
+               11: a2004bef-6ff1-48f9-8328-41ce1cd5ee79, 1, 0 [(0 [0xC004F014, 0, 0], [(?)(?)(?)(?)(?)(?)(?)(?)])(1 )(2 )(3 )]
+               12: c052f164-cdf6-409a-a0cb-853ba0f0f55a, 1, 1 [(0 [0x00000000, 1, 0], [(?)( 1 0x00000000)(?)( 2 0x00000000 0 0 msft:rm/algorithm/volume/1.0 0x00000000 259200)(?)(?)( 10 0x00000000 
+               msft:rm/algorithm/flags/1.0)(?)])(1 )(2 )(3 )]
+               13: e5b79126-7250-4d27-ad42-0eeb23db5771, 1, 0 [(0 [0xC004F014, 0, 0], [(?)(?)(?)(?)(?)(?)(?)(?)])(1 )(2 )(3 )]
+               14: f15a5790-90b7-4674-8fd4-e187ba426ad2, 1, 0 [(0 [0xC004F014, 0, 0], [(?)(?)(?)(?)(?)(?)(?)(?)])(1 )(2 )(3 )]
+               
+               
+
+TimeCreated  : 11/2/2026 12:08:01 PM
+Id           : 1033
+ProviderName : Microsoft-Windows-Security-SPP
+Message      : These policies are being excluded since they are only defined with override-only attribute.
+               Policy Names=(Security-SPP-Reserved-EnableNotificationMode) 
+               App Id=55c92734-d682-4d71-983e-d6ec3f16059f
+               Sku Id=c052f164-cdf6-409a-a0cb-853ba0f0f55a
+
+TimeCreated  : 11/2/2026 12:08:01 PM
+Id           : 1034
+ProviderName : Microsoft-Windows-Security-SPP
+Message      : Duplicate definition of policy found. Policy name=Security-SPP-IgnoreDeferredActivation  Priority=500
+
+TimeCreated  : 11/2/2026 12:08:01 PM
+Id           : 1034
+ProviderName : Microsoft-Windows-Security-SPP
+Message      : Duplicate definition of policy found. Policy name=AAD-AddDeviceJoinUserToAdminGroup-Policy  Priority=100
+
+TimeCreated  : 11/2/2026 12:08:00 PM
+Id           : 12289
+ProviderName : Microsoft-Windows-Security-SPP
+Message      : The client has processed an activation response from the key management service machine.
+               Info:
+               0x00000000, 0x00000000, 1, 0, 50, 120, 10080, 2026/11/02 12:07
+
+TimeCreated  : 11/2/2026 12:08:00 PM
+Id           : 12288
+ProviderName : Microsoft-Windows-Security-SPP
+Message      : The client has sent an activation request to the key management service machine.
+               Info:
+               0x00000000, 0x00000000, azkms.core.windows.net:1688, 20d83bfe-e9c5-4033-9fcd-446544fcfbcc, 2026/11/02 12:07, 0, 1, 242141, c052f164-cdf6-409a-a0cb-853ba0f0f55a, 5
+
+TimeCreated  : 11/2/2026 12:07:59 PM
+Id           : 8230
+ProviderName : Microsoft-Windows-Security-SPP
+Message      : The rules engine successfully re-evaluated the schedule.
+               Kernel policies:
+               Security-SPP-Action-StateData (REG_SZ) =AppId=55c92734-d682-4d71-983e-d6ec3f16059f;GraceEndDate=2027/04/19:15:48:59;LastConsumptionReason=0x00000000;LastNotificationId=VolumeRenewalRequired;LicenseState=SL
+               _LICENSING_STATUS_LICENSED;PartialProductKey=YP6DF;ProductKeyType=Volume:GVLK;SkuId=c052f164-cdf6-409a-a0cb-853ba0f0f55a;ruleId=502ff3ba-669a-4674-bbb1-601f34a3b968;uxDifferentiator=ENVIRONMENT;volumeActiv
+               ationOrder=normal
+
+TimeCreated  : 11/2/2026 12:07:59 PM
+Id           : 16398
+ProviderName : Microsoft-Windows-Security-SPP
+Message      : Error occured during grace period 0x80070490 at No grace timer found.
+
+TimeCreated  : 11/2/2026 12:07:59 PM
+Id           : 902
+ProviderName : Microsoft-Windows-Security-SPP
+Message      : The Software Protection service has started.
+               10.0.26100.33648
+
+TimeCreated  : 11/2/2026 12:07:59 PM
+Id           : 16398
+ProviderName : Microsoft-Windows-Security-SPP
+Message      : Error occured during grace period 0x80070490 at No grace timer found.
+
+TimeCreated  : 11/2/2026 12:07:59 PM
+Id           : 20492
+ProviderName : Microsoft-Windows-Security-SPP
+Message      : Grace period terminated with code 0xC004D30B. 
+               
+
+TimeCreated  : 11/2/2026 12:07:59 PM
+Id           : 1003
+ProviderName : Microsoft-Windows-Security-SPP
+Message      : The Software Protection service has completed licensing status check.
+               Application Id=55c92734-d682-4d71-983e-d6ec3f16059f
+               Licensing Status=
+               1: 0b646350-5349-4013-b1be-4100d1a7fa38, 1, 0 [(0 [0xC004F014, 0, 0], [(?)(?)(?)(?)(?)(?)(?)(?)])(1 )(2 )(3 )]
+               2: 10d661ba-f2e3-445c-8e92-200e1e05e9e1, 1, 0 [(0 [0xC004F014, 0, 0], [(?)(?)(?)(?)(?)(?)(?)(?)])(1 )(2 )(3 )]
+               3: 2033816d-9d16-44bb-8f08-412ff45f38bf, 1, 0 [(0 [0xC004F014, 0, 0], [(?)(?)(?)(?)(?)(?)(?)(?)])(1 )(2 )(3 )]
+               4: 653ae55c-1d53-427b-be51-15bc1841fca7, 1, 0 [(0 [0xC004F014, 0, 0], [(?)(?)(?)(?)(?)(?)(?)(?)])(1 )(2 )(3 )]
+               5: 66c20db7-ff1e-4f87-a915-4e03715da35f, 1, 0 [(0 [0xC004F014, 0, 0], [(?)(?)(?)(?)(?)(?)(?)(?)])(1 )(2 )(3 )]
+               6: 6bad0243-1c35-46b2-b8e6-7a853e37413f, 1, 0 [(0 [0xC004F014, 0, 0], [(?)(?)(?)(?)(?)(?)(?)(?)])(1 )(2 )(3 )]
+               7: 82fcf64d-f9dd-4411-9c79-f2eed16d4eb8, 1, 0 [(0 [0xC004F014, 0, 0], [(?)(?)(?)(?)(?)(?)(?)(?)])(1 )(2 )(3 )]
+               8: 84e331f6-4279-48c4-ab10-b75139181351, 1, 0 [(0 [0xC004F014, 0, 0], [(?)(?)(?)(?)(?)(?)(?)(?)])(1 )(2 )(3 )]
+               9: 9e232465-2ade-4a33-a277-702010a84adb, 1, 0 [(0 [0xC004F014, 0, 0], [(?)(?)(?)(?)(?)(?)(?)(?)])(1 )(2 )(3 )]
+               10: a1da5f8f-7553-42c5-b0b4-6f27c4d74240, 1, 0 [(0 [0xC004F014, 0, 0], [(?)(?)(?)(?)(?)(?)(?)(?)])(1 )(2 )(3 )]
+               11: a2004bef-6ff1-48f9-8328-41ce1cd5ee79, 1, 0 [(0 [0xC004F014, 0, 0], [(?)(?)(?)(?)(?)(?)(?)(?)])(1 )(2 )(3 )]
+               12: c052f164-cdf6-409a-a0cb-853ba0f0f55a, 1, 1 [(0 [0x00000000, 1, 0], [(?)( 1 0x00000000)(?)( 2 0x00000000 0 0 msft:rm/algorithm/volume/1.0 0x00000000 242141)(?)(?)( 10 0x00000000 
+               msft:rm/algorithm/flags/1.0)(?)])(1 )(2 )(3 )]
+               13: e5b79126-7250-4d27-ad42-0eeb23db5771, 1, 0 [(0 [0xC004F014, 0, 0], [(?)(?)(?)(?)(?)(?)(?)(?)])(1 )(2 )(3 )]
+               14: f15a5790-90b7-4674-8fd4-e187ba426ad2, 1, 0 [(0 [0xC004F014, 0, 0], [(?)(?)(?)(?)(?)(?)(?)(?)])(1 )(2 )(3 )]
+               
+               
+
+TimeCreated  : 11/2/2026 12:07:59 PM
+Id           : 1040
+ProviderName : Microsoft-Windows-Security-SPP
+Message      : Hardware has changed from previous boot.
+                AppId=55c92734-d682-4d71-983e-d6ec3f16059f, SkuId=c052f164-cdf6-409a-a0cb-853ba0f0f55a.
+
+TimeCreated  : 11/2/2026 12:07:59 PM
+Id           : 16388
+ProviderName : Microsoft-Windows-Security-SPP
+Message      : The current time is 2026-11-02T12:07:59Z : 2026-11-02T12:07:59Z.
+
+TimeCreated  : 11/2/2026 12:07:58 PM
+Id           : 16389
+ProviderName : Microsoft-Windows-Security-SPP
+Message      : Grace timer has expired. Hr = 0xC004D30B
+
+TimeCreated  : 11/2/2026 12:07:58 PM
+Id           : 1066
+ProviderName : Microsoft-Windows-Security-SPP
+Message      : Initialization status for service objects.
+               C:\Windows\system32\sppwinob.dll, msft:spp/windowsfunctionality/agent/7.0, 0x00000000, 0x00000000
+               C:\Windows\system32\sppobjs.dll, msft:rm/algorithm/inherited/1.0, 0x00000000, 0x00000000
+               C:\Windows\system32\sppobjs.dll, msft:rm/algorithm/phone/1.0, 0x00000000, 0x00000000
+               C:\Windows\system32\sppobjs.dll, msft:rm/algorithm/pkey/detect, 0x00000000, 0x00000000
+               C:\Windows\system32\sppobjs.dll, msft:spp/ActionScheduler/1.0, 0x00000000, 0x00000000
+               C:\Windows\system32\sppobjs.dll, msft:spp/TaskScheduler/1.0, 0x00000000, 0x00000000
+               C:\Windows\system32\sppobjs.dll, msft:spp/statecollector/pkey, 0x00000000, 0x00000000
+               C:\Windows\system32\sppobjs.dll, msft:spp/volume/services/kms/1.0, 0x00000000, 0x00000000
+               C:\Windows\system32\sppobjs.dll, msft:spp/volume/services/kms/activationinfo/1.0, 0x00000000, 0x00000000
+               
+
+TimeCreated  : 11/2/2026 12:07:58 PM
+Id           : 16394
+ProviderName : Microsoft-Windows-Security-SPP
+Message      : Offline downlevel migration succeeded.
+
+TimeCreated  : 11/2/2026 12:07:58 PM
+Id           : 900
+ProviderName : Microsoft-Windows-Security-SPP
+Message      : The Software Protection service is starting.
+               Parameters:TriggerStarted:6
+
+TimeCreated  : 11/2/2026 12:07:52 PM
+Id           : 1
+ProviderName : docker
+Message      : API listen on //./pipe/docker_engine
+
+TimeCreated  : 11/2/2026 12:07:52 PM
+Id           : 1
+ProviderName : docker
+Message      : Daemon has completed initialization
+
+TimeCreated  : 11/2/2026 12:07:52 PM
+Id           : 1
+ProviderName : docker
+Message      : Completed buildkit initialization
+
+TimeCreated  : 11/2/2026 12:07:51 PM
+Id           : 11
+ProviderName : docker
+Message      : failed check for fsverity support [path=C:\ProgramData\docker\buildkit\content error=fsverity is only supported on Linux systems]
+
+TimeCreated  : 11/2/2026 12:07:51 PM
+Id           : 1
+ProviderName : docker
+Message      : Initializing buildkit
+
+TimeCreated  : 11/2/2026 12:07:51 PM
+Id           : 11
+ProviderName : docker
+Message      : Docker daemon [version=29.7.2 commit=6a43e3d storage-driver=windowsfilter containerd-snapshotter=false]
+
+TimeCreated  : 11/2/2026 12:07:51 PM
+Id           : 1
+ProviderName : docker
+Message      : Loading containers: done.
+
+
+
+

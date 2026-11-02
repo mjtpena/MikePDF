@@ -350,22 +350,61 @@ static void ExeServerStream(const std::wstring& dir) {
     }
 }
 
+// ---- who wins when several handlers are registered for .pdf? Registry writes happen only here, only on a disposable CI runner (HKCU\Software\Classes). -------------------
+static void SetDefaultValue(const std::wstring& subkey, const wchar_t* value) {
+    HKEY k = nullptr;
+    LONG r = RegCreateKeyExW(HKEY_CURRENT_USER, subkey.c_str(), 0, nullptr, 0, KEY_SET_VALUE, nullptr, &k, nullptr);
+    if (r == ERROR_SUCCESS) { RegSetValueExW(k, nullptr, 0, REG_SZ, (const BYTE*)value, (DWORD)((wcslen(value) + 1) * sizeof(wchar_t))); RegCloseKey(k); }
+    P("  registry: HKCU\\%ls = %ls (%s)", subkey.c_str(), value, r == ERROR_SUCCESS ? "written" : "FAILED");
+}
+
+// Run in a fresh process per case: the shell caches association lookups for the life of the process that asks.
+static int Experiment(const std::wstring& name, const std::wstring& dir, const std::wstring& pdf) {
+    const wchar_t* thumbIid = L"{E357FCCD-A995-4576-B01F-234630154E96}";
+    const wchar_t* competitor = L"{6B7C2D10-5A1E-4F3B-9C11-0A5B6D6B0003}"; // the ExeServer class: a different handler that draws a checkerboard
+    wchar_t prog[256] = L"";
+    DWORD sz = sizeof(prog);
+    RegGetValueW(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\FileExts\\.pdf\\UserChoice", L"ProgId", RRF_RT_REG_SZ, nullptr, prog, &sz);
+    P("== experiment %ls (default .pdf ProgID: %ls)", name.c_str(), prog);
+    std::wstring extKey = std::wstring(L"Software\\Classes\\.pdf\\ShellEx\\") + thumbIid;
+    std::wstring progKey = std::wstring(L"Software\\Classes\\") + prog + L"\\ShellEx\\" + thumbIid;
+    if (name == L"ext-level") SetDefaultValue(extKey, competitor);
+    if (name == L"progid-level") SetDefaultValue(progKey, competitor);
+    if (name == L"both") { SetDefaultValue(extKey, competitor); SetDefaultValue(progKey, competitor); }
+    wchar_t file[MAX_PATH];
+    swprintf_s(file, L"%ls\\exp-%ls-%lu.pdf", dir.c_str(), name.c_str(), GetCurrentProcessId());
+    CopyFixture(pdf, file);
+    const int ours0 = CountIn("C:\\s6b-log\\handler.log", "GetThumbnail cx="), theirs0 = CountIn("C:\\s6b-log\\comserver.log", "GetThumbnail cx=");
+    HRESULT hr;
+    int w = 0, h = 0, nw = 0;
+    double ms = GetThumb(file, 256, &hr, &w, &h, &nw);
+    P("  GetImage(.pdf): %s hr=0x%08lx %.1f ms %dx%d non-white %d%%", ms >= 0 ? "ok" : "FAILED", (unsigned long)hr, ms, w, h, nw);
+    P("  served by: MikePDF packaged handler +%d, competitor (ExeServer) +%d", CountIn("C:\\s6b-log\\handler.log", "GetThumbnail cx=") - ours0, CountIn("C:\\s6b-log\\comserver.log", "GetThumbnail cx=") - theirs0);
+    if (name == L"ext-level" || name == L"both") RegDeleteTreeW(HKEY_CURRENT_USER, extKey.c_str());
+    if (name == L"progid-level" || name == L"both") RegDeleteTreeW(HKEY_CURRENT_USER, progKey.c_str());
+    return 0;
+}
+
 int wmain(int argc, wchar_t** argv) {
-    // usage: S6bDriver --selftest <outdir> <fixtures dir>
-    if (argc < 4) { printf("usage: S6bDriver --selftest <outdir> <fixturesdir>\n"); return 2; }
-    std::wstring outdir = argv[2], fx = argv[3];
+    // usage: S6bDriver --selftest <outdir> <fixtures dir> [workdir]
+    //        S6bDriver --experiment <none|ext-level|progid-level|both> <outdir> <fixtures dir> [workdir]
+    if (argc < 4) { printf("usage: S6bDriver --selftest <outdir> <fixturesdir> [workdir]\n"); return 2; }
+    const bool experiment = wcscmp(argv[1], L"--experiment") == 0;
+    const int a = experiment ? 3 : 2;
+    std::wstring outdir = argv[a], fx = argv[a + 1];
     CreateDirectoryW(outdir.c_str(), nullptr);
-    g_log = _wfopen((outdir + L"\\driver.log").c_str(), L"wb");
+    g_log = _wfopen((outdir + (experiment ? L"\\experiment.log" : L"\\driver.log")).c_str(), experiment ? L"ab" : L"wb");
     CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);
     Environment();
+    wchar_t tmp[MAX_PATH];
+    GetTempPathW(MAX_PATH, tmp);
+    std::wstring dir = argc > a + 2 ? std::wstring(argv[a + 2]) : std::wstring(tmp) + L"s6b-thumbs";
+    CreateDirectoryW(dir.c_str(), nullptr);
+    const std::wstring pdf = fx + L"\\text1.pdf";
+    if (experiment) { int rc = Experiment(argv[2], dir, pdf); if (g_log) fclose(g_log); return rc; }
     P("== association: what does the shell resolve for each extension?");
     for (auto* e : {L".s6bpdf", L".pdf"}) Association(e);
 
-    wchar_t tmp[MAX_PATH];
-    GetTempPathW(MAX_PATH, tmp);
-    std::wstring dir = std::wstring(tmp) + L"s6b-thumbs";
-    CreateDirectoryW(dir.c_str(), nullptr);
-    const std::wstring pdf = fx + L"\\text1.pdf";
     const char* hlog = "C:\\s6b-log\\handler.log";
     ThumbSeries("surrogate-dll", dir, pdf, L".s6bpdf", L"kill", 30, hlog, "GetThumbnail cx=");
     // The real .pdf: is our packaged handler used while it is not the default app?
