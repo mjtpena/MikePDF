@@ -111,18 +111,27 @@ internal static class SandboxProbeCheck
                 "--rename-engine-dir", Quote(engineDirectory),
             });
 
-            var main = RunProbe(launcher, probe, arguments, TimeSpan.FromSeconds(90));
-            Assess(main, problems);
-            field("probeRows", main.Rows.Count.ToString(CultureInfo.InvariantCulture));
-            field("probeCapabilities", main.Info.GetValueOrDefault("capabilitySids", string.Empty));
-
-            // The unsigned DLL, in a process of its own: the loader ends it, and nothing else is lost with it.
-            var rogue = RunProbe(launcher, probe, $"--rogue-only {Quote(marker)}", TimeSpan.FromSeconds(60));
-            var rogueRow = rogue.Rows.FirstOrDefault(r => r.Name == RogueRow);
-            var codeRan = rogue.Raw.Contains(Marker, StringComparison.Ordinal);
+            var main = RunProbe(launcher, probe, arguments, TimeSpan.FromSeconds(90), "rows", problems, field);
+            if (main is not null)
+            {
+                Assess(main, problems);
+                field("probeRows", main.Rows.Count.ToString(CultureInfo.InvariantCulture));
+                field("probeCapabilities", main.Info.GetValueOrDefault("capabilitySids", string.Empty));
+            }
 
             // The marker can speak in this sandbox: without the signature policy (--control) its code runs and says so.
-            var control = RunProbe(launcher, probe, $"--rogue-only {Quote(marker)} --control", TimeSpan.FromSeconds(60));
+            var control = RunProbe(launcher, probe, $"--rogue-only {Quote(marker)} --control", TimeSpan.FromSeconds(60), "control", problems, field);
+
+            // The unsigned DLL under the policy, last and in a process of its own: the loader ends the process, and Windows may then treat the
+            // package as damaged and refuse to start anything more from it until it is reinstalled.
+            var rogue = RunProbe(launcher, probe, $"--rogue-only {Quote(marker)}", TimeSpan.FromSeconds(60), "rogue", problems, field);
+            if (control is null || rogue is null)
+            {
+                return problems;
+            }
+
+            var rogueRow = rogue.Rows.FirstOrDefault(r => r.Name == RogueRow);
+            var codeRan = rogue.Raw.Contains(Marker, StringComparison.Ordinal);
             var proven = control.Raw.Contains(Marker, StringComparison.Ordinal);
             field("rogueDll", $"row={(rogueRow is null ? "(none: the process ended first)" : rogueRow.Outcome + " Win32 " + rogueRow.Win32.ToString(CultureInfo.InvariantCulture))}, exit code 0x{rogue.ExitCode:X}, code ran={codeRan}, marker audible without the policy={proven}");
             if (!proven)
@@ -206,11 +215,37 @@ internal static class SandboxProbeCheck
         }
     }
 
-    private static Report RunProbe(SandboxedProcessLauncher launcher, string probe, string arguments, TimeSpan timeout)
+    /// <summary>Runs one probe process. A launch failure becomes a problem rather than an exception, so the runs before it still report; the
+    /// package's status after each run is recorded, because a launch refused with "try reinstalling" means Windows judged the package damaged.</summary>
+    private static Report? RunProbe(SandboxedProcessLauncher launcher, string probe, string arguments, TimeSpan timeout, string name, List<string> problems, Action<string, string> field)
     {
-        using var process = launcher.Launch(new SandboxLaunchRequest(probe, arguments));
-        var exited = process.WaitForExitAsync(timeout).GetAwaiter().GetResult();
-        return Parse(process.LogText, process.ExitCode, exited);
+        try
+        {
+            using var process = launcher.Launch(new SandboxLaunchRequest(probe, arguments));
+            var exited = process.WaitForExitAsync(timeout).GetAwaiter().GetResult();
+            return Parse(process.LogText, process.ExitCode, exited);
+        }
+        catch (SandboxLaunchException e)
+        {
+            problems.Add($"the {name} run did not start: {e.Message} (Win32 {e.Win32Error.ToString(CultureInfo.InvariantCulture)})");
+            return null;
+        }
+        finally
+        {
+            field("packageStatusAfter_" + name, PackageStatus());
+        }
+    }
+
+    private static string PackageStatus()
+    {
+        var status = Windows.ApplicationModel.Package.Current.Status;
+        var flags = new[]
+        {
+            (status.VerifyIsOK(), "ok"), (status.Tampered, "tampered"), (status.Modified, "modified"), (status.NotAvailable, "notAvailable"),
+            (status.DataOffline, "dataOffline"), (status.DependencyIssue, "dependencyIssue"), (status.LicenseIssue, "licenseIssue"), (status.Servicing, "servicing"),
+            (status.NeedsRemediation, "needsRemediation"), (status.DeploymentInProgress, "deploymentInProgress"),
+        };
+        return string.Join(',', flags.Where(f => f.Item1).Select(f => f.Item2));
     }
 
     private static Report Parse(string text, uint exitCode, bool exited)
