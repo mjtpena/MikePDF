@@ -1,0 +1,94 @@
+### Job A: range 2-4, Fit, duplex long edge, A4, 1 copy
+  printer Microsoft Print to PDF; source pages 6; range "2-4" subset all -> pages 2,3,4; printed 3
+  DEVMODE requested: fields=0x13D03 orientation=1 paper=9 copies=1 duplex=2 collate=1 colour=2 quality=600 yres=600 size=5428
+  DEVMODE driver kept: fields=0x12D03 orientation=1 paper=9 copies=1 duplex=1 collate=1 colour=2 quality=600 yres=600 size=5428
+  device: 600x600 dpi, printable 4961x7016 px, physical 4961x7016, offset 0,0
+  p2: 595.3x841.9pt rot90=False scale=8.3336px/pt dest=(0,0,4961,7016) clipped=False
+  p3: 792.0x612.0pt rot90=True scale=8.1062px/pt dest=(0,298,4961,6420) clipped=False
+  p4: 841.9x595.3pt rot90=True scale=8.3336px/pt dest=(0,0,4961,7016) clipped=False
+  time total 5542 ms (StartDoc 158, render 325, blit 317, EndDoc 1873); bands 26; sent 387 MiB; failed blits 0; error none
+  own process private bytes: base 13 MiB peak 161 MiB (peak working set 218 MiB)
+  spoolsv: base 13 MiB peak 13 MiB
+  PrintFilterPipelineSvc: base 19 MiB peak 114 MiB
+  output: 3 pages (job reported 3; copies requested 1, collate 0), 9002 KiB
+    control: 150 dpi direct vs 600 dpi box-filtered engine render (no printing) SSIM 0.9722; best whole-pixel shift of the output (0,0) gives mean abs 4.907 on a 1200x1200 centre crop
+  out p1 <- src p2: 595.3 x 841.9 pt, SSIM 0.9599 @150 dpi (print.md PRINT-13 method), mean abs 5.39; at 600 dpi: mean abs 1.896, max 254, 20.64% pixels differ, SSIM after 4x box 0.9961; text chars 0, objects text/image/path 0/9/0
+    control: 150 dpi direct vs 600 dpi box-filtered engine render (no printing) SSIM 0.9498; best whole-pixel shift of the output (0,0) gives mean abs 3.172 on a 1200x1200 centre crop
+  out p2 <- src p3: 595.3 x 841.9 pt, SSIM 0.9510 @150 dpi (print.md PRINT-13 method), mean abs 5.45; at 600 dpi: mean abs 1.792, max 254, 21.67% pixels differ, SSIM after 4x box 0.9949; text chars 0, objects text/image/path 0/8/0
+    control: 150 dpi direct vs 600 dpi box-filtered engine render (no printing) SSIM 0.9671; best whole-pixel shift of the output (1,0) gives mean abs 4.071 on a 1200x1200 centre crop
+  out p3 <- src p4: 595.3 x 841.9 pt, SSIM 0.9560 @150 dpi (print.md PRINT-13 method), mean abs 5.81; at 600 dpi: mean abs 2.548, max 254, 20.63% pixels differ, SSIM after 4x box 0.9934; text chars 0, objects text/image/path 0/9/0
+### Job B: range 1,3,5- odd only, Actual size, Letter, short-edge duplex, 2 copies collated
+  printer Microsoft Print to PDF; source pages 6; range "1,3,5-" subset odd -> pages 1,3,5; printed 3
+  DEVMODE requested: fields=0x1BD03 orientation=1 paper=1 copies=2 duplex=3 collate=1 colour=2 quality=600 yres=600 size=5428
+  DEVMODE driver kept: fields=0x12D03 orientation=1 paper=1 copies=2 duplex=1 collate=1 colour=2 quality=600 yres=600 size=5428
+  device: 600x600 dpi, printable 5100x6600 px, physical 5100x6600, offset 0,0
+  p1: 612.0x792.0pt rot90=False scale=8.3333px/pt dest=(0,0,5100,6600) clipped=False
+  p3: 792.0x612.0pt rot90=True scale=8.3333px/pt dest=(0,0,5100,6600) clipped=False
+  p5: 612.0x792.0pt rot90=False scale=8.3333px/pt dest=(0,0,5100,6600) clipped=False
+  time total 6182 ms (StartDoc 184, render 316, blit 295, EndDoc 2473); bands 27; sent 385 MiB; failed blits 0; error none
+  own process private bytes: base 1629 MiB peak 1768 MiB (peak working set 1908 MiB)
+  spoolsv: base 13 MiB peak 13 MiB
+  PrintFilterPipelineSvc: base 20 MiB peak 110 MiB
+  output: 6 pages (job reported 3; copies requested 2, collate 1), 8733 KiB
+    control: 150 dpi direct vs 600 dpi box-filtered engine render (no printing) SSIM 0.9771; best whole-pixel shift of the output (0,0) gives mean abs 3.623 on a 1200x1200 centre crop
+  out p1 <- src p1: 612.0 x 792.0 pt, SSIM 0.9581 @150 dpi (print.md PRINT-13 method), mean abs 5.51; at 600 dpi: mean abs 1.692, max 249, 20.55% pixels differ, SSIM after 4x box 0.9964; text chars 0, objects text/image/path 0/9/0
+    control: 150 dpi direct vs 600 dpi box-filtered engine render (no printing) SSIM 0.9854; best whole-pixel shift of the output (0,0) gives mean abs 1.939 on a 1200x1200 centre crop
+  out p2 <- src p3: 612.0 x 792.0 pt, SSIM 0.9663 @150 dpi (print.md PRINT-13 method), mean abs 4.69; at 600 dpi: mean abs 1.874, max 254, 23.57% pixels differ, SSIM after 4x box 0.9946; text chars 0, objects text/image/path 0/9/0
+    control: 150 dpi direct vs 600 dpi box-filtered engine render (no printing) SSIM 0.9778; best whole-pixel shift of the output (0,0) gives mean abs 3.271 on a 1200x1200 centre crop
+  out p3 <- src p5: 612.0 x 792.0 pt, SSIM 0.9597 @150 dpi (print.md PRINT-13 method), mean abs 5.38; at 600 dpi: mean abs 1.650, max 249, 20.41% pixels differ, SSIM after 4x box 0.9966; text chars 0, objects text/image/path 0/9/0
+  out p4 <- src p1: 612.0 x 792.0 pt, SSIM 0.9581 @150 dpi (print.md PRINT-13 method), mean abs 5.51; at 600 dpi: mean abs NaN, max -1, NaN% pixels differ, SSIM after 4x box NaN; text chars 0, objects text/image/path 0/9/0
+  out p5 <- src p3: 612.0 x 792.0 pt, SSIM 0.9663 @150 dpi (print.md PRINT-13 method), mean abs 4.69; at 600 dpi: mean abs NaN, max -1, NaN% pixels differ, SSIM after 4x box NaN; text chars 0, objects text/image/path 0/9/0
+  out p6 <- src p5: 612.0 x 792.0 pt, SSIM 0.9597 @150 dpi (print.md PRINT-13 method), mean abs 5.38; at 600 dpi: mean abs NaN, max -1, NaN% pixels differ, SSIM after 4x box NaN; text chars 0, objects text/image/path 0/9/0
+### Job C: pages 1-3, Custom 50%, auto-rotate off, A4
+  printer Microsoft Print to PDF; source pages 6; range "1-3" subset all -> pages 1,2,3; printed 3
+  DEVMODE requested: fields=0x12D03 orientation=1 paper=9 copies=1 duplex=1 collate=1 colour=2 quality=600 yres=600 size=5428
+  DEVMODE driver kept: fields=0x12D03 orientation=1 paper=9 copies=1 duplex=1 collate=1 colour=2 quality=600 yres=600 size=5428
+  device: 600x600 dpi, printable 4961x7016 px, physical 4961x7016, offset 0,0
+  p1: 612.0x792.0pt rot90=False scale=4.1667px/pt dest=(1206,1858,2550,3300) clipped=False
+  p2: 595.3x841.9pt rot90=False scale=4.1667px/pt dest=(1240,1754,2480,3508) clipped=False
+  p3: 792.0x612.0pt rot90=False scale=4.1667px/pt dest=(830,2233,3300,2550) clipped=False
+  time total 2731 ms (StartDoc 208, render 86, blit 88, EndDoc 1331); bands 9; sent 97 MiB; failed blits 0; error none
+  own process private bytes: base 1675 MiB peak 1718 MiB (peak working set 1908 MiB)
+  spoolsv: base 13 MiB peak 13 MiB
+  PrintFilterPipelineSvc: base 21 MiB peak 99 MiB
+  output: 3 pages (job reported 3; copies requested 1, collate 0), 3375 KiB
+    control: 150 dpi direct vs 600 dpi box-filtered engine render (no printing) SSIM 0.9521; best whole-pixel shift of the output (0,0) gives mean abs 1.979 on a 1200x1200 centre crop
+  out p1 <- src p1: 595.3 x 841.9 pt, SSIM 0.9317 @150 dpi (print.md PRINT-13 method), mean abs 4.27; at 600 dpi: mean abs 0.456, max 255, 6.37% pixels differ, SSIM after 4x box 0.9991; text chars 0, objects text/image/path 0/3/0
+    control: 150 dpi direct vs 600 dpi box-filtered engine render (no printing) SSIM 0.9709; best whole-pixel shift of the output (-1,0) gives mean abs 7.099 on a 1200x1200 centre crop
+  out p2 <- src p2: 595.3 x 841.9 pt, SSIM 0.9499 @150 dpi (print.md PRINT-13 method), mean abs 3.47; at 600 dpi: mean abs 1.108, max 255, 6.89% pixels differ, SSIM after 4x box 0.9966; text chars 0, objects text/image/path 0/3/0
+    control: 150 dpi direct vs 600 dpi box-filtered engine render (no printing) SSIM 0.9782; best whole-pixel shift of the output (0,0) gives mean abs 1.424 on a 1200x1200 centre crop
+  out p3 <- src p3: 595.3 x 841.9 pt, SSIM 0.9694 @150 dpi (print.md PRINT-13 method), mean abs 2.45; at 600 dpi: mean abs 0.425, max 255, 6.79% pixels differ, SSIM after 4x box 0.9991; text chars 0, objects text/image/path 0/3/0
+### Job D: pages 2-4, Fit, A4, print as image at <= 300 dpi
+  printer Microsoft Print to PDF; source pages 6; range "2-4" subset all -> pages 2,3,4; printed 3
+  DEVMODE requested: fields=0x12D03 orientation=1 paper=9 copies=1 duplex=1 collate=1 colour=2 quality=600 yres=600 size=5428
+  DEVMODE driver kept: fields=0x12D03 orientation=1 paper=9 copies=1 duplex=1 collate=1 colour=2 quality=600 yres=600 size=5428
+  device: 600x600 dpi, printable 4961x7016 px, physical 4961x7016, offset 0,0
+  p2: 595.3x841.9pt rot90=False scale=8.3336px/pt dest=(0,0,4961,7016) clipped=False
+  p3: 792.0x612.0pt rot90=True scale=8.1062px/pt dest=(0,298,4961,6420) clipped=False
+  p4: 841.9x595.3pt rot90=True scale=8.3336px/pt dest=(0,0,4961,7016) clipped=False
+  time total 2635 ms (StartDoc 197, render 78, blit 76, EndDoc 1333); bands 3; sent 97 MiB; failed blits 0; error none
+  own process private bytes: base 1670 MiB peak 1715 MiB (peak working set 1908 MiB)
+  spoolsv: base 13 MiB peak 13 MiB
+  PrintFilterPipelineSvc: base 32 MiB peak 109 MiB
+  output: 3 pages (job reported 3; copies requested 1, collate 0), 3375 KiB
+  out p1 <- src p2: 595.3 x 841.9 pt, SSIM 0.9804 @150 dpi (print.md PRINT-13 method), mean abs 3.37; at 600 dpi: mean abs NaN, max -1, NaN% pixels differ, SSIM after 4x box NaN; text chars 0, objects text/image/path 0/1/0
+  out p2 <- src p3: 595.3 x 841.9 pt, SSIM 0.9647 @150 dpi (print.md PRINT-13 method), mean abs 4.59; at 600 dpi: mean abs NaN, max -1, NaN% pixels differ, SSIM after 4x box NaN; text chars 0, objects text/image/path 0/1/0
+### Job E: pages 1-3, Shrink, Letter paper portrait, auto-rotate on (page 3 is landscape)
+  printer Microsoft Print to PDF; source pages 6; range "1-3" subset all -> pages 1,2,3; printed 3
+  DEVMODE requested: fields=0x12D03 orientation=1 paper=1 copies=1 duplex=1 collate=1 colour=2 quality=600 yres=600 size=5428
+  DEVMODE driver kept: fields=0x12D03 orientation=1 paper=1 copies=1 duplex=1 collate=1 colour=2 quality=600 yres=600 size=5428
+  device: 600x600 dpi, printable 5100x6600 px, physical 5100x6600, offset 0,0
+  p1: 612.0x792.0pt rot90=False scale=8.3333px/pt dest=(0,0,5100,6600) clipped=False
+  p2: 595.3x841.9pt rot90=False scale=7.8395px/pt dest=(217,0,4667,6600) clipped=False
+  p3: 792.0x612.0pt rot90=True scale=8.3333px/pt dest=(0,0,5100,6600) clipped=False
+  time total 6171 ms (StartDoc 245, render 333, blit 313, EndDoc 1868); bands 26; sent 374 MiB; failed blits 0; error none
+  own process private bytes: base 971 MiB peak 1111 MiB (peak working set 1908 MiB)
+  spoolsv: base 13 MiB peak 13 MiB
+  PrintFilterPipelineSvc: base 33 MiB peak 115 MiB
+  output: 3 pages (job reported 3; copies requested 1, collate 0), 8759 KiB
+    control: 150 dpi direct vs 600 dpi box-filtered engine render (no printing) SSIM 0.9771; best whole-pixel shift of the output (0,0) gives mean abs 3.623 on a 1200x1200 centre crop
+  out p1 <- src p1: 612.0 x 792.0 pt, SSIM 0.9581 @150 dpi (print.md PRINT-13 method), mean abs 5.51; at 600 dpi: mean abs 1.692, max 249, 20.55% pixels differ, SSIM after 4x box 0.9964; text chars 0, objects text/image/path 0/9/0
+    control: 150 dpi direct vs 600 dpi box-filtered engine render (no printing) SSIM 0.9657; best whole-pixel shift of the output (0,0) gives mean abs 4.793 on a 1200x1200 centre crop
+  out p2 <- src p2: 612.0 x 792.0 pt, SSIM 0.9515 @150 dpi (print.md PRINT-13 method), mean abs 5.71; at 600 dpi: mean abs 1.664, max 253, 18.89% pixels differ, SSIM after 4x box 0.9965; text chars 0, objects text/image/path 0/8/0
+    control: 150 dpi direct vs 600 dpi box-filtered engine render (no printing) SSIM 0.9854; best whole-pixel shift of the output (0,0) gives mean abs 1.939 on a 1200x1200 centre crop
+  out p3 <- src p3: 612.0 x 792.0 pt, SSIM 0.9663 @150 dpi (print.md PRINT-13 method), mean abs 4.69; at 600 dpi: mean abs 1.874, max 254, 23.57% pixels differ, SSIM after 4x box 0.9946; text chars 0, objects text/image/path 0/9/0

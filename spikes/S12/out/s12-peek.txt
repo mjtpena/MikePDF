@@ -1,0 +1,11 @@
+output 3029419 bytes; producer/creator strings:
+  /Producer (Microsoft: Print To PDF)
+  /DCTDecode: 8
+  /FlateDecode: 1
+  /JPXDecode: 0
+  /CCITTFaxDecode: 0
+  /Subtype/Image: 0
+  /Subtype /Image: 8
+  /SMask: 0
+  /Interpolate: 0
+  /ColorSpace: 8

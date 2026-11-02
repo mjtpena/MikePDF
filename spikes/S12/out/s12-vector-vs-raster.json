@@ -1,0 +1,110 @@
+{
+  "vector": {
+    "Input": "mix6.pdf",
+    "Printer": "Microsoft Print to PDF",
+    "Range": "2-4",
+    "Subset": "all",
+    "PagesInSource": 6,
+    "PagesPrinted": 3,
+    "PageNumbers": [
+      2,
+      3,
+      4
+    ],
+    "DevModeRequested": "fields=0x12D03 orientation=1 paper=9 copies=1 duplex=1 collate=1 colour=2 quality=600 yres=600 size=5428",
+    "DevModeAccepted": "fields=0x12D03 orientation=1 paper=9 copies=1 duplex=1 collate=1 colour=2 quality=600 yres=600 size=5428",
+    "DevModeAtDc": "",
+    "DeviceDpiX": 600,
+    "DeviceDpiY": 600,
+    "HorzRes": 4961,
+    "VertRes": 7016,
+    "PhysW": 4961,
+    "PhysH": 7016,
+    "PhysOffX": 0,
+    "PhysOffY": 0,
+    "TotalMs": 3505.416,
+    "RenderMs": 233.3754,
+    "BlitMs": 0,
+    "StartDocMs": 178.29520000000002,
+    "EndDocMs": 1723.9940000000001,
+    "AbortMs": 0,
+    "Bands": 0,
+    "BytesBlitted": 0,
+    "FailedBlits": 0,
+    "PeakPrivateSelf": 31432704,
+    "PeakWorkingSetSelf": 80068608,
+    "BasePrivateSelf": 13512704,
+    "PeakPrivateOthers": {
+      "spoolsv": 14245888,
+      "PrintFilterPipelineSvc": 89665536
+    },
+    "BasePrivateOthers": {
+      "spoolsv": 13971456,
+      "PrintFilterPipelineSvc": 32444416
+    },
+    "OutputBytes": 694239,
+    "Error": null,
+    "Aborted": false,
+    "Placements": [
+      "p2: 595.3x841.9pt rot90=False scale=8.3336px/pt dest=(0,0,4961,7016) clipped=False",
+      "p3: 792.0x612.0pt rot90=True scale=8.1062px/pt dest=(0,298,4961,6420) clipped=False",
+      "p4: 841.9x595.3pt rot90=True scale=8.3336px/pt dest=(0,0,4961,7016) clipped=False"
+    ],
+    "StartDocResult": 18,
+    "EndDocResult": 1
+  },
+  "raster": {
+    "Input": "mix6.pdf",
+    "Printer": "Microsoft Print to PDF",
+    "Range": "2-4",
+    "Subset": "all",
+    "PagesInSource": 6,
+    "PagesPrinted": 3,
+    "PageNumbers": [
+      2,
+      3,
+      4
+    ],
+    "DevModeRequested": "fields=0x12D03 orientation=1 paper=9 copies=1 duplex=1 collate=1 colour=2 quality=600 yres=600 size=5428",
+    "DevModeAccepted": "fields=0x12D03 orientation=1 paper=9 copies=1 duplex=1 collate=1 colour=2 quality=600 yres=600 size=5428",
+    "DevModeAtDc": "",
+    "DeviceDpiX": 600,
+    "DeviceDpiY": 600,
+    "HorzRes": 4961,
+    "VertRes": 7016,
+    "PhysW": 4961,
+    "PhysH": 7016,
+    "PhysOffX": 0,
+    "PhysOffY": 0,
+    "TotalMs": 5252.846500000001,
+    "RenderMs": 313.2887,
+    "BlitMs": 277.6225,
+    "StartDocMs": 183.35930000000002,
+    "EndDocMs": 1861.593,
+    "AbortMs": 0,
+    "Bands": 26,
+    "BytesBlitted": 405849488,
+    "FailedBlits": 0,
+    "PeakPrivateSelf": 1858322432,
+    "PeakWorkingSetSelf": 1900113920,
+    "BasePrivateSelf": 1707151360,
+    "PeakPrivateOthers": {
+      "spoolsv": 14176256,
+      "PrintFilterPipelineSvc": 122462208
+    },
+    "BasePrivateOthers": {
+      "spoolsv": 14155776,
+      "PrintFilterPipelineSvc": 34652160
+    },
+    "OutputBytes": 9218045,
+    "Error": null,
+    "Aborted": false,
+    "Placements": [
+      "p2: 595.3x841.9pt rot90=False scale=8.3336px/pt dest=(0,0,4961,7016) clipped=False",
+      "p3: 792.0x612.0pt rot90=True scale=8.1062px/pt dest=(0,298,4961,6420) clipped=False",
+      "p4: 841.9x595.3pt rot90=True scale=8.3336px/pt dest=(0,0,4961,7016) clipped=False"
+    ],
+    "StartDocResult": 19,
+    "EndDocResult": 1
+  }
+}

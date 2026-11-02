@@ -1,0 +1,33 @@
+## Range grammar (print.md 3.3 / PRINT-01, PRINT-02) on a 10-page document
+  "1" -> 1
+  "1-3" -> 1,2,3
+  "5-" -> 5,6,7,8,9,10
+  "-5" -> 1,2,3,4,5
+  "1-3,5,8-" -> 1,2,3,5,8,9,10
+  " 2 , 4 " -> 2,4
+  "" -> 1,2,3,4,5,6,7,8,9,10
+  "a" -> ERROR syntax
+  "3-1" -> ERROR order
+  "0" -> ERROR The document has 10 pages.
+  "-" -> ERROR syntax
+  "1,,2" -> ERROR syntax
+  "11" -> ERROR The document has 10 pages.
+  "1-11" -> ERROR The document has 10 pages.
+  "2-9" odd -> 3,5,7,9
+  "2-9" even -> 2,4,6,8
+## PrintLayout (A4 portrait paper at 600 dpi: 4960 x 7016 px printable)
+  Letter            Fit     rot90=False scale=8.105 dest=(0,299,4960,6419) clipped=False
+  Letter            Shrink  rot90=False scale=8.105 dest=(0,299,4960,6419) clipped=False
+  Letter            Actual  rot90=False scale=8.333 dest=(-70,208,5100,6600) clipped=True
+  Letter landscape  Fit     rot90=True  scale=8.105 dest=(0,299,4960,6419) clipped=False
+  Letter landscape  Shrink  rot90=True  scale=8.105 dest=(0,299,4960,6419) clipped=False
+  Letter landscape  Actual  rot90=True  scale=8.333 dest=(-70,208,5100,6600) clipped=True
+  A4                Fit     rot90=False scale=8.332 dest=(0,1,4960,7015) clipped=False
+  A4                Shrink  rot90=False scale=8.332 dest=(0,1,4960,7015) clipped=False
+  A4                Actual  rot90=False scale=8.333 dest=(-0,0,4961,7016) clipped=True
+  30x40in poster    Fit     rot90=False scale=2.296 dest=(0,201,4960,6613) clipped=False
+  30x40in poster    Shrink  rot90=False scale=2.296 dest=(0,201,4960,6613) clipped=False
+  30x40in poster    Actual  rot90=False scale=8.333 dest=(-6520,-8492,18000,24000) clipped=True
+  1 inch            Fit     rot90=False scale=68.889 dest=(0,1028,4960,4960) clipped=False
+  1 inch            Shrink  rot90=False scale=8.333 dest=(2180,3208,600,600) clipped=False
+  1 inch            Actual  rot90=False scale=8.333 dest=(2180,3208,600,600) clipped=False

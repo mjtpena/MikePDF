@@ -1,0 +1,30 @@
+Candidate (a): WinUI PrintManager / PrintDocument from a desktop app. Documentation evidence, fetched 2026-11-02.
+These are summaries of what the pages said when fetched, not runtime measurements.
+
+1. https://learn.microsoft.com/en-us/windows/uwp/devices-sensors/print-from-your-app
+   (canonical: https://learn.microsoft.com/en-us/windows/apps/develop/devices-sensors/print-from-your-app; page ms.date 2024-09-11, updated_at 2026-07-14)
+   - Shows a WinUI 3 / Windows App SDK pattern: get the HWND with WinRT.Interop.WindowNative.GetWindowHandle, call PrintManagerInterop.GetForWindow(hWnd),
+     create Microsoft.UI.Xaml.Printing.PrintDocument, handle Paginate / GetPreviewPage / AddPages, and show the system UI with
+     await PrintManagerInterop.ShowPrintUIForWindowAsync(hWnd). It lists Microsoft.UI.Xaml.Printing.PrintDocument as an important API.
+   - Constraints stated: only the screen the user sees can be registered; unregister when leaving the page or an exception is thrown;
+     use the Loaded event because the HWND must not be null; the window must be a displayed window (the print UI is attached to it).
+   - Pages are XAML UIElements added with AddPage. PrintManager.IsSupported() should be checked first.
+
+2. https://github.com/microsoft/microsoft-ui-xaml/issues/4419  "Question: Printing in WinUI 3 Desktop" (opened 2021-03-04, still OPEN on 2025-11-20)
+   - 2021-03-18 (Microsoft): "the PrintDocument API hasn't been updated for WinUI3 yet" at that time.
+   - 2025-06-18 / 2025-06-27 commenters: works in full-trust apps following Microsoft's guidance; partial-trust (sandboxed) apps still cannot print.
+   - 2025-11-20: a user reports that on Windows 10 build 19044 (21H2 LTSC) the print dialog appears but nothing prints and
+     PrintTaskSourceRequested is never called; the fix they cite is in build 19045.2788 and later. Not confirmed by Microsoft in the thread.
+   - A debugger breakpoint inside PrintTaskRequested can cause a false COMException because the window loses focus.
+   - No Microsoft roadmap statement for further work was found in the thread.
+
+3. https://learn.microsoft.com/en-us/windows/apps/windows-app-sdk/stable-channel (title "Windows App SDK release channels", ms.date 2026-10-27)
+   - Stable channel: 2.6.4 released 2026-10-27; 2.0 original release 2026-04-29, support level Current, end of servicing 2027-04-29.
+   - Experimental: 2.5.4-experimental (2026-09-29); 2.0 Preview 2 (2026-03-31).
+   - The feature-by-channel table lists deployment, WinUI, text rendering, resources, app lifecycle, push and app notifications, windowing, widgets and
+     App Content Search. Printing is NOT in the table: the page makes no statement about printing in any channel.
+   - NOTE for the project: stable 2.5.1 (what ADR-0001 pins) is older than the current stable 2.6.4.
+
+Conclusion as far as documents go: there is no Windows App SDK 2.5 documentation that says printing is unsupported, and one current Learn page that documents it.
+There is also an open WinUI issue showing it was unreliable on older Windows 10 builds and unsupported in partial-trust processes.
+It has not been tested at runtime here because the system print UI needs a visible window (prohibited in this spike). UNVERIFIED at runtime.

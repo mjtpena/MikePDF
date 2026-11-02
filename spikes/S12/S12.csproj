@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0-windows10.0.26100.0</TargetFramework>
+    <Platforms>x64</Platforms>
+    <PlatformTarget>x64</PlatformTarget>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <AssemblyName>S12</AssemblyName>
+    <RootNamespace>S12</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Remove="Probe\**" />
+    <!-- PDFium P/Invoke, BGRA image, SSIM and PNG writer are shared with spike S9 (throwaway code) -->
+    <Compile Include="..\S9\Pdfium.cs" Link="Shared\Pdfium.cs" />
+    <Compile Include="..\S9\Imaging.cs" Link="Shared\Imaging.cs" />
+    <Content Include="..\_shared\pdfium\pdfium-win-x64\bin\pdfium.dll" Link="pdfium.dll" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>

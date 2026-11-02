@@ -1,0 +1,79 @@
+profile mikepdf.render, SID S-1-15-2-3900387669-407273789-3246822050-390069015-2854696809-387693104-2701356130; folder the container may write: C:\Users\mjtpe\dev\Orqentis\QuirePDF\.claude\worktrees\agent-a5976476638b974e2\spikes\S12\out\probe; folder it may not: C:\Users\mjtpe\dev\Orqentis\QuirePDF\.claude\worktrees\agent-a5976476638b974e2\spikes\S12\out\denied
+### C#   control: unsandboxed: exit 0
+process | pid 93388; IsAppContainer=0, integrity RID=0x2000, capability count=0
+control: list Documents | ALLOWED (3 files)
+control: write to %TEMP% | ALLOWED
+OpenPrinter | ALLOWED
+EnumPrinters(local) | ALLOWED (needs 216 bytes)
+DocumentProperties(size query) | ALLOWED (5428 bytes)
+memory DC + bitmap (what an in-sandbox FPDF_RenderPage could use) | ALLOWED
+A: output into a folder the container may write StartDoc/EndPage/EndDoc | completed (EndDoc=1); file exists from the container's own view: True
+B: output into a folder the container may NOT write StartDoc/EndPage/EndDoc | completed (EndDoc=1); file exists from the container's own view: True
+
+  seen from outside: allowed-folder pdf exists = True (1025 bytes); denied-folder pdf exists = True (1033 bytes)
+### C#   AppContainer, zero capabilities (existing profile mikepdf.render), no other mitigation: exited with 0 (0x00000000)
+process | pid 16984; IsAppContainer=1, integrity RID=0x1000, capability count=0
+control: list Documents | DENIED ArgumentException
+control: write to %TEMP% | ALLOWED
+OpenPrinter | ALLOWED
+EnumPrinters(local) | ALLOWED (needs 216 bytes)
+DocumentProperties(size query) | ALLOWED (5428 bytes)
+memory DC + bitmap (what an in-sandbox FPDF_RenderPage could use) | ALLOWED
+A: output into a folder the container may write StartDoc/EndPage/EndDoc | completed (EndDoc=1); file exists from the container's own view: True
+B: output into a folder the container may NOT write StartDoc | DENIED win32=5
+
+  seen from outside: allowed-folder pdf exists = True (1025 bytes); denied-folder pdf exists = False
+### C++  control: unsandboxed: exit 0
+process | pid 43860 IsAppContainer=0 capability count=0
+mitigation | ProhibitDynamicCode=0
+OpenPrinter | ALLOWED
+EnumPrinters(local) | ALLOWED (needs 216 bytes)
+DocumentProperties(size query) | ALLOWED (5428 bytes)
+memory DC + bitmap | ALLOWED
+A: output into a folder the container may write | completed (EndDoc=1); file visible to the container: 1
+B: output into a folder the container may NOT write | completed (EndDoc=1); file visible to the container: 1
+
+  seen from outside: allowed-folder pdf exists = True (941 bytes); denied-folder pdf exists = True (941 bytes)
+### C++  AppContainer, zero capabilities, no other mitigation: exited with 0 (0x00000000)
+process | pid 73092 IsAppContainer=1 capability count=0
+mitigation | ProhibitDynamicCode=0
+OpenPrinter | ALLOWED
+EnumPrinters(local) | ALLOWED (needs 216 bytes)
+DocumentProperties(size query) | ALLOWED (5428 bytes)
+memory DC + bitmap | ALLOWED
+A: output into a folder the container may write | completed (EndDoc=1); file visible to the container: 1
+B: output into a folder the container may NOT write | StartDoc DENIED win32=5
+
+  seen from outside: allowed-folder pdf exists = True (941 bytes); denied-folder pdf exists = False
+### C++  AppContainer + every creation-time mitigation in SandboxPolicy EXCEPT prohibit-dynamic-code (DEP, ASLR x3, strict handles, extension points, CFG, fonts, image-load x3, CET) + restricted child processes: exited with 0 (0x00000000)
+process | pid 14940 IsAppContainer=1 capability count=0
+mitigation | ProhibitDynamicCode=0
+OpenPrinter | ALLOWED
+EnumPrinters(local) | ALLOWED (needs 216 bytes)
+DocumentProperties(size query) | ALLOWED (5428 bytes)
+memory DC + bitmap | ALLOWED
+A: output into a folder the container may write | completed (EndDoc=1); file visible to the container: 1
+B: output into a folder the container may NOT write | StartDoc DENIED win32=5
+
+  seen from outside: allowed-folder pdf exists = True (941 bytes); denied-folder pdf exists = False
+### C++  as above, plus the engine's runtime Microsoft-signed-only policy applied before the printing calls: exited with 0 (0x00000000)
+process | pid 78104 IsAppContainer=1 capability count=0
+mitigation | ProhibitDynamicCode=0
+SetProcessMitigationPolicy(MicrosoftSignedOnly) | applied
+OpenPrinter | ALLOWED
+EnumPrinters(local) | ALLOWED (needs 216 bytes)
+DocumentProperties(size query) | ALLOWED (5428 bytes)
+memory DC + bitmap | ALLOWED
+A: output into a folder the container may write | completed (EndDoc=1); file visible to the container: 1
+B: output into a folder the container may NOT write | StartDoc DENIED win32=5
+
+  seen from outside: allowed-folder pdf exists = True (941 bytes); denied-folder pdf exists = False
+### C++  the engine's REAL profile: all of the above INCLUDING prohibit-dynamic-code (ADR-0004 decision 2): exited with -1073740771 (0xC000041D)
+process | pid 92156 IsAppContainer=1 capability count=0
+mitigation | ProhibitDynamicCode=1
+OpenPrinter | ALLOWED
+EnumPrinters(local) | ALLOWED (needs 216 bytes)
+DocumentProperties(size query) | ALLOWED (5428 bytes)
+memory DC + bitmap | ALLOWED
+
+  seen from outside: allowed-folder pdf exists = False; denied-folder pdf exists = False
