@@ -26,6 +26,9 @@ public sealed record PrintJobRequest
 
     /// <summary>The job fails when the engine has crashed this many times during it (print.md 6: "after 3 restarts").</summary>
     public int MaxEngineCrashes { get; init; } = 3;
+
+    /// <summary>The settings the person made in the driver's own dialog (tray, quality, finishing); the job's options are applied on top. Null starts from the driver's defaults.</summary>
+    public DevMode? PrinterDevMode { get; init; }
 }
 
 public enum PrintStage
@@ -67,6 +70,7 @@ public enum PrintOutcome
 /// <param name="Device">What the driver did with the settings; null when the printer was never opened.</param>
 /// <param name="Copies">Who made the copies: the driver, or MikePDF.</param>
 /// <param name="BandsSent">Bands drawn on the printer.</param>
+/// <param name="Win32Error">The Win32 error the spooler or driver gave when it ended the job (0 when it was not one): what <see cref="PrintFailure.Classify"/> turns into a sentence.</param>
 public sealed record PrintResult(
     PrintOutcome Outcome,
     string? ResourceKey,
@@ -79,7 +83,8 @@ public sealed record PrintResult(
     int EngineCrashes,
     DeviceOpenReport? Device,
     CopyPlan Copies,
-    int BandsSent)
+    int BandsSent,
+    int Win32Error = 0)
 {
     public bool Completed => Outcome == PrintOutcome.Completed;
 }

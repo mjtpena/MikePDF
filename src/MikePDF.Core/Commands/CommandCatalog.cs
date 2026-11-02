@@ -29,6 +29,15 @@ public static class CommandCatalog
 
     private static CommandAvailability NeedsPath(CommandContext c) => !c.HasDocument ? Fail(Reasons.NoDocument) : c.HasPath ? Ok : Fail(Reasons.NoPath);
 
+    // Print: a document, then the organisation's policy (an administrator who turned printing off does not want the document's reason shown instead), then the owner's permission (print.md 3.7,
+    // PRINT-22), then one job at a time per window.
+    private static CommandAvailability CanPrint(CommandContext c) =>
+        !c.HasDocument ? Fail(Reasons.NoDocument)
+        : !c.PrintingAllowed ? Fail(Reasons.Policy)
+        : !c.OwnerAllowsPrinting ? Fail(Reasons.OwnerNoPrint)
+        : c.PrintJobRunning ? Fail(Reasons.PrintBusy)
+        : Ok;
+
     private static CommandAvailability NeedsImportExport(CommandContext c) => c.ImportExportAllowed ? Ok : Fail(Reasons.Policy);
 
     private static CommandDefinition Define(
@@ -67,6 +76,9 @@ public static class CommandCatalog
             Define("file.open", file, global, "", ["Ctrl+O"], Always, dialog: true, keywords: true),
             Define("file.reload", file, global, "", ["Ctrl+R"], c => c.Busy ? Fail(Reasons.Busy) : !c.HasDocument ? Fail(Reasons.NoDocument) : c.HasPath ? Ok : Fail(Reasons.NoPath), keywords: true),
             Define("file.properties", file, global, "", ["Ctrl+D"], NeedsDocument, keywords: true),
+            Define("file.print", file, global, "", ["Ctrl+P"], CanPrint, keywords: true, dialog: true),
+            Define("file.printCurrentPage", file, global, "", [], CanPrint, keywords: true, dialog: true),
+            Define("print.cancel", file, global, "", [], c => c.PrintJobRunning ? Ok : Fail(Reasons.NotPrinting), keywords: true, inPresentation: true),
             Define("file.newTab", file, global, "", ["Ctrl+T"], Always, keywords: true, inPresentation: true),
             Define("file.newWindow", file, global, "", ["Ctrl+N"], Always, keywords: true, inPresentation: true),
             Define("file.close", file, global, "", ["Ctrl+W", "Ctrl+F4"], Always, keywords: true, inPresentation: true),

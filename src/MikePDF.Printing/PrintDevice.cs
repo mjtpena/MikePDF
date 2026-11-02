@@ -37,7 +37,21 @@ public interface IPrintDevice : IDisposable
     void RequestAbort();
 }
 
+/// <summary>
+/// The whole sheet of paper in device pixels (<c>PHYSICALWIDTH</c>, <c>PHYSICALHEIGHT</c>) and where the printable area starts on it (<c>PHYSICALOFFSETX</c>, <c>PHYSICALOFFSETY</c>): the margins the
+/// printer cannot print in. Zero width means the device did not say.
+/// </summary>
+public readonly record struct PhysicalPaper(int WidthPx, int HeightPx, int OffsetX, int OffsetY);
+
 /// <summary>What the printer's driver did with the settings the job asked for (ADR-0011 decision 2): what it cleared is "not applied" and the sheet says so.</summary>
+/// <param name="PaperApplied">The driver kept the paper size asked for (or none was asked for).</param>
+/// <param name="OrientationApplied">The driver kept the orientation.</param>
+/// <param name="DuplexApplied">The driver kept the sides asked for (or one-sided was).</param>
+/// <param name="ColourApplied">The driver kept black and white (or colour was asked for).</param>
+/// <param name="CopiesByDriver">The driver makes the copies.</param>
+/// <param name="CollateByDriver">The driver collates them.</param>
+/// <param name="DevModeAfterMerge">The driver's merged settings in words, for the log.</param>
+/// <param name="Physical">The whole paper and the margins, for the preview. Default (all zero) when the device did not say; the printable area is then taken as the whole paper.</param>
 public sealed record DeviceOpenReport(
     bool PaperApplied,
     bool OrientationApplied,
@@ -45,7 +59,8 @@ public sealed record DeviceOpenReport(
     bool ColourApplied,
     bool CopiesByDriver,
     bool CollateByDriver,
-    string DevModeAfterMerge);
+    string DevModeAfterMerge,
+    PhysicalPaper Physical = default);
 
 /// <summary>An open device and what is known about it.</summary>
 public sealed record DeviceOpenResult(IPrintDevice Device, CopyPlan Copies, DeviceOpenReport Report);
@@ -54,7 +69,9 @@ public sealed record DeviceOpenResult(IPrintDevice Device, CopyPlan Copies, Devi
 /// <param name="Printer">The queue's name.</param>
 /// <param name="Options">The sheet's choices; the device takes copies, collate, duplex, paper size and colour from them.</param>
 /// <param name="Landscape">The paper's orientation for the job.</param>
-public sealed record PrinterJobSettings(string Printer, PrintOptions Options, bool Landscape);
+/// <param name="BaseDevMode">The settings the person made in the driver's own dialog ("Printer preferences"): tray, quality, finishing, whatever the driver keeps. The job's options are applied on top of
+/// them. Null starts from the driver's defaults.</param>
+public sealed record PrinterJobSettings(string Printer, PrintOptions Options, bool Landscape, DevMode? BaseDevMode = null);
 
 /// <summary>Opens devices. Real jobs use <see cref="GdiPrintDeviceFactory"/>; tests substitute their own.</summary>
 public interface IPrintDeviceFactory

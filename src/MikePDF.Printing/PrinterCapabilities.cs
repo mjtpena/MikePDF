@@ -1,3 +1,4 @@
+using MikePDF.Core.Printing;
 using Windows.Win32;
 using Windows.Win32.Storage.Xps;
 
@@ -19,6 +20,9 @@ public sealed record PrinterCapabilities(
     IReadOnlyList<(int X, int Y)> Resolutions,
     int LandscapeRotation)
 {
+    /// <summary>What the print sheet needs of these capabilities, without the printing types.</summary>
+    public PrinterAbilities Abilities => new([.. PaperSizes.Where(p => p.Id > 0 && !string.IsNullOrWhiteSpace(p.Name)).Select(p => new PaperChoice(p.Id, p.Name, p.WidthTenthsMm, p.HeightTenthsMm))], SupportsDuplex, SupportsColour, SupportsCollate, MaxCopies);
+
     private const int MaxEntries = 4096;
     private const int NameChars = 64; // DC_PAPERNAMES entries are 64 characters
 

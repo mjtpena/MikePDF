@@ -61,6 +61,9 @@ public static class Reasons
     public const string NotMissing = "NotMissing";
     public const string NotFacing = "NotFacing";
     public const string NotPresenting = "NotPresenting";
+    public const string OwnerNoPrint = "OwnerNoPrint";
+    public const string PrintBusy = "PrintBusy";
+    public const string NotPrinting = "NotPrinting";
 
     public static string ResourceKey(string reason) => "Reason_" + reason;
 }
@@ -140,8 +143,14 @@ public sealed record CommandContext
     /// <summary>Policy: settings and shortcut import and export are allowed (SettingsImportExportEnabled). True when no policy says otherwise.</summary>
     public bool ImportExportAllowed { get; init; } = true;
 
-    /// <summary>Policy: printing is allowed (PrintingEnabled). Nothing prints yet; the flag is here so print can be one line later.</summary>
+    /// <summary>Policy: printing is allowed (PrintingEnabled). True when no policy says otherwise.</summary>
     public bool PrintingAllowed { get; init; } = true;
+
+    /// <summary>The document's owner allows printing (permission bit 3). True when there is no document or no protection: the question does not arise.</summary>
+    public bool OwnerAllowsPrinting { get; init; } = true;
+
+    /// <summary>A print job started from this window is running (Cancel printing can act; a second Print waits).</summary>
+    public bool PrintJobRunning { get; init; }
 }
 
 /// <summary>

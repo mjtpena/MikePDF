@@ -3,6 +3,9 @@
 file.open
 file.reload
 file.properties
+file.print
+file.printCurrentPage
+print.cancel
 nav.back
 nav.forward
 nav.goToPage

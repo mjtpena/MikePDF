@@ -14,7 +14,7 @@ public sealed class GdiPrintDeviceFactory : IPrintDeviceFactory
     {
         ArgumentNullException.ThrowIfNull(settings);
         var options = settings.Options.Normalize();
-        var request = DevMode.GetDefault(settings.Printer);
+        var request = settings.BaseDevMode?.Clone() ?? DevMode.GetDefault(settings.Printer);
         if (options.PaperSizeId > 0)
         {
             request.SetPaperSize(options.PaperSizeId);
@@ -56,6 +56,6 @@ public sealed class GdiPrintDeviceFactory : IPrintDeviceFactory
         }
 
         var device = GdiPrintDevice.Create(settings.Printer, final);
-        return new DeviceOpenResult(device, copies, report with { CopiesByDriver = copies.DeviceCopies > 1, CollateByDriver = copies.DeviceCollate });
+        return new DeviceOpenResult(device, copies, report with { CopiesByDriver = copies.DeviceCopies > 1, CollateByDriver = copies.DeviceCollate, Physical = device.Physical });
     }
 }
