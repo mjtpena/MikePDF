@@ -1,0 +1,7 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <AssemblyName>S10.Probe</AssemblyName>
+    <RootNamespace>S10</RootNamespace>
+  </PropertyGroup>
+</Project>
