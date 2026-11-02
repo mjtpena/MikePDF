@@ -71,27 +71,63 @@ public sealed class MikePDFApp : IDisposable
         return new MikePDFApp(automation, application, window);
     }
 
+    /// <summary>
+    /// Ends every MikePDF (a launch must not be redirected to an instance that is already running) and the engines those instances started: their
+    /// descendants, found by parent process id. A MikePDF.Engine that belongs to anything else (another agent's integration test, the render tool,
+    /// a person's own reader) is none of ours and is left alone.
+    /// </summary>
     public static void KillAll()
     {
-        foreach (var name in new[] { "MikePDF", "MikePDF.Engine" })
+        foreach (var app in Process.GetProcessesByName("MikePDF"))
         {
-            foreach (var p in Process.GetProcessesByName(name))
+            using (app)
             {
+                foreach (var (id, exe) in ProcessTree.DescendantsOf(app.Id).Where(d => string.Equals(d.Exe, "MikePDF.Engine.exe", StringComparison.OrdinalIgnoreCase)))
+                {
+                    Kill(id);
+                }
+
                 try
                 {
-                    p.Kill(entireProcessTree: true);
-                    p.WaitForExit(5000);
+                    app.Kill(entireProcessTree: true);
+                    app.WaitForExit(5000);
                 }
                 catch (Exception e) when (e is InvalidOperationException or System.ComponentModel.Win32Exception)
                 {
                     // Already gone.
                 }
-                finally
-                {
-                    p.Dispose();
-                }
             }
         }
+    }
+
+    private static void Kill(int processId)
+    {
+        try
+        {
+            using var process = Process.GetProcessById(processId);
+            process.Kill();
+            process.WaitForExit(5000);
+        }
+        catch (Exception e) when (e is ArgumentException or InvalidOperationException or System.ComponentModel.Win32Exception)
+        {
+            // Already gone.
+        }
+    }
+
+    /// <summary>The ids of the engines this MikePDF started (its child processes named MikePDF.Engine), now.</summary>
+    public IReadOnlySet<int> EngineIds() =>
+        ProcessTree.DescendantsOf(ProcessId).Where(d => string.Equals(d.Exe, "MikePDF.Engine.exe", StringComparison.OrdinalIgnoreCase)).Select(d => d.Id).ToHashSet();
+
+    /// <summary>Ends the engines this MikePDF started, and only those. Returns how many it ended.</summary>
+    public int KillEngines()
+    {
+        var ids = EngineIds();
+        foreach (var id in ids)
+        {
+            Kill(id);
+        }
+
+        return ids.Count;
     }
 
     // ---- elements -------------------------------------------------------------------------------
@@ -143,6 +179,41 @@ public sealed class MikePDFApp : IDisposable
             TryCapture("timeout-" + new string(description.Where(char.IsLetterOrDigit).Take(40).ToArray()));
             throw new TimeoutException("Timed out waiting for " + description);
         }
+    }
+
+    public PalettePage Palette => new(this);
+
+    public SettingsPage Settings => new(this);
+
+    /// <summary>The shortcut text a control announces (UIA AcceleratorKey), for example "Ctrl+2".</summary>
+    public string AcceleratorKey(string automationId) => Require(automationId).Properties.AcceleratorKey.ValueOrDefault ?? string.Empty;
+
+    public string HelpText(string automationId) => Require(automationId).Properties.HelpText.ValueOrDefault ?? string.Empty;
+
+    public bool HasFocus(string automationId) => Find(automationId)?.Properties.HasKeyboardFocus.ValueOrDefault ?? false;
+
+    /// <summary>Subscribes to the notifications screen readers hear (UIA Notification events) for the whole window; dispose to stop.</summary>
+    public IDisposable ListenForNotifications(List<(string Text, string Activity)> into)
+    {
+        var listening = new Listening();
+        Window.RegisterNotificationEvent(TreeScope.Subtree, (_, _, _, text, activity) =>
+        {
+            if (listening.Active)
+            {
+                lock (into)
+                {
+                    into.Add((text, activity));
+                }
+            }
+        });
+        return listening; // the registration itself ends with the app, which each journey closes
+    }
+
+    private sealed class Listening : IDisposable
+    {
+        public volatile bool Active = true;
+
+        public void Dispose() => Active = false;
     }
 
     public string PageIndicatorName => Find("PageIndicator")?.Name ?? string.Empty;

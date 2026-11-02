@@ -34,12 +34,33 @@ public static class Samples
         new("req_get_page_boxes", 17, 7, 1000, new GetPageBoxes { Page = 9999999 }),
         new("req_get_page_text", 18, 7, 1000, new GetPageText { Page = 3, First = 2048, Count = 2048 }),
         new("req_search_page", 19, 7, 1000, new SearchPage { Page = 3, Query = "façade ✓", Flags = 3 }),
+        new("req_get_document_details", 20, 7, 1500, new GetDocumentDetails()),
+
+        // Schema 5.
+        new("req_get_viewer_preferences", 21, 7, 1000, new GetViewerPreferences()),
+        new("req_render_band", 22, 7, 30000, new RenderBand
+        {
+            Page = 3, Dpi = 600, Rotation = 1, PageWidthPx = 65536, PageHeightPx = 65536, BandTop = 49152, BandHeight = 16384, Flags = 7, SlotIndex = 12, Generation = 9_000_000_000UL,
+        }),
+        new("req_render_band_typical", 23, 7, 30000, new RenderBand
+        {
+            Page = 0, Dpi = 150, Rotation = 0, PageWidthPx = 1275, PageHeightPx = 1650, BandTop = 0, BandHeight = 256, Flags = 5, SlotIndex = 1, Generation = 1,
+        }),
+        new("req_hello_shell_handler", 24, 0, 5000, new Hello { SchemaVersion = ProtocolInfo.SchemaVersion, ProcessKind = ProcessKind.ShellHandler, Pid = 4242 }),
+        new("req_shell_open", 25, 0, 1700, new ShellOpen { Section = 0x3A8, Bytes = 33_554_432 }),
+        new("req_shell_render_page", 26, 3, 1500, new ShellRenderPage
+        {
+            Page = 9999999, MaxWidth = 1024, MaxHeight = 1024, Flags = 1, Pixels = 0x3B0, PixelBytes = 4_194_304,
+        }),
+        new("req_shell_render_page_smallest", 28, 3, 1, new ShellRenderPage { Page = 0, MaxWidth = 16, MaxHeight = 16, Flags = 0, Pixels = 1, PixelBytes = 4 }),
+        new("req_shell_close", 27, 3, 500, new ShellClose()),
     ];
 
     public static IReadOnlyList<ResponseSample> Responses { get; } =
     [
         new("rsp_hello", 1, Status.Ok, MessageType.Hello, new HelloReply { SchemaVersion = ProtocolInfo.SchemaVersion, PdfiumVersion = "PDFium 8125.0.0.0" }),
-        new("rsp_pong", 2, Status.Ok, MessageType.Ping, new Pong { Nonce = 0x1122334455667788UL }),
+        new("rsp_pong", 2, Status.Ok, MessageType.Ping, new Pong { Nonce = 0x1122334455667788UL, Progress = 0xFEDCBA9876543210UL }),
+        new("rsp_pong_idle", 28, Status.Ok, MessageType.Ping, new Pong { Nonce = 1, Progress = 0 }),
         new("rsp_shutdown", 3, Status.Ok, MessageType.Shutdown, new ShutdownReply()),
         new("rsp_attach_slot_ring", 12, Status.Ok, MessageType.AttachSlotRing, new AttachSlotRingReply()),
         new("rsp_open_document", 4, Status.Ok, MessageType.OpenDocument, new OpenDocumentReply { DocumentId = 7, PageCount = 342 }),
@@ -100,6 +121,31 @@ public static class Samples
             Flags = [0, 0, 2, 1],
         }),
         new("rsp_search_page", 19, Status.Ok, MessageType.SearchPage, new SearchPageReply { Truncated = true, Starts = [0, 199000], Lengths = [5, 200000 - 199000] }),
+        new("rsp_get_document_details", 20, Status.Ok, MessageType.GetDocumentDetails, new GetDocumentDetailsReply
+        {
+            CreationDate = "D:20240115103000+10'00'", ModificationDate = "D:20240201", SecurityRevision = 4, UserPermissions = 0xFFFFF2C0, FormType = 1,
+            FontNames = ["ABCDEF+Arial-BoldMT", "Helvetica", "TimesNewRomanPSMT"], FontFlags = [1, 0, 1], FontsComplete = false, FontPagesScanned = 100,
+        }),
+        new("rsp_get_document_details_empty", 21, Status.Ok, MessageType.GetDocumentDetails, new GetDocumentDetailsReply
+        {
+            CreationDate = "", ModificationDate = "", SecurityRevision = 0, UserPermissions = 0xFFFFFFFF, FormType = 0,
+            FontNames = [], FontFlags = [], FontsComplete = true, FontPagesScanned = 0,
+        }),
+
+        // Schema 5.
+        new("rsp_get_viewer_preferences", 21, Status.Ok, MessageType.GetViewerPreferences, new GetViewerPreferencesReply
+        {
+            Direction = 1, PrintScaling = 1, NumCopies = 3, Duplex = 3, RangeFirsts = [0, 9999999], RangeLasts = [2, 9999999],
+        }),
+        new("rsp_get_viewer_preferences_absent", 29, Status.Ok, MessageType.GetViewerPreferences, new GetViewerPreferencesReply
+        {
+            Direction = 2, PrintScaling = 0, NumCopies = 0, Duplex = 0, RangeFirsts = [], RangeLasts = [],
+        }),
+        new("rsp_render_band", 22, Status.Ok, MessageType.RenderBand, new RenderBandReply { SlotIndex = 12, Width = 65536, Height = 16384, Stride = 262144, Generation = 9_000_000_000UL }),
+        new("rsp_render_band_partial", 23, Status.PartiallyRendered, MessageType.RenderBand, new RenderBandReply { SlotIndex = 1, Width = 1275, Height = 256, Stride = 5100, Generation = 1 }),
+        new("rsp_shell_open", 25, Status.Ok, MessageType.ShellOpen, new ShellOpenReply { DocumentId = 3, PageCount = 342, FirstWidth = 612f, FirstHeight = 792f }),
+        new("rsp_shell_render_page", 26, Status.Ok, MessageType.ShellRenderPage, new ShellRenderPageReply { Width = 1024, Height = 768, Stride = 4096 }),
+        new("rsp_shell_close", 27, Status.Ok, MessageType.ShellClose, new ShellCloseReply()),
         new("rsp_error_password_required", 4, Status.PasswordRequired, MessageType.OpenDocument, null),
         new("rsp_error_timeout", 9, Status.Timeout, MessageType.RenderTile, null),
     ];

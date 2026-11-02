@@ -5,7 +5,7 @@
 - Master prompt: §2.1 (print with the Windows print dialog, page ranges, scaling, duplex), §8.10, §12.5 journey 11, §18 scenario 2, Appendix C (ADR-0011)
 - Author: Sonnet (W1-specs). Reviewer: Opus
 - Date: 2026-11-02
-- Depends on: engine messages `RenderBand` and `GetViewerPreferences` (schema v4), [settings-policies](settings-policies.md), [command-palette-shortcuts](command-palette-shortcuts.md)
+- Depends on: engine messages `RenderBand` and `GetViewerPreferences` (schema v5), [settings-policies](settings-policies.md), [command-palette-shortcuts](command-palette-shortcuts.md)
 - Related: [save-pipeline](save-pipeline.md) (printing a document with unsaved edits)
 
 Conventions are in [README.md](README.md).
@@ -154,11 +154,11 @@ None. A snapshot file is not a journal. If the app is killed during a snapshot, 
 
 Printing never saves, never replaces the original and never clears the journal. The snapshot of section 3.9 is built with the save pipeline's stages 1 to 4 only (no validation replace, no `ReplaceFileW`).
 
-## 11. Engine and protocol additions (schema v4)
+## 11. Engine and protocol additions (schema v5, implemented in `m3/engine`: the schema has the limits below, the engine and the broker check them)
 
 All engine messages take `documentId` (required) unless noted. Frames are at most 64 KiB; nothing here approaches that.
 
-**`GetViewerPreferences` (id 26).** Request: no fields. Reply:
+**`GetViewerPreferences` (id 28; 26 became `GetDocumentDetails` in schema 4).** Request: no fields. Reply:
 
 | Key | Name | Type | Limits |
 |---|---|---|---|
@@ -182,7 +182,7 @@ PDFium has `FPDF_VIEWERREF_GetPrintScaling`, `GetNumCopies`, `GetPrintPageRange`
 | 4 | `pageHeightPx` | u32 | 1 to 65536 |
 | 5 | `bandTop` | u32 | max 65535 |
 | 6 | `bandHeight` | u32 | 1 to 16384; and `pageWidthPx x bandHeight x 4` must not exceed the slot size (checked by the engine and the broker) |
-| 7 | `flags` | u32 | max 15: bit 0 annotations, bit 1 form fields, bit 2 printing mode, bit 3 reserved (must be 0) |
+| 7 | `flags` | u32 | max 7: bit 0 annotations, bit 1 form fields, bit 2 printing mode. Bit 3 is reserved and the schema refuses it (it said max 15 and left the engine to refuse bit 3; PRINT-05 wants the decoder to) |
 | 8 | `slotIndex` | u32 | max 1023 |
 | 9 | `generation` | u64 | |
 

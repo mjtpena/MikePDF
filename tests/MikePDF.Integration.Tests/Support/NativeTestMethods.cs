@@ -35,6 +35,160 @@ internal static partial class NativeTestMethods
     }
 
     /// <summary>
+    /// How many <c>MikePDF.Engine.exe</c> processes are running right now whose image is in <paramref name="directory"/> (this test run's deployment, so another run on the
+    /// machine does not count). A process that has exited but is still held open by a handle somewhere is not running.
+    /// </summary>
+    public static int RunningEnginesIn(string directory)
+    {
+        const uint QueryLimitedInformation = 0x1000;
+        var running = 0;
+        foreach (var process in System.Diagnostics.Process.GetProcessesByName("MikePDF.Engine"))
+        {
+            using (process)
+            {
+                var handle = OpenProcess(QueryLimitedInformation, false, (uint)process.Id);
+                if (handle == 0)
+                {
+                    continue;
+                }
+
+                try
+                {
+                    var path = new char[1024];
+                    var length = (uint)path.Length;
+                    if (QueryFullProcessImageNameW(handle, 0, path, ref length)
+                        && new string(path, 0, (int)length).StartsWith(directory, StringComparison.OrdinalIgnoreCase)
+                        && GetExitCodeProcess(handle, out var code)
+                        && code == 259)
+                    {
+                        running++;
+                    }
+                }
+                finally
+                {
+                    CloseHandle(handle);
+                }
+            }
+        }
+
+        return running;
+    }
+
+    [LibraryImport("kernel32.dll", SetLastError = true)]
+    [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
+    private static partial nint OpenProcess(uint access, [MarshalAs(UnmanagedType.Bool)] bool inherit, uint processId);
+
+    [LibraryImport("kernel32.dll", SetLastError = true, StringMarshalling = StringMarshalling.Utf16)]
+    [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static partial bool QueryFullProcessImageNameW(nint process, uint flags, [Out] char[] path, ref uint size);
+
+    [LibraryImport("kernel32.dll", SetLastError = true)]
+    [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static partial bool GetExitCodeProcess(nint process, out uint code);
+
+    /// <summary>
+    /// Freezes every thread of the process except the one that was created first, which is the engine's I/O thread (it reads the pipe and answers Ping on its own, ADR-0005
+    /// rule 2): what is left is an engine whose work thread is stuck and whose heartbeat still beats, the case the progress counter exists for. Returns how many were frozen.
+    /// </summary>
+    public static int SuspendAllThreadsButTheOldest(uint processId)
+    {
+        const uint SnapshotThread = 0x4;
+        const uint ThreadSuspendResume = 0x2;
+        const uint ThreadQueryLimitedInformation = 0x800;
+        var snapshot = CreateToolhelp32Snapshot(SnapshotThread, 0);
+        if (snapshot == -1)
+        {
+            throw new System.ComponentModel.Win32Exception(Marshal.GetLastPInvokeError(), "CreateToolhelp32Snapshot");
+        }
+
+        var threads = new List<(nint Handle, long Created)>();
+        try
+        {
+            var entry = new ThreadEntry32 { Size = (uint)Marshal.SizeOf<ThreadEntry32>() };
+            for (var ok = Thread32First(snapshot, ref entry); ok; ok = Thread32Next(snapshot, ref entry))
+            {
+                if (entry.OwnerProcessId != processId)
+                {
+                    continue;
+                }
+
+                var thread = OpenThread(ThreadSuspendResume | ThreadQueryLimitedInformation, false, entry.ThreadId);
+                if (thread == 0)
+                {
+                    throw new System.ComponentModel.Win32Exception(Marshal.GetLastPInvokeError(), $"OpenThread({entry.ThreadId})");
+                }
+
+                GetThreadTimes(thread, out var created, out _, out _, out _);
+                threads.Add((thread, created));
+            }
+
+            var oldest = threads.MinBy(t => t.Created);
+            var frozen = 0;
+            foreach (var (handle, _) in threads.Where(t => t.Handle != oldest.Handle))
+            {
+                if (SuspendThread(handle) == uint.MaxValue)
+                {
+                    throw new System.ComponentModel.Win32Exception(Marshal.GetLastPInvokeError(), "SuspendThread");
+                }
+
+                frozen++;
+            }
+
+            return frozen;
+        }
+        finally
+        {
+            foreach (var (handle, _) in threads)
+            {
+                CloseHandle(handle);
+            }
+
+            CloseHandle(snapshot);
+        }
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct ThreadEntry32
+    {
+        public uint Size;
+        public uint Usage;
+        public uint ThreadId;
+        public uint OwnerProcessId;
+        public int BasePriority;
+        public int DeltaPriority;
+        public uint Flags;
+    }
+
+    [LibraryImport("kernel32.dll", SetLastError = true)]
+    [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
+    private static partial nint CreateToolhelp32Snapshot(uint flags, uint processId);
+
+    [LibraryImport("kernel32.dll")]
+    [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static partial bool Thread32First(nint snapshot, ref ThreadEntry32 entry);
+
+    [LibraryImport("kernel32.dll")]
+    [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static partial bool Thread32Next(nint snapshot, ref ThreadEntry32 entry);
+
+    [LibraryImport("kernel32.dll", SetLastError = true)]
+    [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
+    private static partial nint OpenThread(uint access, [MarshalAs(UnmanagedType.Bool)] bool inherit, uint threadId);
+
+    [LibraryImport("kernel32.dll", SetLastError = true)]
+    [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static partial bool GetThreadTimes(nint thread, out long created, out long exited, out long kernel, out long user);
+
+    [LibraryImport("kernel32.dll", SetLastError = true)]
+    [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
+    private static partial uint SuspendThread(nint thread);
+
+    /// <summary>
     /// Every handle value in this process whose inherit flag is set. The handle table is dense (values are multiples of 4), so probing each
     /// value up to a bound well past the current handle count finds them all; GetHandleInformation on a value that is not a handle just fails.
     /// </summary>

@@ -105,6 +105,7 @@ void EngineHost::handle_frame(protocol::RequestEnvelope request, Clock::time_poi
         case MessageType::Ping: {
             protocol::Pong pong;
             pong.nonce = std::get<protocol::Ping>(request.payload).nonce;
+            pong.progress = core_.progress();  // read on this lane, written by the engine thread: how the broker tells a busy engine from a stuck one
             send_reply(request.request_id, request.message_type, {Status::Ok, protocol::ReplyPayload{pong}});
             return;
         }
@@ -132,6 +133,9 @@ void EngineHost::handle_frame(protocol::RequestEnvelope request, Clock::time_poi
         case MessageType::GetPageBoxes:
         case MessageType::GetPageText:
         case MessageType::SearchPage:
+        case MessageType::GetDocumentDetails:
+        case MessageType::GetViewerPreferences:
+        case MessageType::RenderBand:
         case MessageType::RenderTile: {
             {
                 std::lock_guard lock(mutex_);
@@ -143,7 +147,10 @@ void EngineHost::handle_frame(protocol::RequestEnvelope request, Clock::time_poi
             cv_.notify_one();
             return;
         }
-        case MessageType::ValidateStructure:
+        case MessageType::ValidateStructure:  // the WriterHost's
+        case MessageType::ShellOpen:          // ShellHost's
+        case MessageType::ShellRenderPage:
+        case MessageType::ShellClose:
             break;
     }
     die(kExitProtocolViolation, "message not served by this host");

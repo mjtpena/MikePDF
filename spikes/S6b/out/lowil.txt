@@ -1,0 +1,39 @@
+
+===== 1. ShellHost running at medium IL with the low-integrity pipe label (the proposed design); client at LOW
+# low-integrity child exit code 0
+# self integrity level: low
+# label=run mode=warm cx=256 runs=3 pdf=C:\Users\mjtpe\dev\Orqentis\QuirePDF\.claude\worktrees\agent-a20eab59cba996f96\spikes\S6b\out\pdfs\text1.pdf
+run,ok,hr,total_ms,copy_ms,connect_ms,launched,open_rt_ms,render_rt_ms,close_ms,convert_ms,srv_stage_us,srv_spawn_us,srv_open_us,srv_render_us,srv_out_us,srv_total_open_us,srv_total_render_us,engine_peak_kb,w,h,pages
+0,1,0x00000000,27.42,0.06,0.19,0,18.03,1.77,6.53,0.22,362,13779,3017,1381,319,17486,1720,0,198
+1,1,0x00000000,28.95,0.06,0.40,0,19.75,1.98,6.43,0.18,427,15487,3050,1658,256,19372,1931,0,198
+2,1,0x00000000,31.40,0.06,0.48,0,21.05,1.81,7.66,0.18,497,16656,3132,1512,233,20625,1754,0,198
+# low-integrity child exit code 0
+# label=run preview mode=warm runs=3 pdf=C:\Users\mjtpe\dev\Orqentis\QuirePDF\.claude\worktrees\agent-a20eab59cba996f96\spikes\S6b\out\pdfs\text1.pdf
+run,ok,first_pixel_ms,do_preview_call_ms,painted_ok
+0,1,48.13,0.67,1
+1,1,38.84,0.78,1
+2,1,40.56,0.73,1
+
+===== 2. Same, but ShellHost started with --no-low-il (no mandatory label on the pipe, default medium label); client at LOW
+# low-integrity child exit code 0
+# self integrity level: low
+# label=run mode=warm cx=256 runs=2 pdf=C:\Users\mjtpe\dev\Orqentis\QuirePDF\.claude\worktrees\agent-a20eab59cba996f96\spikes\S6b\out\pdfs\text1.pdf
+run,ok,hr,total_ms,copy_ms,connect_ms,launched,open_rt_ms,render_rt_ms,close_ms,convert_ms,srv_stage_us,srv_spawn_us,srv_open_us,srv_render_us,srv_out_us,srv_total_open_us,srv_total_render_us,engine_peak_kb,w,h,pages
+# call failed: hr=0x800704c9 connectError=5 launchError=0
+0,0,0x800704c9,0.81,0.06,0.00,0,0.00,0.00,0.00,0.00,0,0,0,0,0,0,0,0,0
+# call failed: hr=0x800704c9 connectError=5 launchError=0
+1,0,0x800704c9,0.17,0.03,0.00,0,0.00,0.00,0.00,0.00,0,0,0,0,0,0,0,0,0
+handler.log tail:
+22:57:28.613 [handler 79052] host exe=C:\Users\mjtpe\dev\Orqentis\QuirePDF\.claude\worktrees\agent-a20eab59cba996f96\spikes\S6b\out\native-x64\s6b_testhost.exe integrity=medium appcontainer=0 package=(none)
+22:57:28.619 [handler 79052] launch: ok pid=53816
+22:57:28.715 [handler 79052] verify: server pid=53816 image=C:\Users\mjtpe\dev\Orqentis\QuirePDF\.claude\worktrees\agent-a20eab59cba996f96\spikes\S6b\ShellHost\bin\Release\net10.0-windows10.0.26100.0\win-x64\S6bShellHost.exe imageMatches=1 family(min
+
+===== 3. ShellHost NOT running; the LOW-integrity client has to launch it on demand
+# low-integrity child exit code 0
+# self integrity level: low
+# label=run mode=warm cx=256 runs=1 pdf=C:\Users\mjtpe\dev\Orqentis\QuirePDF\.claude\worktrees\agent-a20eab59cba996f96\spikes\S6b\out\pdfs\text1.pdf
+run,ok,hr,total_ms,copy_ms,connect_ms,launched,open_rt_ms,render_rt_ms,close_ms,convert_ms,srv_stage_us,srv_spawn_us,srv_open_us,srv_render_us,srv_out_us,srv_total_open_us,srv_total_render_us,engine_peak_kb,w,h,pages
+# call failed: hr=0x800704c9 connectError=2 launchError=0
+0,0,0x800704c9,15010.14,0.05,0.00,0,0.00,0.00,0.00,0.00,0,0,0,0,0,0,0,0,0
+shellhost.log (note the integrity of the process that was started):
+no S6bShellHost process is running

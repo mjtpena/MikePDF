@@ -1,8 +1,10 @@
 using System.Collections.Concurrent;
 using System.Numerics;
 using Microsoft.Graphics.Canvas;
+using Microsoft.Graphics.Canvas.Effects;
 using Microsoft.Graphics.Canvas.UI.Xaml;
 using Microsoft.UI.Xaml;
+using MikePDF.Core.Colour;
 using MikePDF.Core.Tiles;
 using Windows.Foundation;
 using Windows.Graphics.DirectX;
@@ -38,6 +40,8 @@ internal sealed class Win2DTilePresenter : ITilePresenter, IDisposable
     private Color _background = Color.FromArgb(255, 0xEE, 0xEE, 0xEE);
     private Color _paper = Color.FromArgb(255, 255, 255, 255);
     private Color _paperBorder = Color.FromArgb(40, 0, 0, 0);
+    private PageColourMode _colourMode = PageColourMode.Normal;
+    private ColorMatrixEffect? _colourEffect;
 
     public Win2DTilePresenter()
     {
@@ -71,6 +75,66 @@ internal sealed class Win2DTilePresenter : ITilePresenter, IDisposable
         _paperBorder = border;
         _control.ClearColor = background;
         _control.Invalidate();
+    }
+
+    /// <summary>
+    /// How the pages are coloured (dark pages, sepia). The tiles stay what the engine drew; each is run through a colour matrix on the GPU when it
+    /// is drawn, so changing the mode re-renders nothing and shows in the next frame. UI thread.
+    /// </summary>
+    public PageColourMode ColourMode
+    {
+        get => _colourMode;
+        set
+        {
+            if (_colourMode == value)
+            {
+                return;
+            }
+
+            _colourMode = value;
+            _colourEffect?.Dispose();
+            _colourEffect = null;
+            _control.Invalidate();
+        }
+    }
+
+    private ColorMatrixEffect? Effect()
+    {
+        if (_colourMode == PageColourMode.Normal)
+        {
+            return null;
+        }
+
+        if (_colourEffect is null)
+        {
+            var v = PageColourMatrix.For(_colourMode).Values;
+            _colourEffect = new ColorMatrixEffect
+            {
+                ClampOutput = true,
+                ColorMatrix = new Matrix5x4
+                {
+                    M11 = v[0], M12 = v[1], M13 = v[2], M14 = v[3],
+                    M21 = v[4], M22 = v[5], M23 = v[6], M24 = v[7],
+                    M31 = v[8], M32 = v[9], M33 = v[10], M34 = v[11],
+                    M41 = v[12], M42 = v[13], M43 = v[14], M44 = v[15],
+                    M51 = v[16], M52 = v[17], M53 = v[18], M54 = v[19],
+                },
+            };
+        }
+
+        return _colourEffect;
+    }
+
+    // The paper that shows before a tile arrives goes through the same matrix, so a page being loaded is dark in dark mode as well.
+    private Color PaperColour()
+    {
+        if (_colourMode == PageColourMode.Normal)
+        {
+            return _paper;
+        }
+
+        var (r, g, b) = PageColourMatrix.For(_colourMode).Apply(_paper.R, _paper.G, _paper.B);
+        return Color.FromArgb(_paper.A, r, g, b);
     }
 
     public ITileSurface CreateSurface(IPixelBuffer pixels)
@@ -126,6 +190,7 @@ internal sealed class Win2DTilePresenter : ITilePresenter, IDisposable
     {
         _control.RegionsInvalidated -= OnRegionsInvalidated;
         _control.RemoveFromVisualTree();
+        _colourEffect?.Dispose();
     }
 
     private void OnRegionsInvalidated(CanvasVirtualControl sender, CanvasRegionsInvalidatedEventArgs args)
@@ -133,6 +198,8 @@ internal sealed class Win2DTilePresenter : ITilePresenter, IDisposable
         var traceStart = AppTrace.FrameBegin();
         var frame = _frame;
         var scale = (float)_rasterScale;
+        var effect = Effect();
+        var paperColour = PaperColour();
         foreach (var region in args.InvalidatedRegions)
         {
             using var session = sender.CreateDrawingSession(region);
@@ -150,14 +217,22 @@ internal sealed class Win2DTilePresenter : ITilePresenter, IDisposable
             foreach (var page in frame.Pages)
             {
                 var paper = ToDips(page.PageRect, scale);
-                session.FillRectangle(paper, _paper);
+                session.FillRectangle(paper, paperColour);
                 foreach (var layer in page.Layers)
                 {
                     if (layer.Surface is Win2DTileSurface surface)
                     {
                         try
                         {
-                            session.DrawImage(surface.Bitmap, ToDips(layer.Destination, scale), surface.Bitmap.Bounds, 1f, CanvasImageInterpolation.Linear);
+                            if (effect is not null)
+                            {
+                                effect.Source = surface.Bitmap;
+                                session.DrawImage(effect, ToDips(layer.Destination, scale), surface.Bitmap.Bounds, 1f, CanvasImageInterpolation.Linear);
+                            }
+                            else
+                            {
+                                session.DrawImage(surface.Bitmap, ToDips(layer.Destination, scale), surface.Bitmap.Bounds, 1f, CanvasImageInterpolation.Linear);
+                            }
                         }
                         catch (ObjectDisposedException)
                         {

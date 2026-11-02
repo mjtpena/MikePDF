@@ -1,0 +1,390 @@
+12:40:49.405 [handler 4520] GetThumbnail cx=256 stream size=3564
+12:40:49.407 [handler 4520] host exe=C:\Windows\system32\DllHost.exe integrity=high appcontainer=0 package=MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28
+12:40:49.413 [handler 4520] launch: ok pid=4416
+12:40:49.535 [handler 4520] verify: server pid=4416 image=C:\Program Files\WindowsApps\MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28\ShellHost\S6bShellHost.exe imageMatches=1 family(mine)=MikePDF.S6bProbe_gxqed95vwwy28 family(server)=MikePDF.S6bProbe_gxqed95vwwy28 familyMatches=1
+12:40:49.718 [handler 4520] GetThumbnail done hr=0x00000000 total 281.47 ms (copy 0.03, connect 128.47, launched 1, open 140.52, render 12.19)
+12:40:49.759 [handler 4520] GetThumbnail cx=256 stream size=3564
+12:40:49.764 [handler 4520] launch: ok pid=2844
+12:40:49.884 [handler 4520] verify: server pid=2844 image=C:\Program Files\WindowsApps\MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28\ShellHost\S6bShellHost.exe imageMatches=1 family(mine)=MikePDF.S6bProbe_gxqed95vwwy28 family(server)=MikePDF.S6bProbe_gxqed95vwwy28 familyMatches=1
+12:40:50.029 [handler 4520] GetThumbnail done hr=0x00000000 total 238.18 ms (copy 0.04, connect 122.73, launched 1, open 101.77, render 13.45)
+12:40:50.067 [handler 4520] GetThumbnail cx=256 stream size=3564
+12:40:50.071 [handler 4520] launch: ok pid=6800
+12:40:50.186 [handler 4520] verify: server pid=6800 image=C:\Program Files\WindowsApps\MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28\ShellHost\S6bShellHost.exe imageMatches=1 family(mine)=MikePDF.S6bProbe_gxqed95vwwy28 family(server)=MikePDF.S6bProbe_gxqed95vwwy28 familyMatches=1
+12:40:50.326 [handler 4520] GetThumbnail done hr=0x00000000 total 229.55 ms (copy 0.03, connect 117.98, launched 1, open 99.10, render 12.23)
+12:40:50.347 [handler 4520] GetThumbnail cx=256 stream size=3564
+12:40:50.347 [handler 4520] verify: server pid=6800 image=C:\Program Files\WindowsApps\MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28\ShellHost\S6bShellHost.exe imageMatches=1 family(mine)=MikePDF.S6bProbe_gxqed95vwwy28 family(server)=MikePDF.S6bProbe_gxqed95vwwy28 familyMatches=1
+12:40:50.376 [handler 4520] GetThumbnail done hr=0x00000000 total 23.89 ms (copy 0.03, connect 0.57, launched 0, open 20.58, render 2.51)
+12:40:50.392 [handler 4520] GetThumbnail cx=256 stream size=3564
+12:40:50.394 [handler 4520] verify: server pid=6800 image=C:\Program Files\WindowsApps\MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28\ShellHost\S6bShellHost.exe imageMatches=1 family(mine)=MikePDF.S6bProbe_gxqed95vwwy28 family(server)=MikePDF.S6bProbe_gxqed95vwwy28 familyMatches=1
+12:40:50.418 [handler 4520] GetThumbnail done hr=0x00000000 total 21.15 ms (copy 0.03, connect 0.63, launched 0, open 17.90, render 2.39)
+12:40:50.436 [handler 4520] GetThumbnail cx=256 stream size=3564
+12:40:50.436 [handler 4520] verify: server pid=6800 image=C:\Program Files\WindowsApps\MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28\ShellHost\S6bShellHost.exe imageMatches=1 family(mine)=MikePDF.S6bProbe_gxqed95vwwy28 family(server)=MikePDF.S6bProbe_gxqed95vwwy28 familyMatches=1
+12:40:50.463 [handler 4520] GetThumbnail done hr=0x00000000 total 20.99 ms (copy 0.03, connect 0.54, launched 0, open 17.68, render 2.51)
+12:40:50.480 [handler 4520] GetThumbnail cx=256 stream size=3564
+12:40:50.480 [handler 4520] verify: server pid=6800 image=C:\Program Files\WindowsApps\MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28\ShellHost\S6bShellHost.exe imageMatches=1 family(mine)=MikePDF.S6bProbe_gxqed95vwwy28 family(server)=MikePDF.S6bProbe_gxqed95vwwy28 familyMatches=1
+12:40:50.504 [handler 4520] GetThumbnail done hr=0x00000000 total 21.01 ms (copy 0.04, connect 0.46, launched 0, open 17.79, render 2.54)
+12:40:50.521 [handler 4520] GetThumbnail cx=256 stream size=3564
+12:40:50.521 [handler 4520] verify: server pid=6800 image=C:\Program Files\WindowsApps\MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28\ShellHost\S6bShellHost.exe imageMatches=1 family(mine)=MikePDF.S6bProbe_gxqed95vwwy28 family(server)=MikePDF.S6bProbe_gxqed95vwwy28 familyMatches=1
+12:40:50.548 [handler 4520] GetThumbnail done hr=0x00000000 total 21.14 ms (copy 0.04, connect 0.53, launched 0, open 17.99, render 2.39)
+12:40:50.564 [handler 4520] GetThumbnail cx=256 stream size=3564
+12:40:50.565 [handler 4520] verify: server pid=6800 image=C:\Program Files\WindowsApps\MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28\ShellHost\S6bShellHost.exe imageMatches=1 family(mine)=MikePDF.S6bProbe_gxqed95vwwy28 family(server)=MikePDF.S6bProbe_gxqed95vwwy28 familyMatches=1
+12:40:50.589 [handler 4520] GetThumbnail done hr=0x00000000 total 20.98 ms (copy 0.03, connect 0.46, launched 0, open 17.71, render 2.59)
+12:40:50.607 [handler 4520] GetThumbnail cx=256 stream size=3564
+12:40:50.607 [handler 4520] verify: server pid=6800 image=C:\Program Files\WindowsApps\MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28\ShellHost\S6bShellHost.exe imageMatches=1 family(mine)=MikePDF.S6bProbe_gxqed95vwwy28 family(server)=MikePDF.S6bProbe_gxqed95vwwy28 familyMatches=1
+12:40:50.632 [handler 4520] GetThumbnail done hr=0x00000000 total 21.14 ms (copy 0.03, connect 0.46, launched 0, open 18.01, render 2.46)
+12:40:50.650 [handler 4520] GetThumbnail cx=256 stream size=3564
+12:40:50.650 [handler 4520] verify: server pid=6800 image=C:\Program Files\WindowsApps\MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28\ShellHost\S6bShellHost.exe imageMatches=1 family(mine)=MikePDF.S6bProbe_gxqed95vwwy28 family(server)=MikePDF.S6bProbe_gxqed95vwwy28 familyMatches=1
+12:40:50.678 [handler 4520] GetThumbnail done hr=0x00000000 total 22.48 ms (copy 0.03, connect 0.66, launched 0, open 18.33, render 3.27)
+12:40:50.695 [handler 4520] GetThumbnail cx=256 stream size=3564
+12:40:50.695 [handler 4520] verify: server pid=6800 image=C:\Program Files\WindowsApps\MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28\ShellHost\S6bShellHost.exe imageMatches=1 family(mine)=MikePDF.S6bProbe_gxqed95vwwy28 family(server)=MikePDF.S6bProbe_gxqed95vwwy28 familyMatches=1
+12:40:50.721 [handler 4520] GetThumbnail done hr=0x00000000 total 21.40 ms (copy 0.03, connect 0.64, launched 0, open 17.94, render 2.60)
+12:40:50.738 [handler 4520] GetThumbnail cx=256 stream size=3564
+12:40:50.738 [handler 4520] verify: server pid=6800 image=C:\Program Files\WindowsApps\MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28\ShellHost\S6bShellHost.exe imageMatches=1 family(mine)=MikePDF.S6bProbe_gxqed95vwwy28 family(server)=MikePDF.S6bProbe_gxqed95vwwy28 familyMatches=1
+12:40:50.763 [handler 4520] GetThumbnail done hr=0x00000000 total 20.65 ms (copy 0.03, connect 0.43, launched 0, open 17.55, render 2.46)
+12:40:50.779 [handler 4520] GetThumbnail cx=256 stream size=3564
+12:40:50.779 [handler 4520] verify: server pid=6800 image=C:\Program Files\WindowsApps\MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28\ShellHost\S6bShellHost.exe imageMatches=1 family(mine)=MikePDF.S6bProbe_gxqed95vwwy28 family(server)=MikePDF.S6bProbe_gxqed95vwwy28 familyMatches=1
+12:40:50.805 [handler 4520] GetThumbnail done hr=0x00000000 total 21.28 ms (copy 0.03, connect 0.43, launched 0, open 18.00, render 2.64)
+12:40:50.823 [handler 4520] GetThumbnail cx=256 stream size=3564
+12:40:50.823 [handler 4520] verify: server pid=6800 image=C:\Program Files\WindowsApps\MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28\ShellHost\S6bShellHost.exe imageMatches=1 family(mine)=MikePDF.S6bProbe_gxqed95vwwy28 family(server)=MikePDF.S6bProbe_gxqed95vwwy28 familyMatches=1
+12:40:50.848 [handler 4520] GetThumbnail done hr=0x00000000 total 22.04 ms (copy 0.03, connect 0.45, launched 0, open 18.76, render 2.60)
+12:40:50.868 [handler 4520] GetThumbnail cx=256 stream size=3564
+12:40:50.870 [handler 4520] verify: server pid=6800 image=C:\Program Files\WindowsApps\MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28\ShellHost\S6bShellHost.exe imageMatches=1 family(mine)=MikePDF.S6bProbe_gxqed95vwwy28 family(server)=MikePDF.S6bProbe_gxqed95vwwy28 familyMatches=1
+12:40:50.897 [handler 4520] GetThumbnail done hr=0x00000000 total 22.50 ms (copy 0.03, connect 0.63, launched 0, open 19.03, render 2.57)
+12:40:50.916 [handler 4520] GetThumbnail cx=256 stream size=3564
+12:40:50.916 [handler 4520] verify: server pid=6800 image=C:\Program Files\WindowsApps\MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28\ShellHost\S6bShellHost.exe imageMatches=1 family(mine)=MikePDF.S6bProbe_gxqed95vwwy28 family(server)=MikePDF.S6bProbe_gxqed95vwwy28 familyMatches=1
+12:40:50.942 [handler 4520] GetThumbnail done hr=0x00000000 total 22.39 ms (copy 0.04, connect 0.51, launched 0, open 19.12, render 2.50)
+12:40:50.960 [handler 4520] GetThumbnail cx=256 stream size=3564
+12:40:50.962 [handler 4520] verify: server pid=6800 image=C:\Program Files\WindowsApps\MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28\ShellHost\S6bShellHost.exe imageMatches=1 family(mine)=MikePDF.S6bProbe_gxqed95vwwy28 family(server)=MikePDF.S6bProbe_gxqed95vwwy28 familyMatches=1
+12:40:50.987 [handler 4520] GetThumbnail done hr=0x00000000 total 22.22 ms (copy 0.03, connect 0.79, launched 0, open 18.65, render 2.52)
+12:40:51.008 [handler 4520] GetThumbnail cx=256 stream size=3564
+12:40:51.009 [handler 4520] verify: server pid=6800 image=C:\Program Files\WindowsApps\MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28\ShellHost\S6bShellHost.exe imageMatches=1 family(mine)=MikePDF.S6bProbe_gxqed95vwwy28 family(server)=MikePDF.S6bProbe_gxqed95vwwy28 familyMatches=1
+12:40:51.037 [handler 4520] GetThumbnail done hr=0x00000000 total 24.49 ms (copy 0.04, connect 0.54, launched 0, open 21.00, render 2.69)
+12:40:51.055 [handler 4520] GetThumbnail cx=256 stream size=3564
+12:40:51.055 [handler 4520] verify: server pid=6800 image=C:\Program Files\WindowsApps\MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28\ShellHost\S6bShellHost.exe imageMatches=1 family(mine)=MikePDF.S6bProbe_gxqed95vwwy28 family(server)=MikePDF.S6bProbe_gxqed95vwwy28 familyMatches=1
+12:40:51.083 [handler 4520] GetThumbnail done hr=0x00000000 total 22.44 ms (copy 0.03, connect 0.71, launched 0, open 19.04, render 2.46)
+12:40:51.099 [handler 4520] GetThumbnail cx=256 stream size=3564
+12:40:51.101 [handler 4520] verify: server pid=6800 image=C:\Program Files\WindowsApps\MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28\ShellHost\S6bShellHost.exe imageMatches=1 family(mine)=MikePDF.S6bProbe_gxqed95vwwy28 family(server)=MikePDF.S6bProbe_gxqed95vwwy28 familyMatches=1
+12:40:51.126 [handler 4520] GetThumbnail done hr=0x00000000 total 21.33 ms (copy 0.07, connect 0.46, launched 0, open 18.10, render 2.51)
+12:40:51.147 [handler 4520] GetThumbnail cx=256 stream size=3564
+12:40:51.148 [handler 4520] verify: server pid=6800 image=C:\Program Files\WindowsApps\MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28\ShellHost\S6bShellHost.exe imageMatches=1 family(mine)=MikePDF.S6bProbe_gxqed95vwwy28 family(server)=MikePDF.S6bProbe_gxqed95vwwy28 familyMatches=1
+12:40:51.174 [handler 4520] GetThumbnail done hr=0x00000000 total 21.65 ms (copy 0.03, connect 0.51, launched 0, open 18.33, render 2.51)
+12:40:51.190 [handler 4520] GetThumbnail cx=256 stream size=3564
+12:40:51.192 [handler 4520] verify: server pid=6800 image=C:\Program Files\WindowsApps\MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28\ShellHost\S6bShellHost.exe imageMatches=1 family(mine)=MikePDF.S6bProbe_gxqed95vwwy28 family(server)=MikePDF.S6bProbe_gxqed95vwwy28 familyMatches=1
+12:40:51.218 [handler 4520] GetThumbnail done hr=0x00000000 total 21.42 ms (copy 0.03, connect 0.61, launched 0, open 18.16, render 2.43)
+12:40:51.234 [handler 4520] GetThumbnail cx=256 stream size=3564
+12:40:51.236 [handler 4520] verify: server pid=6800 image=C:\Program Files\WindowsApps\MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28\ShellHost\S6bShellHost.exe imageMatches=1 family(mine)=MikePDF.S6bProbe_gxqed95vwwy28 family(server)=MikePDF.S6bProbe_gxqed95vwwy28 familyMatches=1
+12:40:51.260 [handler 4520] GetThumbnail done hr=0x00000000 total 21.10 ms (copy 0.03, connect 0.62, launched 0, open 17.89, render 2.37)
+12:40:51.277 [handler 4520] GetThumbnail cx=256 stream size=3564
+12:40:51.277 [handler 4520] verify: server pid=6800 image=C:\Program Files\WindowsApps\MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28\ShellHost\S6bShellHost.exe imageMatches=1 family(mine)=MikePDF.S6bProbe_gxqed95vwwy28 family(server)=MikePDF.S6bProbe_gxqed95vwwy28 familyMatches=1
+12:40:51.304 [handler 4520] GetThumbnail done hr=0x00000000 total 21.17 ms (copy 0.03, connect 0.59, launched 0, open 17.95, render 2.42)
+12:40:51.321 [handler 4520] GetThumbnail cx=256 stream size=3564
+12:40:51.321 [handler 4520] verify: server pid=6800 image=C:\Program Files\WindowsApps\MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28\ShellHost\S6bShellHost.exe imageMatches=1 family(mine)=MikePDF.S6bProbe_gxqed95vwwy28 family(server)=MikePDF.S6bProbe_gxqed95vwwy28 familyMatches=1
+12:40:51.347 [handler 4520] GetThumbnail done hr=0x00000000 total 21.19 ms (copy 0.03, connect 0.61, launched 0, open 17.85, render 2.47)
+12:40:51.365 [handler 4520] GetThumbnail cx=256 stream size=3564
+12:40:51.365 [handler 4520] verify: server pid=6800 image=C:\Program Files\WindowsApps\MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28\ShellHost\S6bShellHost.exe imageMatches=1 family(mine)=MikePDF.S6bProbe_gxqed95vwwy28 family(server)=MikePDF.S6bProbe_gxqed95vwwy28 familyMatches=1
+12:40:51.396 [handler 4520] GetThumbnail done hr=0x00000000 total 23.46 ms (copy 0.03, connect 0.71, launched 0, open 19.99, render 2.52)
+12:40:51.414 [handler 4520] GetThumbnail cx=256 stream size=3564
+12:40:51.414 [handler 4520] verify: server pid=6800 image=C:\Program Files\WindowsApps\MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28\ShellHost\S6bShellHost.exe imageMatches=1 family(mine)=MikePDF.S6bProbe_gxqed95vwwy28 family(server)=MikePDF.S6bProbe_gxqed95vwwy28 familyMatches=1
+12:40:51.444 [handler 4520] GetThumbnail done hr=0x00000000 total 23.98 ms (copy 0.03, connect 0.49, launched 0, open 19.86, render 3.37)
+12:40:51.464 [handler 4520] GetThumbnail cx=256 stream size=3564
+12:40:51.464 [handler 4520] verify: server pid=6800 image=C:\Program Files\WindowsApps\MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28\ShellHost\S6bShellHost.exe imageMatches=1 family(mine)=MikePDF.S6bProbe_gxqed95vwwy28 family(server)=MikePDF.S6bProbe_gxqed95vwwy28 familyMatches=1
+12:40:51.490 [handler 4520] GetThumbnail done hr=0x00000000 total 21.25 ms (copy 0.03, connect 0.71, launched 0, open 17.91, render 2.42)
+12:40:51.507 [handler 4520] GetThumbnail cx=256 stream size=3564
+12:40:51.507 [handler 4520] verify: server pid=6800 image=C:\Program Files\WindowsApps\MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28\ShellHost\S6bShellHost.exe imageMatches=1 family(mine)=MikePDF.S6bProbe_gxqed95vwwy28 family(server)=MikePDF.S6bProbe_gxqed95vwwy28 familyMatches=1
+12:40:51.533 [handler 4520] GetThumbnail done hr=0x00000000 total 21.24 ms (copy 0.03, connect 0.47, launched 0, open 18.11, render 2.44)
+12:40:51.553 [handler 4520] GetThumbnail cx=256 stream size=3564
+12:40:51.553 [handler 4520] verify: server pid=6800 image=C:\Program Files\WindowsApps\MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28\ShellHost\S6bShellHost.exe imageMatches=1 family(mine)=MikePDF.S6bProbe_gxqed95vwwy28 family(server)=MikePDF.S6bProbe_gxqed95vwwy28 familyMatches=1
+12:40:51.579 [handler 4520] GetThumbnail done hr=0x00000000 total 21.15 ms (copy 0.03, connect 0.47, launched 0, open 18.03, render 2.43)
+12:40:51.595 [handler 4520] GetThumbnail cx=256 stream size=3564
+12:40:51.597 [handler 4520] verify: server pid=6800 image=C:\Program Files\WindowsApps\MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28\ShellHost\S6bShellHost.exe imageMatches=1 family(mine)=MikePDF.S6bProbe_gxqed95vwwy28 family(server)=MikePDF.S6bProbe_gxqed95vwwy28 familyMatches=1
+12:40:51.621 [handler 4520] GetThumbnail done hr=0x00000000 total 21.00 ms (copy 0.03, connect 0.63, launched 0, open 17.69, render 2.43)
+12:40:51.639 [handler 4520] GetThumbnail cx=256 stream size=3564
+12:40:51.639 [handler 4520] verify: server pid=6800 image=C:\Program Files\WindowsApps\MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28\ShellHost\S6bShellHost.exe imageMatches=1 family(mine)=MikePDF.S6bProbe_gxqed95vwwy28 family(server)=MikePDF.S6bProbe_gxqed95vwwy28 familyMatches=1
+12:40:51.664 [handler 4520] GetThumbnail done hr=0x00000000 total 20.85 ms (copy 0.03, connect 0.67, launched 0, open 17.44, render 2.49)
+12:40:51.692 [handler 4520] GetThumbnail cx=256 stream size=3564
+12:40:51.692 [handler 4520] verify: server pid=6800 image=C:\Program Files\WindowsApps\MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28\ShellHost\S6bShellHost.exe imageMatches=1 family(mine)=MikePDF.S6bProbe_gxqed95vwwy28 family(server)=MikePDF.S6bProbe_gxqed95vwwy28 familyMatches=1
+12:40:51.718 [handler 4520] GetThumbnail done hr=0x00000000 total 20.95 ms (copy 0.03, connect 0.71, launched 0, open 17.53, render 2.46)
+12:40:51.740 [handler 4520] GetThumbnail cx=256 stream size=3564
+12:40:51.741 [handler 4520] verify: server pid=6800 image=C:\Program Files\WindowsApps\MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28\ShellHost\S6bShellHost.exe imageMatches=1 family(mine)=MikePDF.S6bProbe_gxqed95vwwy28 family(server)=MikePDF.S6bProbe_gxqed95vwwy28 familyMatches=1
+12:40:51.766 [handler 4520] GetThumbnail done hr=0x00000000 total 21.03 ms (copy 0.03, connect 0.38, launched 0, open 17.99, render 2.42)
+12:40:51.782 [handler 4520] GetThumbnail cx=256 stream size=3564
+12:40:51.782 [handler 4520] verify: server pid=6800 image=C:\Program Files\WindowsApps\MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28\ShellHost\S6bShellHost.exe imageMatches=1 family(mine)=MikePDF.S6bProbe_gxqed95vwwy28 family(server)=MikePDF.S6bProbe_gxqed95vwwy28 familyMatches=1
+12:40:51.807 [handler 4520] GetThumbnail done hr=0x00000000 total 21.01 ms (copy 0.03, connect 0.44, launched 0, open 17.92, render 2.43)
+12:40:51.887 [handler 6588] host exe=C:\Windows\system32\prevhost.exe integrity=high appcontainer=0 package=MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28
+12:40:51.897 [handler 6588] launch: ok pid=4316
+12:40:52.011 [handler 6588] verify: server pid=4316 image=C:\Program Files\WindowsApps\MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28\ShellHost\S6bShellHost.exe imageMatches=1 family(mine)=MikePDF.S6bProbe_gxqed95vwwy28 family(server)=MikePDF.S6bProbe_gxqed95vwwy28 familyMatches=1
+12:40:52.163 [handler 6588] preview: first pixel 276.289 ms after DoPreview
+12:40:52.217 [handler 4668] host exe=C:\Windows\system32\prevhost.exe integrity=high appcontainer=0 package=MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28
+12:40:52.219 [handler 4668] verify: server pid=4316 image=C:\Program Files\WindowsApps\MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28\ShellHost\S6bShellHost.exe imageMatches=1 family(mine)=MikePDF.S6bProbe_gxqed95vwwy28 family(server)=MikePDF.S6bProbe_gxqed95vwwy28 familyMatches=1
+12:40:52.248 [handler 4668] preview: first pixel 32.230 ms after DoPreview
+12:40:52.312 [handler 1908] host exe=C:\Windows\system32\prevhost.exe integrity=high appcontainer=0 package=MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28
+12:40:52.314 [handler 1908] verify: server pid=4316 image=C:\Program Files\WindowsApps\MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28\ShellHost\S6bShellHost.exe imageMatches=1 family(mine)=MikePDF.S6bProbe_gxqed95vwwy28 family(server)=MikePDF.S6bProbe_gxqed95vwwy28 familyMatches=1
+12:40:52.343 [handler 1908] preview: first pixel 31.906 ms after DoPreview
+12:40:52.409 [handler 2560] host exe=C:\Windows\system32\prevhost.exe integrity=high appcontainer=0 package=MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28
+12:40:52.411 [handler 2560] verify: server pid=4316 image=C:\Program Files\WindowsApps\MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28\ShellHost\S6bShellHost.exe imageMatches=1 family(mine)=MikePDF.S6bProbe_gxqed95vwwy28 family(server)=MikePDF.S6bProbe_gxqed95vwwy28 familyMatches=1
+12:40:52.441 [handler 2560] preview: first pixel 32.380 ms after DoPreview
+==== PHASE: unpackaged driver at HIGH integrity (the runner token)
+12:40:56.307 [handler 4520] GetThumbnail cx=256 stream size=3564
+12:40:56.311 [handler 4520] launch: ok pid=2192
+12:40:56.416 [handler 4520] verify: server pid=2192 image=C:\Program Files\WindowsApps\MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28\ShellHost\S6bShellHost.exe imageMatches=1 family(mine)=MikePDF.S6bProbe_gxqed95vwwy28 family(server)=MikePDF.S6bProbe_gxqed95vwwy28 familyMatches=1
+12:40:56.559 [handler 4520] GetThumbnail done hr=0x00000000 total 221.81 ms (copy 0.03, connect 107.69, launched 1, open 100.70, render 13.15)
+12:40:56.590 [handler 4520] GetThumbnail cx=256 stream size=3564
+12:40:56.594 [handler 4520] launch: ok pid=3080
+12:40:56.701 [handler 4520] verify: server pid=3080 image=C:\Program Files\WindowsApps\MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28\ShellHost\S6bShellHost.exe imageMatches=1 family(mine)=MikePDF.S6bProbe_gxqed95vwwy28 family(server)=MikePDF.S6bProbe_gxqed95vwwy28 familyMatches=1
+12:40:56.844 [handler 4520] GetThumbnail done hr=0x00000000 total 223.64 ms (copy 0.03, connect 110.59, launched 1, open 100.75, render 12.05)
+12:40:56.870 [handler 4520] GetThumbnail cx=256 stream size=3564
+12:40:56.872 [handler 4520] launch: ok pid=6092
+12:40:56.986 [handler 4520] verify: server pid=6092 image=C:\Program Files\WindowsApps\MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28\ShellHost\S6bShellHost.exe imageMatches=1 family(mine)=MikePDF.S6bProbe_gxqed95vwwy28 family(server)=MikePDF.S6bProbe_gxqed95vwwy28 familyMatches=1
+12:40:57.129 [handler 4520] GetThumbnail done hr=0x00000000 total 231.48 ms (copy 0.03, connect 115.87, launched 1, open 101.98, render 13.40)
+12:40:57.142 [handler 4520] GetThumbnail cx=256 stream size=3564
+12:40:57.143 [handler 4520] verify: server pid=6092 image=C:\Program Files\WindowsApps\MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28\ShellHost\S6bShellHost.exe imageMatches=1 family(mine)=MikePDF.S6bProbe_gxqed95vwwy28 family(server)=MikePDF.S6bProbe_gxqed95vwwy28 familyMatches=1
+12:40:57.170 [handler 4520] GetThumbnail done hr=0x00000000 total 23.15 ms (copy 0.03, connect 0.50, launched 0, open 19.88, render 2.55)
+12:40:57.183 [handler 4520] GetThumbnail cx=256 stream size=3564
+12:40:57.183 [handler 4520] verify: server pid=6092 image=C:\Program Files\WindowsApps\MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28\ShellHost\S6bShellHost.exe imageMatches=1 family(mine)=MikePDF.S6bProbe_gxqed95vwwy28 family(server)=MikePDF.S6bProbe_gxqed95vwwy28 familyMatches=1
+12:40:57.208 [handler 4520] GetThumbnail done hr=0x00000000 total 21.44 ms (copy 0.03, connect 0.61, launched 0, open 18.16, render 2.45)
+12:40:57.220 [handler 4520] GetThumbnail cx=256 stream size=3564
+12:40:57.222 [handler 4520] verify: server pid=6092 image=C:\Program Files\WindowsApps\MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28\ShellHost\S6bShellHost.exe imageMatches=1 family(mine)=MikePDF.S6bProbe_gxqed95vwwy28 family(server)=MikePDF.S6bProbe_gxqed95vwwy28 familyMatches=1
+12:40:57.246 [handler 4520] GetThumbnail done hr=0x00000000 total 21.20 ms (copy 0.03, connect 0.41, launched 0, open 18.16, render 2.41)
+12:40:57.257 [handler 4520] GetThumbnail cx=256 stream size=3564
+12:40:57.257 [handler 4520] verify: server pid=6092 image=C:\Program Files\WindowsApps\MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28\ShellHost\S6bShellHost.exe imageMatches=1 family(mine)=MikePDF.S6bProbe_gxqed95vwwy28 family(server)=MikePDF.S6bProbe_gxqed95vwwy28 familyMatches=1
+12:40:57.284 [handler 4520] GetThumbnail done hr=0x00000000 total 21.26 ms (copy 0.03, connect 0.49, launched 0, open 18.09, render 2.46)
+12:40:57.295 [handler 4520] GetThumbnail cx=256 stream size=3564
+12:40:57.295 [handler 4520] verify: server pid=6092 image=C:\Program Files\WindowsApps\MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28\ShellHost\S6bShellHost.exe imageMatches=1 family(mine)=MikePDF.S6bProbe_gxqed95vwwy28 family(server)=MikePDF.S6bProbe_gxqed95vwwy28 familyMatches=1
+12:40:57.322 [handler 4520] GetThumbnail done hr=0x00000000 total 21.70 ms (copy 0.03, connect 0.40, launched 0, open 18.47, render 2.50)
+12:40:57.332 [handler 4520] GetThumbnail cx=256 stream size=3564
+12:40:57.333 [handler 4520] verify: server pid=6092 image=C:\Program Files\WindowsApps\MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28\ShellHost\S6bShellHost.exe imageMatches=1 family(mine)=MikePDF.S6bProbe_gxqed95vwwy28 family(server)=MikePDF.S6bProbe_gxqed95vwwy28 familyMatches=1
+12:40:57.359 [handler 4520] GetThumbnail done hr=0x00000000 total 21.68 ms (copy 0.03, connect 0.48, launched 0, open 18.48, render 2.49)
+12:40:57.370 [handler 4520] GetThumbnail cx=256 stream size=3564
+12:40:57.370 [handler 4520] verify: server pid=6092 image=C:\Program Files\WindowsApps\MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28\ShellHost\S6bShellHost.exe imageMatches=1 family(mine)=MikePDF.S6bProbe_gxqed95vwwy28 family(server)=MikePDF.S6bProbe_gxqed95vwwy28 familyMatches=1
+12:40:57.397 [handler 4520] GetThumbnail done hr=0x00000000 total 22.07 ms (copy 0.03, connect 0.71, launched 0, open 18.73, render 2.42)
+12:40:57.407 [handler 4520] GetThumbnail cx=256 stream size=3564
+12:40:57.407 [handler 4520] verify: server pid=6092 image=C:\Program Files\WindowsApps\MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28\ShellHost\S6bShellHost.exe imageMatches=1 family(mine)=MikePDF.S6bProbe_gxqed95vwwy28 family(server)=MikePDF.S6bProbe_gxqed95vwwy28 familyMatches=1
+12:40:57.437 [handler 4520] GetThumbnail done hr=0x00000000 total 23.25 ms (copy 0.03, connect 0.71, launched 0, open 19.80, render 2.51)
+12:40:57.451 [handler 4520] GetThumbnail cx=256 stream size=3564
+12:40:57.451 [handler 4520] verify: server pid=6092 image=C:\Program Files\WindowsApps\MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28\ShellHost\S6bShellHost.exe imageMatches=1 family(mine)=MikePDF.S6bProbe_gxqed95vwwy28 family(server)=MikePDF.S6bProbe_gxqed95vwwy28 familyMatches=1
+12:40:57.480 [handler 4520] GetThumbnail done hr=0x00000000 total 24.75 ms (copy 0.03, connect 0.71, launched 0, open 21.28, render 2.51)
+12:40:57.491 [handler 4520] GetThumbnail cx=256 stream size=3564
+12:40:57.492 [handler 4520] verify: server pid=6092 image=C:\Program Files\WindowsApps\MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28\ShellHost\S6bShellHost.exe imageMatches=1 family(mine)=MikePDF.S6bProbe_gxqed95vwwy28 family(server)=MikePDF.S6bProbe_gxqed95vwwy28 familyMatches=1
+12:40:57.517 [handler 4520] GetThumbnail done hr=0x00000000 total 20.96 ms (copy 0.03, connect 0.66, launched 0, open 17.58, render 2.51)
+12:40:57.528 [handler 4520] GetThumbnail cx=256 stream size=3564
+12:40:57.528 [handler 4520] verify: server pid=6092 image=C:\Program Files\WindowsApps\MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28\ShellHost\S6bShellHost.exe imageMatches=1 family(mine)=MikePDF.S6bProbe_gxqed95vwwy28 family(server)=MikePDF.S6bProbe_gxqed95vwwy28 familyMatches=1
+12:40:57.552 [handler 4520] GetThumbnail done hr=0x00000000 total 20.69 ms (copy 0.03, connect 0.39, launched 0, open 17.63, render 2.46)
+12:40:57.564 [handler 4520] GetThumbnail cx=256 stream size=3564
+12:40:57.565 [handler 4520] verify: server pid=6092 image=C:\Program Files\WindowsApps\MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28\ShellHost\S6bShellHost.exe imageMatches=1 family(mine)=MikePDF.S6bProbe_gxqed95vwwy28 family(server)=MikePDF.S6bProbe_gxqed95vwwy28 familyMatches=1
+12:40:57.590 [handler 4520] GetThumbnail done hr=0x00000000 total 20.90 ms (copy 0.03, connect 0.58, launched 0, open 17.58, render 2.53)
+12:40:57.604 [handler 4520] GetThumbnail cx=256 stream size=3564
+12:40:57.604 [handler 4520] verify: server pid=6092 image=C:\Program Files\WindowsApps\MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28\ShellHost\S6bShellHost.exe imageMatches=1 family(mine)=MikePDF.S6bProbe_gxqed95vwwy28 family(server)=MikePDF.S6bProbe_gxqed95vwwy28 familyMatches=1
+12:40:57.629 [handler 4520] GetThumbnail done hr=0x00000000 total 22.04 ms (copy 0.04, connect 0.67, launched 0, open 18.63, render 2.51)
+12:40:57.641 [handler 4520] GetThumbnail cx=256 stream size=3564
+12:40:57.641 [handler 4520] verify: server pid=6092 image=C:\Program Files\WindowsApps\MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28\ShellHost\S6bShellHost.exe imageMatches=1 family(mine)=MikePDF.S6bProbe_gxqed95vwwy28 family(server)=MikePDF.S6bProbe_gxqed95vwwy28 familyMatches=1
+12:40:57.666 [handler 4520] GetThumbnail done hr=0x00000000 total 21.02 ms (copy 0.03, connect 0.40, launched 0, open 17.99, render 2.42)
+12:40:57.679 [handler 4520] GetThumbnail cx=256 stream size=3564
+12:40:57.679 [handler 4520] verify: server pid=6092 image=C:\Program Files\WindowsApps\MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28\ShellHost\S6bShellHost.exe imageMatches=1 family(mine)=MikePDF.S6bProbe_gxqed95vwwy28 family(server)=MikePDF.S6bProbe_gxqed95vwwy28 familyMatches=1
+12:40:57.706 [handler 4520] GetThumbnail done hr=0x00000000 total 23.40 ms (copy 0.03, connect 0.80, launched 0, open 19.21, render 3.17)
+12:40:57.716 [handler 4520] GetThumbnail cx=256 stream size=3564
+12:40:57.718 [handler 4520] verify: server pid=6092 image=C:\Program Files\WindowsApps\MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28\ShellHost\S6bShellHost.exe imageMatches=1 family(mine)=MikePDF.S6bProbe_gxqed95vwwy28 family(server)=MikePDF.S6bProbe_gxqed95vwwy28 familyMatches=1
+12:40:57.742 [handler 4520] GetThumbnail done hr=0x00000000 total 21.19 ms (copy 0.03, connect 0.49, launched 0, open 18.02, render 2.45)
+12:40:57.754 [handler 4520] GetThumbnail cx=256 stream size=3564
+12:40:57.754 [handler 4520] verify: server pid=6092 image=C:\Program Files\WindowsApps\MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28\ShellHost\S6bShellHost.exe imageMatches=1 family(mine)=MikePDF.S6bProbe_gxqed95vwwy28 family(server)=MikePDF.S6bProbe_gxqed95vwwy28 familyMatches=1
+12:40:57.780 [handler 4520] GetThumbnail done hr=0x00000000 total 21.77 ms (copy 0.03, connect 0.64, launched 0, open 18.50, render 2.41)
+12:40:57.794 [handler 4520] GetThumbnail cx=256 stream size=3564
+12:40:57.794 [handler 4520] verify: server pid=6092 image=C:\Program Files\WindowsApps\MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28\ShellHost\S6bShellHost.exe imageMatches=1 family(mine)=MikePDF.S6bProbe_gxqed95vwwy28 family(server)=MikePDF.S6bProbe_gxqed95vwwy28 familyMatches=1
+12:40:57.822 [handler 4520] GetThumbnail done hr=0x00000000 total 23.53 ms (copy 0.06, connect 0.76, launched 0, open 19.55, render 2.96)
+12:40:57.831 [handler 4520] GetThumbnail cx=256 stream size=3564
+12:40:57.833 [handler 4520] verify: server pid=6092 image=C:\Program Files\WindowsApps\MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28\ShellHost\S6bShellHost.exe imageMatches=1 family(mine)=MikePDF.S6bProbe_gxqed95vwwy28 family(server)=MikePDF.S6bProbe_gxqed95vwwy28 familyMatches=1
+12:40:57.859 [handler 4520] GetThumbnail done hr=0x00000000 total 21.50 ms (copy 0.03, connect 0.49, launched 0, open 18.37, render 2.42)
+12:40:57.870 [handler 4520] GetThumbnail cx=256 stream size=3564
+12:40:57.870 [handler 4520] verify: server pid=6092 image=C:\Program Files\WindowsApps\MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28\ShellHost\S6bShellHost.exe imageMatches=1 family(mine)=MikePDF.S6bProbe_gxqed95vwwy28 family(server)=MikePDF.S6bProbe_gxqed95vwwy28 familyMatches=1
+12:40:57.897 [handler 4520] GetThumbnail done hr=0x00000000 total 21.54 ms (copy 0.03, connect 0.57, launched 0, open 18.19, render 2.55)
+12:40:57.907 [handler 4520] GetThumbnail cx=256 stream size=3564
+12:40:57.907 [handler 4520] verify: server pid=6092 image=C:\Program Files\WindowsApps\MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28\ShellHost\S6bShellHost.exe imageMatches=1 family(mine)=MikePDF.S6bProbe_gxqed95vwwy28 family(server)=MikePDF.S6bProbe_gxqed95vwwy28 familyMatches=1
+12:40:57.935 [handler 4520] GetThumbnail done hr=0x00000000 total 22.18 ms (copy 0.03, connect 0.71, launched 0, open 18.72, render 2.52)
+12:40:57.945 [handler 4520] GetThumbnail cx=256 stream size=3564
+12:40:57.947 [handler 4520] verify: server pid=6092 image=C:\Program Files\WindowsApps\MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28\ShellHost\S6bShellHost.exe imageMatches=1 family(mine)=MikePDF.S6bProbe_gxqed95vwwy28 family(server)=MikePDF.S6bProbe_gxqed95vwwy28 familyMatches=1
+12:40:57.974 [handler 4520] GetThumbnail done hr=0x00000000 total 23.11 ms (copy 0.03, connect 0.47, launched 0, open 19.85, render 2.57)
+12:40:57.986 [handler 4520] GetThumbnail cx=256 stream size=3564
+12:40:57.986 [handler 4520] verify: server pid=6092 image=C:\Program Files\WindowsApps\MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28\ShellHost\S6bShellHost.exe imageMatches=1 family(mine)=MikePDF.S6bProbe_gxqed95vwwy28 family(server)=MikePDF.S6bProbe_gxqed95vwwy28 familyMatches=1
+12:40:58.014 [handler 4520] GetThumbnail done hr=0x00000000 total 23.10 ms (copy 0.03, connect 0.49, launched 0, open 19.88, render 2.50)
+12:40:58.025 [handler 4520] GetThumbnail cx=256 stream size=3564
+12:40:58.026 [handler 4520] verify: server pid=6092 image=C:\Program Files\WindowsApps\MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28\ShellHost\S6bShellHost.exe imageMatches=1 family(mine)=MikePDF.S6bProbe_gxqed95vwwy28 family(server)=MikePDF.S6bProbe_gxqed95vwwy28 familyMatches=1
+12:40:58.052 [handler 4520] GetThumbnail done hr=0x00000000 total 21.48 ms (copy 0.03, connect 0.65, launched 0, open 18.14, render 2.46)
+12:40:58.062 [handler 4520] GetThumbnail cx=256 stream size=3564
+12:40:58.062 [handler 4520] verify: server pid=6092 image=C:\Program Files\WindowsApps\MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28\ShellHost\S6bShellHost.exe imageMatches=1 family(mine)=MikePDF.S6bProbe_gxqed95vwwy28 family(server)=MikePDF.S6bProbe_gxqed95vwwy28 familyMatches=1
+12:40:58.088 [handler 4520] GetThumbnail done hr=0x00000000 total 21.65 ms (copy 0.03, connect 0.57, launched 0, open 18.29, render 2.53)
+12:40:58.099 [handler 4520] GetThumbnail cx=256 stream size=3564
+12:40:58.099 [handler 4520] verify: server pid=6092 image=C:\Program Files\WindowsApps\MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28\ShellHost\S6bShellHost.exe imageMatches=1 family(mine)=MikePDF.S6bProbe_gxqed95vwwy28 family(server)=MikePDF.S6bProbe_gxqed95vwwy28 familyMatches=1
+12:40:58.129 [handler 4520] GetThumbnail done hr=0x00000000 total 23.28 ms (copy 0.03, connect 0.38, launched 0, open 20.12, render 2.54)
+12:40:58.139 [handler 4520] GetThumbnail cx=256 stream size=3564
+12:40:58.141 [handler 4520] verify: server pid=6092 image=C:\Program Files\WindowsApps\MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28\ShellHost\S6bShellHost.exe imageMatches=1 family(mine)=MikePDF.S6bProbe_gxqed95vwwy28 family(server)=MikePDF.S6bProbe_gxqed95vwwy28 familyMatches=1
+12:40:58.169 [handler 4520] GetThumbnail done hr=0x00000000 total 23.49 ms (copy 0.03, connect 0.53, launched 0, open 20.01, render 2.69)
+12:40:58.181 [handler 4520] GetThumbnail cx=256 stream size=3564
+12:40:58.183 [handler 4520] verify: server pid=6092 image=C:\Program Files\WindowsApps\MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28\ShellHost\S6bShellHost.exe imageMatches=1 family(mine)=MikePDF.S6bProbe_gxqed95vwwy28 family(server)=MikePDF.S6bProbe_gxqed95vwwy28 familyMatches=1
+12:40:58.209 [handler 4520] GetThumbnail done hr=0x00000000 total 21.56 ms (copy 0.03, connect 0.68, launched 0, open 18.31, render 2.36)
+12:40:58.219 [handler 4520] GetThumbnail cx=256 stream size=3564
+12:40:58.219 [handler 4520] verify: server pid=6092 image=C:\Program Files\WindowsApps\MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28\ShellHost\S6bShellHost.exe imageMatches=1 family(mine)=MikePDF.S6bProbe_gxqed95vwwy28 family(server)=MikePDF.S6bProbe_gxqed95vwwy28 familyMatches=1
+12:40:58.246 [handler 4520] GetThumbnail done hr=0x00000000 total 22.35 ms (copy 0.03, connect 0.76, launched 0, open 18.85, render 2.53)
+12:40:58.258 [handler 4520] GetThumbnail cx=256 stream size=3564
+12:40:58.260 [handler 4520] verify: server pid=6092 image=C:\Program Files\WindowsApps\MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28\ShellHost\S6bShellHost.exe imageMatches=1 family(mine)=MikePDF.S6bProbe_gxqed95vwwy28 family(server)=MikePDF.S6bProbe_gxqed95vwwy28 familyMatches=1
+12:40:58.286 [handler 4520] GetThumbnail done hr=0x00000000 total 21.45 ms (copy 0.03, connect 0.45, launched 0, open 18.32, render 2.46)
+12:40:58.306 [handler 4520] GetThumbnail cx=256 stream size=3564
+12:40:58.306 [handler 4520] verify: server pid=6092 image=C:\Program Files\WindowsApps\MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28\ShellHost\S6bShellHost.exe imageMatches=1 family(mine)=MikePDF.S6bProbe_gxqed95vwwy28 family(server)=MikePDF.S6bProbe_gxqed95vwwy28 familyMatches=1
+12:40:58.333 [handler 4520] GetThumbnail done hr=0x00000000 total 21.69 ms (copy 0.03, connect 0.49, launched 0, open 18.39, render 2.55)
+12:40:58.344 [handler 4520] GetThumbnail cx=256 stream size=3564
+12:40:58.344 [handler 4520] verify: server pid=6092 image=C:\Program Files\WindowsApps\MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28\ShellHost\S6bShellHost.exe imageMatches=1 family(mine)=MikePDF.S6bProbe_gxqed95vwwy28 family(server)=MikePDF.S6bProbe_gxqed95vwwy28 familyMatches=1
+12:40:58.374 [handler 4520] GetThumbnail done hr=0x00000000 total 23.93 ms (copy 0.03, connect 0.54, launched 0, open 20.59, render 2.58)
+12:40:58.384 [handler 4520] GetThumbnail cx=256 stream size=3564
+12:40:58.385 [handler 4520] verify: server pid=6092 image=C:\Program Files\WindowsApps\MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28\ShellHost\S6bShellHost.exe imageMatches=1 family(mine)=MikePDF.S6bProbe_gxqed95vwwy28 family(server)=MikePDF.S6bProbe_gxqed95vwwy28 familyMatches=1
+12:40:58.411 [handler 4520] GetThumbnail done hr=0x00000000 total 21.82 ms (copy 0.03, connect 0.47, launched 0, open 18.65, render 2.48)
+12:40:58.473 [handler 5560] host exe=C:\Windows\system32\prevhost.exe integrity=high appcontainer=0 package=MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28
+12:40:58.481 [handler 5560] launch: ok pid=4008
+12:40:58.588 [handler 5560] verify: server pid=4008 image=C:\Program Files\WindowsApps\MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28\ShellHost\S6bShellHost.exe imageMatches=1 family(mine)=MikePDF.S6bProbe_gxqed95vwwy28 family(server)=MikePDF.S6bProbe_gxqed95vwwy28 familyMatches=1
+12:40:58.731 [handler 5560] preview: first pixel 257.558 ms after DoPreview
+12:40:58.791 [handler 9112] host exe=C:\Windows\system32\prevhost.exe integrity=high appcontainer=0 package=MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28
+12:40:58.793 [handler 9112] verify: server pid=4008 image=C:\Program Files\WindowsApps\MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28\ShellHost\S6bShellHost.exe imageMatches=1 family(mine)=MikePDF.S6bProbe_gxqed95vwwy28 family(server)=MikePDF.S6bProbe_gxqed95vwwy28 familyMatches=1
+12:40:58.824 [handler 9112] preview: first pixel 33.831 ms after DoPreview
+12:40:58.871 [handler 4020] host exe=C:\Windows\system32\prevhost.exe integrity=high appcontainer=0 package=MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28
+12:40:58.874 [handler 4020] verify: server pid=4008 image=C:\Program Files\WindowsApps\MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28\ShellHost\S6bShellHost.exe imageMatches=1 family(mine)=MikePDF.S6bProbe_gxqed95vwwy28 family(server)=MikePDF.S6bProbe_gxqed95vwwy28 familyMatches=1
+12:40:58.907 [handler 4020] preview: first pixel 36.595 ms after DoPreview
+12:40:58.968 [handler 3636] host exe=C:\Windows\system32\prevhost.exe integrity=high appcontainer=0 package=MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28
+12:40:58.969 [handler 3636] verify: server pid=4008 image=C:\Program Files\WindowsApps\MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28\ShellHost\S6bShellHost.exe imageMatches=1 family(mine)=MikePDF.S6bProbe_gxqed95vwwy28 family(server)=MikePDF.S6bProbe_gxqed95vwwy28 familyMatches=1
+12:40:59.001 [handler 3636] preview: first pixel 32.909 ms after DoPreview
+==== PHASE: driver at MEDIUM integrity (executable labelled Medium)
+12:41:01.942 [handler 4520] GetThumbnail cx=256 stream size=3564
+12:41:01.946 [handler 4520] launch: ok pid=4920
+12:41:02.061 [handler 4520] verify: server pid=4920 image=C:\Program Files\WindowsApps\MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28\ShellHost\S6bShellHost.exe imageMatches=1 family(mine)=MikePDF.S6bProbe_gxqed95vwwy28 family(server)=MikePDF.S6bProbe_gxqed95vwwy28 familyMatches=1
+12:41:02.225 [handler 4520] GetThumbnail done hr=0x00000000 total 246.87 ms (copy 0.03, connect 117.67, launched 1, open 115.08, render 13.86)
+12:41:02.252 [handler 4520] GetThumbnail cx=256 stream size=3564
+12:41:02.256 [handler 4520] launch: ok pid=8056
+12:41:02.364 [handler 4520] verify: server pid=8056 image=C:\Program Files\WindowsApps\MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28\ShellHost\S6bShellHost.exe imageMatches=1 family(mine)=MikePDF.S6bProbe_gxqed95vwwy28 family(server)=MikePDF.S6bProbe_gxqed95vwwy28 familyMatches=1
+12:41:02.531 [handler 4520] GetThumbnail done hr=0x00000000 total 243.74 ms (copy 0.03, connect 110.44, launched 1, open 120.15, render 12.93)
+12:41:02.743 [handler 4520] GetThumbnail cx=256 stream size=3564
+12:41:02.747 [handler 4520] launch: ok pid=7104
+12:41:02.858 [handler 4520] verify: server pid=7104 image=C:\Program Files\WindowsApps\MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28\ShellHost\S6bShellHost.exe imageMatches=1 family(mine)=MikePDF.S6bProbe_gxqed95vwwy28 family(server)=MikePDF.S6bProbe_gxqed95vwwy28 familyMatches=1
+12:41:03.014 [handler 4520] GetThumbnail done hr=0x00000000 total 239.35 ms (copy 0.03, connect 114.70, launched 1, open 111.70, render 12.70)
+12:41:03.029 [handler 4520] GetThumbnail cx=256 stream size=3564
+12:41:03.029 [handler 4520] verify: server pid=7104 image=C:\Program Files\WindowsApps\MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28\ShellHost\S6bShellHost.exe imageMatches=1 family(mine)=MikePDF.S6bProbe_gxqed95vwwy28 family(server)=MikePDF.S6bProbe_gxqed95vwwy28 familyMatches=1
+12:41:03.061 [handler 4520] GetThumbnail done hr=0x00000000 total 25.87 ms (copy 0.04, connect 0.54, launched 0, open 22.10, render 3.00)
+12:41:03.072 [handler 4520] GetThumbnail cx=256 stream size=3564
+12:41:03.072 [handler 4520] verify: server pid=7104 image=C:\Program Files\WindowsApps\MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28\ShellHost\S6bShellHost.exe imageMatches=1 family(mine)=MikePDF.S6bProbe_gxqed95vwwy28 family(server)=MikePDF.S6bProbe_gxqed95vwwy28 familyMatches=1
+12:41:03.101 [handler 4520] GetThumbnail done hr=0x00000000 total 23.48 ms (copy 0.03, connect 0.56, launched 0, open 20.01, render 2.68)
+12:41:03.114 [handler 4520] GetThumbnail cx=256 stream size=3564
+12:41:03.116 [handler 4520] verify: server pid=7104 image=C:\Program Files\WindowsApps\MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28\ShellHost\S6bShellHost.exe imageMatches=1 family(mine)=MikePDF.S6bProbe_gxqed95vwwy28 family(server)=MikePDF.S6bProbe_gxqed95vwwy28 familyMatches=1
+12:41:03.144 [handler 4520] GetThumbnail done hr=0x00000000 total 23.79 ms (copy 0.03, connect 0.54, launched 0, open 20.39, render 2.63)
+12:41:03.158 [handler 4520] GetThumbnail cx=256 stream size=3564
+12:41:03.158 [handler 4520] verify: server pid=7104 image=C:\Program Files\WindowsApps\MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28\ShellHost\S6bShellHost.exe imageMatches=1 family(mine)=MikePDF.S6bProbe_gxqed95vwwy28 family(server)=MikePDF.S6bProbe_gxqed95vwwy28 familyMatches=1
+12:41:03.194 [handler 4520] GetThumbnail done hr=0x00000000 total 32.09 ms (copy 0.03, connect 0.46, launched 0, open 24.88, render 6.48)
+12:41:03.210 [handler 4520] GetThumbnail cx=256 stream size=3564
+12:41:03.210 [handler 4520] verify: server pid=7104 image=C:\Program Files\WindowsApps\MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28\ShellHost\S6bShellHost.exe imageMatches=1 family(mine)=MikePDF.S6bProbe_gxqed95vwwy28 family(server)=MikePDF.S6bProbe_gxqed95vwwy28 familyMatches=1
+12:41:03.240 [handler 4520] GetThumbnail done hr=0x00000000 total 25.27 ms (copy 0.03, connect 0.45, launched 0, open 21.06, render 3.54)
+12:41:03.253 [handler 4520] GetThumbnail cx=256 stream size=3564
+12:41:03.253 [handler 4520] verify: server pid=7104 image=C:\Program Files\WindowsApps\MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28\ShellHost\S6bShellHost.exe imageMatches=1 family(mine)=MikePDF.S6bProbe_gxqed95vwwy28 family(server)=MikePDF.S6bProbe_gxqed95vwwy28 familyMatches=1
+12:41:03.281 [handler 4520] GetThumbnail done hr=0x00000000 total 22.26 ms (copy 0.03, connect 0.57, launched 0, open 18.82, render 2.61)
+12:41:03.294 [handler 4520] GetThumbnail cx=256 stream size=3564
+12:41:03.294 [handler 4520] verify: server pid=7104 image=C:\Program Files\WindowsApps\MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28\ShellHost\S6bShellHost.exe imageMatches=1 family(mine)=MikePDF.S6bProbe_gxqed95vwwy28 family(server)=MikePDF.S6bProbe_gxqed95vwwy28 familyMatches=1
+12:41:03.323 [handler 4520] GetThumbnail done hr=0x00000000 total 24.04 ms (copy 0.03, connect 0.53, launched 0, open 20.74, render 2.55)
+12:41:03.333 [handler 4520] GetThumbnail cx=256 stream size=3564
+12:41:03.335 [handler 4520] verify: server pid=7104 image=C:\Program Files\WindowsApps\MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28\ShellHost\S6bShellHost.exe imageMatches=1 family(mine)=MikePDF.S6bProbe_gxqed95vwwy28 family(server)=MikePDF.S6bProbe_gxqed95vwwy28 familyMatches=1
+12:41:03.361 [handler 4520] GetThumbnail done hr=0x00000000 total 21.60 ms (copy 0.03, connect 0.54, launched 0, open 18.42, render 2.42)
+12:41:03.371 [handler 4520] GetThumbnail cx=256 stream size=3564
+12:41:03.373 [handler 4520] verify: server pid=7104 image=C:\Program Files\WindowsApps\MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28\ShellHost\S6bShellHost.exe imageMatches=1 family(mine)=MikePDF.S6bProbe_gxqed95vwwy28 family(server)=MikePDF.S6bProbe_gxqed95vwwy28 familyMatches=1
+12:41:03.398 [handler 4520] GetThumbnail done hr=0x00000000 total 21.44 ms (copy 0.07, connect 0.71, launched 0, open 17.98, render 2.47)
+12:41:03.409 [handler 4520] GetThumbnail cx=256 stream size=3564
+12:41:03.409 [handler 4520] verify: server pid=7104 image=C:\Program Files\WindowsApps\MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28\ShellHost\S6bShellHost.exe imageMatches=1 family(mine)=MikePDF.S6bProbe_gxqed95vwwy28 family(server)=MikePDF.S6bProbe_gxqed95vwwy28 familyMatches=1
+12:41:03.436 [handler 4520] GetThumbnail done hr=0x00000000 total 22.62 ms (copy 0.03, connect 0.66, launched 0, open 18.35, render 3.36)
+12:41:03.450 [handler 4520] GetThumbnail cx=256 stream size=3564
+12:41:03.450 [handler 4520] verify: server pid=7104 image=C:\Program Files\WindowsApps\MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28\ShellHost\S6bShellHost.exe imageMatches=1 family(mine)=MikePDF.S6bProbe_gxqed95vwwy28 family(server)=MikePDF.S6bProbe_gxqed95vwwy28 familyMatches=1
+12:41:03.476 [handler 4520] GetThumbnail done hr=0x00000000 total 22.41 ms (copy 0.03, connect 0.76, launched 0, open 18.81, render 2.58)
+12:41:03.490 [handler 4520] GetThumbnail cx=256 stream size=3564
+12:41:03.491 [handler 4520] verify: server pid=7104 image=C:\Program Files\WindowsApps\MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28\ShellHost\S6bShellHost.exe imageMatches=1 family(mine)=MikePDF.S6bProbe_gxqed95vwwy28 family(server)=MikePDF.S6bProbe_gxqed95vwwy28 familyMatches=1
+12:41:03.520 [handler 4520] GetThumbnail done hr=0x00000000 total 24.12 ms (copy 0.03, connect 0.45, launched 0, open 20.88, render 2.53)
+12:41:03.552 [handler 4520] GetThumbnail cx=256 stream size=3564
+12:41:03.552 [handler 4520] verify: server pid=7104 image=C:\Program Files\WindowsApps\MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28\ShellHost\S6bShellHost.exe imageMatches=1 family(mine)=MikePDF.S6bProbe_gxqed95vwwy28 family(server)=MikePDF.S6bProbe_gxqed95vwwy28 familyMatches=1
+12:41:03.583 [handler 4520] GetThumbnail done hr=0x00000000 total 26.16 ms (copy 0.03, connect 0.46, launched 0, open 22.91, render 2.55)
+12:41:03.595 [handler 4520] GetThumbnail cx=256 stream size=3564
+12:41:03.597 [handler 4520] verify: server pid=7104 image=C:\Program Files\WindowsApps\MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28\ShellHost\S6bShellHost.exe imageMatches=1 family(mine)=MikePDF.S6bProbe_gxqed95vwwy28 family(server)=MikePDF.S6bProbe_gxqed95vwwy28 familyMatches=1
+12:41:03.625 [handler 4520] GetThumbnail done hr=0x00000000 total 22.96 ms (copy 0.03, connect 0.57, launched 0, open 19.35, render 2.81)
+12:41:03.637 [handler 4520] GetThumbnail cx=256 stream size=3564
+12:41:03.638 [handler 4520] verify: server pid=7104 image=C:\Program Files\WindowsApps\MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28\ShellHost\S6bShellHost.exe imageMatches=1 family(mine)=MikePDF.S6bProbe_gxqed95vwwy28 family(server)=MikePDF.S6bProbe_gxqed95vwwy28 familyMatches=1
+12:41:03.664 [handler 4520] GetThumbnail done hr=0x00000000 total 22.13 ms (copy 0.03, connect 0.52, launched 0, open 19.02, render 2.38)
+12:41:03.676 [handler 4520] GetThumbnail cx=256 stream size=3564
+12:41:03.676 [handler 4520] verify: server pid=7104 image=C:\Program Files\WindowsApps\MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28\ShellHost\S6bShellHost.exe imageMatches=1 family(mine)=MikePDF.S6bProbe_gxqed95vwwy28 family(server)=MikePDF.S6bProbe_gxqed95vwwy28 familyMatches=1
+12:41:03.707 [handler 4520] GetThumbnail done hr=0x00000000 total 26.31 ms (copy 0.03, connect 0.51, launched 0, open 22.12, render 3.42)
+12:41:03.720 [handler 4520] GetThumbnail cx=256 stream size=3564
+12:41:03.720 [handler 4520] verify: server pid=7104 image=C:\Program Files\WindowsApps\MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28\ShellHost\S6bShellHost.exe imageMatches=1 family(mine)=MikePDF.S6bProbe_gxqed95vwwy28 family(server)=MikePDF.S6bProbe_gxqed95vwwy28 familyMatches=1
+12:41:03.748 [handler 4520] GetThumbnail done hr=0x00000000 total 22.93 ms (copy 0.03, connect 0.51, launched 0, open 19.70, render 2.49)
+12:41:03.760 [handler 4520] GetThumbnail cx=256 stream size=3564
+12:41:03.762 [handler 4520] verify: server pid=7104 image=C:\Program Files\WindowsApps\MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28\ShellHost\S6bShellHost.exe imageMatches=1 family(mine)=MikePDF.S6bProbe_gxqed95vwwy28 family(server)=MikePDF.S6bProbe_gxqed95vwwy28 familyMatches=1
+12:41:03.788 [handler 4520] GetThumbnail done hr=0x00000000 total 21.91 ms (copy 0.03, connect 0.55, launched 0, open 18.70, render 2.43)
+12:41:03.798 [handler 4520] GetThumbnail cx=256 stream size=3564
+12:41:03.800 [handler 4520] verify: server pid=7104 image=C:\Program Files\WindowsApps\MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28\ShellHost\S6bShellHost.exe imageMatches=1 family(mine)=MikePDF.S6bProbe_gxqed95vwwy28 family(server)=MikePDF.S6bProbe_gxqed95vwwy28 familyMatches=1
+12:41:03.829 [handler 4520] GetThumbnail done hr=0x00000000 total 22.20 ms (copy 0.03, connect 0.77, launched 0, open 18.57, render 2.57)
+12:41:03.843 [handler 4520] GetThumbnail cx=256 stream size=3564
+12:41:03.845 [handler 4520] verify: server pid=7104 image=C:\Program Files\WindowsApps\MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28\ShellHost\S6bShellHost.exe imageMatches=1 family(mine)=MikePDF.S6bProbe_gxqed95vwwy28 family(server)=MikePDF.S6bProbe_gxqed95vwwy28 familyMatches=1
+12:41:03.875 [handler 4520] GetThumbnail done hr=0x00000000 total 25.87 ms (copy 0.03, connect 0.71, launched 0, open 21.53, render 3.37)
+12:41:03.892 [handler 4520] GetThumbnail cx=256 stream size=3564
+12:41:03.892 [handler 4520] verify: server pid=7104 image=C:\Program Files\WindowsApps\MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28\ShellHost\S6bShellHost.exe imageMatches=1 family(mine)=MikePDF.S6bProbe_gxqed95vwwy28 family(server)=MikePDF.S6bProbe_gxqed95vwwy28 familyMatches=1
+12:41:03.918 [handler 4520] GetThumbnail done hr=0x00000000 total 22.76 ms (copy 0.03, connect 0.63, launched 0, open 19.39, render 2.51)
+12:41:03.932 [handler 4520] GetThumbnail cx=256 stream size=3564
+12:41:03.932 [handler 4520] verify: server pid=7104 image=C:\Program Files\WindowsApps\MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28\ShellHost\S6bShellHost.exe imageMatches=1 family(mine)=MikePDF.S6bProbe_gxqed95vwwy28 family(server)=MikePDF.S6bProbe_gxqed95vwwy28 familyMatches=1
+12:41:03.966 [handler 4520] GetThumbnail done hr=0x00000000 total 26.75 ms (copy 0.03, connect 0.54, launched 0, open 23.33, render 2.60)
+12:41:03.979 [handler 4520] GetThumbnail cx=256 stream size=3564
+12:41:03.979 [handler 4520] verify: server pid=7104 image=C:\Program Files\WindowsApps\MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28\ShellHost\S6bShellHost.exe imageMatches=1 family(mine)=MikePDF.S6bProbe_gxqed95vwwy28 family(server)=MikePDF.S6bProbe_gxqed95vwwy28 familyMatches=1
+12:41:04.015 [handler 4520] GetThumbnail done hr=0x00000000 total 28.80 ms (copy 0.03, connect 0.56, launched 0, open 24.52, render 3.43)
+12:41:04.027 [handler 4520] GetThumbnail cx=256 stream size=3564
+12:41:04.027 [handler 4520] verify: server pid=7104 image=C:\Program Files\WindowsApps\MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28\ShellHost\S6bShellHost.exe imageMatches=1 family(mine)=MikePDF.S6bProbe_gxqed95vwwy28 family(server)=MikePDF.S6bProbe_gxqed95vwwy28 familyMatches=1
+12:41:04.057 [handler 4520] GetThumbnail done hr=0x00000000 total 24.43 ms (copy 0.03, connect 0.48, launched 0, open 21.17, render 2.53)
+12:41:04.071 [handler 4520] GetThumbnail cx=256 stream size=3564
+12:41:04.071 [handler 4520] verify: server pid=7104 image=C:\Program Files\WindowsApps\MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28\ShellHost\S6bShellHost.exe imageMatches=1 family(mine)=MikePDF.S6bProbe_gxqed95vwwy28 family(server)=MikePDF.S6bProbe_gxqed95vwwy28 familyMatches=1
+12:41:04.101 [handler 4520] GetThumbnail done hr=0x00000000 total 25.51 ms (copy 0.03, connect 0.65, launched 0, open 21.96, render 2.64)
+12:41:04.113 [handler 4520] GetThumbnail cx=256 stream size=3564
+12:41:04.115 [handler 4520] verify: server pid=7104 image=C:\Program Files\WindowsApps\MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28\ShellHost\S6bShellHost.exe imageMatches=1 family(mine)=MikePDF.S6bProbe_gxqed95vwwy28 family(server)=MikePDF.S6bProbe_gxqed95vwwy28 familyMatches=1
+12:41:04.145 [handler 4520] GetThumbnail done hr=0x00000000 total 24.36 ms (copy 0.07, connect 0.62, launched 0, open 20.84, render 2.62)
+12:41:04.156 [handler 4520] GetThumbnail cx=256 stream size=3564
+12:41:04.157 [handler 4520] verify: server pid=7104 image=C:\Program Files\WindowsApps\MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28\ShellHost\S6bShellHost.exe imageMatches=1 family(mine)=MikePDF.S6bProbe_gxqed95vwwy28 family(server)=MikePDF.S6bProbe_gxqed95vwwy28 familyMatches=1
+12:41:04.184 [handler 4520] GetThumbnail done hr=0x00000000 total 22.18 ms (copy 0.03, connect 0.62, launched 0, open 18.86, render 2.47)
+12:41:04.205 [handler 4520] GetThumbnail cx=256 stream size=3564
+12:41:04.205 [handler 4520] verify: server pid=7104 image=C:\Program Files\WindowsApps\MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28\ShellHost\S6bShellHost.exe imageMatches=1 family(mine)=MikePDF.S6bProbe_gxqed95vwwy28 family(server)=MikePDF.S6bProbe_gxqed95vwwy28 familyMatches=1
+12:41:04.237 [handler 4520] GetThumbnail done hr=0x00000000 total 25.15 ms (copy 0.03, connect 0.61, launched 0, open 21.74, render 2.59)
+12:41:04.251 [handler 4520] GetThumbnail cx=256 stream size=3564
+12:41:04.251 [handler 4520] verify: server pid=7104 image=C:\Program Files\WindowsApps\MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28\ShellHost\S6bShellHost.exe imageMatches=1 family(mine)=MikePDF.S6bProbe_gxqed95vwwy28 family(server)=MikePDF.S6bProbe_gxqed95vwwy28 familyMatches=1
+12:41:04.285 [handler 4520] GetThumbnail done hr=0x00000000 total 27.47 ms (copy 0.04, connect 0.47, launched 0, open 23.22, render 3.50)
+12:41:04.303 [handler 4520] GetThumbnail cx=256 stream size=3564
+12:41:04.303 [handler 4520] verify: server pid=7104 image=C:\Program Files\WindowsApps\MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28\ShellHost\S6bShellHost.exe imageMatches=1 family(mine)=MikePDF.S6bProbe_gxqed95vwwy28 family(server)=MikePDF.S6bProbe_gxqed95vwwy28 familyMatches=1
+12:41:04.354 [handler 4520] GetThumbnail done hr=0x00000000 total 43.88 ms (copy 0.04, connect 0.57, launched 0, open 39.53, render 3.51)
+12:41:04.404 [handler 4520] GetThumbnail cx=256 stream size=3564
+12:41:04.404 [handler 4520] verify: server pid=7104 image=C:\Program Files\WindowsApps\MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28\ShellHost\S6bShellHost.exe imageMatches=1 family(mine)=MikePDF.S6bProbe_gxqed95vwwy28 family(server)=MikePDF.S6bProbe_gxqed95vwwy28 familyMatches=1
+12:41:04.432 [handler 4520] GetThumbnail done hr=0x00000000 total 24.26 ms (copy 0.04, connect 0.52, launched 0, open 20.65, render 2.83)
+12:41:04.446 [handler 4520] GetThumbnail cx=256 stream size=3564
+12:41:04.446 [handler 4520] verify: server pid=7104 image=C:\Program Files\WindowsApps\MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28\ShellHost\S6bShellHost.exe imageMatches=1 family(mine)=MikePDF.S6bProbe_gxqed95vwwy28 family(server)=MikePDF.S6bProbe_gxqed95vwwy28 familyMatches=1
+12:41:04.473 [handler 4520] GetThumbnail done hr=0x00000000 total 21.41 ms (copy 0.03, connect 0.60, launched 0, open 18.14, render 2.46)
+12:41:04.486 [handler 4520] GetThumbnail cx=256 stream size=3564
+12:41:04.486 [handler 4520] verify: server pid=7104 image=C:\Program Files\WindowsApps\MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28\ShellHost\S6bShellHost.exe imageMatches=1 family(mine)=MikePDF.S6bProbe_gxqed95vwwy28 family(server)=MikePDF.S6bProbe_gxqed95vwwy28 familyMatches=1
+12:41:04.519 [handler 4520] GetThumbnail done hr=0x00000000 total 27.08 ms (copy 0.03, connect 0.44, launched 0, open 23.62, render 2.77)
+12:41:04.602 [handler 7552] host exe=C:\Windows\system32\prevhost.exe integrity=high appcontainer=0 package=MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28
+12:41:04.614 [handler 7552] launch: ok pid=3008
+12:41:04.760 [handler 7552] verify: server pid=3008 image=C:\Program Files\WindowsApps\MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28\ShellHost\S6bShellHost.exe imageMatches=1 family(mine)=MikePDF.S6bProbe_gxqed95vwwy28 family(server)=MikePDF.S6bProbe_gxqed95vwwy28 familyMatches=1
+12:41:04.940 [handler 7552] preview: first pixel 338.299 ms after DoPreview
+12:41:04.995 [handler 1252] host exe=C:\Windows\system32\prevhost.exe integrity=high appcontainer=0 package=MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28
+12:41:04.998 [handler 1252] verify: server pid=3008 image=C:\Program Files\WindowsApps\MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28\ShellHost\S6bShellHost.exe imageMatches=1 family(mine)=MikePDF.S6bProbe_gxqed95vwwy28 family(server)=MikePDF.S6bProbe_gxqed95vwwy28 familyMatches=1
+12:41:05.032 [handler 1252] preview: first pixel 36.741 ms after DoPreview
+12:41:05.091 [handler 4444] host exe=C:\Windows\system32\prevhost.exe integrity=high appcontainer=0 package=MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28
+12:41:05.093 [handler 4444] verify: server pid=3008 image=C:\Program Files\WindowsApps\MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28\ShellHost\S6bShellHost.exe imageMatches=1 family(mine)=MikePDF.S6bProbe_gxqed95vwwy28 family(server)=MikePDF.S6bProbe_gxqed95vwwy28 familyMatches=1
+12:41:05.131 [handler 4444] preview: first pixel 40.580 ms after DoPreview
+12:41:05.186 [handler 8040] host exe=C:\Windows\system32\prevhost.exe integrity=high appcontainer=0 package=MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28
+12:41:05.194 [handler 8040] verify: server pid=3008 image=C:\Program Files\WindowsApps\MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28\ShellHost\S6bShellHost.exe imageMatches=1 family(mine)=MikePDF.S6bProbe_gxqed95vwwy28 family(server)=MikePDF.S6bProbe_gxqed95vwwy28 familyMatches=1
+12:41:05.226 [handler 8040] preview: first pixel 34.656 ms after DoPreview
+==== PHASE: driver at LOW integrity (token with the Low label)
+==== PHASE: precedence experiments (High, unpackaged)
+12:41:10.373 [handler 3164] GetThumbnail cx=256 stream size=3564
+12:41:10.373 [handler 3164] host exe=C:\Windows\system32\DllHost.exe integrity=high appcontainer=0 package=MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28
+12:41:10.373 [handler 3164] verify: server pid=3008 image=C:\Program Files\WindowsApps\MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28\ShellHost\S6bShellHost.exe imageMatches=1 family(mine)=MikePDF.S6bProbe_gxqed95vwwy28 family(server)=MikePDF.S6bProbe_gxqed95vwwy28 familyMatches=1
+12:41:10.401 [handler 3164] GetThumbnail done hr=0x00000000 total 23.14 ms (copy 0.04, connect 0.35, launched 0, open 19.71, render 2.80)
+12:41:12.108 [handler 3164] GetThumbnail cx=256 stream size=3564
+12:41:12.109 [handler 3164] verify: server pid=3008 image=C:\Program Files\WindowsApps\MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28\ShellHost\S6bShellHost.exe imageMatches=1 family(mine)=MikePDF.S6bProbe_gxqed95vwwy28 family(server)=MikePDF.S6bProbe_gxqed95vwwy28 familyMatches=1
+12:41:12.140 [handler 3164] GetThumbnail done hr=0x00000000 total 26.43 ms (copy 0.03, connect 0.56, launched 0, open 22.03, render 3.56)
+12:41:15.750 [handler 3164] GetThumbnail cx=256 stream size=3564
+12:41:15.752 [handler 3164] verify: server pid=3008 image=C:\Program Files\WindowsApps\MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28\ShellHost\S6bShellHost.exe imageMatches=1 family(mine)=MikePDF.S6bProbe_gxqed95vwwy28 family(server)=MikePDF.S6bProbe_gxqed95vwwy28 familyMatches=1
+12:41:15.782 [handler 3164] GetThumbnail done hr=0x00000000 total 25.96 ms (copy 0.03, connect 0.53, launched 0, open 21.51, render 3.64)
+12:41:18.917 [handler 3164] GetThumbnail cx=256 stream size=3564
+12:41:18.917 [handler 3164] verify: server pid=3008 image=C:\Program Files\WindowsApps\MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28\ShellHost\S6bShellHost.exe imageMatches=1 family(mine)=MikePDF.S6bProbe_gxqed95vwwy28 family(server)=MikePDF.S6bProbe_gxqed95vwwy28 familyMatches=1
+12:41:18.946 [handler 3164] GetThumbnail done hr=0x00000000 total 24.72 ms (copy 0.03, connect 0.56, launched 0, open 21.33, render 2.58)

@@ -1,0 +1,44 @@
+<UserControl
+    x:Class="MikePDF.App.Views.CommandPaletteView"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:MikePDF.App.Views">
+
+    <!-- The command palette (docs/design/screens/07-command-palette.md): a search box and a list of results, over the top centre of the window. -->
+    <Border x:Name="Panel" Width="600" MaxWidth="640" Padding="8" CornerRadius="8" BorderThickness="1"
+            Background="{ThemeResource SolidBackgroundFillColorBaseBrush}" BorderBrush="{ThemeResource SurfaceStrokeColorFlyoutBrush}"
+            AutomationProperties.AutomationId="CommandPalette">
+        <Grid RowSpacing="6">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+            <TextBox x:Name="Box" MinHeight="40" MaxLength="256" AutomationProperties.AutomationId="PaletteBox"
+                     TextChanged="OnTextChanged" PreviewKeyDown="OnBoxKeyDown" />
+            <ListView x:Name="List" Grid.Row="1" SelectionMode="Single" IsItemClickEnabled="True" MaxHeight="380" IsTabStop="False"
+                      AutomationProperties.AutomationId="PaletteList" ItemClick="OnItemClick" SelectionChanged="OnSelectionChanged">
+                <ListView.ItemTemplate>
+                    <DataTemplate x:DataType="local:PaletteRow">
+                        <Grid ColumnSpacing="12" Padding="4,6" Opacity="{x:Bind Opacity}"
+                              AutomationProperties.Name="{x:Bind Spoken}" AutomationProperties.AutomationId="{x:Bind AutomationId}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel>
+                                <TextBlock Text="{x:Bind Title}" TextTrimming="CharacterEllipsis" AutomationProperties.AccessibilityView="Raw" />
+                                <TextBlock Text="{x:Bind Subtitle}" Style="{StaticResource CaptionTextBlockStyle}" TextTrimming="CharacterEllipsis"
+                                           Foreground="{ThemeResource TextFillColorSecondaryBrush}" AutomationProperties.AccessibilityView="Raw" />
+                            </StackPanel>
+                            <TextBlock Grid.Column="1" Text="{x:Bind Shortcut}" VerticalAlignment="Center" Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                       AutomationProperties.AccessibilityView="Raw" />
+                        </Grid>
+                    </DataTemplate>
+                </ListView.ItemTemplate>
+            </ListView>
+            <TextBlock x:Name="Status" Grid.Row="2" Margin="4,0" Style="{StaticResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                       AutomationProperties.AutomationId="PaletteStatus" AutomationProperties.LiveSetting="Polite" />
+        </Grid>
+    </Border>
+</UserControl>

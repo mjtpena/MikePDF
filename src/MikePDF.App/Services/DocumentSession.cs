@@ -4,6 +4,7 @@ using MikePDF.Broker;
 using MikePDF.Core.Errors;
 using MikePDF.Core.Geometry;
 using MikePDF.Core.Layout;
+using MikePDF.Core.Navigation;
 using MikePDF.Core.Persistence;
 using MikePDF.Core.Tiles;
 using MikePDF.Protocol;
@@ -33,8 +34,12 @@ internal enum EngineBanner
 }
 
 /// <summary>
-/// One open document: its sandboxed engines (the document's own and the pool engine for placeholders), the view state, the tile cache and the
-/// scheduler (master prompt 7.1, ADR-0006). Use it on the UI thread. It raises events on the UI thread.
+/// One open document: its sandboxed document engine, a document in the app's one shared pool engine (placeholders, thumbnails, text and search), the view
+/// state, the tile cache and the scheduler (master prompt 7.1, ADR-0006). Use it on the UI thread. It raises events on the UI thread.
+/// <para>
+/// Both engines come from the app's <see cref="EngineBudget"/> (ADR-0004 amendment A3): the document engine counts against its cap, and the pool engine is
+/// shared with every other session, so this session closes its document in the pool but never the pool.
+/// </para>
 /// <para>
 /// A crash of an engine is not the end of the document. <see cref="EngineSupervisor"/> starts a new engine and reopens the document from the
 /// broker's own file handle. The view state lives here, in the UI process, so the scroll position and zoom are exactly where they were; the
@@ -60,8 +65,8 @@ internal sealed partial class DocumentSession : IAsyncDisposable
     private readonly DispatcherQueueTimer _saveTimer;
     private readonly DispatcherQueueTimer _prefetchTimer;
     private readonly CancellationTokenSource _cts = new();
-    private EngineSupervisor? _main;
-    private EngineSupervisor? _pool;
+    private DocumentEngine? _main;
+    private EngineSupervisor? _pool; // the budget's shared pool engine: never disposed here
     private SupervisedDocument? _document;
     private SupervisedDocument? _poolDocument;
     private TileScheduler? _scheduler;
@@ -71,7 +76,9 @@ internal sealed partial class DocumentSession : IAsyncDisposable
     private bool _zoomPending;
     private bool _framePending;
     private bool _disposed;
+    private bool _sizesComplete;
     private string? _password;
+    private readonly NavigationHistory _history = new();
 
     public DocumentSession(EngineHost host, DocumentStore store, ITilePresenter presenter, DispatcherQueue ui)
     {
@@ -123,6 +130,23 @@ internal sealed partial class DocumentSession : IAsyncDisposable
 
     public bool IsOpen => _document is not null && !_disposed;
 
+    /// <summary>Back and forward have somewhere to go (the toolbar buttons follow these). Changes are announced through <see cref="ViewChanged"/>.</summary>
+    public bool CanGoBack => _history.CanGoBack;
+
+    public bool CanGoForward => _history.CanGoForward;
+
+    /// <summary>The permission bits that apply to this session: the file's /P, or all ones for an unprotected document or after the owner password.</summary>
+    public uint Permissions { get; private set; } = uint.MaxValue;
+
+    /// <summary>The owner has not forbidden copying text (bit 5 of /P). Screen readers are served either way (PDF 2.0 ignores the accessibility bit).</summary>
+    public bool CanCopy => (Permissions & 0x10) != 0;
+
+    /// <summary>The displayed size in points of every page whose size is known (pages not yet read carry the first page's size).</summary>
+    public IReadOnlyList<SizeD> PageSizes => _sizes;
+
+    /// <summary>Every page's size has been read, so "the pages differ in size" can be said truthfully.</summary>
+    public bool PageSizesComplete => _sizesComplete;
+
     /// <summary>The newest frame handed to the presenter (diagnostics and tests).</summary>
     public FrameComposition? LastFrame { get; private set; }
 
@@ -153,7 +177,7 @@ internal sealed partial class DocumentSession : IAsyncDisposable
         var token = _cts.Token;
         try
         {
-            _main ??= await StartEngineAsync(_host.DocumentOptions(), token).ConfigureAwait(true);
+            _main ??= await StartDocumentEngineAsync(token).ConfigureAwait(true);
             var opened = await _main.OpenDocumentAsync(Path, password, token).ConfigureAwait(true);
             switch (opened.Status)
             {
@@ -174,6 +198,7 @@ internal sealed partial class DocumentSession : IAsyncDisposable
 
             var info = await _document.GetInfoAsync(token).ConfigureAwait(true);
             Title = info.Value is { Title.Length: > 0 } reply ? reply.Title : System.IO.Path.GetFileNameWithoutExtension(Path);
+            Permissions = info.Value?.Permissions ?? uint.MaxValue;
             if (await LoadFirstSizesAsync(token).ConfigureAwait(true) is { } sizeError)
             {
                 return new OpenOutcome(OpenOutcomeKind.Failed, sizeError);
@@ -185,6 +210,11 @@ internal sealed partial class DocumentSession : IAsyncDisposable
         }
         catch (EngineStartException e)
         {
+            return new OpenOutcome(OpenOutcomeKind.Failed, DocumentErrorKind.SandboxUnavailable, e.Message);
+        }
+        catch (TimeoutException e)
+        {
+            // Every document engine of the budget is busy or pinned (not reachable while the app has one document at a time).
             return new OpenOutcome(OpenOutcomeKind.Failed, DocumentErrorKind.SandboxUnavailable, e.Message);
         }
 
@@ -200,35 +230,34 @@ internal sealed partial class DocumentSession : IAsyncDisposable
         return new OpenOutcome(OpenOutcomeKind.Opened);
     }
 
-    private async Task<EngineSupervisor> StartEngineAsync(EngineSupervisorOptions options, CancellationToken token)
+    /// <summary>The document's own engine, from the budget: it counts against the cap on document engines.</summary>
+    private async Task<DocumentEngine> StartDocumentEngineAsync(CancellationToken token)
     {
-        var supervisor = await EngineSupervisor.StartAsync(options, token).ConfigureAwait(true);
-        if (options.Kind == EngineKind.Document)
+        var engine = await _host.Budget.CreateDocumentEngineAsync(token).ConfigureAwait(true);
+        engine.EngineCrashed += (_, _) => _ui.TryEnqueue(() => EngineStateChanged?.Invoke(EngineBanner.Restarting));
+        engine.Restored += (_, _) => _ui.TryEnqueue(() =>
         {
-            supervisor.EngineCrashed += (_, _) => _ui.TryEnqueue(() => EngineStateChanged?.Invoke(EngineBanner.Restarting));
-            supervisor.Restored += (_, _) => _ui.TryEnqueue(() =>
-            {
-                EngineStateChanged?.Invoke(EngineBanner.Restored);
-                Publish();
-                RequestFrame();
-            });
-            supervisor.Failed += (_, _) => _ui.TryEnqueue(() => EngineStateChanged?.Invoke(EngineBanner.Failed));
-        }
-
-        return supervisor;
+            EngineStateChanged?.Invoke(EngineBanner.Restored);
+            Publish();
+            RequestFrame();
+        });
+        engine.Failed += (_, _) => _ui.TryEnqueue(() => EngineStateChanged?.Invoke(EngineBanner.Failed));
+        return engine;
     }
 
     private async Task StartPoolAsync(CancellationToken token)
     {
         try
         {
-            _pool = await StartEngineAsync(_host.PoolOptions(), token).ConfigureAwait(true);
+            // The one pool engine of the whole app: this session only opens its document in it.
+            _pool = await _host.Budget.GetPoolAsync(token).ConfigureAwait(true);
             var opened = await _pool.OpenDocumentAsync(Path, _password, token).ConfigureAwait(true);
             _poolDocument = opened.IsOk ? opened.Value : null;
         }
         catch (EngineStartException)
         {
             // Placeholders then come from the document's own engine: slower to appear, but still never blank.
+            _pool = null;
             _poolDocument = null;
         }
     }
@@ -276,6 +305,7 @@ internal sealed partial class DocumentSession : IAsyncDisposable
         }
 
         Controller.SetPageSizes(_sizes);
+        _sizesComplete = count <= first;
         return null;
     }
 
@@ -324,6 +354,7 @@ internal sealed partial class DocumentSession : IAsyncDisposable
                     }
 
                     _sizes = copy;
+                    _sizesComplete |= last;
                     Controller.SetPageSizes(_sizes);
                     Publish();
                     RequestFrame();
@@ -367,6 +398,9 @@ internal sealed partial class DocumentSession : IAsyncDisposable
 
     public void ActualSize() => Change(() => Controller.ActualSize());
 
+    /// <summary>The zoom at which a page's inch is the monitor's inch, given the monitor's physical density (see <see cref="ZoomMath.ActualSizeZoom"/>).</summary>
+    public void PhysicalSize(double rawMonitorDpi) => Change(() => Controller.PhysicalSize(rawMonitorDpi));
+
     public void FitWidth() => Change(() => Controller.FitWidth());
 
     public void FitPage() => Change(() => Controller.FitPage());
@@ -374,6 +408,60 @@ internal sealed partial class DocumentSession : IAsyncDisposable
     public void Rotate(int quarterTurns) => Change(() => Controller.Rotate(quarterTurns));
 
     public void GoToPage(int zeroBasedPage) => Change(() => Controller.GoToPage(zeroBasedPage));
+
+    /// <summary>Go to page as a jump: the place the view was at is remembered for Back (Go to page, a thumbnail).</summary>
+    public void JumpToPage(int zeroBasedPage)
+    {
+        var before = HistoryMark.Take(this);
+        GoToPage(zeroBasedPage);
+        RecordJump(before, null);
+    }
+
+    /// <summary>Back: returns to where the view was before the last jump. False when there is nowhere to go.</summary>
+    public bool GoBack() => GoTo(_history.Back(Here()));
+
+    public bool GoForward() => GoTo(_history.Forward(Here()));
+
+    private bool GoTo(ViewLocation? target)
+    {
+        if (target is not { } place || _disposed)
+        {
+            return false;
+        }
+
+        Change(() => Controller.GoToPage(place.Page, place.Fraction));
+        return true;
+    }
+
+    private ViewLocation Here()
+    {
+        var (page, fraction) = Controller.TopPosition;
+        return new ViewLocation(Math.Max(0, page), fraction);
+    }
+
+    /// <summary>Where the view was just before a jump: the place for Back, and the scroll offsets to tell whether the jump moved the view at all.</summary>
+    private readonly record struct HistoryMark(ViewLocation Place, double ScrollX, double ScrollY)
+    {
+        public static HistoryMark Take(DocumentSession session) => new(session.Here(), session.Controller.ScrollX, session.Controller.ScrollY);
+    }
+
+    // A jump that left the view where it was (the destination was already in view) records nothing, so Back never "goes" nowhere.
+    private void RecordJump(HistoryMark before, string? key)
+    {
+        if (_disposed || (Math.Abs(Controller.ScrollY - before.ScrollY) < 2 && Math.Abs(Controller.ScrollX - before.ScrollX) < 2))
+        {
+            return;
+        }
+
+        if (_history.Record(before.Place, key))
+        {
+            ViewChanged?.Invoke();
+        }
+    }
+
+    public void PageDown() => Change(Controller.PageDown, trackVelocity: true);
+
+    public void PageUp() => Change(Controller.PageUp, trackVelocity: true);
 
     public void NextPage() => Change(Controller.NextPage);
 
@@ -530,11 +618,7 @@ internal sealed partial class DocumentSession : IAsyncDisposable
             await _main.DisposeAsync().ConfigureAwait(true);
         }
 
-        if (_pool is not null)
-        {
-            await _pool.DisposeAsync().ConfigureAwait(true);
-        }
-
+        // (The pool engine is the budget's and is shared: the documents this session had open in it are closed above, the engine stays.)
         Cache.Clear();
         Cache.DisposeEvicted();
         _cts.Dispose();

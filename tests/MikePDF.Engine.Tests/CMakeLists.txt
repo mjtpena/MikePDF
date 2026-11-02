@@ -1,6 +1,8 @@
 add_executable(mikepdf_engine_tests
   document_tests.cpp
   reading_tests.cpp
+  reader_gaps_tests.cpp
+  schema5_tests.cpp
   engine_core_tests.cpp
   library_tests.cpp
   protocol_tests.cpp)

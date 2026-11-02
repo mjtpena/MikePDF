@@ -24,6 +24,21 @@ using InterruptCheck = std::function<RenderInterrupt()>;
 
 inline constexpr std::uint32_t kRenderAnnotations = 1;
 inline constexpr std::uint32_t kRenderFormFields = 2;
+/// RenderBand only: PDFium's printing mode (no screen-only annotations, no LCD text).
+inline constexpr std::uint32_t kRenderPrinting = 4;
+
+/// One horizontal band of a page laid out at `page_width_px` x `page_height_px` device pixels (after the rotation), for printing.
+struct BandRequest {
+    std::uint32_t page{};
+    /// Quarter turns clockwise, on top of the page's own /Rotate.
+    std::uint16_t rotation{};
+    std::uint32_t page_width_px{};
+    std::uint32_t page_height_px{};
+    /// The band is the rows band_top to band_top + band_height of the laid-out page.
+    std::uint32_t band_top{};
+    std::uint32_t band_height{};
+    std::uint32_t flags{};
+};
 
 struct TileRequest {
     std::uint32_t page{};
@@ -67,6 +82,16 @@ public:
     [[nodiscard]] protocol::Status render_tile(const TileRequest& request, std::span<std::uint8_t> destination,
                                                std::uint32_t stride, const InterruptCheck& interrupt);
 
+    /// Renders one band of a page for printing as BGRA over opaque white into `destination` (rows `stride` = 4 x page_width_px bytes apart).
+    /// The statuses are render_tile's. InvalidArgument also for a band outside the page or one that does not fit `destination`.
+    [[nodiscard]] protocol::Status render_band(const BandRequest& request, std::span<std::uint8_t> destination, std::uint32_t stride,
+                                               const InterruptCheck& interrupt);
+
+    // ---- schema 5 --------------------------------------------------------------------------------------------
+
+    /// /ViewerPreferences as GetViewerPreferencesReply describes it: every value clamped to its range, anything the file gets wrong read as absent.
+    [[nodiscard]] protocol::Result<protocol::GetViewerPreferencesReply> viewer_preferences();
+
     // ---- reading services (WP-S2) ----------------------------------------------------------------------------
     // Everything below returns data the broker treats as untrusted, and every result obeys the schema limits (the caller encodes it
     // with the generated encoder, which refuses anything else). Coordinates are PDF user space: points, origin bottom-left.
@@ -90,6 +115,13 @@ public:
     /// Matches of `query` (UTF-8, not empty) in one page. `expired` is polled between matches; when it returns true the result is Timeout.
     [[nodiscard]] protocol::Result<protocol::SearchPageReply> search_page(std::uint32_t page, std::string_view query, std::uint32_t flags,
                                                                           const std::function<bool()>& expired);
+
+    // ---- the properties dialog (schema 4) ----------------------------------------------------------------------
+
+    /// Dates, the security handler revision, the user permissions, the form type and the fonts of the first pages. PDFium has no document-level font
+    /// list, so the fonts are found by walking the page objects of up to `max_font_pages` pages, stopping when `expired` says the time is up (checked
+    /// between pages and every few hundred objects); `fonts_complete` says whether every page was walked. Never fails for a document that opened.
+    [[nodiscard]] protocol::Result<protocol::GetDocumentDetailsReply> details(std::uint32_t max_font_pages, const std::function<bool()>& expired);
 
 private:
     struct PageCache;

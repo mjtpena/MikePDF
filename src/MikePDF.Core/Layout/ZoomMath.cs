@@ -28,6 +28,11 @@ public static class ZoomMath
     /// </summary>
     public const double MaxEngineScale = 64.0;
 
+    /// <summary>Raw monitor densities outside this range are not believed (Windows reports 96 or garbage for displays whose size it does not know).</summary>
+    public const double MinPlausibleDpi = 72.0;
+
+    public const double MaxPlausibleDpi = 400.0;
+
     /// <summary>The usual stops of Ctrl+= and Ctrl+-.</summary>
     public static readonly IReadOnlyList<double> Steps = [0.10, 0.25, 0.50, 0.75, 1.0, 1.25, 1.5, 2.0, 3.0, 4.0, 6.0, 8.0, 12.0, 16.0, 24.0, 32.0, 48.0, 64.0];
 
@@ -35,6 +40,21 @@ public static class ZoomMath
 
     /// <summary>Layout pixels (device pixels) per point at a zoom and a display scale (1.0 = 100%, 1.5 = 150%, ...).</summary>
     public static double PixelsPerPoint(double zoom, double dpiScale) => Clamp(zoom) * DipPerPoint * dpiScale;
+
+    /// <summary>
+    /// The zoom at which one inch of the page is one inch on the monitor: the monitor's physical pixels per inch (<paramref name="rawDpi"/>) over the
+    /// pixels per inch that 100% means at this display scale (96 x <paramref name="dpiScale"/>). Falls back to 100% when the density is missing or not
+    /// believable, and is clamped to the zoom range.
+    /// </summary>
+    public static double ActualSizeZoom(double rawDpi, double dpiScale)
+    {
+        if (!double.IsFinite(rawDpi) || !double.IsFinite(dpiScale) || dpiScale <= 0 || rawDpi < MinPlausibleDpi || rawDpi > MaxPlausibleDpi)
+        {
+            return 1.0;
+        }
+
+        return Clamp(rawDpi / (96.0 * dpiScale));
+    }
 
     public static double EngineScale(double pixelsPerPoint) => Math.Min(pixelsPerPoint, MaxEngineScale);
 

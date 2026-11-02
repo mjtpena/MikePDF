@@ -8,7 +8,12 @@ namespace MikePDF.Integration.Tests.Support;
 /// </summary>
 public sealed class SandboxFixture : IDisposable
 {
-    public const string ProfileName = "MikePDF.IntegrationTests";
+    /// <summary>
+    /// The start of every profile name this fixture makes. The profile is <b>per run</b> (process id and a random suffix follow): two test runs on one
+    /// machine, such as the same suite in two git worktrees at once, used to share one profile named "MikePDF.IntegrationTests", and the first to finish
+    /// deleted it under the other, whose engines then could not start.
+    /// </summary>
+    public const string ProfilePrefix = "MikePDF.IT";
 
     private static readonly string[] Configurations = ["Release", "Debug"];
 
@@ -33,11 +38,13 @@ public sealed class SandboxFixture : IDisposable
 
         var parent = Path.Combine(RepositoryRoot, "build", "out", "integration");
         Directory.CreateDirectory(parent);
-        DeleteStaleDeployments(parent);
+        TestProfiles.SweepStale(parent);
 
-        Profile = AppContainerProfile.CreateOrOpen(ProfileName, "MikePDF integration tests", "Zero-capability AppContainer for the MikePDF integration tests");
+        var profileName = TestProfiles.NewName(ProfilePrefix);
         DeployDirectory = Path.Combine(parent, Guid.NewGuid().ToString("N")[..8]);
         Directory.CreateDirectory(DeployDirectory);
+        TestProfiles.WriteOwner(DeployDirectory, profileName); // before the profile exists: a run killed from here on is found and cleaned up by the next one
+        Profile = AppContainerProfile.CreateOrOpen(profileName, "MikePDF integration tests", "Zero-capability AppContainer for the MikePDF integration tests");
         EngineDeployment.EnsureAppContainerAccess(DeployDirectory, Profile); // before the copy, so the files inherit it
         foreach (var file in DeployedFiles)
         {
@@ -89,17 +96,7 @@ public sealed class SandboxFixture : IDisposable
         Cleanup(Profile.Delete);
     }
 
-    private static void Cleanup(Action action)
-    {
-        try
-        {
-            action();
-        }
-        catch (Exception e) when (e is IOException or UnauthorizedAccessException or System.ComponentModel.Win32Exception or InvalidOperationException)
-        {
-            // Best effort: a leftover is reclaimed by the next run's stale-directory sweep and CreateOrOpen.
-        }
-    }
+    private static void Cleanup(Action action) => TestProfiles.TryDo(action);
 
     private string FindWriterHostDirectory()
     {
@@ -124,14 +121,6 @@ public sealed class SandboxFixture : IDisposable
         foreach (var directory in Directory.GetDirectories(source))
         {
             CopyDirectory(directory, Path.Combine(target, Path.GetFileName(directory)));
-        }
-    }
-
-    private static void DeleteStaleDeployments(string parent)
-    {
-        foreach (var directory in Directory.GetDirectories(parent))
-        {
-            Cleanup(() => Directory.Delete(directory, recursive: true));
         }
     }
 

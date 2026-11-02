@@ -139,33 +139,19 @@ No message includes a file path or document content.
 
 Not applicable. These handlers are read-only and never modify, create or lock user files (the handle is opened with full sharing so the shell never blocks another writer).
 
-## 11. Engine and protocol additions (schema v4)
+## 11. Engine and protocol additions (schema v5; ADR-0018 and S6b are the authority, this section follows them)
 
-New `ProcessKind` value `ShellHandler = 3`. ShellHost speaks the same framing as the engine protocol (4-byte length, MessagePack, limits as in ADR-0005). Candidate A's messages, ids from 2048 so they never collide with engine (16 to 63) or writer-host (1024 and up) ids:
+The text below was corrected in `m3/engine` after S6b: the handle direction, the field names and limits and the session in the envelope.
 
-**`ShellOpen` (2048).**
+New `ProcessKind` value `ShellHandler = 3`, sent by the handler in `Hello`; ShellHost accepts no other kind and an engine refuses this one. The framing is the engine's (4-byte length, MessagePack, ADR-0005 limits), one pipe connection per handler instance, and the connection is the session. Ids from 2048 never collide with engine (16 to 63) or writer-host (1024 and up) ids.
 
-| Request field | Type | Limits |
-|---|---|---|
-| `fileHandle` | u64 | min 1; a handle value valid in ShellHost, duplicated by the handler with `DuplicateHandle` |
-| `fileSize` | u64 | max 2^40; informational, checked against the handle |
+**`ShellOpen` (2048, no document).** Request: `section` (u64, min 1), a section handle valid in the **handler** (the sending process) with read access, which ShellHost duplicates from the process at the other end of the pipe (`GetNamedPipeClientProcessId`, then `DuplicateHandle`); `bytes` (u32, 1 to 33554432), the file size (the section may be larger). Reply: `documentId` (u32, min 1, the session), `pageCount` (u32, max 10000000), `firstWidth` and `firstHeight` (f32, exclusive min 0, max 14400, points). No password: a shell never prompts.
 
-Reply: `sessionId` (u32, min 1), `pageCount` (u32, max 10000000), `firstWidthPt` and `firstHeightPt` (f32, exclusive min 0, max 14400).
+**`ShellRenderPage` (2049, document required).** Request: `page` (u32, max 9999999), `maxWidth` and `maxHeight` (u32, 16 to 1024), `flags` (u32, max 1; bit 0 draws annotations), `pixels` (u64, min 1), a section handle valid in the handler with write access, and `pixelBytes` (u32, 4 to 4194304, at least `maxWidth x maxHeight x 4`). Reply: `width` and `height` (u32, 1 to 1024, at most the request's maxima), `stride` (u32, 4 to 4096, equal to `4 x width`); the pixels are in the caller's section. The handler checks the last three before it builds a bitmap; the schema cannot.
 
-**`ShellRenderPage` (2049).**
+**`ShellClose` (2050, document required).** Empty request and reply. Optional: closing the pipe ends the session.
 
-| Request field | Type | Limits |
-|---|---|---|
-| `sessionId` | u32 | min 1 |
-| `page` | u32 | max 9999999 |
-| `maxWidth`, `maxHeight` | u32 | 1 to 4096 |
-| `flags` | u32 | max 1 (bit 0: draw annotations); other bits must be 0 |
-| `section` | u64 | min 1; a section handle valid in ShellHost, created by the handler |
-| `sectionBytes` | u32 | `maxWidth x maxHeight x 4` at most; max 67108864 |
-
-Reply: `width`, `height` (u32, 1 to 4096, at most the request's max), `stride` (u32, equal to `4 x width`). The pixels are in the shared section, written by ShellHost after it copies them out of the engine's slot.
-
-**`ShellClose` (2050).** Request: `sessionId`. Reply: empty.
+`OpenDocument` has no section source (ADR-0018 decided against it for v1.0).
 
 Statuses reuse the existing enum (`PasswordRequired`, `Damaged`, `Timeout`, `PermissionDenied` for policy-off, and so on). `deadlineMs` in the envelope carries the handler's remaining budget. The generator must emit C++ **client** encoders and decoders for these three messages (the engine side only needed server-side ones so far).
 

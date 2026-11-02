@@ -8,6 +8,7 @@ using Microsoft.UI.Xaml.Media;
 using DispatcherQueueTimer = Microsoft.UI.Dispatching.DispatcherQueueTimer;
 using ShapePath = Microsoft.UI.Xaml.Shapes.Path;
 using MikePDF.App.Services;
+using MikePDF.Core.Colour;
 using MikePDF.Core.Geometry;
 using MikePDF.Core.Layout;
 using MikePDF.Core.Reading;
@@ -65,6 +66,7 @@ public sealed class PageSurface : Control
     private PointD _lastClickPoint;
     private PointD _lastPointer;
     private DispatcherQueueTimer? _autoScroll;
+    private PageColourMode _pageColour = PageColourMode.Normal;
     private TextModel _accessibleModel = TextModel.Empty;
     private string _accessiblePages = string.Empty;
 
@@ -96,6 +98,23 @@ public sealed class PageSurface : Control
 
     /// <summary>A copy finished: true when the text was cut because the selection was very large.</summary>
     internal event Action<bool>? Copied;
+
+    /// <summary>The person tried to copy, and the document's owner has not allowed it.</summary>
+    internal event Action? CopyBlocked;
+
+    /// <summary>
+    /// How the pages are coloured. A high-contrast theme overrides it: the system's colours win, so the setting is kept but not applied while
+    /// high contrast is on.
+    /// </summary>
+    internal PageColourMode PageColour
+    {
+        get => _pageColour;
+        set
+        {
+            _pageColour = value;
+            ApplyColors();
+        }
+    }
 
     internal DocumentSession? Session
     {
@@ -189,6 +208,7 @@ public sealed class PageSurface : Control
         }
 
         Presenter.SetColors(background, paper, border);
+        Presenter.ColourMode = _accessibility.HighContrast ? PageColourMode.Normal : _pageColour;
         _session?.RequestFrame();
     }
 
@@ -553,6 +573,11 @@ public sealed class PageSurface : Control
         var scale = RasterScale;
         var ctrl = IsDown(VirtualKey.Control);
         var shift = IsDown(VirtualKey.Shift);
+        if (IsDown(VirtualKey.Menu))
+        {
+            return; // Alt+Left and Alt+Right are Back and Forward (window accelerators), not Left and Right
+        }
+
         if (ctrl && !shift && e.Key == VirtualKey.A)
         {
             SelectAll();
@@ -586,10 +611,10 @@ public sealed class PageSurface : Control
         switch (e.Key)
         {
             case VirtualKey.PageDown:
-                _session.ScrollScreen(+1);
+                _session.PageDown();
                 break;
             case VirtualKey.PageUp:
-                _session.ScrollScreen(-1);
+                _session.PageUp();
                 break;
             case VirtualKey.Space:
                 _session.ScrollScreen(shift ? -1 : +1);
@@ -631,6 +656,13 @@ public sealed class PageSurface : Control
     {
         if (_session is not { } session)
         {
+            return;
+        }
+
+        if (!session.CanCopy)
+        {
+            // The owner's restriction (P0: owner-restricted permissions are respected). Only copying is stopped: reading and screen readers are not.
+            CopyBlocked?.Invoke();
             return;
         }
 

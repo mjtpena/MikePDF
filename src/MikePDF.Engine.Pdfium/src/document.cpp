@@ -12,6 +12,7 @@
 #include <fpdf_catalog.h>
 #include <fpdf_doc.h>
 #include <fpdf_edit.h>
+#include <fpdf_formfill.h>
 #include <fpdf_javascript.h>
 #include <fpdf_progressive.h>
 #include <fpdf_signature.h>
@@ -31,6 +32,12 @@ constexpr float kMinPageSide = 1.0f;
 constexpr float kMaxPageSide = 14400.0f;              // schema limit of GetPageSizesReply
 constexpr std::size_t kMaxMetaStringBytes = 1024;     // schema limit of the info strings
 constexpr unsigned long kMaxMetaRawBytes = 64 * 1024;  // refuse to copy a larger raw string out of PDFium
+constexpr std::size_t kMaxDateBytes = 64;             // schema limit of the two dates in GetDocumentDetailsReply
+constexpr std::size_t kMaxFonts = 64;
+constexpr std::size_t kMaxFontNameBytes = 128;
+constexpr int kMaxFormDepth = 4;                      // forms inside forms: a hostile file can nest them far deeper than any real one
+constexpr std::uint32_t kMaxObjectsPerPage = 50'000;  // page objects visited per page, nested ones included
+constexpr std::uint32_t kExpiredPollEvery = 256;
 constexpr std::uint32_t kMaxSignatures = 65535;
 constexpr std::int64_t kMaxDeviceSide = std::int64_t{1} << 24;
 constexpr std::uint32_t kMaxTileSide = 1024;
@@ -117,7 +124,7 @@ std::string utf16_to_utf8(const std::vector<char16_t>& units, std::size_t max_by
     return out;
 }
 
-std::string meta_text(FPDF_DOCUMENT doc, const char* tag) {
+std::string meta_text(FPDF_DOCUMENT doc, const char* tag, std::size_t max_bytes = kMaxMetaStringBytes) {
     const unsigned long needed = FPDF_GetMetaText(doc, tag, nullptr, 0);  // bytes, including the 2-byte terminator
     if (needed <= 2 || needed > kMaxMetaRawBytes || needed % 2 != 0) {
         return {};
@@ -126,7 +133,7 @@ std::string meta_text(FPDF_DOCUMENT doc, const char* tag) {
     if (FPDF_GetMetaText(doc, tag, buffer.data(), needed) != needed) {
         return {};
     }
-    return utf16_to_utf8(buffer, kMaxMetaStringBytes);
+    return utf16_to_utf8(buffer, max_bytes);
 }
 
 float clamp_page_side(float value) {
@@ -172,6 +179,105 @@ FPDF_BOOL NeedToPauseNow(IFSDK_PAUSE* self) {
         }
     }
     return state->reason != RenderInterrupt::None ? 1 : 0;
+}
+
+// Draws a page into a bitmap in slices, asking `interrupt` between them (PDFium polls it about every 100 drawing operations). Ok, Cancelled / Timeout (the check
+// stopped it) or PartiallyRendered (PDFium gave up part-way).
+Status render_progressive(FPDF_BITMAP bitmap, FPDF_PAGE page, int start_x, int start_y, int size_x, int size_y, int rotate, int flags,
+                          const InterruptCheck& interrupt) {
+    PauseState state{&interrupt, RenderInterrupt::None};
+    IFSDK_PAUSE pause{};
+    pause.version = 1;
+    pause.NeedToPauseNow = NeedToPauseNow;
+    pause.user = &state;
+
+    int progress = FPDF_RenderPageBitmap_Start(bitmap, page, start_x, start_y, size_x, size_y, rotate, flags, &pause);
+    while (progress == FPDF_RENDER_TOBECONTINUED && state.reason == RenderInterrupt::None) {
+        progress = FPDF_RenderPage_Continue(page, &pause);
+    }
+    FPDF_RenderPage_Close(page);
+
+    if (progress == FPDF_RENDER_DONE) {
+        return Status::Ok;
+    }
+    if (state.reason == RenderInterrupt::Cancel) {
+        return Status::Cancelled;
+    }
+    if (state.reason == RenderInterrupt::Timeout) {
+        return Status::Timeout;
+    }
+    return Status::PartiallyRendered;
+}
+
+// ---- fonts (GetDocumentDetails) ------------------------------------------------------------------------------------------------------
+
+// A font's base name as printable ASCII: names are PDF names, whose bytes can be anything, and the schema wants text.
+std::string font_name(FPDF_FONT font) {
+    const std::size_t needed = FPDFFont_GetBaseFontName(font, nullptr, 0);  // bytes, with the terminator
+    if (needed <= 1 || needed > 4096) {
+        return {};
+    }
+    std::string buffer(needed, '\0');
+    if (FPDFFont_GetBaseFontName(font, buffer.data(), needed) != needed) {
+        return {};
+    }
+    std::string name;
+    for (std::size_t i = 0; i + 1 < needed && name.size() < kMaxFontNameBytes; ++i) {
+        const auto c = static_cast<unsigned char>(buffer[i]);
+        name += (c >= 0x20 && c < 0x7F) ? static_cast<char>(c) : '?';
+    }
+    return name;
+}
+
+struct FontCollector {
+    std::vector<std::string> names;
+    std::vector<std::uint16_t> flags;
+    bool overflowed{false};  // more fonts than the reply holds
+
+    void add(FPDF_FONT font) {
+        if (font == nullptr) {
+            return;
+        }
+        std::string name = font_name(font);
+        if (name.empty()) {
+            return;
+        }
+        const std::uint16_t embedded = FPDFFont_GetIsEmbedded(font) == 1 ? 1 : 0;
+        for (std::size_t i = 0; i < names.size(); ++i) {
+            if (names[i] == name) {
+                flags[i] |= embedded;
+                return;
+            }
+        }
+        if (names.size() >= kMaxFonts) {
+            overflowed = true;
+            return;
+        }
+        names.push_back(std::move(name));
+        flags.push_back(embedded);
+    }
+};
+
+// Walks the objects of a page (or of a form inside it) for text. False when it stopped early: out of time, or out of objects.
+bool collect_fonts(FPDF_PAGE page, FPDF_PAGEOBJECT form, int depth, std::uint32_t& visited, FontCollector& fonts, const std::function<bool()>& expired) {
+    const int count = form == nullptr ? FPDFPage_CountObjects(page) : FPDFFormObj_CountObjects(form);
+    for (int i = 0; i < count; ++i) {
+        if (++visited > kMaxObjectsPerPage || (visited % kExpiredPollEvery == 0 && expired && expired())) {
+            return false;
+        }
+        FPDF_PAGEOBJECT object = form == nullptr ? FPDFPage_GetObject(page, i) : FPDFFormObj_GetObject(form, static_cast<unsigned long>(i));
+        if (object == nullptr) {
+            continue;
+        }
+        const int type = FPDFPageObj_GetType(object);
+        if (type == FPDF_PAGEOBJ_TEXT) {
+            fonts.add(FPDFTextObj_GetFont(object));
+        } else if (type == FPDF_PAGEOBJ_FORM && depth < kMaxFormDepth && !collect_fonts(page, object, depth + 1, visited, fonts, expired)) {
+            return false;
+        }
+    }
+
+    return true;
 }
 
 }  // namespace
@@ -337,31 +443,101 @@ Status Document::render_tile(const TileRequest& request, std::span<std::uint8_t>
     }
     FPDFBitmap_FillRect(bitmap.bitmap, 0, 0, static_cast<int>(request.tile_width), static_cast<int>(request.tile_height), 0xFFFFFFFFu);
 
-    PauseState state{&interrupt, RenderInterrupt::None};
-    IFSDK_PAUSE pause{};
-    pause.version = 1;
-    pause.NeedToPauseNow = NeedToPauseNow;
-    pause.user = &state;
-
     const int flags = (request.flags & kRenderAnnotations) != 0 ? FPDF_ANNOT : 0;
-    int progress = FPDF_RenderPageBitmap_Start(bitmap.bitmap, page.page, -request.tile_x, -request.tile_y,
-                                               static_cast<int>(device_width), static_cast<int>(device_height),
-                                               request.rotation, flags, &pause);
-    while (progress == FPDF_RENDER_TOBECONTINUED && state.reason == RenderInterrupt::None) {
-        progress = FPDF_RenderPage_Continue(page.page, &pause);
-    }
-    FPDF_RenderPage_Close(page.page);
+    return render_progressive(bitmap.bitmap, page.page, -request.tile_x, -request.tile_y, static_cast<int>(device_width),
+                              static_cast<int>(device_height), request.rotation, flags, interrupt);
+}
 
-    if (progress == FPDF_RENDER_DONE) {
-        return Status::Ok;
+Status Document::render_band(const BandRequest& request, std::span<std::uint8_t> destination, std::uint32_t stride,
+                             const InterruptCheck& interrupt) {
+    constexpr std::uint32_t kMaxBandPageSide = 65536;
+    constexpr std::uint32_t kMaxBandHeight = 16384;
+    constexpr std::uint32_t kKnownFlags = kRenderAnnotations | kRenderFormFields | kRenderPrinting;
+    if (handle_ == nullptr || request.page >= page_count_ || request.rotation > 3 || request.page_width_px == 0 ||
+        request.page_width_px > kMaxBandPageSide || request.page_height_px == 0 || request.page_height_px > kMaxBandPageSide ||
+        request.band_height == 0 || request.band_height > kMaxBandHeight ||
+        std::uint64_t{request.band_top} + request.band_height > request.page_height_px || (request.flags & ~kKnownFlags) != 0) {
+        return Status::InvalidArgument;
     }
-    if (state.reason == RenderInterrupt::Cancel) {
-        return Status::Cancelled;
+    if ((request.flags & kRenderFormFields) != 0) {
+        return Status::Unsupported;  // no form-fill environment until forms arrive
     }
-    if (state.reason == RenderInterrupt::Timeout) {
-        return Status::Timeout;
+    const std::uint64_t row_bytes = std::uint64_t{request.page_width_px} * 4;
+    if (stride != row_bytes || stride > static_cast<std::uint32_t>(std::numeric_limits<int>::max()) ||
+        std::uint64_t{stride} * request.band_height > destination.size()) {
+        return Status::InvalidArgument;
     }
-    return Status::PartiallyRendered;
+
+    PageHandle page(handle_, static_cast<int>(request.page));
+    if (page.page == nullptr) {
+        return Status::Damaged;
+    }
+    BitmapHandle bitmap{FPDFBitmap_CreateEx(static_cast<int>(request.page_width_px), static_cast<int>(request.band_height), FPDFBitmap_BGRA,
+                                            destination.data(), static_cast<int>(stride))};
+    if (bitmap.bitmap == nullptr) {
+        return Status::InvalidArgument;
+    }
+    FPDFBitmap_FillRect(bitmap.bitmap, 0, 0, static_cast<int>(request.page_width_px), static_cast<int>(request.band_height), 0xFFFFFFFFu);
+
+    int flags = (request.flags & kRenderAnnotations) != 0 ? FPDF_ANNOT : 0;
+    if ((request.flags & kRenderPrinting) != 0) {
+        flags |= FPDF_PRINTING;
+    }
+    return render_progressive(bitmap.bitmap, page.page, 0, -static_cast<int>(request.band_top), static_cast<int>(request.page_width_px),
+                              static_cast<int>(request.page_height_px), request.rotation, flags, interrupt);
+}
+
+// ---- schema 5: /ViewerPreferences -------------------------------------------------------------------------------------------
+
+namespace {
+
+// The value of a name entry of /ViewerPreferences ("R2L"), empty when the entry is absent or not a name. Names longer than 32 bytes are not any we look for.
+std::string viewer_pref_name(FPDF_DOCUMENT doc, const char* key) {
+    char buffer[33]{};
+    const unsigned long needed = FPDF_VIEWERREF_GetName(doc, key, nullptr, 0);
+    if (needed <= 1 || needed > sizeof(buffer) || FPDF_VIEWERREF_GetName(doc, key, buffer, sizeof(buffer)) != needed) {
+        return {};
+    }
+    return std::string(buffer, needed - 1);
+}
+
+}  // namespace
+
+Result<protocol::GetViewerPreferencesReply> Document::viewer_preferences() {
+    constexpr std::size_t kMaxRanges = 64;
+    constexpr int kMaxCopies = 99;
+    if (handle_ == nullptr) {
+        return failure<protocol::GetViewerPreferencesReply>(Status::InvalidArgument, "no document");
+    }
+    protocol::GetViewerPreferencesReply reply;
+
+    const std::string direction = viewer_pref_name(handle_, "Direction");
+    reply.direction = direction == "L2R" ? 0 : direction == "R2L" ? 1 : 2;
+
+    // GetPrintScaling cannot tell an entry that says AppDefault from none at all; the name can.
+    const std::string scaling = viewer_pref_name(handle_, "PrintScaling");
+    reply.print_scaling = scaling == "None" ? 1 : scaling == "AppDefault" ? 2 : 0;
+
+    // PDFium answers 1 for an absent entry, so 1 is "nothing asked for" here too; an absurd value is the most the dialog may take, never more.
+    const int copies = FPDF_VIEWERREF_GetNumCopies(handle_);
+    reply.num_copies = copies >= 2 ? static_cast<std::uint16_t>(std::min(copies, kMaxCopies)) : std::uint16_t{0};
+
+    const int duplex = static_cast<int>(FPDF_VIEWERREF_GetDuplex(handle_));
+    reply.duplex = duplex >= 1 && duplex <= 3 ? static_cast<std::uint16_t>(duplex) : std::uint16_t{0};
+
+    // /PrintPageRange counts pages from 1 (ISO 32000-1, table 150); the reply counts from 0, and a pair that does not describe pages of this document is dropped.
+    if (const FPDF_PAGERANGE range = FPDF_VIEWERREF_GetPrintPageRange(handle_); range != nullptr) {
+        const std::size_t count = std::min<std::size_t>(FPDF_VIEWERREF_GetPrintPageRangeCount(range), kMaxRanges * 2);
+        for (std::size_t i = 0; i + 1 < count && reply.range_firsts.size() < kMaxRanges; i += 2) {
+            const int first = FPDF_VIEWERREF_GetPrintPageRangeElement(range, i);
+            const int last = FPDF_VIEWERREF_GetPrintPageRangeElement(range, i + 1);
+            if (first >= 1 && last >= first && static_cast<std::uint32_t>(last) <= page_count_) {
+                reply.range_firsts.push_back(static_cast<std::uint32_t>(first) - 1);
+                reply.range_lasts.push_back(static_cast<std::uint32_t>(last) - 1);
+            }
+        }
+    }
+    return {Status::Ok, std::move(reply), ""};
 }
 
 // ---- reading services (WP-S2) ----------------------------------------------------------------------------------------------
@@ -455,6 +631,14 @@ Destination describe_action(FPDF_DOCUMENT doc, FPDF_ACTION action, std::uint32_t
 }
 
 Destination describe_link(FPDF_DOCUMENT doc, FPDF_LINK link, std::uint32_t page_count) {
+    // PDFium's FPDFLink_GetDest looks through the link's action as well, and resolves a go-to in ANOTHER file (GoToR, GoToE) against this document's
+    // own names: a link to "alpha" in other.pdf would land on this file's "alpha". Those actions name a place MikePDF cannot show, so they stay actions.
+    if (FPDF_ACTION action = FPDFLink_GetAction(link); action != nullptr) {
+        const auto type = FPDFAction_GetType(action);
+        if (type == PDFACTION_REMOTEGOTO || type == PDFACTION_EMBEDDEDGOTO) {
+            return describe_action(doc, action, page_count);
+        }
+    }
     if (FPDF_DEST dest = FPDFLink_GetDest(doc, link); dest != nullptr) {
         return describe_dest(doc, dest, page_count);
     }
@@ -818,6 +1002,47 @@ Result<protocol::SearchPageReply> Document::search_page(std::uint32_t page, std:
     if (status != Status::Ok) {
         return failure<Reply>(status, "the search ran out of time");
     }
+    return {Status::Ok, std::move(reply), ""};
+}
+
+Result<protocol::GetDocumentDetailsReply> Document::details(std::uint32_t max_font_pages, const std::function<bool()>& expired) {
+    using Reply = protocol::GetDocumentDetailsReply;
+    if (handle_ == nullptr) {
+        return failure<Reply>(Status::InvalidArgument, "no document");
+    }
+    Reply reply;
+    reply.creation_date = meta_text(handle_, "CreationDate", kMaxDateBytes);
+    reply.modification_date = meta_text(handle_, "ModDate", kMaxDateBytes);
+    const int revision = FPDF_GetSecurityHandlerRevision(handle_);
+    reply.security_revision = revision < 0 ? 0 : static_cast<std::uint32_t>(std::min(revision, 255));
+    reply.user_permissions = static_cast<std::uint32_t>(FPDF_GetDocUserPermissions(handle_));
+    const int form = FPDF_GetFormType(handle_);
+    reply.form_type = form < 0 ? 0 : static_cast<std::uint32_t>(std::min(form, 3));
+
+    FontCollector fonts;
+    const std::uint32_t pages = std::min(page_count_, max_font_pages);
+    bool complete = true;
+    std::uint32_t scanned = 0;
+    for (; scanned < pages; ++scanned) {
+        if (expired && expired()) {
+            complete = false;
+            break;
+        }
+        PageHandle page(handle_, static_cast<int>(scanned));
+        if (page.page == nullptr) {
+            continue;  // a page that cannot be loaded has no fonts to list; the page itself reports its damage when drawn
+        }
+        std::uint32_t visited = 0;
+        if (!collect_fonts(page.page, nullptr, 0, visited, fonts, expired)) {
+            complete = false;
+            break;
+        }
+    }
+
+    reply.fonts_complete = complete && !fonts.overflowed && scanned >= page_count_;
+    reply.font_pages_scanned = scanned;
+    reply.font_names = std::move(fonts.names);
+    reply.font_flags = std::move(fonts.flags);
     return {Status::Ok, std::move(reply), ""};
 }
 

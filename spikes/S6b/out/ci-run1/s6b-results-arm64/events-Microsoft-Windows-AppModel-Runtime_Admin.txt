@@ -1,0 +1,305 @@
+
+
+TimeCreated  : 11/2/2026 4:13:54 AM
+Id           : 211
+ProviderName : Microsoft-Windows-AppModel-Runtime
+Message      : Added process 5624 to Desktop AppX container 8ec53634-d6b5-11f1-8013-7ced8d7d4a9d for package MikePDF.S6bProbe_1.0.0.0_arm64__gxqed95vwwy28.
+
+TimeCreated  : 11/2/2026 4:13:54 AM
+Id           : 211
+ProviderName : Microsoft-Windows-AppModel-Runtime
+Message      : Added process 5340 to Desktop AppX container 8ec53634-d6b5-11f1-8013-7ced8d7d4a9d for package MikePDF.S6bProbe_1.0.0.0_arm64__gxqed95vwwy28.
+
+TimeCreated  : 11/2/2026 4:13:54 AM
+Id           : 211
+ProviderName : Microsoft-Windows-AppModel-Runtime
+Message      : Added process 7760 to Desktop AppX container 8ec53634-d6b5-11f1-8013-7ced8d7d4a9d for package MikePDF.S6bProbe_1.0.0.0_arm64__gxqed95vwwy28.
+
+TimeCreated  : 11/2/2026 4:13:53 AM
+Id           : 211
+ProviderName : Microsoft-Windows-AppModel-Runtime
+Message      : Added process 7948 to Desktop AppX container 8ec53634-d6b5-11f1-8013-7ced8d7d4a9d for package MikePDF.S6bProbe_1.0.0.0_arm64__gxqed95vwwy28.
+
+TimeCreated  : 11/2/2026 4:13:53 AM
+Id           : 211
+ProviderName : Microsoft-Windows-AppModel-Runtime
+Message      : Added process 10808 to Desktop AppX container 8ec53634-d6b5-11f1-8013-7ced8d7d4a9d for package MikePDF.S6bProbe_1.0.0.0_arm64__gxqed95vwwy28.
+
+TimeCreated  : 11/2/2026 4:13:53 AM
+Id           : 211
+ProviderName : Microsoft-Windows-AppModel-Runtime
+Message      : Added process 2664 to Desktop AppX container 8ec53634-d6b5-11f1-8013-7ced8d7d4a9d for package MikePDF.S6bProbe_1.0.0.0_arm64__gxqed95vwwy28.
+
+TimeCreated  : 11/2/2026 4:13:52 AM
+Id           : 211
+ProviderName : Microsoft-Windows-AppModel-Runtime
+Message      : Added process 7912 to Desktop AppX container 8ec53634-d6b5-11f1-8013-7ced8d7d4a9d for package MikePDF.S6bProbe_1.0.0.0_arm64__gxqed95vwwy28.
+
+TimeCreated  : 11/2/2026 4:13:52 AM
+Id           : 211
+ProviderName : Microsoft-Windows-AppModel-Runtime
+Message      : Added process 5012 to Desktop AppX container 8ec53634-d6b5-11f1-8013-7ced8d7d4a9d for package MikePDF.S6bProbe_1.0.0.0_arm64__gxqed95vwwy28.
+
+TimeCreated  : 11/2/2026 4:13:52 AM
+Id           : 211
+ProviderName : Microsoft-Windows-AppModel-Runtime
+Message      : Added process 2372 to Desktop AppX container 8ec53634-d6b5-11f1-8013-7ced8d7d4a9d for package MikePDF.S6bProbe_1.0.0.0_arm64__gxqed95vwwy28.
+
+TimeCreated  : 11/2/2026 4:13:52 AM
+Id           : 211
+ProviderName : Microsoft-Windows-AppModel-Runtime
+Message      : Added process 1316 to Desktop AppX container 8ec53634-d6b5-11f1-8013-7ced8d7d4a9d for package MikePDF.S6bProbe_1.0.0.0_arm64__gxqed95vwwy28.
+
+TimeCreated  : 11/2/2026 4:13:51 AM
+Id           : 211
+ProviderName : Microsoft-Windows-AppModel-Runtime
+Message      : Added process 6948 to Desktop AppX container 8ec53634-d6b5-11f1-8013-7ced8d7d4a9d for package MikePDF.S6bProbe_1.0.0.0_arm64__gxqed95vwwy28.
+
+TimeCreated  : 11/2/2026 4:13:51 AM
+Id           : 40
+ProviderName : Microsoft-Windows-AppModel-Runtime
+Message      : AppContainer onecore\ds\security\gina\profile\profext\appcontainer.cpp Line:1863 S6b shell host MikePDF.S6bShell was not created because it already exists.
+
+TimeCreated  : 11/2/2026 4:13:51 AM
+Id           : 211
+ProviderName : Microsoft-Windows-AppModel-Runtime
+Message      : Added process 1432 to Desktop AppX container 8ec53634-d6b5-11f1-8013-7ced8d7d4a9d for package MikePDF.S6bProbe_1.0.0.0_arm64__gxqed95vwwy28.
+
+TimeCreated  : 11/2/2026 4:13:49 AM
+Id           : 40
+ProviderName : Microsoft-Windows-AppModel-Runtime
+Message      : AppContainer onecore\ds\security\gina\profile\profext\appcontainer.cpp Line:1863 S6b shell host MikePDF.S6bShell was not created because it already exists.
+
+TimeCreated  : 11/2/2026 4:13:49 AM
+Id           : 40
+ProviderName : Microsoft-Windows-AppModel-Runtime
+Message      : AppContainer onecore\ds\security\gina\profile\profext\appcontainer.cpp Line:1863 S6b shell host MikePDF.S6bShell was not created because it already exists.
+
+TimeCreated  : 11/2/2026 4:13:48 AM
+Id           : 39
+ProviderName : Microsoft-Windows-AppModel-Runtime
+Message      : Successfully created AppContainer MikePDF.S6bShell.
+
+TimeCreated  : 11/2/2026 4:13:48 AM
+Id           : 211
+ProviderName : Microsoft-Windows-AppModel-Runtime
+Message      : Added process 8228 to Desktop AppX container 8ec53634-d6b5-11f1-8013-7ced8d7d4a9d for package MikePDF.S6bProbe_1.0.0.0_arm64__gxqed95vwwy28.
+
+TimeCreated  : 11/2/2026 4:13:47 AM
+Id           : 201
+ProviderName : Microsoft-Windows-AppModel-Runtime
+Message      : Created process 10728 for application MikePDF.S6bProbe_gxqed95vwwy28!Driver in package MikePDF.S6bProbe_1.0.0.0_arm64__gxqed95vwwy28. [FinishPackageActivation]
+
+TimeCreated  : 11/2/2026 4:13:47 AM
+Id           : 211
+ProviderName : Microsoft-Windows-AppModel-Runtime
+Message      : Added process 10728 to Desktop AppX container 8ec53634-d6b5-11f1-8013-7ced8d7d4a9d for package MikePDF.S6bProbe_1.0.0.0_arm64__gxqed95vwwy28.
+
+TimeCreated  : 11/2/2026 4:13:47 AM
+Id           : 210
+ProviderName : Microsoft-Windows-AppModel-Runtime
+Message      : Created Desktop AppX container {8EC53634-D6B5-11F1-8013-7CED8D7D4A9D} for package MikePDF.S6bProbe_1.0.0.0_arm64__gxqed95vwwy28.
+
+TimeCreated  : 11/2/2026 4:13:47 AM
+Id           : 219
+ProviderName : Microsoft-Windows-AppModel-Runtime
+Message      : PSMFlags for Desktop AppX process %1 with applicationID %2 is %3.
+
+TimeCreated  : 11/2/2026 4:13:31 AM
+Id           : 39
+ProviderName : Microsoft-Windows-AppModel-Runtime
+Message      : Successfully created AppContainer MikePDF.S6bProbe_gxqed95vwwy28.
+
+TimeCreated  : 11/2/2026 4:12:14 AM
+Id           : 40
+ProviderName : Microsoft-Windows-AppModel-Runtime
+Message      : AppContainer onecore\ds\security\gina\profile\profext\appcontainer.cpp Line:1863 Microsoft.Windows.XtaCache.Compiler Microsoft.Windows.XtaCache.Compiler was not created because it already exists.
+
+TimeCreated  : 11/2/2026 4:11:00 AM
+Id           : 39
+ProviderName : Microsoft-Windows-AppModel-Runtime
+Message      : Successfully created AppContainer Microsoft.StartExperiencesApp_8wekyb3d8bbwe.
+
+TimeCreated  : 11/2/2026 4:10:57 AM
+Id           : 211
+ProviderName : Microsoft-Windows-AppModel-Runtime
+Message      : Added process 8220 to Desktop AppX container 8ec5353e-d6b5-11f1-8013-7ced8d7d4a9d for package Microsoft.WidgetsPlatformRuntime_1.6.19.0_arm64__8wekyb3d8bbwe.
+
+TimeCreated  : 11/2/2026 4:10:57 AM
+Id           : 210
+ProviderName : Microsoft-Windows-AppModel-Runtime
+Message      : Created Desktop AppX container {8EC5353E-D6B5-11F1-8013-7CED8D7D4A9D} for package Microsoft.WidgetsPlatformRuntime_1.6.19.0_arm64__8wekyb3d8bbwe.
+
+TimeCreated  : 11/2/2026 4:10:57 AM
+Id           : 211
+ProviderName : Microsoft-Windows-AppModel-Runtime
+Message      : Added process 5364 to Desktop AppX container 8ec5353a-d6b5-11f1-8013-7ced8d7d4a9d for package MicrosoftWindows.Client.WebExperience_526.21100.40.0_arm64__cw5n1h2txyewy.
+
+TimeCreated  : 11/2/2026 4:10:57 AM
+Id           : 210
+ProviderName : Microsoft-Windows-AppModel-Runtime
+Message      : Created Desktop AppX container {8EC5353A-D6B5-11F1-8013-7CED8D7D4A9D} for package MicrosoftWindows.Client.WebExperience_526.21100.40.0_arm64__cw5n1h2txyewy.
+
+TimeCreated  : 11/2/2026 4:08:26 AM
+Id           : 40
+ProviderName : Microsoft-Windows-AppModel-Runtime
+Message      : AppContainer onecore\ds\security\gina\profile\profext\appcontainer.cpp Line:1863 Microsoft.Windows.XtaCache.Compiler Microsoft.Windows.XtaCache.Compiler was not created because it already exists.
+
+TimeCreated  : 11/2/2026 4:06:02 AM
+Id           : 217
+ProviderName : Microsoft-Windows-AppModel-Runtime
+Message      : Destroyed Desktop AppX container {8EC5341E-D6B5-11F1-8013-7CED8D7D4A9D} for package MicrosoftWindows.Client.WebExperience_526.21100.40.0_arm64__cw5n1h2txyewy.
+
+TimeCreated  : 11/2/2026 4:06:01 AM
+Id           : 39
+ProviderName : Microsoft-Windows-AppModel-Runtime
+Message      : Successfully created AppContainer Microsoft.WidgetsPlatformRuntime_8wekyb3d8bbwe.
+
+TimeCreated  : 11/2/2026 4:06:00 AM
+Id           : 211
+ProviderName : Microsoft-Windows-AppModel-Runtime
+Message      : Added process 9188 to Desktop AppX container 8ec5341e-d6b5-11f1-8013-7ced8d7d4a9d for package MicrosoftWindows.Client.WebExperience_526.21100.40.0_arm64__cw5n1h2txyewy.
+
+TimeCreated  : 11/2/2026 4:06:00 AM
+Id           : 210
+ProviderName : Microsoft-Windows-AppModel-Runtime
+Message      : Created Desktop AppX container {8EC5341E-D6B5-11F1-8013-7CED8D7D4A9D} for package MicrosoftWindows.Client.WebExperience_526.21100.40.0_arm64__cw5n1h2txyewy.
+
+TimeCreated  : 11/2/2026 4:05:59 AM
+Id           : 39
+ProviderName : Microsoft-Windows-AppModel-Runtime
+Message      : Successfully created AppContainer Microsoft.Windows.CloudExperienceHost_cw5n1h2txyewy.
+
+TimeCreated  : 11/2/2026 4:05:59 AM
+Id           : 39
+ProviderName : Microsoft-Windows-AppModel-Runtime
+Message      : Successfully created AppContainer MicrosoftWindows.Client.WebExperience_cw5n1h2txyewy.
+
+TimeCreated  : 11/2/2026 4:05:58 AM
+Id           : 42
+ProviderName : Microsoft-Windows-AppModel-Runtime
+Message      : Successfully updated AppContainer Microsoft.VCLibs.140.00_8wekyb3d8bbwe.
+
+TimeCreated  : 11/2/2026 4:05:58 AM
+Id           : 39
+ProviderName : Microsoft-Windows-AppModel-Runtime
+Message      : Successfully created AppContainer Microsoft.VCLibs.140.00_8wekyb3d8bbwe.
+
+TimeCreated  : 11/2/2026 4:05:58 AM
+Id           : 42
+ProviderName : Microsoft-Windows-AppModel-Runtime
+Message      : Successfully updated AppContainer Microsoft.VCLibs.140.00.UWPDesktop_8wekyb3d8bbwe.
+
+TimeCreated  : 11/2/2026 4:05:58 AM
+Id           : 39
+ProviderName : Microsoft-Windows-AppModel-Runtime
+Message      : Successfully created AppContainer Microsoft.VCLibs.140.00.UWPDesktop_8wekyb3d8bbwe.
+
+TimeCreated  : 11/2/2026 4:05:58 AM
+Id           : 42
+ProviderName : Microsoft-Windows-AppModel-Runtime
+Message      : Successfully updated AppContainer Microsoft.WindowsAppRuntime.2_8wekyb3d8bbwe.
+
+TimeCreated  : 11/2/2026 4:05:58 AM
+Id           : 39
+ProviderName : Microsoft-Windows-AppModel-Runtime
+Message      : Successfully created AppContainer Microsoft.WindowsAppRuntime.2_8wekyb3d8bbwe.
+
+TimeCreated  : 11/2/2026 4:05:58 AM
+Id           : 39
+ProviderName : Microsoft-Windows-AppModel-Runtime
+Message      : Successfully created AppContainer Microsoft.Windows.StartMenuExperienceHost_cw5n1h2txyewy.
+
+TimeCreated  : 11/2/2026 4:05:58 AM
+Id           : 39
+ProviderName : Microsoft-Windows-AppModel-Runtime
+Message      : Successfully created AppContainer Microsoft.Windows.ContentDeliveryManager_cw5n1h2txyewy.
+
+TimeCreated  : 11/2/2026 4:05:55 AM
+Id           : 39
+ProviderName : Microsoft-Windows-AppModel-Runtime
+Message      : Successfully created AppContainer Microsoft.AAD.BrokerPlugin_cw5n1h2txyewy.
+
+TimeCreated  : 11/2/2026 4:05:50 AM
+Id           : 39
+ProviderName : Microsoft-Windows-AppModel-Runtime
+Message      : Successfully created AppContainer Microsoft.MicrosoftEdge.Stable_8wekyb3d8bbwe.
+
+TimeCreated  : 11/2/2026 4:05:48 AM
+Id           : 39
+ProviderName : Microsoft-Windows-AppModel-Runtime
+Message      : Successfully created AppContainer windows_ie_ac_001.
+
+TimeCreated  : 11/2/2026 4:05:47 AM
+Id           : 39
+ProviderName : Microsoft-Windows-AppModel-Runtime
+Message      : Successfully created AppContainer MicrosoftWindows.Client.OOBE_cw5n1h2txyewy.
+
+TimeCreated  : 11/2/2026 4:05:47 AM
+Id           : 39
+ProviderName : Microsoft-Windows-AppModel-Runtime
+Message      : Successfully created AppContainer MicrosoftWindows.Client.CoreAI_cw5n1h2txyewy.
+
+TimeCreated  : 11/2/2026 4:05:46 AM
+Id           : 39
+ProviderName : Microsoft-Windows-AppModel-Runtime
+Message      : Successfully created AppContainer Microsoft.Win32WebViewHost_cw5n1h2txyewy.
+
+TimeCreated  : 11/2/2026 4:05:46 AM
+Id           : 39
+ProviderName : Microsoft-Windows-AppModel-Runtime
+Message      : Successfully created AppContainer windows.immersivecontrolpanel_cw5n1h2txyewy.
+
+TimeCreated  : 11/2/2026 4:05:46 AM
+Id           : 39
+ProviderName : Microsoft-Windows-AppModel-Runtime
+Message      : Successfully created AppContainer MicrosoftWindows.Client.CBS_cw5n1h2txyewy.
+
+TimeCreated  : 11/2/2026 4:05:46 AM
+Id           : 39
+ProviderName : Microsoft-Windows-AppModel-Runtime
+Message      : Successfully created AppContainer MicrosoftWindows.Client.Core_cw5n1h2txyewy.
+
+TimeCreated  : 11/2/2026 4:05:44 AM
+Id           : 201
+ProviderName : Microsoft-Windows-AppModel-Runtime
+Message      : Created process 7816 for application MicrosoftWindows.Client.CBS_cw5n1h2txyewy!CrossDeviceResumeApp in package MicrosoftWindows.Client.CBS_1000.26100.372.0_arm64__cw5n1h2txyewy. [LaunchProcess]
+
+TimeCreated  : 11/2/2026 4:05:44 AM
+Id           : 211
+ProviderName : Microsoft-Windows-AppModel-Runtime
+Message      : Added process 7816 to Desktop AppX container 8ec533c5-d6b5-11f1-8013-7ced8d7d4a9d for package MicrosoftWindows.Client.CBS_1000.26100.372.0_arm64__cw5n1h2txyewy.
+
+TimeCreated  : 11/2/2026 4:05:44 AM
+Id           : 210
+ProviderName : Microsoft-Windows-AppModel-Runtime
+Message      : Created Desktop AppX container {8EC533C5-D6B5-11F1-8013-7CED8D7D4A9D} for package MicrosoftWindows.Client.CBS_1000.26100.372.0_arm64__cw5n1h2txyewy.
+
+TimeCreated  : 11/2/2026 4:05:44 AM
+Id           : 219
+ProviderName : Microsoft-Windows-AppModel-Runtime
+Message      : PSMFlags for Desktop AppX process %1 with applicationID %2 is %3.
+
+TimeCreated  : 11/2/2026 4:05:38 AM
+Id           : 40
+ProviderName : Microsoft-Windows-AppModel-Runtime
+Message      : AppContainer onecore\ds\security\gina\profile\profext\appcontainer.cpp Line:1863 Usermode Font Driver Host microsoft.windows.fontdrvhost was not created because it already exists.
+
+TimeCreated  : 11/2/2026 4:05:10 AM
+Id           : 39
+ProviderName : Microsoft-Windows-AppModel-Runtime
+Message      : Successfully created AppContainer DefenderAiPlatformHost.
+
+TimeCreated  : 11/2/2026 4:05:10 AM
+Id           : 41
+ProviderName : Microsoft-Windows-AppModel-Runtime
+Message      : Successfully deleted AppContainer DefenderAiPlatformHost.
+
+TimeCreated  : 11/2/2026 4:05:10 AM
+Id           : 40
+ProviderName : Microsoft-Windows-AppModel-Runtime
+Message      : AppContainer onecore\ds\security\gina\profile\profext\appcontainer.cpp Line:1863 Defender Subsystem AI Platform Host DefenderAiPlatformHost was not created because it already exists.
+
+
+
+

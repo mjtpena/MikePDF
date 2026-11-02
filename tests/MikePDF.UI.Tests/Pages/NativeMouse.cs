@@ -13,6 +13,8 @@ internal static partial class NativeMouse
     private const uint Move = 0x0001;
     private const uint LeftDown = 0x0002;
     private const uint LeftUp = 0x0004;
+    private const uint XDown = 0x0080;
+    private const uint XUp = 0x0100;
     private const uint Absolute = 0x8000;
     private const uint VirtualDesk = 0x4000;
     private const int VirtualLeft = 76;
@@ -49,6 +51,18 @@ internal static partial class NativeMouse
             mouse_event(LeftUp, 0, 0, 0, UIntPtr.Zero);
             Thread.Sleep(60);
         }
+    }
+
+    /// <summary>The mouse's back button (X1) or forward button (X2), pressed and released with the pointer at <paramref name="point"/>.</summary>
+    public static void SideButton(Point point, bool forward)
+    {
+        MoveTo(point);
+        Thread.Sleep(150);
+        var button = forward ? 2u : 1u;
+        mouse_event(XDown, 0, 0, button, UIntPtr.Zero);
+        Thread.Sleep(40);
+        mouse_event(XUp, 0, 0, button, UIntPtr.Zero);
+        Thread.Sleep(60);
     }
 
     /// <summary>Presses at <paramref name="from"/>, moves to <paramref name="to"/> in steps of a few pixels, and lets go.</summary>

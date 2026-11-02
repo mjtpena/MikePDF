@@ -1,0 +1,32 @@
+<UserControl
+    x:Class="MikePDF.App.Views.SettingsView"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!-- Settings (docs/design/screens/13-settings-and-policies.md): a page with a section list on the left and the section on the right. Content is built in code from the setting registry. -->
+    <Grid Background="{ThemeResource SolidBackgroundFillColorBaseBrush}" TabFocusNavigation="Cycle" XYFocusKeyboardNavigation="Disabled">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+        <Grid Padding="12,8" ColumnSpacing="8">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <Button x:Name="BackButton" AutomationProperties.AutomationId="SettingsBack" Click="OnBackClick">
+                <FontIcon Glyph="&#xE72B;" FontSize="16" />
+            </Button>
+            <TextBlock x:Name="TitleText" Grid.Column="1" VerticalAlignment="Center" Style="{StaticResource SubtitleTextBlockStyle}"
+                       AutomationProperties.AutomationId="SettingsTitle" AutomationProperties.HeadingLevel="Level1" />
+        </Grid>
+        <NavigationView x:Name="Nav" Grid.Row="1" PaneDisplayMode="Auto" IsBackButtonVisible="Collapsed" IsSettingsVisible="False" IsPaneToggleButtonVisible="True"
+                        OpenPaneLength="260" CompactModeThresholdWidth="640" ExpandedModeThresholdWidth="900" AutomationProperties.AutomationId="SettingsNav"
+                        SelectionChanged="OnSectionChanged">
+            <ScrollViewer x:Name="Scroller" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                <StackPanel x:Name="SectionPanel" Padding="24,8,24,32" Spacing="14" MaxWidth="780" HorizontalAlignment="Left" />
+            </ScrollViewer>
+        </NavigationView>
+        <TextBlock x:Name="Announcement" Grid.Row="1" Width="1" Height="1" Opacity="0" AutomationProperties.AutomationId="SettingsAnnouncement" AutomationProperties.LiveSetting="Polite" />
+    </Grid>
+</UserControl>

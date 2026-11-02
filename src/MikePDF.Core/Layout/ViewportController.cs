@@ -112,7 +112,11 @@ public sealed class ViewportController
 
     public void ZoomStep(int direction, PointD? viewportAnchor = null) => ZoomTo(ZoomMath.NextStep(Zoom, direction), viewportAnchor);
 
+    /// <summary>100%: 96 device-independent pixels to the inch (Ctrl+0).</summary>
     public void ActualSize(PointD? viewportAnchor = null) => ZoomTo(1.0, viewportAnchor);
+
+    /// <summary>The zoom at which a point of the page is a 72nd of an inch on the monitor, given the monitor's physical density (Ctrl+Alt+0).</summary>
+    public void PhysicalSize(double rawMonitorDpi, PointD? viewportAnchor = null) => ZoomTo(ZoomMath.ActualSizeZoom(rawMonitorDpi, _dpiScale), viewportAnchor);
 
     public void FitWidth() => SetFit(FitMode.Width);
 
@@ -202,6 +206,33 @@ public sealed class ViewportController
     public void FirstPage() => GoToPage(0);
 
     public void LastPage() => GoToPage(PageCount - 1);
+
+    /// <summary>
+    /// Page Down: the next page when the page in view fits the window whole (the view then shows one page at a time), otherwise one screen further
+    /// down the tall page.
+    /// </summary>
+    public void PageDown() => PageStep(+1);
+
+    /// <summary>Page Up: the previous page when the page in view fits the window whole, otherwise one screen up.</summary>
+    public void PageUp() => PageStep(-1);
+
+    private void PageStep(int direction)
+    {
+        var page = CurrentPage;
+        if (page < 0)
+        {
+            return;
+        }
+
+        if (_layout.Height(page) + (2 * _layout.MarginPx) <= _viewportHeight + 2)
+        {
+            GoToPage(Math.Clamp(page + direction, 0, _layout.PageCount - 1));
+        }
+        else
+        {
+            ScrollScreen(direction);
+        }
+    }
 
     /// <summary>One viewport height less a little overlap, for Page Down and Space when pages are taller than the window.</summary>
     public void ScrollScreen(int direction) => ScrollBy(0, direction * Math.Max(1, _viewportHeight * 0.9));

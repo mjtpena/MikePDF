@@ -1,0 +1,278 @@
+04:50:23.382 [shellhost 7712] start pipe=mikepdf-s6b-shell mode=fresh integrity=high package=MikePDF.S6bProbe_1.0.0.0_arm64__gxqed95vwwy28 maxEngines=3 mem=256MB args=--log C:\s6b-log\shellhost.log
+04:50:23.432 [shellhost 7712] ready after 52902 us; sddl=D:P(A;;GA;;;S-1-5-21-1176454823-1106192437-3756152512-500)(A;;GA;;;SY)S:(ML;;NW;;;LW)
+04:50:23.442 [shellhost 7712] client pid=2144 image=C:\Windows\System32\dllhost.exe packageFamily=MikePDF.S6bProbe_gxqed95vwwy28 openForDup=ok
+04:50:23.598 [shellhost 7712] session open: engine pid 7332, pages 1, first page 612x792
+04:50:23.769 [shellhost 3660] start pipe=mikepdf-s6b-shell mode=fresh integrity=high package=MikePDF.S6bProbe_1.0.0.0_arm64__gxqed95vwwy28 maxEngines=3 mem=256MB args=--log C:\s6b-log\shellhost.log
+04:50:23.810 [shellhost 3660] ready after 43582 us; sddl=D:P(A;;GA;;;S-1-5-21-1176454823-1106192437-3756152512-500)(A;;GA;;;SY)S:(ML;;NW;;;LW)
+04:50:23.825 [shellhost 3660] client pid=2144 image=C:\Windows\System32\dllhost.exe packageFamily=MikePDF.S6bProbe_gxqed95vwwy28 openForDup=ok
+04:50:23.912 [shellhost 3660] session open: engine pid 11048, pages 1, first page 612x792
+04:50:24.064 [shellhost 924] start pipe=mikepdf-s6b-shell mode=fresh integrity=high package=MikePDF.S6bProbe_1.0.0.0_arm64__gxqed95vwwy28 maxEngines=3 mem=256MB args=--log C:\s6b-log\shellhost.log
+04:50:24.102 [shellhost 924] ready after 40978 us; sddl=D:P(A;;GA;;;S-1-5-21-1176454823-1106192437-3756152512-500)(A;;GA;;;SY)S:(ML;;NW;;;LW)
+04:50:24.110 [shellhost 924] client pid=2144 image=C:\Windows\System32\dllhost.exe packageFamily=MikePDF.S6bProbe_gxqed95vwwy28 openForDup=ok
+04:50:24.202 [shellhost 924] session open: engine pid 7268, pages 1, first page 612x792
+04:50:24.276 [shellhost 924] client pid=2144 image=C:\Windows\System32\dllhost.exe packageFamily=MikePDF.S6bProbe_gxqed95vwwy28 openForDup=ok
+04:50:24.302 [shellhost 924] session open: engine pid 8892, pages 1, first page 612x792
+04:50:24.332 [shellhost 924] client pid=2144 image=C:\Windows\System32\dllhost.exe packageFamily=MikePDF.S6bProbe_gxqed95vwwy28 openForDup=ok
+04:50:24.357 [shellhost 924] session open: engine pid 2808, pages 1, first page 612x792
+04:50:24.387 [shellhost 924] client pid=2144 image=C:\Windows\System32\dllhost.exe packageFamily=MikePDF.S6bProbe_gxqed95vwwy28 openForDup=ok
+04:50:24.414 [shellhost 924] session open: engine pid 10904, pages 1, first page 612x792
+04:50:24.444 [shellhost 924] client pid=2144 image=C:\Windows\System32\dllhost.exe packageFamily=MikePDF.S6bProbe_gxqed95vwwy28 openForDup=ok
+04:50:24.471 [shellhost 924] session open: engine pid 7092, pages 1, first page 612x792
+04:50:24.501 [shellhost 924] client pid=2144 image=C:\Windows\System32\dllhost.exe packageFamily=MikePDF.S6bProbe_gxqed95vwwy28 openForDup=ok
+04:50:24.527 [shellhost 924] session open: engine pid 11156, pages 1, first page 612x792
+04:50:24.557 [shellhost 924] client pid=2144 image=C:\Windows\System32\dllhost.exe packageFamily=MikePDF.S6bProbe_gxqed95vwwy28 openForDup=ok
+04:50:24.583 [shellhost 924] session open: engine pid 3524, pages 1, first page 612x792
+04:50:24.613 [shellhost 924] client pid=2144 image=C:\Windows\System32\dllhost.exe packageFamily=MikePDF.S6bProbe_gxqed95vwwy28 openForDup=ok
+04:50:24.639 [shellhost 924] session open: engine pid 5524, pages 1, first page 612x792
+04:50:24.669 [shellhost 924] client pid=2144 image=C:\Windows\System32\dllhost.exe packageFamily=MikePDF.S6bProbe_gxqed95vwwy28 openForDup=ok
+04:50:24.696 [shellhost 924] session open: engine pid 10976, pages 1, first page 612x792
+04:50:24.725 [shellhost 924] client pid=2144 image=C:\Windows\System32\dllhost.exe packageFamily=MikePDF.S6bProbe_gxqed95vwwy28 openForDup=ok
+04:50:24.751 [shellhost 924] session open: engine pid 7696, pages 1, first page 612x792
+04:50:24.780 [shellhost 924] client pid=2144 image=C:\Windows\System32\dllhost.exe packageFamily=MikePDF.S6bProbe_gxqed95vwwy28 openForDup=ok
+04:50:24.806 [shellhost 924] session open: engine pid 8000, pages 1, first page 612x792
+04:50:24.837 [shellhost 924] client pid=2144 image=C:\Windows\System32\dllhost.exe packageFamily=MikePDF.S6bProbe_gxqed95vwwy28 openForDup=ok
+04:50:24.862 [shellhost 924] session open: engine pid 2448, pages 1, first page 612x792
+04:50:24.892 [shellhost 924] client pid=2144 image=C:\Windows\System32\dllhost.exe packageFamily=MikePDF.S6bProbe_gxqed95vwwy28 openForDup=ok
+04:50:24.916 [shellhost 924] session open: engine pid 5112, pages 1, first page 612x792
+04:50:24.950 [shellhost 924] client pid=2144 image=C:\Windows\System32\dllhost.exe packageFamily=MikePDF.S6bProbe_gxqed95vwwy28 openForDup=ok
+04:50:24.974 [shellhost 924] session open: engine pid 7180, pages 1, first page 612x792
+04:50:25.003 [shellhost 924] client pid=2144 image=C:\Windows\System32\dllhost.exe packageFamily=MikePDF.S6bProbe_gxqed95vwwy28 openForDup=ok
+04:50:25.028 [shellhost 924] session open: engine pid 7428, pages 1, first page 612x792
+04:50:25.057 [shellhost 924] client pid=2144 image=C:\Windows\System32\dllhost.exe packageFamily=MikePDF.S6bProbe_gxqed95vwwy28 openForDup=ok
+04:50:25.082 [shellhost 924] session open: engine pid 10344, pages 1, first page 612x792
+04:50:25.112 [shellhost 924] client pid=2144 image=C:\Windows\System32\dllhost.exe packageFamily=MikePDF.S6bProbe_gxqed95vwwy28 openForDup=ok
+04:50:25.137 [shellhost 924] session open: engine pid 9876, pages 1, first page 612x792
+04:50:25.170 [shellhost 924] client pid=2144 image=C:\Windows\System32\dllhost.exe packageFamily=MikePDF.S6bProbe_gxqed95vwwy28 openForDup=ok
+04:50:25.195 [shellhost 924] session open: engine pid 10856, pages 1, first page 612x792
+04:50:25.224 [shellhost 924] client pid=2144 image=C:\Windows\System32\dllhost.exe packageFamily=MikePDF.S6bProbe_gxqed95vwwy28 openForDup=ok
+04:50:25.249 [shellhost 924] session open: engine pid 4212, pages 1, first page 612x792
+04:50:25.280 [shellhost 924] client pid=2144 image=C:\Windows\System32\dllhost.exe packageFamily=MikePDF.S6bProbe_gxqed95vwwy28 openForDup=ok
+04:50:25.305 [shellhost 924] session open: engine pid 9156, pages 1, first page 612x792
+04:50:25.334 [shellhost 924] client pid=2144 image=C:\Windows\System32\dllhost.exe packageFamily=MikePDF.S6bProbe_gxqed95vwwy28 openForDup=ok
+04:50:25.359 [shellhost 924] session open: engine pid 7784, pages 1, first page 612x792
+04:50:25.389 [shellhost 924] client pid=2144 image=C:\Windows\System32\dllhost.exe packageFamily=MikePDF.S6bProbe_gxqed95vwwy28 openForDup=ok
+04:50:25.414 [shellhost 924] session open: engine pid 1944, pages 1, first page 612x792
+04:50:25.443 [shellhost 924] client pid=2144 image=C:\Windows\System32\dllhost.exe packageFamily=MikePDF.S6bProbe_gxqed95vwwy28 openForDup=ok
+04:50:25.468 [shellhost 924] session open: engine pid 10684, pages 1, first page 612x792
+04:50:25.496 [shellhost 924] client pid=2144 image=C:\Windows\System32\dllhost.exe packageFamily=MikePDF.S6bProbe_gxqed95vwwy28 openForDup=ok
+04:50:25.521 [shellhost 924] session open: engine pid 7444, pages 1, first page 612x792
+04:50:25.550 [shellhost 924] client pid=2144 image=C:\Windows\System32\dllhost.exe packageFamily=MikePDF.S6bProbe_gxqed95vwwy28 openForDup=ok
+04:50:25.575 [shellhost 924] session open: engine pid 8080, pages 1, first page 612x792
+04:50:25.604 [shellhost 924] client pid=2144 image=C:\Windows\System32\dllhost.exe packageFamily=MikePDF.S6bProbe_gxqed95vwwy28 openForDup=ok
+04:50:25.628 [shellhost 924] session open: engine pid 7640, pages 1, first page 612x792
+04:50:25.658 [shellhost 924] client pid=2144 image=C:\Windows\System32\dllhost.exe packageFamily=MikePDF.S6bProbe_gxqed95vwwy28 openForDup=ok
+04:50:25.683 [shellhost 924] session open: engine pid 5000, pages 1, first page 612x792
+04:50:25.713 [shellhost 924] client pid=2144 image=C:\Windows\System32\dllhost.exe packageFamily=MikePDF.S6bProbe_gxqed95vwwy28 openForDup=ok
+04:50:25.737 [shellhost 924] session open: engine pid 3832, pages 1, first page 612x792
+04:50:25.770 [shellhost 924] client pid=2144 image=C:\Windows\System32\dllhost.exe packageFamily=MikePDF.S6bProbe_gxqed95vwwy28 openForDup=ok
+04:50:25.795 [shellhost 924] session open: engine pid 3172, pages 1, first page 612x792
+04:50:25.826 [shellhost 924] client pid=2144 image=C:\Windows\System32\dllhost.exe packageFamily=MikePDF.S6bProbe_gxqed95vwwy28 openForDup=ok
+04:50:25.850 [shellhost 924] session open: engine pid 8880, pages 1, first page 612x792
+04:50:25.879 [shellhost 924] client pid=2144 image=C:\Windows\System32\dllhost.exe packageFamily=MikePDF.S6bProbe_gxqed95vwwy28 openForDup=ok
+04:50:25.904 [shellhost 924] session open: engine pid 1992, pages 1, first page 612x792
+04:50:25.970 [shellhost 924] client pid=2144 image=C:\Windows\System32\dllhost.exe packageFamily=MikePDF.S6bProbe_gxqed95vwwy28 openForDup=ok
+04:50:25.995 [shellhost 924] session open: engine pid 6812, pages 1, first page 612x792
+04:50:26.043 [shellhost 924] client pid=2144 image=C:\Windows\System32\dllhost.exe packageFamily=MikePDF.S6bProbe_gxqed95vwwy28 openForDup=ok
+04:50:26.068 [shellhost 924] session open: engine pid 1404, pages 1, first page 612x792
+04:50:26.104 [shellhost 924] client pid=2144 image=C:\Windows\System32\dllhost.exe packageFamily=MikePDF.S6bProbe_gxqed95vwwy28 openForDup=ok
+04:50:26.128 [shellhost 924] session open: engine pid 3744, pages 1, first page 612x792
+04:50:26.340 [shellhost 2892] start pipe=mikepdf-s6b-shell mode=fresh integrity=high package=MikePDF.S6bProbe_1.0.0.0_arm64__gxqed95vwwy28 maxEngines=3 mem=256MB args=--log C:\s6b-log\shellhost.log
+04:50:26.375 [shellhost 2892] ready after 37612 us; sddl=D:P(A;;GA;;;S-1-5-21-1176454823-1106192437-3756152512-500)(A;;GA;;;SY)S:(ML;;NW;;;LW)
+04:50:26.392 [shellhost 2892] client pid=8092 image=C:\Windows\System32\prevhost.exe packageFamily=MikePDF.S6bProbe_gxqed95vwwy28 openForDup=ok
+04:50:26.478 [shellhost 2892] session open: engine pid 5740, pages 1, first page 612x792
+04:50:26.598 [shellhost 2892] client pid=6412 image=C:\Windows\System32\prevhost.exe packageFamily=MikePDF.S6bProbe_gxqed95vwwy28 openForDup=ok
+04:50:26.623 [shellhost 2892] session open: engine pid 6304, pages 1, first page 612x792
+04:50:26.708 [shellhost 2892] client pid=6272 image=C:\Windows\System32\prevhost.exe packageFamily=MikePDF.S6bProbe_gxqed95vwwy28 openForDup=ok
+04:50:26.731 [shellhost 2892] session open: engine pid 6652, pages 1, first page 612x792
+04:50:26.819 [shellhost 2892] client pid=2176 image=C:\Windows\System32\prevhost.exe packageFamily=MikePDF.S6bProbe_gxqed95vwwy28 openForDup=ok
+04:50:26.843 [shellhost 2892] session open: engine pid 10548, pages 1, first page 612x792
+==== PHASE: unpackaged driver at HIGH integrity (the runner token)
+04:50:31.487 [shellhost 9348] start pipe=mikepdf-s6b-shell mode=fresh integrity=high package=MikePDF.S6bProbe_1.0.0.0_arm64__gxqed95vwwy28 maxEngines=3 mem=256MB args=--log C:\s6b-log\shellhost.log
+04:50:31.523 [shellhost 9348] ready after 38876 us; sddl=D:P(A;;GA;;;S-1-5-21-1176454823-1106192437-3756152512-500)(A;;GA;;;SY)S:(ML;;NW;;;LW)
+04:50:31.543 [shellhost 9348] client pid=9896 image=C:\Windows\System32\dllhost.exe packageFamily=MikePDF.S6bProbe_gxqed95vwwy28 openForDup=ok
+04:50:31.628 [shellhost 9348] session open: engine pid 11044, pages 1, first page 612x792
+04:50:31.763 [shellhost 7092] start pipe=mikepdf-s6b-shell mode=fresh integrity=high package=MikePDF.S6bProbe_1.0.0.0_arm64__gxqed95vwwy28 maxEngines=3 mem=256MB args=--log C:\s6b-log\shellhost.log
+04:50:31.798 [shellhost 7092] ready after 37199 us; sddl=D:P(A;;GA;;;S-1-5-21-1176454823-1106192437-3756152512-500)(A;;GA;;;SY)S:(ML;;NW;;;LW)
+04:50:31.812 [shellhost 7092] client pid=9896 image=C:\Windows\System32\dllhost.exe packageFamily=MikePDF.S6bProbe_gxqed95vwwy28 openForDup=ok
+04:50:31.898 [shellhost 7092] session open: engine pid 5628, pages 1, first page 612x792
+04:50:32.031 [shellhost 10976] start pipe=mikepdf-s6b-shell mode=fresh integrity=high package=MikePDF.S6bProbe_1.0.0.0_arm64__gxqed95vwwy28 maxEngines=3 mem=256MB args=--log C:\s6b-log\shellhost.log
+04:50:32.066 [shellhost 10976] ready after 37734 us; sddl=D:P(A;;GA;;;S-1-5-21-1176454823-1106192437-3756152512-500)(A;;GA;;;SY)S:(ML;;NW;;;LW)
+04:50:32.080 [shellhost 10976] client pid=9896 image=C:\Windows\System32\dllhost.exe packageFamily=MikePDF.S6bProbe_gxqed95vwwy28 openForDup=ok
+04:50:32.165 [shellhost 10976] session open: engine pid 11088, pages 1, first page 612x792
+04:50:32.218 [shellhost 10976] client pid=9896 image=C:\Windows\System32\dllhost.exe packageFamily=MikePDF.S6bProbe_gxqed95vwwy28 openForDup=ok
+04:50:32.242 [shellhost 10976] session open: engine pid 5132, pages 1, first page 612x792
+04:50:32.262 [shellhost 10976] client pid=9896 image=C:\Windows\System32\dllhost.exe packageFamily=MikePDF.S6bProbe_gxqed95vwwy28 openForDup=ok
+04:50:32.286 [shellhost 10976] session open: engine pid 7180, pages 1, first page 612x792
+04:50:32.306 [shellhost 10976] client pid=9896 image=C:\Windows\System32\dllhost.exe packageFamily=MikePDF.S6bProbe_gxqed95vwwy28 openForDup=ok
+04:50:32.330 [shellhost 10976] session open: engine pid 11152, pages 1, first page 612x792
+04:50:32.351 [shellhost 10976] client pid=9896 image=C:\Windows\System32\dllhost.exe packageFamily=MikePDF.S6bProbe_gxqed95vwwy28 openForDup=ok
+04:50:32.374 [shellhost 10976] session open: engine pid 4284, pages 1, first page 612x792
+04:50:32.395 [shellhost 10976] client pid=9896 image=C:\Windows\System32\dllhost.exe packageFamily=MikePDF.S6bProbe_gxqed95vwwy28 openForDup=ok
+04:50:32.420 [shellhost 10976] session open: engine pid 6808, pages 1, first page 612x792
+04:50:32.441 [shellhost 10976] client pid=9896 image=C:\Windows\System32\dllhost.exe packageFamily=MikePDF.S6bProbe_gxqed95vwwy28 openForDup=ok
+04:50:32.467 [shellhost 10976] session open: engine pid 11212, pages 1, first page 612x792
+04:50:32.487 [shellhost 10976] client pid=9896 image=C:\Windows\System32\dllhost.exe packageFamily=MikePDF.S6bProbe_gxqed95vwwy28 openForDup=ok
+04:50:32.512 [shellhost 10976] session open: engine pid 6120, pages 1, first page 612x792
+04:50:32.532 [shellhost 10976] client pid=9896 image=C:\Windows\System32\dllhost.exe packageFamily=MikePDF.S6bProbe_gxqed95vwwy28 openForDup=ok
+04:50:32.556 [shellhost 10976] session open: engine pid 6932, pages 1, first page 612x792
+04:50:32.576 [shellhost 10976] client pid=9896 image=C:\Windows\System32\dllhost.exe packageFamily=MikePDF.S6bProbe_gxqed95vwwy28 openForDup=ok
+04:50:32.599 [shellhost 10976] session open: engine pid 1944, pages 1, first page 612x792
+04:50:32.620 [shellhost 10976] client pid=9896 image=C:\Windows\System32\dllhost.exe packageFamily=MikePDF.S6bProbe_gxqed95vwwy28 openForDup=ok
+04:50:32.644 [shellhost 10976] session open: engine pid 6824, pages 1, first page 612x792
+04:50:32.664 [shellhost 10976] client pid=9896 image=C:\Windows\System32\dllhost.exe packageFamily=MikePDF.S6bProbe_gxqed95vwwy28 openForDup=ok
+04:50:32.688 [shellhost 10976] session open: engine pid 10300, pages 1, first page 612x792
+04:50:32.708 [shellhost 10976] client pid=9896 image=C:\Windows\System32\dllhost.exe packageFamily=MikePDF.S6bProbe_gxqed95vwwy28 openForDup=ok
+04:50:32.731 [shellhost 10976] session open: engine pid 8096, pages 1, first page 612x792
+04:50:32.755 [shellhost 10976] client pid=9896 image=C:\Windows\System32\dllhost.exe packageFamily=MikePDF.S6bProbe_gxqed95vwwy28 openForDup=ok
+04:50:32.778 [shellhost 10976] session open: engine pid 7384, pages 1, first page 612x792
+04:50:32.798 [shellhost 10976] client pid=9896 image=C:\Windows\System32\dllhost.exe packageFamily=MikePDF.S6bProbe_gxqed95vwwy28 openForDup=ok
+04:50:32.821 [shellhost 10976] session open: engine pid 7804, pages 1, first page 612x792
+04:50:32.841 [shellhost 10976] client pid=9896 image=C:\Windows\System32\dllhost.exe packageFamily=MikePDF.S6bProbe_gxqed95vwwy28 openForDup=ok
+04:50:32.864 [shellhost 10976] session open: engine pid 5480, pages 1, first page 612x792
+04:50:32.884 [shellhost 10976] client pid=9896 image=C:\Windows\System32\dllhost.exe packageFamily=MikePDF.S6bProbe_gxqed95vwwy28 openForDup=ok
+04:50:32.908 [shellhost 10976] session open: engine pid 9072, pages 1, first page 612x792
+04:50:32.928 [shellhost 10976] client pid=9896 image=C:\Windows\System32\dllhost.exe packageFamily=MikePDF.S6bProbe_gxqed95vwwy28 openForDup=ok
+04:50:32.952 [shellhost 10976] session open: engine pid 8752, pages 1, first page 612x792
+04:50:32.973 [shellhost 10976] client pid=9896 image=C:\Windows\System32\dllhost.exe packageFamily=MikePDF.S6bProbe_gxqed95vwwy28 openForDup=ok
+04:50:32.998 [shellhost 10976] session open: engine pid 6812, pages 1, first page 612x792
+04:50:33.018 [shellhost 10976] client pid=9896 image=C:\Windows\System32\dllhost.exe packageFamily=MikePDF.S6bProbe_gxqed95vwwy28 openForDup=ok
+04:50:33.042 [shellhost 10976] session open: engine pid 8780, pages 1, first page 612x792
+04:50:33.063 [shellhost 10976] client pid=9896 image=C:\Windows\System32\dllhost.exe packageFamily=MikePDF.S6bProbe_gxqed95vwwy28 openForDup=ok
+04:50:33.087 [shellhost 10976] session open: engine pid 11252, pages 1, first page 612x792
+04:50:33.108 [shellhost 10976] client pid=9896 image=C:\Windows\System32\dllhost.exe packageFamily=MikePDF.S6bProbe_gxqed95vwwy28 openForDup=ok
+04:50:33.134 [shellhost 10976] session open: engine pid 11020, pages 1, first page 612x792
+04:50:33.156 [shellhost 10976] client pid=9896 image=C:\Windows\System32\dllhost.exe packageFamily=MikePDF.S6bProbe_gxqed95vwwy28 openForDup=ok
+04:50:33.181 [shellhost 10976] session open: engine pid 7156, pages 1, first page 612x792
+04:50:33.202 [shellhost 10976] client pid=9896 image=C:\Windows\System32\dllhost.exe packageFamily=MikePDF.S6bProbe_gxqed95vwwy28 openForDup=ok
+04:50:33.228 [shellhost 10976] session open: engine pid 5748, pages 1, first page 612x792
+04:50:33.249 [shellhost 10976] client pid=9896 image=C:\Windows\System32\dllhost.exe packageFamily=MikePDF.S6bProbe_gxqed95vwwy28 openForDup=ok
+04:50:33.273 [shellhost 10976] session open: engine pid 5592, pages 1, first page 612x792
+04:50:33.294 [shellhost 10976] client pid=9896 image=C:\Windows\System32\dllhost.exe packageFamily=MikePDF.S6bProbe_gxqed95vwwy28 openForDup=ok
+04:50:33.317 [shellhost 10976] session open: engine pid 7792, pages 1, first page 612x792
+04:50:33.339 [shellhost 10976] client pid=9896 image=C:\Windows\System32\dllhost.exe packageFamily=MikePDF.S6bProbe_gxqed95vwwy28 openForDup=ok
+04:50:33.363 [shellhost 10976] session open: engine pid 1448, pages 1, first page 612x792
+04:50:33.384 [shellhost 10976] client pid=9896 image=C:\Windows\System32\dllhost.exe packageFamily=MikePDF.S6bProbe_gxqed95vwwy28 openForDup=ok
+04:50:33.408 [shellhost 10976] session open: engine pid 11144, pages 1, first page 612x792
+04:50:33.432 [shellhost 10976] client pid=9896 image=C:\Windows\System32\dllhost.exe packageFamily=MikePDF.S6bProbe_gxqed95vwwy28 openForDup=ok
+04:50:33.455 [shellhost 10976] session open: engine pid 3676, pages 1, first page 612x792
+04:50:33.476 [shellhost 10976] client pid=9896 image=C:\Windows\System32\dllhost.exe packageFamily=MikePDF.S6bProbe_gxqed95vwwy28 openForDup=ok
+04:50:33.500 [shellhost 10976] session open: engine pid 6436, pages 1, first page 612x792
+04:50:33.521 [shellhost 10976] client pid=9896 image=C:\Windows\System32\dllhost.exe packageFamily=MikePDF.S6bProbe_gxqed95vwwy28 openForDup=ok
+04:50:33.545 [shellhost 10976] session open: engine pid 4856, pages 1, first page 612x792
+04:50:33.578 [shellhost 10976] client pid=9896 image=C:\Windows\System32\dllhost.exe packageFamily=MikePDF.S6bProbe_gxqed95vwwy28 openForDup=ok
+04:50:33.602 [shellhost 10976] session open: engine pid 1744, pages 1, first page 612x792
+04:50:33.623 [shellhost 10976] client pid=9896 image=C:\Windows\System32\dllhost.exe packageFamily=MikePDF.S6bProbe_gxqed95vwwy28 openForDup=ok
+04:50:33.647 [shellhost 10976] session open: engine pid 9360, pages 1, first page 612x792
+04:50:33.667 [shellhost 10976] client pid=9896 image=C:\Windows\System32\dllhost.exe packageFamily=MikePDF.S6bProbe_gxqed95vwwy28 openForDup=ok
+04:50:33.691 [shellhost 10976] session open: engine pid 6292, pages 1, first page 612x792
+04:50:33.845 [shellhost 2160] start pipe=mikepdf-s6b-shell mode=fresh integrity=high package=MikePDF.S6bProbe_1.0.0.0_arm64__gxqed95vwwy28 maxEngines=3 mem=256MB args=--log C:\s6b-log\shellhost.log
+04:50:33.881 [shellhost 2160] ready after 38066 us; sddl=D:P(A;;GA;;;S-1-5-21-1176454823-1106192437-3756152512-500)(A;;GA;;;SY)S:(ML;;NW;;;LW)
+04:50:33.901 [shellhost 2160] client pid=7120 image=C:\Windows\System32\prevhost.exe packageFamily=MikePDF.S6bProbe_gxqed95vwwy28 openForDup=ok
+04:50:33.984 [shellhost 2160] session open: engine pid 6224, pages 1, first page 612x792
+04:50:34.097 [shellhost 2160] client pid=1840 image=C:\Windows\System32\prevhost.exe packageFamily=MikePDF.S6bProbe_gxqed95vwwy28 openForDup=ok
+04:50:34.122 [shellhost 2160] session open: engine pid 7768, pages 1, first page 612x792
+04:50:34.191 [shellhost 2160] client pid=8756 image=C:\Windows\System32\prevhost.exe packageFamily=MikePDF.S6bProbe_gxqed95vwwy28 openForDup=ok
+04:50:34.224 [shellhost 2160] session open: engine pid 8936, pages 1, first page 612x792
+04:50:34.312 [shellhost 2160] client pid=5664 image=C:\Windows\System32\prevhost.exe packageFamily=MikePDF.S6bProbe_gxqed95vwwy28 openForDup=ok
+04:50:34.341 [shellhost 2160] session open: engine pid 3236, pages 1, first page 612x792
+==== PHASE: driver at MEDIUM integrity (executable labelled Medium)
+04:50:37.301 [shellhost 5628] start pipe=mikepdf-s6b-shell mode=fresh integrity=high package=MikePDF.S6bProbe_1.0.0.0_arm64__gxqed95vwwy28 maxEngines=3 mem=256MB args=--log C:\s6b-log\shellhost.log
+04:50:37.336 [shellhost 5628] ready after 37910 us; sddl=D:P(A;;GA;;;S-1-5-21-1176454823-1106192437-3756152512-500)(A;;GA;;;SY)S:(ML;;NW;;;LW)
+04:50:37.347 [shellhost 5628] client pid=9896 image=C:\Windows\System32\dllhost.exe packageFamily=MikePDF.S6bProbe_gxqed95vwwy28 openForDup=ok
+04:50:37.429 [shellhost 5628] session open: engine pid 3512, pages 1, first page 612x792
+04:50:37.559 [shellhost 2448] start pipe=mikepdf-s6b-shell mode=fresh integrity=high package=MikePDF.S6bProbe_1.0.0.0_arm64__gxqed95vwwy28 maxEngines=3 mem=256MB args=--log C:\s6b-log\shellhost.log
+04:50:37.595 [shellhost 2448] ready after 38145 us; sddl=D:P(A;;GA;;;S-1-5-21-1176454823-1106192437-3756152512-500)(A;;GA;;;SY)S:(ML;;NW;;;LW)
+04:50:37.616 [shellhost 2448] client pid=9896 image=C:\Windows\System32\dllhost.exe packageFamily=MikePDF.S6bProbe_gxqed95vwwy28 openForDup=ok
+04:50:37.700 [shellhost 2448] session open: engine pid 1340, pages 1, first page 612x792
+04:50:37.832 [shellhost 5360] start pipe=mikepdf-s6b-shell mode=fresh integrity=high package=MikePDF.S6bProbe_1.0.0.0_arm64__gxqed95vwwy28 maxEngines=3 mem=256MB args=--log C:\s6b-log\shellhost.log
+04:50:37.868 [shellhost 5360] ready after 38566 us; sddl=D:P(A;;GA;;;S-1-5-21-1176454823-1106192437-3756152512-500)(A;;GA;;;SY)S:(ML;;NW;;;LW)
+04:50:37.885 [shellhost 5360] client pid=9896 image=C:\Windows\System32\dllhost.exe packageFamily=MikePDF.S6bProbe_gxqed95vwwy28 openForDup=ok
+04:50:37.968 [shellhost 5360] session open: engine pid 6324, pages 1, first page 612x792
+04:50:38.024 [shellhost 5360] client pid=9896 image=C:\Windows\System32\dllhost.exe packageFamily=MikePDF.S6bProbe_gxqed95vwwy28 openForDup=ok
+04:50:38.049 [shellhost 5360] session open: engine pid 2004, pages 1, first page 612x792
+04:50:38.071 [shellhost 5360] client pid=9896 image=C:\Windows\System32\dllhost.exe packageFamily=MikePDF.S6bProbe_gxqed95vwwy28 openForDup=ok
+04:50:38.107 [shellhost 5360] session open: engine pid 1944, pages 1, first page 612x792
+04:50:38.128 [shellhost 5360] client pid=9896 image=C:\Windows\System32\dllhost.exe packageFamily=MikePDF.S6bProbe_gxqed95vwwy28 openForDup=ok
+04:50:38.153 [shellhost 5360] session open: engine pid 8592, pages 1, first page 612x792
+04:50:38.174 [shellhost 5360] client pid=9896 image=C:\Windows\System32\dllhost.exe packageFamily=MikePDF.S6bProbe_gxqed95vwwy28 openForDup=ok
+04:50:38.197 [shellhost 5360] session open: engine pid 11180, pages 1, first page 612x792
+04:50:38.218 [shellhost 5360] client pid=9896 image=C:\Windows\System32\dllhost.exe packageFamily=MikePDF.S6bProbe_gxqed95vwwy28 openForDup=ok
+04:50:38.242 [shellhost 5360] session open: engine pid 8116, pages 1, first page 612x792
+04:50:38.264 [shellhost 5360] client pid=9896 image=C:\Windows\System32\dllhost.exe packageFamily=MikePDF.S6bProbe_gxqed95vwwy28 openForDup=ok
+04:50:38.289 [shellhost 5360] session open: engine pid 11200, pages 1, first page 612x792
+04:50:38.309 [shellhost 5360] client pid=9896 image=C:\Windows\System32\dllhost.exe packageFamily=MikePDF.S6bProbe_gxqed95vwwy28 openForDup=ok
+04:50:38.333 [shellhost 5360] session open: engine pid 8504, pages 1, first page 612x792
+04:50:38.354 [shellhost 5360] client pid=9896 image=C:\Windows\System32\dllhost.exe packageFamily=MikePDF.S6bProbe_gxqed95vwwy28 openForDup=ok
+04:50:38.378 [shellhost 5360] session open: engine pid 3160, pages 1, first page 612x792
+04:50:38.400 [shellhost 5360] client pid=9896 image=C:\Windows\System32\dllhost.exe packageFamily=MikePDF.S6bProbe_gxqed95vwwy28 openForDup=ok
+04:50:38.425 [shellhost 5360] session open: engine pid 8752, pages 1, first page 612x792
+04:50:38.445 [shellhost 5360] client pid=9896 image=C:\Windows\System32\dllhost.exe packageFamily=MikePDF.S6bProbe_gxqed95vwwy28 openForDup=ok
+04:50:38.470 [shellhost 5360] session open: engine pid 8384, pages 1, first page 612x792
+04:50:38.492 [shellhost 5360] client pid=9896 image=C:\Windows\System32\dllhost.exe packageFamily=MikePDF.S6bProbe_gxqed95vwwy28 openForDup=ok
+04:50:38.516 [shellhost 5360] session open: engine pid 10252, pages 1, first page 612x792
+04:50:38.537 [shellhost 5360] client pid=9896 image=C:\Windows\System32\dllhost.exe packageFamily=MikePDF.S6bProbe_gxqed95vwwy28 openForDup=ok
+04:50:38.561 [shellhost 5360] session open: engine pid 9396, pages 1, first page 612x792
+04:50:38.587 [shellhost 5360] client pid=9896 image=C:\Windows\System32\dllhost.exe packageFamily=MikePDF.S6bProbe_gxqed95vwwy28 openForDup=ok
+04:50:38.612 [shellhost 5360] session open: engine pid 10248, pages 1, first page 612x792
+04:50:38.633 [shellhost 5360] client pid=9896 image=C:\Windows\System32\dllhost.exe packageFamily=MikePDF.S6bProbe_gxqed95vwwy28 openForDup=ok
+04:50:38.659 [shellhost 5360] session open: engine pid 4316, pages 1, first page 612x792
+04:50:38.680 [shellhost 5360] client pid=9896 image=C:\Windows\System32\dllhost.exe packageFamily=MikePDF.S6bProbe_gxqed95vwwy28 openForDup=ok
+04:50:38.704 [shellhost 5360] session open: engine pid 5592, pages 1, first page 612x792
+04:50:38.724 [shellhost 5360] client pid=9896 image=C:\Windows\System32\dllhost.exe packageFamily=MikePDF.S6bProbe_gxqed95vwwy28 openForDup=ok
+04:50:38.748 [shellhost 5360] session open: engine pid 7792, pages 1, first page 612x792
+04:50:38.769 [shellhost 5360] client pid=9896 image=C:\Windows\System32\dllhost.exe packageFamily=MikePDF.S6bProbe_gxqed95vwwy28 openForDup=ok
+04:50:38.793 [shellhost 5360] session open: engine pid 11036, pages 1, first page 612x792
+04:50:38.813 [shellhost 5360] client pid=9896 image=C:\Windows\System32\dllhost.exe packageFamily=MikePDF.S6bProbe_gxqed95vwwy28 openForDup=ok
+04:50:38.839 [shellhost 5360] session open: engine pid 5252, pages 1, first page 612x792
+04:50:38.861 [shellhost 5360] client pid=9896 image=C:\Windows\System32\dllhost.exe packageFamily=MikePDF.S6bProbe_gxqed95vwwy28 openForDup=ok
+04:50:38.889 [shellhost 5360] session open: engine pid 6296, pages 1, first page 612x792
+04:50:38.909 [shellhost 5360] client pid=9896 image=C:\Windows\System32\dllhost.exe packageFamily=MikePDF.S6bProbe_gxqed95vwwy28 openForDup=ok
+04:50:38.934 [shellhost 5360] session open: engine pid 6432, pages 1, first page 612x792
+04:50:38.954 [shellhost 5360] client pid=9896 image=C:\Windows\System32\dllhost.exe packageFamily=MikePDF.S6bProbe_gxqed95vwwy28 openForDup=ok
+04:50:38.978 [shellhost 5360] session open: engine pid 1744, pages 1, first page 612x792
+04:50:38.998 [shellhost 5360] client pid=9896 image=C:\Windows\System32\dllhost.exe packageFamily=MikePDF.S6bProbe_gxqed95vwwy28 openForDup=ok
+04:50:39.021 [shellhost 5360] session open: engine pid 10820, pages 1, first page 612x792
+04:50:39.040 [shellhost 5360] client pid=9896 image=C:\Windows\System32\dllhost.exe packageFamily=MikePDF.S6bProbe_gxqed95vwwy28 openForDup=ok
+04:50:39.064 [shellhost 5360] session open: engine pid 8608, pages 1, first page 612x792
+04:50:39.085 [shellhost 5360] client pid=9896 image=C:\Windows\System32\dllhost.exe packageFamily=MikePDF.S6bProbe_gxqed95vwwy28 openForDup=ok
+04:50:39.108 [shellhost 5360] session open: engine pid 8776, pages 1, first page 612x792
+04:50:39.130 [shellhost 5360] client pid=9896 image=C:\Windows\System32\dllhost.exe packageFamily=MikePDF.S6bProbe_gxqed95vwwy28 openForDup=ok
+04:50:39.153 [shellhost 5360] session open: engine pid 1556, pages 1, first page 612x792
+04:50:39.173 [shellhost 5360] client pid=9896 image=C:\Windows\System32\dllhost.exe packageFamily=MikePDF.S6bProbe_gxqed95vwwy28 openForDup=ok
+04:50:39.197 [shellhost 5360] session open: engine pid 8616, pages 1, first page 612x792
+04:50:39.217 [shellhost 5360] client pid=9896 image=C:\Windows\System32\dllhost.exe packageFamily=MikePDF.S6bProbe_gxqed95vwwy28 openForDup=ok
+04:50:39.240 [shellhost 5360] session open: engine pid 10912, pages 1, first page 612x792
+04:50:39.264 [shellhost 5360] client pid=9896 image=C:\Windows\System32\dllhost.exe packageFamily=MikePDF.S6bProbe_gxqed95vwwy28 openForDup=ok
+04:50:39.287 [shellhost 5360] session open: engine pid 3532, pages 1, first page 612x792
+04:50:39.307 [shellhost 5360] client pid=9896 image=C:\Windows\System32\dllhost.exe packageFamily=MikePDF.S6bProbe_gxqed95vwwy28 openForDup=ok
+04:50:39.332 [shellhost 5360] session open: engine pid 1828, pages 1, first page 612x792
+04:50:39.353 [shellhost 5360] client pid=9896 image=C:\Windows\System32\dllhost.exe packageFamily=MikePDF.S6bProbe_gxqed95vwwy28 openForDup=ok
+04:50:39.377 [shellhost 5360] session open: engine pid 9856, pages 1, first page 612x792
+04:50:39.412 [shellhost 5360] client pid=9896 image=C:\Windows\System32\dllhost.exe packageFamily=MikePDF.S6bProbe_gxqed95vwwy28 openForDup=ok
+04:50:39.437 [shellhost 5360] session open: engine pid 10752, pages 1, first page 612x792
+04:50:39.460 [shellhost 5360] client pid=9896 image=C:\Windows\System32\dllhost.exe packageFamily=MikePDF.S6bProbe_gxqed95vwwy28 openForDup=ok
+04:50:39.485 [shellhost 5360] session open: engine pid 5268, pages 1, first page 612x792
+04:50:39.505 [shellhost 5360] client pid=9896 image=C:\Windows\System32\dllhost.exe packageFamily=MikePDF.S6bProbe_gxqed95vwwy28 openForDup=ok
+04:50:39.529 [shellhost 5360] session open: engine pid 6788, pages 1, first page 612x792
+04:50:39.682 [shellhost 1784] start pipe=mikepdf-s6b-shell mode=fresh integrity=high package=MikePDF.S6bProbe_1.0.0.0_arm64__gxqed95vwwy28 maxEngines=3 mem=256MB args=--log C:\s6b-log\shellhost.log
+04:50:39.717 [shellhost 1784] ready after 37751 us; sddl=D:P(A;;GA;;;S-1-5-21-1176454823-1106192437-3756152512-500)(A;;GA;;;SY)S:(ML;;NW;;;LW)
+04:50:39.739 [shellhost 1784] client pid=6604 image=C:\Windows\System32\prevhost.exe packageFamily=MikePDF.S6bProbe_gxqed95vwwy28 openForDup=ok
+04:50:39.824 [shellhost 1784] session open: engine pid 1900, pages 1, first page 612x792
+04:50:39.932 [shellhost 1784] client pid=980 image=C:\Windows\System32\prevhost.exe packageFamily=MikePDF.S6bProbe_gxqed95vwwy28 openForDup=ok
+04:50:39.957 [shellhost 1784] session open: engine pid 4240, pages 1, first page 612x792
+04:50:40.025 [shellhost 1784] client pid=6928 image=C:\Windows\System32\prevhost.exe packageFamily=MikePDF.S6bProbe_gxqed95vwwy28 openForDup=ok
+04:50:40.049 [shellhost 1784] session open: engine pid 2144, pages 1, first page 612x792
+04:50:40.123 [shellhost 1784] client pid=6272 image=C:\Windows\System32\prevhost.exe packageFamily=MikePDF.S6bProbe_gxqed95vwwy28 openForDup=ok
+04:50:40.148 [shellhost 1784] session open: engine pid 6620, pages 1, first page 612x792
+==== PHASE: driver at LOW integrity (token with the Low label)
+==== PHASE: precedence experiments (High, unpackaged)
+04:50:45.103 [shellhost 1784] client pid=5888 image=C:\Windows\System32\dllhost.exe packageFamily=MikePDF.S6bProbe_gxqed95vwwy28 openForDup=ok
+04:50:45.128 [shellhost 1784] session open: engine pid 4452, pages 1, first page 612x792
+04:50:49.944 [shellhost 1784] client pid=5888 image=C:\Windows\System32\dllhost.exe packageFamily=MikePDF.S6bProbe_gxqed95vwwy28 openForDup=ok
+04:50:49.972 [shellhost 1784] session open: engine pid 2608, pages 1, first page 612x792
+04:50:53.149 [shellhost 1784] client pid=5888 image=C:\Windows\System32\dllhost.exe packageFamily=MikePDF.S6bProbe_gxqed95vwwy28 openForDup=ok
+04:50:53.175 [shellhost 1784] session open: engine pid 2096, pages 1, first page 612x792
+04:50:56.353 [shellhost 1784] client pid=5888 image=C:\Windows\System32\dllhost.exe packageFamily=MikePDF.S6bProbe_gxqed95vwwy28 openForDup=ok
+04:50:56.379 [shellhost 1784] session open: engine pid 2856, pages 1, first page 612x792
+04:51:56.566 [shellhost 1784] idle; exiting
+04:51:56.567 [shellhost 1784] exit; peakLiveEngines=1

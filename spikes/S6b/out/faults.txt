@@ -1,0 +1,35 @@
+
+===== heavy14k.pdf with the engine memory limit at 256 MB (handler budget 30 s so that only the limit decides)
+# self integrity level: medium
+# label=run mode=warm cx=256 runs=3 pdf=C:\Users\mjtpe\dev\Orqentis\QuirePDF\.claude\worktrees\agent-a20eab59cba996f96\spikes\S6b\out\pdfs\heavy14k.pdf
+run,ok,hr,total_ms,copy_ms,connect_ms,launched,open_rt_ms,render_rt_ms,close_ms,convert_ms,srv_stage_us,srv_spawn_us,srv_open_us,srv_render_us,srv_out_us,srv_total_open_us,srv_total_render_us,engine_peak_kb,w,h,pages
+0,1,0x00000000,561.77,1.84,134.43,1,100.83,296.03,26.23,0.24,4199,62456,13233,266614,396,86443,295617,24284,198
+1,1,0x00000000,254.84,1.35,5.84,0,23.83,216.05,7.24,0.19,2006,18537,2641,202607,189,23632,215840,24288,198
+2,1,0x00000000,280.74,1.36,0.58,0,22.37,247.85,7.97,0.20,1816,16476,3243,233946,238,22009,247671,24280,198
+
+===== heavy14k.pdf with the engine memory limit at 16 MB (handler budget 30 s so that only the limit decides)
+# self integrity level: medium
+# label=run mode=warm cx=256 runs=3 pdf=C:\Users\mjtpe\dev\Orqentis\QuirePDF\.claude\worktrees\agent-a20eab59cba996f96\spikes\S6b\out\pdfs\heavy14k.pdf
+run,ok,hr,total_ms,copy_ms,connect_ms,launched,open_rt_ms,render_rt_ms,close_ms,convert_ms,srv_stage_us,srv_spawn_us,srv_open_us,srv_render_us,srv_out_us,srv_total_open_us,srv_total_render_us,engine_peak_kb,w,h,pages
+0,1,0x00000000,488.19,1.46,134.20,1,95.03,231.26,24.17,0.20,3193,58223,12934,205907,363,78611,230893,24292,198
+1,1,0x00000000,238.16,1.31,4.73,0,20.61,203.27,7.69,0.20,2274,15364,2456,190966,217,20441,203068,24280,198
+2,1,0x00000000,290.53,1.43,0.70,0,21.61,256.59,9.56,0.24,1997,15981,2593,241802,246,21384,256385,24288,198
+
+===== handler gives up after 120 ms per call while the engine renders heavy14k.pdf (about 200 ms); is the engine killed, does the next request work?
+# self integrity level: medium
+# label=run mode=warm cx=256 runs=1 pdf=C:\Users\mjtpe\dev\Orqentis\QuirePDF\.claude\worktrees\agent-a20eab59cba996f96\spikes\S6b\out\pdfs\heavy14k.pdf
+run,ok,hr,total_ms,copy_ms,connect_ms,launched,open_rt_ms,render_rt_ms,close_ms,convert_ms,srv_stage_us,srv_spawn_us,srv_open_us,srv_render_us,srv_out_us,srv_total_open_us,srv_total_render_us,engine_peak_kb,w,h,pages
+# call failed: hr=0x800705b4 connectError=0 launchError=0
+0,0,0x800705b4,164.33,1.37,0.37,0,22.44,0.00,0.00,0.00,2239,16320,2389,0,0,21472,0,0,0
+handler call returned after 393 ms (includes test host start)
+23:01:54.650 [shellhost 78016] session open: engine pid 21508, pages 1, first page 612x792
+23:01:54.965 [shellhost 78016] session open: engine pid 87744, pages 1, first page 612x792
+23:01:55.100 [shellhost 78016] client gone mid-request; killing its engine 87744
+engine pid from the ShellHost log: 87744
+engine 87744 gone after about 0 ms of polling (50 ms steps, after the handler returned)
+next request:
+# self integrity level: medium
+# label=run mode=warm cx=256 runs=2 pdf=C:\Users\mjtpe\dev\Orqentis\QuirePDF\.claude\worktrees\agent-a20eab59cba996f96\spikes\S6b\out\pdfs\text1.pdf
+run,ok,hr,total_ms,copy_ms,connect_ms,launched,open_rt_ms,render_rt_ms,close_ms,convert_ms,srv_stage_us,srv_spawn_us,srv_open_us,srv_render_us,srv_out_us,srv_total_open_us,srv_total_render_us,engine_peak_kb,w,h,pages
+0,1,0x00000000,57.67,0.09,0.33,0,26.49,19.79,9.21,0.27,867,19362,4299,1889,283,25558,19591,11072,198
+1,1,0x00000000,60.10,0.07,0.55,0,28.60,19.29,11.15,0.27,912,21106,4419,2185,297,27545,19042,10636,198

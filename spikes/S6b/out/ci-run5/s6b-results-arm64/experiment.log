@@ -1,0 +1,29 @@
+driver pid 2448, integrity RID 0x3000 (high or above), elevated token=1, package (none), family (none), native arch 12
+== experiment none (default .pdf ProgID: MSEdgePDF)
+  GetImage(.pdf): ok hr=0x00000000 139.2 ms 198x256 non-white 21%
+  served by: MikePDF packaged handler +1, competitor (ExeServer) +0 GetThumbnail; the competitor was started 0 time(s) and initialised 0 time(s)
+driver pid 2240, integrity RID 0x3000 (high or above), elevated token=1, package (none), family (none), native arch 12
+== experiment control (default .pdf ProgID: MSEdgePDF)
+  registry: HKCU\Software\Classes\.s6bcomp\ShellEx\{E357FCCD-A995-4576-B01F-234630154E96} = {6B7C2D10-5A1E-4F3B-9C11-0A5B6D6B0003} (written)
+  SHChangeNotify(SHCNE_ASSOCCHANGED) sent, waited 1.5 s
+  GetImage(.pdf): FAILED hr=0x80040154 -1.0 ms 0x0 non-white 0%
+  served by: MikePDF packaged handler +0, competitor (ExeServer) +0 GetThumbnail; the competitor was started 0 time(s) and initialised 0 time(s)
+driver pid 9204, integrity RID 0x3000 (high or above), elevated token=1, package (none), family (none), native arch 12
+== experiment ext-level (default .pdf ProgID: MSEdgePDF)
+  registry: HKCU\Software\Classes\.pdf\ShellEx\{E357FCCD-A995-4576-B01F-234630154E96} = {6B7C2D10-5A1E-4F3B-9C11-0A5B6D6B0003} (written)
+  SHChangeNotify(SHCNE_ASSOCCHANGED) sent, waited 1.5 s
+  GetImage(.pdf): ok hr=0x00000000 80.3 ms 198x256 non-white 21%
+  served by: MikePDF packaged handler +1, competitor (ExeServer) +0 GetThumbnail; the competitor was started 0 time(s) and initialised 0 time(s)
+driver pid 10280, integrity RID 0x3000 (high or above), elevated token=1, package (none), family (none), native arch 12
+== experiment progid-level (default .pdf ProgID: MSEdgePDF)
+  registry: HKCU\Software\Classes\MSEdgePDF\ShellEx\{E357FCCD-A995-4576-B01F-234630154E96} = {6B7C2D10-5A1E-4F3B-9C11-0A5B6D6B0003} (written)
+  SHChangeNotify(SHCNE_ASSOCCHANGED) sent, waited 1.5 s
+  GetImage(.pdf): ok hr=0x00000000 80.2 ms 198x256 non-white 21%
+  served by: MikePDF packaged handler +1, competitor (ExeServer) +0 GetThumbnail; the competitor was started 0 time(s) and initialised 0 time(s)
+driver pid 5748, integrity RID 0x3000 (high or above), elevated token=1, package (none), family (none), native arch 12
+== experiment both (default .pdf ProgID: MSEdgePDF)
+  registry: HKCU\Software\Classes\.pdf\ShellEx\{E357FCCD-A995-4576-B01F-234630154E96} = {6B7C2D10-5A1E-4F3B-9C11-0A5B6D6B0003} (written)
+  registry: HKCU\Software\Classes\MSEdgePDF\ShellEx\{E357FCCD-A995-4576-B01F-234630154E96} = {6B7C2D10-5A1E-4F3B-9C11-0A5B6D6B0003} (written)
+  SHChangeNotify(SHCNE_ASSOCCHANGED) sent, waited 1.5 s
+  GetImage(.pdf): ok hr=0x00000000 79.2 ms 198x256 non-white 21%
+  served by: MikePDF packaged handler +1, competitor (ExeServer) +0 GetThumbnail; the competitor was started 0 time(s) and initialised 0 time(s)

@@ -1,0 +1,20 @@
+
+
+ProcessId       : 10768
+ParentProcessId : 656
+Name            : dllhost.exe
+CommandLine     : C:\Windows\system32\DllHost.exe /Processid:{973D20D7-562D-44B9-B70B-5A0F49CCDF3F}
+
+ProcessId       : 5740
+ParentProcessId : 1432
+Name            : S6bShellHost.exe
+CommandLine     : "C:\Program Files\WindowsApps\MikePDF.S6bProbe_1.0.0.0_arm64__gxqed95vwwy28\ShellHost\S6bShellHost.exe" --log C:\s6b-log\shellhost.log
+
+ProcessId       : 5624
+ParentProcessId : 656
+Name            : S6bComServer.exe
+CommandLine     : "C:\Program Files\WindowsApps\MikePDF.S6bProbe_1.0.0.0_arm64__gxqed95vwwy28\S6bComServer.exe" -Embedding
+
+
+
+

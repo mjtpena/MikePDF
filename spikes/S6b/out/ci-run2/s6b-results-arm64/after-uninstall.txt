@@ -1,0 +1,22 @@
+package registered: False
+##### HKCR\.s6bpdf
+
+HKEY_CLASSES_ROOT\.s6bpdf\OpenWithProgids
+
+##### CLSID 0001
+reg : ERROR: The system was unable to find the specified registry key or value.
+At C:\a\MikePDF\MikePDF\spikes\S6b\ci\install-and-run.ps1:139 char:25
++ ... LSID 0001"; reg query 'HKCR\CLSID\{6B7C2D10-5A1E-4F3B-9C11-0A5B6D6B00 ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (ERROR: The syst...y key or value.:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+##### PackagedCom
+reg : ERROR: The system was unable to find the specified registry key or value.
+At C:\a\MikePDF\MikePDF\spikes\S6b\ci\install-and-run.ps1:140 char:26
++ ... #### PackagedCom"; reg query "HKCR\PackagedCom\Package\$full" /s 2>&1
++                        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (ERROR: The syst...y key or value.:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+

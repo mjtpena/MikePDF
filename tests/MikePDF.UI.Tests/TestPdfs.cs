@@ -6,7 +6,7 @@ namespace MikePDF.UI.Tests;
 internal static class TestPdfs
 {
     /// <summary>A PDF of <paramref name="pages"/> US Letter pages, each with its number in large type, so a screenshot shows which page it is.</summary>
-    public static string Numbered(string directory, string name, int pages, string size = "0 0 612 792")
+    public static string Numbered(string directory, string name, int pages, string size = "0 0 612 792", string? info = null)
     {
         Directory.CreateDirectory(directory);
         var path = Path.Combine(directory, name);
@@ -31,6 +31,13 @@ internal static class TestPdfs
             pdf.Append(i + 1).Append(" 0 obj\n").Append(objects[i]).Append("\nendobj\n");
         }
 
+        if (info is not null)
+        {
+            offsets.Add(pdf.Length);
+            objects.Add(info);
+            pdf.Append(objects.Count).Append(" 0 obj\n<< ").Append(info).Append(" >>\nendobj\n");
+        }
+
         var xref = pdf.Length;
         pdf.Append("xref\n0 ").Append(objects.Count + 1).Append("\n0000000000 65535 f \n");
         foreach (var offset in offsets)
@@ -38,7 +45,7 @@ internal static class TestPdfs
             pdf.Append(offset.ToString("D10", System.Globalization.CultureInfo.InvariantCulture)).Append(" 00000 n \n");
         }
 
-        pdf.Append("trailer\n<< /Size ").Append(objects.Count + 1).Append(" /Root 1 0 R >>\nstartxref\n").Append(xref).Append("\n%%EOF\n");
+        pdf.Append("trailer\n<< /Size ").Append(objects.Count + 1).Append(" /Root 1 0 R").Append(info is null ? string.Empty : " /Info " + objects.Count + " 0 R").Append(" >>\nstartxref\n").Append(xref).Append("\n%%EOF\n");
         File.WriteAllText(path, pdf.ToString(), Encoding.Latin1);
         return path;
     }

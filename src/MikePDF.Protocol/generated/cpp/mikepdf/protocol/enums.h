@@ -8,7 +8,7 @@
 
 namespace mikepdf::protocol {
 
-inline constexpr std::uint32_t kSchemaVersion = 3;
+inline constexpr std::uint32_t kSchemaVersion = 5;
 inline constexpr std::size_t kMaxFrameBytes = 65536;
 inline constexpr std::uint32_t kMaxDeadlineMs = 86400000;
 
@@ -64,6 +64,7 @@ enum class ProcessKind : std::uint16_t {
     Broker = 0,
     Engine = 1,
     WriterHost = 2,
+    ShellHandler = 3,
 };
 
 [[nodiscard]] constexpr bool is_defined_process_kind(std::uint16_t raw) noexcept {
@@ -71,6 +72,7 @@ enum class ProcessKind : std::uint16_t {
         case 0:
         case 1:
         case 2:
+        case 3:
             return true;
         default:
             return false;
@@ -93,9 +95,15 @@ enum class MessageType : std::uint16_t {
     GetPageBoxes = 23,
     GetPageText = 24,
     SearchPage = 25,
+    GetDocumentDetails = 26,
+    GetViewerPreferences = 28,
     RenderTile = 32,
     CancelBefore = 33,
+    RenderBand = 34,
     ValidateStructure = 1024,
+    ShellOpen = 2048,
+    ShellRenderPage = 2049,
+    ShellClose = 2050,
 };
 
 [[nodiscard]] constexpr bool is_defined_message_type(std::uint16_t raw) noexcept {
@@ -114,9 +122,15 @@ enum class MessageType : std::uint16_t {
         case 23:
         case 24:
         case 25:
+        case 26:
+        case 28:
         case 32:
         case 33:
+        case 34:
         case 1024:
+        case 2048:
+        case 2049:
+        case 2050:
             return true;
         default:
             return false;
@@ -158,12 +172,24 @@ enum class DocumentIdRule : std::uint8_t {
             return DocumentIdRule::Required;
         case MessageType::SearchPage:
             return DocumentIdRule::Required;
+        case MessageType::GetDocumentDetails:
+            return DocumentIdRule::Required;
+        case MessageType::GetViewerPreferences:
+            return DocumentIdRule::Required;
         case MessageType::RenderTile:
             return DocumentIdRule::Required;
         case MessageType::CancelBefore:
             return DocumentIdRule::Required;
+        case MessageType::RenderBand:
+            return DocumentIdRule::Required;
         case MessageType::ValidateStructure:
             return DocumentIdRule::None;
+        case MessageType::ShellOpen:
+            return DocumentIdRule::None;
+        case MessageType::ShellRenderPage:
+            return DocumentIdRule::Required;
+        case MessageType::ShellClose:
+            return DocumentIdRule::Required;
     }
     return DocumentIdRule::Required;
 }

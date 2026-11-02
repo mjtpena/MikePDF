@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Text;
+using MikePDF.Protocol;
 
 namespace MikePDF.Broker;
 
@@ -35,6 +36,48 @@ internal static class ReplyChecks
             if (namesAPage ? pages[i] >= pageCount : pages[i] != 0)
             {
                 return "a destination names a page the document does not have";
+            }
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    /// The font list of GetDocumentDetails: the schema has bounded its length and its flags, and made the two arrays the same length; what is
+    /// left is that a font name is printable ASCII (the engine replaces everything else), that no name is empty, and that a reply which says it
+    /// walked every page names exactly the document's page count (the engine only claims that for a document short enough to be walked whole).
+    /// </summary>
+    public static string? CheckDetails(GetDocumentDetailsReply reply, uint pageCount)
+    {
+        ArgumentNullException.ThrowIfNull(reply);
+        foreach (var name in reply.FontNames)
+        {
+            if (name.Length == 0 || name.Any(c => c < ' ' || c > '~'))
+            {
+                return "a font name holds characters a font name never has";
+            }
+        }
+
+        if (reply.FontPagesScanned > pageCount)
+        {
+            return "the engine walked more pages than the document has";
+        }
+
+        return reply.FontsComplete && reply.FontPagesScanned != pageCount ? "the engine says it walked every page but names another number" : null;
+    }
+
+    /// <summary>
+    /// The print page ranges of GetViewerPreferences: the schema has bounded the counts and the values and made the arrays the same length; what is left is that
+    /// every range is ordered and lies inside the document (the engine drops the ones that do not). Returns the problem, or null.
+    /// </summary>
+    public static string? CheckPreferences(GetViewerPreferencesReply reply, uint pageCount)
+    {
+        ArgumentNullException.ThrowIfNull(reply);
+        for (var i = 0; i < reply.RangeFirsts.Length; i++)
+        {
+            if (reply.RangeFirsts[i] > reply.RangeLasts[i] || reply.RangeLasts[i] >= pageCount)
+            {
+                return "a print page range is reversed or names a page the document does not have";
             }
         }
 

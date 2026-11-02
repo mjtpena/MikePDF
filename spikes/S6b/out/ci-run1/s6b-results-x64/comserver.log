@@ -1,0 +1,34 @@
+12:12:56.126 [comserver 8176] env: cmdline="C:\Program Files\WindowsApps\MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28\S6bComServer.exe" -Embedding integrity=high appcontainer=0 package=MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28
+12:12:56.136 [comserver 8176] CoRegisterClassObject hr=0x00000000 after 9.06 ms of process start
+12:12:56.442 [comserver 9524] env: cmdline="C:\Program Files\WindowsApps\MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28\S6bComServer.exe" -Embedding integrity=high appcontainer=0 package=MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28
+12:12:56.448 [comserver 9524] CoRegisterClassObject hr=0x00000000 after 8.41 ms of process start
+12:12:56.758 [comserver 6932] env: cmdline="C:\Program Files\WindowsApps\MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28\S6bComServer.exe" -Embedding integrity=high appcontainer=0 package=MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28
+12:12:56.766 [comserver 6932] CoRegisterClassObject hr=0x00000000 after 8.60 ms of process start
+12:12:57.073 [comserver 4796] env: cmdline="C:\Program Files\WindowsApps\MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28\S6bComServer.exe" -Embedding integrity=high appcontainer=0 package=MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28
+12:12:57.079 [comserver 4796] CoRegisterClassObject hr=0x00000000 after 8.63 ms of process start
+12:12:57.388 [comserver 7156] env: cmdline="C:\Program Files\WindowsApps\MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28\S6bComServer.exe" -Embedding integrity=high appcontainer=0 package=MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28
+12:12:57.394 [comserver 7156] CoRegisterClassObject hr=0x00000000 after 8.59 ms of process start
+12:12:57.711 [comserver 2008] env: cmdline="C:\Program Files\WindowsApps\MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28\S6bComServer.exe" -Embedding integrity=high appcontainer=0 package=MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28
+12:12:57.718 [comserver 2008] CoRegisterClassObject hr=0x00000000 after 8.62 ms of process start
+12:12:58.027 [comserver 5972] env: cmdline="C:\Program Files\WindowsApps\MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28\S6bComServer.exe" -Embedding integrity=high appcontainer=0 package=MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28
+12:12:58.034 [comserver 5972] CoRegisterClassObject hr=0x00000000 after 8.36 ms of process start
+12:12:58.340 [comserver 10064] env: cmdline="C:\Program Files\WindowsApps\MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28\S6bComServer.exe" -Embedding integrity=high appcontainer=0 package=MikePDF.S6bProbe_1.0.0.0_x64__gxqed95vwwy28
+12:12:58.348 [comserver 10064] CoRegisterClassObject hr=0x00000000 after 8.34 ms of process start
+12:12:58.435 [comserver 10064] Initialize: stream size 4096, read 4096 bytes through the marshaled IStream in 0.73 ms (1 MiB reads)
+12:12:58.439 [comserver 10064] Initialize: stream size 4096, read 4096 bytes through the marshaled IStream in 0.41 ms (1 MiB reads)
+12:12:58.445 [comserver 10064] Initialize: stream size 4096, read 4096 bytes through the marshaled IStream in 0.42 ms (1 MiB reads)
+12:12:58.449 [comserver 10064] Initialize: stream size 4096, read 4096 bytes through the marshaled IStream in 0.43 ms (1 MiB reads)
+12:12:58.455 [comserver 10064] Initialize: stream size 4096, read 4096 bytes through the marshaled IStream in 0.43 ms (1 MiB reads)
+12:12:58.459 [comserver 10064] Initialize: stream size 4096, read 4096 bytes through the marshaled IStream in 0.42 ms (1 MiB reads)
+12:12:58.475 [comserver 10064] Initialize: stream size 5242880, read 5242880 bytes through the marshaled IStream in 7.32 ms (1 MiB reads)
+12:12:58.487 [comserver 10064] Initialize: stream size 5242880, read 5242880 bytes through the marshaled IStream in 7.17 ms (1 MiB reads)
+12:12:58.499 [comserver 10064] Initialize: stream size 5242880, read 5242880 bytes through the marshaled IStream in 7.07 ms (1 MiB reads)
+12:12:58.509 [comserver 10064] Initialize: stream size 5242880, read 5242880 bytes through the marshaled IStream in 7.03 ms (1 MiB reads)
+12:12:58.523 [comserver 10064] Initialize: stream size 5242880, read 5242880 bytes through the marshaled IStream in 7.38 ms (1 MiB reads)
+12:12:58.534 [comserver 10064] Initialize: stream size 5242880, read 5242880 bytes through the marshaled IStream in 7.00 ms (1 MiB reads)
+12:12:58.590 [comserver 10064] Initialize: stream size 31457280, read 31457280 bytes through the marshaled IStream in 41.23 ms (1 MiB reads)
+12:12:58.636 [comserver 10064] Initialize: stream size 31457280, read 31457280 bytes through the marshaled IStream in 40.92 ms (1 MiB reads)
+12:12:58.683 [comserver 10064] Initialize: stream size 31457280, read 31457280 bytes through the marshaled IStream in 41.27 ms (1 MiB reads)
+12:12:58.956 [comserver 10064] Initialize: stream size 31457280, read 31457280 bytes through the marshaled IStream in 41.32 ms (1 MiB reads)
+12:12:59.003 [comserver 10064] Initialize: stream size 31457280, read 31457280 bytes through the marshaled IStream in 41.05 ms (1 MiB reads)
+12:12:59.049 [comserver 10064] Initialize: stream size 31457280, read 31457280 bytes through the marshaled IStream in 41.20 ms (1 MiB reads)
