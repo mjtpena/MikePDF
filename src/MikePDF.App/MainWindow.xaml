@@ -13,6 +13,12 @@
             <KeyboardAccelerator Key="F3" Invoked="OnFindNextAccelerator" />
             <KeyboardAccelerator Key="F3" Modifiers="Shift" Invoked="OnFindPreviousAccelerator" />
             <KeyboardAccelerator Key="F4" Invoked="OnSidebarAccelerator" />
+            <KeyboardAccelerator Key="F11" Invoked="OnFullScreenAccelerator" />
+            <KeyboardAccelerator Key="D" Modifiers="Control" Invoked="OnPropertiesAccelerator" />
+            <KeyboardAccelerator Key="Left" Modifiers="Menu" Invoked="OnBackAccelerator" />
+            <KeyboardAccelerator Key="Right" Modifiers="Menu" Invoked="OnForwardAccelerator" />
+            <KeyboardAccelerator Key="Number0" Modifiers="Control,Shift" Invoked="OnPhysicalSizeAccelerator" />
+            <KeyboardAccelerator Key="NumberPad0" Modifiers="Control,Shift" Invoked="OnPhysicalSizeAccelerator" />
             <KeyboardAccelerator Key="Number0" Modifiers="Control" Invoked="OnActualSizeAccelerator" />
             <KeyboardAccelerator Key="NumberPad0" Modifiers="Control" Invoked="OnActualSizeAccelerator" />
             <KeyboardAccelerator Key="Number1" Modifiers="Control" Invoked="OnFitPageAccelerator" />
@@ -52,6 +58,9 @@
             </CommandBar.Content>
             <AppBarButton x:Name="OpenButton" x:Uid="OpenButton" AutomationProperties.AutomationId="OpenButton" Icon="OpenFile" Click="OnOpenClick" />
             <AppBarSeparator />
+            <AppBarButton x:Name="BackButton" x:Uid="BackButton" AutomationProperties.AutomationId="BackButton" Icon="Back" Click="OnBackClick" IsEnabled="False" />
+            <AppBarButton x:Name="ForwardButton" x:Uid="ForwardButton" AutomationProperties.AutomationId="ForwardButton" Icon="Forward" Click="OnForwardClick" IsEnabled="False" />
+            <AppBarSeparator />
             <AppBarToggleButton x:Name="SidebarButton" x:Uid="SidebarButton" AutomationProperties.AutomationId="SidebarButton" IsEnabled="False"
                                 Checked="OnSidebarToggled" Unchecked="OnSidebarToggled">
                 <AppBarToggleButton.Icon>
@@ -67,6 +76,7 @@
                 </AppBarButton.Icon>
                 <AppBarButton.Flyout>
                     <MenuFlyout x:Name="ZoomMenu">
+                        <MenuFlyoutItem x:Uid="ZoomActualSize" AutomationProperties.AutomationId="ZoomActualSize" Click="OnPhysicalSizeClick" />
                         <MenuFlyoutItem x:Uid="ZoomFitWidth" AutomationProperties.AutomationId="ZoomFitWidth" Click="OnFitWidthClick" />
                         <MenuFlyoutItem x:Uid="ZoomFitPage" AutomationProperties.AutomationId="ZoomFitPage" Click="OnFitPageClick" />
                         <MenuFlyoutSeparator />
@@ -103,6 +113,32 @@
                 </AppBarButton.Icon>
             </AppBarButton>
             <AppBarButton x:Name="RotateRightButton" x:Uid="RotateRightButton" AutomationProperties.AutomationId="RotateRightButton" Icon="Rotate" Click="OnRotateRightClick" IsEnabled="False" />
+            <AppBarSeparator />
+            <AppBarButton x:Name="PageColourButton" x:Uid="PageColourButton" AutomationProperties.AutomationId="PageColourButton">
+                <AppBarButton.Icon>
+                    <FontIcon Glyph="&#xE790;" />
+                </AppBarButton.Icon>
+                <AppBarButton.Flyout>
+                    <MenuFlyout x:Name="PageColourMenu">
+                        <RadioMenuFlyoutItem x:Name="PageColourNormal" x:Uid="PageColourNormal" GroupName="PageColour" Tag="Normal" Click="OnPageColourClick"
+                                             AutomationProperties.AutomationId="PageColourNormal" IsChecked="True" />
+                        <RadioMenuFlyoutItem x:Name="PageColourInverted" x:Uid="PageColourInverted" GroupName="PageColour" Tag="Inverted" Click="OnPageColourClick"
+                                             AutomationProperties.AutomationId="PageColourInverted" />
+                        <RadioMenuFlyoutItem x:Name="PageColourSepia" x:Uid="PageColourSepia" GroupName="PageColour" Tag="Sepia" Click="OnPageColourClick"
+                                             AutomationProperties.AutomationId="PageColourSepia" />
+                    </MenuFlyout>
+                </AppBarButton.Flyout>
+            </AppBarButton>
+            <AppBarButton x:Name="PropertiesButton" x:Uid="PropertiesButton" AutomationProperties.AutomationId="PropertiesButton" Click="OnPropertiesClick" IsEnabled="False">
+                <AppBarButton.Icon>
+                    <FontIcon Glyph="&#xE946;" />
+                </AppBarButton.Icon>
+            </AppBarButton>
+            <AppBarButton x:Name="FullScreenButton" x:Uid="FullScreenButton" AutomationProperties.AutomationId="FullScreenButton" Click="OnFullScreenClick">
+                <AppBarButton.Icon>
+                    <FontIcon Glyph="&#xE740;" />
+                </AppBarButton.Icon>
+            </AppBarButton>
         </CommandBar>
 
         <SplitView Grid.Row="2" x:Name="Sidebar" DisplayMode="Inline" IsPaneOpen="False" OpenPaneLength="296" PaneBackground="{ThemeResource LayerFillColorDefaultBrush}">
@@ -173,6 +209,8 @@
                         <FontIcon Glyph="&#xE70D;" FontSize="14" />
                     </Button>
                     <ToggleButton x:Name="FindMatchCaseToggle" x:Uid="FindMatchCaseToggle" AutomationProperties.AutomationId="FindMatchCaseToggle" Checked="OnFindOptionChanged" Unchecked="OnFindOptionChanged" />
+                    <ToggleButton x:Name="FindWholeWordToggle" x:Uid="FindWholeWordToggle" AutomationProperties.AutomationId="FindWholeWordToggle" Checked="OnFindOptionChanged" Unchecked="OnFindOptionChanged" />
+                    <ToggleButton x:Name="FindRegexToggle" x:Uid="FindRegexToggle" AutomationProperties.AutomationId="FindRegexToggle" Checked="OnFindRegexChanged" Unchecked="OnFindRegexChanged" />
                     <Button x:Name="FindCloseButton" x:Uid="FindCloseButton" AutomationProperties.AutomationId="FindCloseButton" Click="OnFindCloseClick">
                         <FontIcon Glyph="&#xE711;" FontSize="14" />
                     </Button>

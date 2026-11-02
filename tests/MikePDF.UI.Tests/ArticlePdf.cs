@@ -130,6 +130,13 @@ internal sealed class ArticlePdf
     /// <summary>How often <see cref="SearchWord"/> occurs exactly as written (lower case): what a search that matches case finds.</summary>
     public int SearchWordCountExact { get; private set; }
 
+    /// <summary>How often <see cref="SearchWord"/> occurs as a word of its own (not inside "margins"), in any case: what a whole-word search finds.</summary>
+    public int SearchWordCountWhole { get; private set; }
+
+    /// <summary>How many matches a .NET regular expression has over the text of the pages, as the find box should count them.</summary>
+    public int CountMatches(string pattern, bool ignoreCase) =>
+        _allText.Sum(t => System.Text.RegularExpressions.Regex.Count(t, pattern, ignoreCase ? System.Text.RegularExpressions.RegexOptions.IgnoreCase : System.Text.RegularExpressions.RegexOptions.None));
+
     /// <summary>The page (1-based) of the contents.</summary>
     public const int ContentsPage = 2;
 
@@ -206,6 +213,7 @@ internal sealed class ArticlePdf
 
         SearchWordCount = _allText.Sum(t => CountOf(t, SearchWord, StringComparison.OrdinalIgnoreCase));
         SearchWordCountExact = _allText.Sum(t => CountOf(t, SearchWord, StringComparison.Ordinal));
+        SearchWordCountWhole = CountMatches(@"\bmargin\b", ignoreCase: true);
     }
 
     private void NewPage()
