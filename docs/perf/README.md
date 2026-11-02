@@ -193,7 +193,7 @@ Reported in the table, every run, from the head's medians over all rounds. **The
 `.github/workflows/perf.yml`, on every pull request, on pushes to `main` and `m*/**`, nightly (A/A) and on demand, for **x64** (`windows-2025-vs2026`) and **ARM64** (`windows-11-vs2026-arm`):
 
 1. Check out with full history and choose the base (log line `mode=... base=...`). Manual runs take `base` (`self` for an A/A run, or a commit/ref), `plant` (percent, test only) and `rounds`.
-2. Build the head into `$RUNNER_TEMP/perf/head`, or restore it from the cache `perf-bundle-v1-<arch>-<commit>`. Pushes and manual runs save it, so the next pull request, whose base is that `main` commit, finds its base built; a base that is not cached is built from a `git worktree` (about a minute).
+2. Build the head into `$RUNNER_TEMP/perf/head`, or restore it from the cache `perf-bundle-v1-<arch>-<commit>`. Pushes and manual runs save it, so the next pull request, whose base is that `main` commit, finds its base built; a base that is not cached is built from a `git worktree` (about a minute). (A cache entry is only found by a step with the same `path`, so all restores and saves go through `perf/bundle` and the bundle is moved to `perf/head` or `perf/base`.)
 3. `MikePDF.Perf ab` (head's copy), 8 rounds of the `ci` profile per side, plus confirmation rounds if needed. Each run still waits up to 20 s for the machine to be under 15% busy (the first hosted runs found 57% to 62% right after a build) and the job shuts the compiler servers down first.
 4. Job summary, and the artifact `perf-results-<arch>`: `perf-results.md` (the report), `perf-ab.json` (the decision), `perf-results.json` (the head over all rounds), `perf-results-base.json`, `rounds/` (every run with its log).
 
