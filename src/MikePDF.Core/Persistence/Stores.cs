@@ -38,6 +38,8 @@ public sealed class DocumentStore
     private readonly string _path;
     private readonly TimeProvider _time;
     private StoreData _data;
+    private int _recentLimit = MaxRecent;
+    private bool _restorePositions = true;
 
     public DocumentStore(string path, TimeProvider? time = null)
     {
@@ -58,15 +60,84 @@ public sealed class DocumentStore
         }
     }
 
+    /// <summary>How many recent files are kept (the setting recent.maxItems: 0 turns the list off, at most 50). Lowering it drops the oldest at once.</summary>
+    public int RecentLimit
+    {
+        get
+        {
+            lock (_gate)
+            {
+                return _recentLimit;
+            }
+        }
+        set
+        {
+            lock (_gate)
+            {
+                _recentLimit = Math.Clamp(value, 0, 50);
+                if (_data.Recent.Count > _recentLimit)
+                {
+                    _data.Recent = [.. _data.Recent.OrderByDescending(r => r.LastOpened).Take(_recentLimit)];
+                    Save();
+                }
+            }
+        }
+    }
+
+    /// <summary>Whether a document opens where it was left (the setting view.restorePosition). Off: positions are neither used nor recorded.</summary>
+    public bool RestorePositions
+    {
+        get
+        {
+            lock (_gate)
+            {
+                return _restorePositions;
+            }
+        }
+        set
+        {
+            lock (_gate)
+            {
+                _restorePositions = value;
+            }
+        }
+    }
+
     public void AddRecent(string path)
     {
         var full = Normalize(path);
         lock (_gate)
         {
+            if (_recentLimit == 0)
+            {
+                return;
+            }
+
             _data.Recent.RemoveAll(r => Same(r.Path, full));
             _data.Recent.Add(new RecentFile(full, _time.GetUtcNow()));
-            _data.Recent = [.. _data.Recent.OrderByDescending(r => r.LastOpened).Take(MaxRecent)];
+            _data.Recent = [.. _data.Recent.OrderByDescending(r => r.LastOpened).Take(_recentLimit)];
             Save();
+        }
+    }
+
+    /// <summary>Forgets where every document was left.</summary>
+    public void ClearPositions()
+    {
+        lock (_gate)
+        {
+            _data.Positions.Clear();
+            Save();
+        }
+    }
+
+    public int PositionCount
+    {
+        get
+        {
+            lock (_gate)
+            {
+                return _data.Positions.Count;
+            }
         }
     }
 
@@ -121,7 +192,7 @@ public sealed class DocumentStore
         var full = Normalize(path);
         lock (_gate)
         {
-            return _data.Positions.FirstOrDefault(p => Same(p.Path, full));
+            return _restorePositions ? _data.Positions.FirstOrDefault(p => Same(p.Path, full)) : null;
         }
     }
 
@@ -130,6 +201,11 @@ public sealed class DocumentStore
         var full = Normalize(path);
         lock (_gate)
         {
+            if (!_restorePositions)
+            {
+                return;
+            }
+
             _data.Positions.RemoveAll(p => Same(p.Path, full));
             _data.Positions.Add(new DocumentPosition(full, Math.Max(0, page), Math.Clamp(pageFraction, 0, 1), ZoomMath.Clamp(zoom), fit, viewTurns, _time.GetUtcNow()));
             _data.Positions = [.. _data.Positions.OrderByDescending(p => p.Saved).Take(MaxPositions)];
