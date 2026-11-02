@@ -37,6 +37,8 @@ public sealed class PrintRecoveryTests(SandboxFixture sandbox)
 
         public int SlotBytes => session.Source.SlotBytes;
 
+        public int EngineGeneration => session.Source.EngineGeneration;
+
         public Task<(Status Status, PrintDocumentInfo? Info)> GetInfoAsync(CancellationToken cancellationToken) => session.Source.GetInfoAsync(cancellationToken);
 
         public Task<(Status Status, IReadOnlyList<MikePDF.Core.Geometry.SizeD> Sizes)> GetPageSizesAsync(int first, int count, CancellationToken cancellationToken) => session.Source.GetPageSizesAsync(first, count, cancellationToken);

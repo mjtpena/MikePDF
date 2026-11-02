@@ -130,7 +130,7 @@ public static class PrintJob
         private IPrintDevice? _device;
         private long _generation;
         private int _crashes;
-        private int _epoch;
+        private int _nextCountableDeath;
         private int _sheetsPrinted;
         private int _bands;
         private bool _formLayer = true;
@@ -440,7 +440,7 @@ public static class PrintJob
             while (true)
             {
                 _render.Token.ThrowIfCancellationRequested();
-                var epoch = Volatile.Read(ref _epoch);
+                var generation = _source.EngineGeneration;
                 var withFormLayer = Volatile.Read(ref _formLayer) && Options.FormFields;
                 var render = draw.Placed.Render;
                 var args = new RenderBandArgs(
@@ -464,7 +464,7 @@ public static class PrintJob
 
                     case Status.EngineCrashed:
                         // The supervisor is starting a new engine and reopening the document; the same band is asked for again, so no page is lost or printed twice.
-                        NoteCrash(epoch);
+                        NoteCrash(generation);
                         break;
 
                     case Status.Timeout when !timedOut:
@@ -484,13 +484,23 @@ public static class PrintJob
             }
         }
 
-        // Two bands can be in flight when the engine dies and both come back EngineCrashed: that is one crash. Only the call that moves the epoch on counts it.
-        private void NoteCrash(int epoch)
+        // One engine death is one crash, however many calls it takes down and whenever they report it: two bands can be in flight when the engine dies, and the second can come back
+        // EngineCrashed after the job has already handled the first one's crash and asked again. What identifies the death is the engine's restart generation as it was when the call
+        // was issued (the supervisor raises it once for each engine it replaces), not the order in which the job hears of the failures. A death is counted when its generation is at
+        // least the next one not yet counted, and counting it moves that on. A call that read the generation just before a restart and met a second death on the new engine is
+        // taken for the first death and not counted: that undercounts, and the supervisor's own crash-loop limit stops an engine that keeps dying.
+        private void NoteCrash(int generation)
         {
-            if (Interlocked.CompareExchange(ref _epoch, epoch + 1, epoch) != epoch)
+            int next;
+            do
             {
-                return;
+                next = Volatile.Read(ref _nextCountableDeath);
+                if (generation < next)
+                {
+                    return;
+                }
             }
+            while (Interlocked.CompareExchange(ref _nextCountableDeath, generation + 1, next) != next);
 
             var crashes = Interlocked.Increment(ref _crashes);
             if (crashes >= Request.MaxEngineCrashes)
@@ -507,7 +517,7 @@ public static class PrintJob
             while (true)
             {
                 _cancellation.ThrowIfCancellationRequested();
-                var epoch = Volatile.Read(ref _epoch);
+                var generation = _source.EngineGeneration;
                 var (status, value) = await call().ConfigureAwait(false);
                 switch (status)
                 {
@@ -516,7 +526,7 @@ public static class PrintJob
                     case Status.Cancelled:
                         throw new OperationCanceledException();
                     case Status.EngineCrashed:
-                        NoteCrash(epoch);
+                        NoteCrash(generation);
                         break;
                     case Status.Timeout when !timedOut:
                         timedOut = true;

@@ -48,6 +48,9 @@ internal sealed class FakePrintSource : IPrintSource
     private readonly object _gate = new();
     private int _calls;
     private int _inFlight;
+    private int _generation;
+    private int _deaths;
+    private volatile bool _dead;
 
     public FakePrintSource(params SizeD[] pages) => Pages = pages;
 
@@ -58,6 +61,22 @@ internal sealed class FakePrintSource : IPrintSource
     public int SlotBytes { get; set; } = 16 << 20;
 
     public TimeSpan RenderDelay { get; set; } = TimeSpan.FromMilliseconds(1);
+
+    /// <summary>The time call number n takes, when it is not <see cref="RenderDelay"/> (to put two calls in flight together in a known order).</summary>
+    public Func<RenderBandArgs, int, TimeSpan>? DelayFor { get; set; }
+
+    /// <summary>
+    /// The engine dies while this call is being served. One death is one event: the calls that are in flight, or issued before the restart, end <c>EngineCrashed</c>; calls issued after it
+    /// succeed. Which calls fail is never written down by number, only when the engine dies.
+    /// </summary>
+    public Func<RenderBandArgs, int, bool>? DieDuringCall { get; set; }
+
+    /// <summary>How long after a death the supervisor has replaced the engine (the restart generation moves on then). Until it has, a call that is issued meets the dead engine.</summary>
+    public TimeSpan RestartDelay { get; set; }
+
+    public int Deaths => Volatile.Read(ref _deaths);
+
+    public int EngineGeneration => Volatile.Read(ref _generation);
 
     /// <summary>Called for every band request with its sequence number (1-based, counting retries); a status other than Ok is returned as the engine's answer.</summary>
     public Func<RenderBandArgs, int, Status>? Script { get; set; }
@@ -72,6 +91,38 @@ internal sealed class FakePrintSource : IPrintSource
 
     public HashSet<uint> PartialPages { get; } = [];
 
+    private void Die()
+    {
+        lock (_gate)
+        {
+            if (_dead)
+            {
+                return;
+            }
+
+            _deaths++;
+            _dead = true;
+        }
+
+        if (RestartDelay <= TimeSpan.Zero)
+        {
+            Restart();
+        }
+        else
+        {
+            _ = Task.Delay(RestartDelay).ContinueWith(_ => Restart(), TaskScheduler.Default);
+        }
+    }
+
+    private void Restart()
+    {
+        lock (_gate)
+        {
+            _generation++;
+            _dead = false;
+        }
+    }
+
     public Task<(Status Status, PrintDocumentInfo? Info)> GetInfoAsync(CancellationToken cancellationToken) =>
         Task.FromResult((Status.Ok, (PrintDocumentInfo?)new PrintDocumentInfo(Pages.Length, Permissions)));
 
@@ -83,16 +134,31 @@ internal sealed class FakePrintSource : IPrintSource
     public async Task<BandResult> RenderBandAsync(RenderBandArgs args, ulong generation, TimeSpan deadline, CancellationToken cancellationToken)
     {
         int call;
+        int servedBy;
+        bool deadOnArrival;
         lock (_gate)
         {
             call = ++_calls;
             Requests.Add(args);
             MaxInFlight = Math.Max(MaxInFlight, Interlocked.Increment(ref _inFlight));
+            servedBy = _generation;
+            deadOnArrival = _dead;
         }
 
         try
         {
-            await Task.Delay(RenderDelay, cancellationToken).ConfigureAwait(false);
+            await Task.Delay(DelayFor?.Invoke(args, call) ?? RenderDelay, cancellationToken).ConfigureAwait(false);
+            if (DieDuringCall?.Invoke(args, call) == true)
+            {
+                Die();
+            }
+
+            // The engine that served this call is the one at its generation; if it died, or was already dead when the call arrived, the call fails.
+            if (deadOnArrival || _generation != servedBy || (_dead && _generation == servedBy))
+            {
+                return new BandResult(Status.EngineCrashed, null, "the engine died");
+            }
+
             if (Script?.Invoke(args, call) is { } status && status != Status.Ok)
             {
                 return new BandResult(status, null, "scripted");
