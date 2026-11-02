@@ -38,7 +38,7 @@
         { "name": "Broker", "value": 0 },
         { "name": "Engine", "value": 1 },
         { "name": "WriterHost", "value": 2 },
-        { "name": "ShellHandler", "value": 3, "$comment": "The native thumbnail provider or preview handler DLL in Explorer's process (docs/features/shell-extensions.md). It is only ever a client: it sends Hello to ShellHost and no peer sends it a request, so no engine or host serves this kind." }
+        { "name": "ShellHandler", "value": 3, "$comment": "The native thumbnail provider or preview handler DLL in Explorer's process (docs/features/shell-extensions.md). It is only ever a client: it sends Hello to ShellHost (ADR-0018), which accepts no other kind, and no peer sends it a request. An engine refuses a Hello of this kind: the handler must never reach one." }
       ]
     }
   ],
@@ -398,51 +398,51 @@
     },
     {
       "id": 2048, "name": "ShellOpen", "documentId": "none",
-      "$comment": "MikePDF.ShellHost only (schema 5), and only if spike S6b chooses its candidate A: a pipe between the thumbnail provider or preview handler DLL (ProcessKind ShellHandler) and an on-demand ShellHost. The three Shell messages are in the schema now because the handler's C++ client codecs come from the generator; they say nothing about the transport, and if S6b picks a different one they are removed or changed under the next schema version, which nothing else depends on. Field limits are docs/features/shell-extensions.md 11. fileHandle is a handle value valid in ShellHost, duplicated there by the handler; fileSize is informational and checked against the handle.",
+      "$comment": "MikePDF.ShellHost only (schema 5, ADR-0018, spike S6b section 'Protocol: messages and schema v5'): the first message a thumbnail provider or preview handler DLL (ProcessKind ShellHandler) sends on its pipe after Hello. The connection is the session. Handle direction: section is a handle value valid in the SENDING process (the handler), with read access; ShellHost duplicates it from the process at the other end of the pipe (GetNamedPipeClientProcessId, then DuplicateHandle), which a handler running at Low integrity can still allow. bytes is the file size (the section may be larger). There is no password: a shell never prompts. The reply's documentId is the session, and every later message of the session carries it in the envelope.",
       "request": {
         "type": "ShellOpen",
         "fields": [
-          { "key": 0, "name": "fileHandle", "type": "u64", "min": 1 },
-          { "key": 1, "name": "fileSize", "type": "u64", "max": 1099511627776 }
+          { "key": 0, "name": "section", "type": "u64", "min": 1, "doc": "A section handle valid in the handler (the sender), read access." },
+          { "key": 1, "name": "bytes", "type": "u32", "min": 1, "max": 33554432, "doc": "The file size, at most 32 MiB." }
         ]
       },
       "reply": {
         "type": "ShellOpenReply",
         "fields": [
-          { "key": 0, "name": "sessionId", "type": "u32", "min": 1 },
+          { "key": 0, "name": "documentId", "type": "u32", "min": 1, "doc": "The session: the envelope documentId of ShellRenderPage and ShellClose." },
           { "key": 1, "name": "pageCount", "type": "u32", "max": 10000000 },
-          { "key": 2, "name": "firstWidthPt", "type": "f32", "exclusiveMin": 0, "max": 14400 },
-          { "key": 3, "name": "firstHeightPt", "type": "f32", "exclusiveMin": 0, "max": 14400 }
+          { "key": 2, "name": "firstWidth", "type": "f32", "exclusiveMin": 0, "max": 14400, "doc": "Points." },
+          { "key": 3, "name": "firstHeight", "type": "f32", "exclusiveMin": 0, "max": 14400, "doc": "Points." }
         ]
       }
     },
     {
-      "id": 2049, "name": "ShellRenderPage", "documentId": "none",
-      "$comment": "Renders one page to fit maxWidth x maxHeight into a section the handler made and duplicated into ShellHost. flags: bit 0 draw annotations, nothing else is allowed (max 1). sectionBytes is at most maxWidth x maxHeight x 4 and at most 64 MiB; ShellHost checks that against the section. The pixels are in the section; the reply says how much of it is the picture (stride is 4 x width).",
+      "id": 2049, "name": "ShellRenderPage", "documentId": "required",
+      "$comment": "Renders one page to fit maxWidth x maxHeight (16 to 1024: the tile limit, to be raised when a band message serves the shell) into a section the handler made. pixels is a section handle valid in the SENDING process (the handler) with write access, duplicated by ShellHost the same way as ShellOpen.section; pixelBytes is at least maxWidth x maxHeight x 4 (the handler's check, repeated by ShellHost against the section). flags: bit 0 draw annotations, nothing else (max 1). The pixels are in the caller's section. The reply values the schema cannot tie to the request, and which the handler must check before it builds a bitmap: width <= maxWidth, height <= maxHeight, stride == 4 x width.",
       "request": {
         "type": "ShellRenderPage",
         "fields": [
-          { "key": 0, "name": "sessionId", "type": "u32", "min": 1 },
-          { "key": 1, "name": "page", "type": "u32", "max": 9999999 },
-          { "key": 2, "name": "maxWidth", "type": "u32", "min": 1, "max": 4096 },
-          { "key": 3, "name": "maxHeight", "type": "u32", "min": 1, "max": 4096 },
-          { "key": 4, "name": "flags", "type": "u32", "max": 1 },
-          { "key": 5, "name": "section", "type": "u64", "min": 1 },
-          { "key": 6, "name": "sectionBytes", "type": "u32", "min": 4, "max": 67108864 }
+          { "key": 0, "name": "page", "type": "u32", "max": 9999999 },
+          { "key": 1, "name": "maxWidth", "type": "u32", "min": 16, "max": 1024 },
+          { "key": 2, "name": "maxHeight", "type": "u32", "min": 16, "max": 1024 },
+          { "key": 3, "name": "flags", "type": "u32", "max": 1, "doc": "Bit 0 annotations." },
+          { "key": 4, "name": "pixels", "type": "u64", "min": 1, "doc": "A section handle valid in the handler (the sender), write access." },
+          { "key": 5, "name": "pixelBytes", "type": "u32", "min": 4, "max": 4194304 }
         ]
       },
       "reply": {
         "type": "ShellRenderPageReply",
         "fields": [
-          { "key": 0, "name": "width", "type": "u32", "min": 1, "max": 4096 },
-          { "key": 1, "name": "height", "type": "u32", "min": 1, "max": 4096 },
-          { "key": 2, "name": "stride", "type": "u32", "min": 4, "max": 16384 }
+          { "key": 0, "name": "width", "type": "u32", "min": 1, "max": 1024 },
+          { "key": 1, "name": "height", "type": "u32", "min": 1, "max": 1024 },
+          { "key": 2, "name": "stride", "type": "u32", "min": 4, "max": 4096, "doc": "Equal to 4 x width." }
         ]
       }
     },
     {
-      "id": 2050, "name": "ShellClose", "documentId": "none",
-      "request": { "type": "ShellClose", "fields": [ { "key": 0, "name": "sessionId", "type": "u32", "min": 1 } ] },
+      "id": 2050, "name": "ShellClose", "documentId": "required",
+      "$comment": "Optional: closing the pipe ends the session just the same.",
+      "request": { "type": "ShellClose", "fields": [] },
       "reply": { "type": "ShellCloseReply", "fields": [] }
     }
   ]

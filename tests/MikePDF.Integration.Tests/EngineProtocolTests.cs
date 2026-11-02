@@ -89,6 +89,17 @@ public sealed class EngineProtocolTests(SandboxFixture sandbox)
     }
 
     [Fact]
+    public async Task AShellHandlerCannotSpeakToAnEngine()
+    {
+        // ADR-0018: the handler in Explorer's process talks to ShellHost only. An engine that is given its Hello answers nothing and ends, whatever else is right about it.
+        await using var engine = await RawEngine.StartAsync(sandbox);
+        await engine.SendAsync(0, new Hello { SchemaVersion = ProtocolInfo.SchemaVersion, ProcessKind = ProcessKind.ShellHandler, Pid = 1 });
+        Assert.Null(await engine.ReceiveAsync(Wait));
+        Assert.True(await engine.WaitForExitAsync(Wait));
+        Assert.Equal((uint)ExitProtocolViolation, engine.Process.ExitCode);
+    }
+
+    [Fact]
     public async Task ShutdownIsAnsweredAndTheEngineExitsCleanly()
     {
         await using var engine = await RawEngine.StartAsync(sandbox);

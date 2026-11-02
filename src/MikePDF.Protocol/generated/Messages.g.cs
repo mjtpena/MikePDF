@@ -2317,8 +2317,10 @@ public sealed class ValidateStructureReply : IReplyMessage
 /// <summary>The request payload of ShellOpen (message type 2048).</summary>
 public sealed class ShellOpen : IRequestMessage
 {
-    public ulong FileHandle { get; set; }
-    public ulong FileSize { get; set; }
+    /// <summary>A section handle valid in the handler (the sender), read access.</summary>
+    public ulong Section { get; set; }
+    /// <summary>The file size, at most 32 MiB.</summary>
+    public uint Bytes { get; set; }
 
     public MessageType MessageType => MessageType.ShellOpen;
 
@@ -2330,8 +2332,8 @@ public sealed class ShellOpen : IRequestMessage
     {
         StrictReader.ExpectArray(ref reader, 2);
         var message = new ShellOpen();
-        message.FileHandle = StrictReader.ReadU64(ref reader, 1UL, ulong.MaxValue);
-        message.FileSize = StrictReader.ReadU64(ref reader, 0UL, 1099511627776UL);
+        message.Section = StrictReader.ReadU64(ref reader, 1UL, ulong.MaxValue);
+        message.Bytes = StrictReader.ReadU32(ref reader, 1u, 33554432u);
         return message;
     }
 
@@ -2339,15 +2341,15 @@ public sealed class ShellOpen : IRequestMessage
     public void Write(ref MessagePackWriter writer)
     {
         writer.WriteArrayHeader(2);
-        writer.Write(FileHandle);
-        writer.Write(FileSize);
+        writer.Write(Section);
+        writer.Write(Bytes);
     }
 
     /// <summary>Checks every schema limit. Returns null when the message is valid.</summary>
     public ProtocolFailure? Validate()
     {
-        if (FileHandle < 1UL) return ProtocolFailure.Invalid("ShellOpen.fileHandle violates its limit");
-        if (FileSize > 1099511627776UL) return ProtocolFailure.Invalid("ShellOpen.fileSize violates its limit");
+        if (Section < 1UL) return ProtocolFailure.Invalid("ShellOpen.section violates its limit");
+        if (Bytes < 1u || Bytes > 33554432u) return ProtocolFailure.Invalid("ShellOpen.bytes violates its limit");
         return null;
     }
 }
@@ -2355,10 +2357,13 @@ public sealed class ShellOpen : IRequestMessage
 /// <summary>The reply payload of ShellOpen (message type 2048).</summary>
 public sealed class ShellOpenReply : IReplyMessage
 {
-    public uint SessionId { get; set; }
+    /// <summary>The session: the envelope documentId of ShellRenderPage and ShellClose.</summary>
+    public uint DocumentId { get; set; }
     public uint PageCount { get; set; }
-    public float FirstWidthPt { get; set; }
-    public float FirstHeightPt { get; set; }
+    /// <summary>Points.</summary>
+    public float FirstWidth { get; set; }
+    /// <summary>Points.</summary>
+    public float FirstHeight { get; set; }
 
     public MessageType MessageType => MessageType.ShellOpen;
 
@@ -2370,10 +2375,10 @@ public sealed class ShellOpenReply : IReplyMessage
     {
         StrictReader.ExpectArray(ref reader, 4);
         var message = new ShellOpenReply();
-        message.SessionId = StrictReader.ReadU32(ref reader, 1u, uint.MaxValue);
+        message.DocumentId = StrictReader.ReadU32(ref reader, 1u, uint.MaxValue);
         message.PageCount = StrictReader.ReadU32(ref reader, 0u, 10000000u);
-        message.FirstWidthPt = StrictReader.ReadF32(ref reader, 0.0f, 14400.0f, true);
-        message.FirstHeightPt = StrictReader.ReadF32(ref reader, 0.0f, 14400.0f, true);
+        message.FirstWidth = StrictReader.ReadF32(ref reader, 0.0f, 14400.0f, true);
+        message.FirstHeight = StrictReader.ReadF32(ref reader, 0.0f, 14400.0f, true);
         return message;
     }
 
@@ -2381,19 +2386,19 @@ public sealed class ShellOpenReply : IReplyMessage
     public void Write(ref MessagePackWriter writer)
     {
         writer.WriteArrayHeader(4);
-        writer.Write(SessionId);
+        writer.Write(DocumentId);
         writer.Write(PageCount);
-        writer.Write(FirstWidthPt);
-        writer.Write(FirstHeightPt);
+        writer.Write(FirstWidth);
+        writer.Write(FirstHeight);
     }
 
     /// <summary>Checks every schema limit. Returns null when the message is valid.</summary>
     public ProtocolFailure? Validate()
     {
-        if (SessionId < 1u) return ProtocolFailure.Invalid("ShellOpenReply.sessionId violates its limit");
+        if (DocumentId < 1u) return ProtocolFailure.Invalid("ShellOpenReply.documentId violates its limit");
         if (PageCount > 10000000u) return ProtocolFailure.Invalid("ShellOpenReply.pageCount violates its limit");
-        if (!float.IsFinite(FirstWidthPt) || FirstWidthPt <= 0.0f || FirstWidthPt > 14400.0f) return ProtocolFailure.Invalid("ShellOpenReply.firstWidthPt violates its limit");
-        if (!float.IsFinite(FirstHeightPt) || FirstHeightPt <= 0.0f || FirstHeightPt > 14400.0f) return ProtocolFailure.Invalid("ShellOpenReply.firstHeightPt violates its limit");
+        if (!float.IsFinite(FirstWidth) || FirstWidth <= 0.0f || FirstWidth > 14400.0f) return ProtocolFailure.Invalid("ShellOpenReply.firstWidth violates its limit");
+        if (!float.IsFinite(FirstHeight) || FirstHeight <= 0.0f || FirstHeight > 14400.0f) return ProtocolFailure.Invalid("ShellOpenReply.firstHeight violates its limit");
         return null;
     }
 }
@@ -2401,13 +2406,14 @@ public sealed class ShellOpenReply : IReplyMessage
 /// <summary>The request payload of ShellRenderPage (message type 2049).</summary>
 public sealed class ShellRenderPage : IRequestMessage
 {
-    public uint SessionId { get; set; }
     public uint Page { get; set; }
     public uint MaxWidth { get; set; }
     public uint MaxHeight { get; set; }
+    /// <summary>Bit 0 annotations.</summary>
     public uint Flags { get; set; }
-    public ulong Section { get; set; }
-    public uint SectionBytes { get; set; }
+    /// <summary>A section handle valid in the handler (the sender), write access.</summary>
+    public ulong Pixels { get; set; }
+    public uint PixelBytes { get; set; }
 
     public MessageType MessageType => MessageType.ShellRenderPage;
 
@@ -2417,41 +2423,38 @@ public sealed class ShellRenderPage : IRequestMessage
     /// </summary>
     internal static ShellRenderPage Read(ref MessagePackReader reader)
     {
-        StrictReader.ExpectArray(ref reader, 7);
+        StrictReader.ExpectArray(ref reader, 6);
         var message = new ShellRenderPage();
-        message.SessionId = StrictReader.ReadU32(ref reader, 1u, uint.MaxValue);
         message.Page = StrictReader.ReadU32(ref reader, 0u, 9999999u);
-        message.MaxWidth = StrictReader.ReadU32(ref reader, 1u, 4096u);
-        message.MaxHeight = StrictReader.ReadU32(ref reader, 1u, 4096u);
+        message.MaxWidth = StrictReader.ReadU32(ref reader, 16u, 1024u);
+        message.MaxHeight = StrictReader.ReadU32(ref reader, 16u, 1024u);
         message.Flags = StrictReader.ReadU32(ref reader, 0u, 1u);
-        message.Section = StrictReader.ReadU64(ref reader, 1UL, ulong.MaxValue);
-        message.SectionBytes = StrictReader.ReadU32(ref reader, 4u, 67108864u);
+        message.Pixels = StrictReader.ReadU64(ref reader, 1UL, ulong.MaxValue);
+        message.PixelBytes = StrictReader.ReadU32(ref reader, 4u, 4194304u);
         return message;
     }
 
     /// <summary>Writes the payload array. Does not validate; the codec validates before it writes.</summary>
     public void Write(ref MessagePackWriter writer)
     {
-        writer.WriteArrayHeader(7);
-        writer.Write(SessionId);
+        writer.WriteArrayHeader(6);
         writer.Write(Page);
         writer.Write(MaxWidth);
         writer.Write(MaxHeight);
         writer.Write(Flags);
-        writer.Write(Section);
-        writer.Write(SectionBytes);
+        writer.Write(Pixels);
+        writer.Write(PixelBytes);
     }
 
     /// <summary>Checks every schema limit. Returns null when the message is valid.</summary>
     public ProtocolFailure? Validate()
     {
-        if (SessionId < 1u) return ProtocolFailure.Invalid("ShellRenderPage.sessionId violates its limit");
         if (Page > 9999999u) return ProtocolFailure.Invalid("ShellRenderPage.page violates its limit");
-        if (MaxWidth < 1u || MaxWidth > 4096u) return ProtocolFailure.Invalid("ShellRenderPage.maxWidth violates its limit");
-        if (MaxHeight < 1u || MaxHeight > 4096u) return ProtocolFailure.Invalid("ShellRenderPage.maxHeight violates its limit");
+        if (MaxWidth < 16u || MaxWidth > 1024u) return ProtocolFailure.Invalid("ShellRenderPage.maxWidth violates its limit");
+        if (MaxHeight < 16u || MaxHeight > 1024u) return ProtocolFailure.Invalid("ShellRenderPage.maxHeight violates its limit");
         if (Flags > 1u) return ProtocolFailure.Invalid("ShellRenderPage.flags violates its limit");
-        if (Section < 1UL) return ProtocolFailure.Invalid("ShellRenderPage.section violates its limit");
-        if (SectionBytes < 4u || SectionBytes > 67108864u) return ProtocolFailure.Invalid("ShellRenderPage.sectionBytes violates its limit");
+        if (Pixels < 1UL) return ProtocolFailure.Invalid("ShellRenderPage.pixels violates its limit");
+        if (PixelBytes < 4u || PixelBytes > 4194304u) return ProtocolFailure.Invalid("ShellRenderPage.pixelBytes violates its limit");
         return null;
     }
 }
@@ -2461,6 +2464,7 @@ public sealed class ShellRenderPageReply : IReplyMessage
 {
     public uint Width { get; set; }
     public uint Height { get; set; }
+    /// <summary>Equal to 4 x width.</summary>
     public uint Stride { get; set; }
 
     public MessageType MessageType => MessageType.ShellRenderPage;
@@ -2473,9 +2477,9 @@ public sealed class ShellRenderPageReply : IReplyMessage
     {
         StrictReader.ExpectArray(ref reader, 3);
         var message = new ShellRenderPageReply();
-        message.Width = StrictReader.ReadU32(ref reader, 1u, 4096u);
-        message.Height = StrictReader.ReadU32(ref reader, 1u, 4096u);
-        message.Stride = StrictReader.ReadU32(ref reader, 4u, 16384u);
+        message.Width = StrictReader.ReadU32(ref reader, 1u, 1024u);
+        message.Height = StrictReader.ReadU32(ref reader, 1u, 1024u);
+        message.Stride = StrictReader.ReadU32(ref reader, 4u, 4096u);
         return message;
     }
 
@@ -2491,9 +2495,9 @@ public sealed class ShellRenderPageReply : IReplyMessage
     /// <summary>Checks every schema limit. Returns null when the message is valid.</summary>
     public ProtocolFailure? Validate()
     {
-        if (Width < 1u || Width > 4096u) return ProtocolFailure.Invalid("ShellRenderPageReply.width violates its limit");
-        if (Height < 1u || Height > 4096u) return ProtocolFailure.Invalid("ShellRenderPageReply.height violates its limit");
-        if (Stride < 4u || Stride > 16384u) return ProtocolFailure.Invalid("ShellRenderPageReply.stride violates its limit");
+        if (Width < 1u || Width > 1024u) return ProtocolFailure.Invalid("ShellRenderPageReply.width violates its limit");
+        if (Height < 1u || Height > 1024u) return ProtocolFailure.Invalid("ShellRenderPageReply.height violates its limit");
+        if (Stride < 4u || Stride > 4096u) return ProtocolFailure.Invalid("ShellRenderPageReply.stride violates its limit");
         return null;
     }
 }
@@ -2501,8 +2505,6 @@ public sealed class ShellRenderPageReply : IReplyMessage
 /// <summary>The request payload of ShellClose (message type 2050).</summary>
 public sealed class ShellClose : IRequestMessage
 {
-    public uint SessionId { get; set; }
-
     public MessageType MessageType => MessageType.ShellClose;
 
     /// <summary>
@@ -2511,23 +2513,20 @@ public sealed class ShellClose : IRequestMessage
     /// </summary>
     internal static ShellClose Read(ref MessagePackReader reader)
     {
-        StrictReader.ExpectArray(ref reader, 1);
+        StrictReader.ExpectArray(ref reader, 0);
         var message = new ShellClose();
-        message.SessionId = StrictReader.ReadU32(ref reader, 1u, uint.MaxValue);
         return message;
     }
 
     /// <summary>Writes the payload array. Does not validate; the codec validates before it writes.</summary>
     public void Write(ref MessagePackWriter writer)
     {
-        writer.WriteArrayHeader(1);
-        writer.Write(SessionId);
+        writer.WriteArrayHeader(0);
     }
 
     /// <summary>Checks every schema limit. Returns null when the message is valid.</summary>
     public ProtocolFailure? Validate()
     {
-        if (SessionId < 1u) return ProtocolFailure.Invalid("ShellClose.sessionId violates its limit");
         return null;
     }
 }

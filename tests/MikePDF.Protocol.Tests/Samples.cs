@@ -47,12 +47,13 @@ public static class Samples
             Page = 0, Dpi = 150, Rotation = 0, PageWidthPx = 1275, PageHeightPx = 1650, BandTop = 0, BandHeight = 256, Flags = 5, SlotIndex = 1, Generation = 1,
         }),
         new("req_hello_shell_handler", 24, 0, 5000, new Hello { SchemaVersion = ProtocolInfo.SchemaVersion, ProcessKind = ProcessKind.ShellHandler, Pid = 4242 }),
-        new("req_shell_open", 25, 0, 2000, new ShellOpen { FileHandle = 0x3A8, FileSize = 1_099_511_627_776UL }),
-        new("req_shell_render_page", 26, 0, 1500, new ShellRenderPage
+        new("req_shell_open", 25, 0, 1700, new ShellOpen { Section = 0x3A8, Bytes = 33_554_432 }),
+        new("req_shell_render_page", 26, 3, 1500, new ShellRenderPage
         {
-            SessionId = 1, Page = 9999999, MaxWidth = 4096, MaxHeight = 4096, Flags = 1, Section = 0x3B0, SectionBytes = 67_108_864,
+            Page = 9999999, MaxWidth = 1024, MaxHeight = 1024, Flags = 1, Pixels = 0x3B0, PixelBytes = 4_194_304,
         }),
-        new("req_shell_close", 27, 0, 500, new ShellClose { SessionId = 4_294_967_295 }),
+        new("req_shell_render_page_smallest", 28, 3, 1, new ShellRenderPage { Page = 0, MaxWidth = 16, MaxHeight = 16, Flags = 0, Pixels = 1, PixelBytes = 4 }),
+        new("req_shell_close", 27, 3, 500, new ShellClose()),
     ];
 
     public static IReadOnlyList<ResponseSample> Responses { get; } =
@@ -142,8 +143,8 @@ public static class Samples
         }),
         new("rsp_render_band", 22, Status.Ok, MessageType.RenderBand, new RenderBandReply { SlotIndex = 12, Width = 65536, Height = 16384, Stride = 262144, Generation = 9_000_000_000UL }),
         new("rsp_render_band_partial", 23, Status.PartiallyRendered, MessageType.RenderBand, new RenderBandReply { SlotIndex = 1, Width = 1275, Height = 256, Stride = 5100, Generation = 1 }),
-        new("rsp_shell_open", 25, Status.Ok, MessageType.ShellOpen, new ShellOpenReply { SessionId = 1, PageCount = 342, FirstWidthPt = 612f, FirstHeightPt = 792f }),
-        new("rsp_shell_render_page", 26, Status.Ok, MessageType.ShellRenderPage, new ShellRenderPageReply { Width = 4096, Height = 3072, Stride = 16384 }),
+        new("rsp_shell_open", 25, Status.Ok, MessageType.ShellOpen, new ShellOpenReply { DocumentId = 3, PageCount = 342, FirstWidth = 612f, FirstHeight = 792f }),
+        new("rsp_shell_render_page", 26, Status.Ok, MessageType.ShellRenderPage, new ShellRenderPageReply { Width = 1024, Height = 768, Stride = 4096 }),
         new("rsp_shell_close", 27, Status.Ok, MessageType.ShellClose, new ShellCloseReply()),
         new("rsp_error_password_required", 4, Status.PasswordRequired, MessageType.OpenDocument, null),
         new("rsp_error_timeout", 9, Status.Timeout, MessageType.RenderTile, null),

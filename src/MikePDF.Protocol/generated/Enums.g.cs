@@ -143,8 +143,8 @@ public static class MessageTypeInfo
         MessageType.RenderBand => DocumentIdRule.Required,
         MessageType.ValidateStructure => DocumentIdRule.None,
         MessageType.ShellOpen => DocumentIdRule.None,
-        MessageType.ShellRenderPage => DocumentIdRule.None,
-        MessageType.ShellClose => DocumentIdRule.None,
+        MessageType.ShellRenderPage => DocumentIdRule.Required,
+        MessageType.ShellClose => DocumentIdRule.Required,
         _ => throw new ArgumentOutOfRangeException(nameof(value)),
     };
 }

@@ -288,26 +288,31 @@ std::vector<RequestSample> request_samples() {
     }
     {
         ShellOpen m;
-        m.file_handle = 0x3A8;
-        m.file_size = 1'099'511'627'776ull;
-        v.push_back({"req_shell_open", 25, 0, 2000, m});
+        m.section = 0x3A8;
+        m.bytes = 33'554'432;
+        v.push_back({"req_shell_open", 25, 0, 1700, m});
     }
     {
         ShellRenderPage m;
-        m.session_id = 1;
         m.page = 9999999;
-        m.max_width = 4096;
-        m.max_height = 4096;
+        m.max_width = 1024;
+        m.max_height = 1024;
         m.flags = 1;
-        m.section = 0x3B0;
-        m.section_bytes = 67'108'864;
-        v.push_back({"req_shell_render_page", 26, 0, 1500, m});
+        m.pixels = 0x3B0;
+        m.pixel_bytes = 4'194'304;
+        v.push_back({"req_shell_render_page", 26, 3, 1500, m});
     }
     {
-        ShellClose m;
-        m.session_id = 4'294'967'295u;
-        v.push_back({"req_shell_close", 27, 0, 500, m});
+        ShellRenderPage m;
+        m.page = 0;
+        m.max_width = 16;
+        m.max_height = 16;
+        m.flags = 0;
+        m.pixels = 1;
+        m.pixel_bytes = 4;
+        v.push_back({"req_shell_render_page_smallest", 28, 3, 1, m});
     }
+    v.push_back({"req_shell_close", 27, 3, 500, ShellClose{}});
     return v;
 }
 
@@ -511,17 +516,17 @@ std::vector<ResponseSample> response_samples() {
     }
     {
         ShellOpenReply m;
-        m.session_id = 1;
+        m.document_id = 3;
         m.page_count = 342;
-        m.first_width_pt = 612.0f;
-        m.first_height_pt = 792.0f;
+        m.first_width = 612.0f;
+        m.first_height = 792.0f;
         v.push_back({"rsp_shell_open", 25, Status::Ok, MessageType::ShellOpen, m});
     }
     {
         ShellRenderPageReply m;
-        m.width = 4096;
-        m.height = 3072;
-        m.stride = 16384;
+        m.width = 1024;
+        m.height = 768;
+        m.stride = 4096;
         v.push_back({"rsp_shell_render_page", 26, Status::Ok, MessageType::ShellRenderPage, m});
     }
     v.push_back({"rsp_shell_close", 27, Status::Ok, MessageType::ShellClose, ShellCloseReply{}});
@@ -1367,10 +1372,14 @@ TEST(ProtocolClient, AShellHandlerSpeaksTheShellMessagesWithTheClientHalfOfTheCo
     ASSERT_TRUE(host_sees.ok());
     EXPECT_EQ(std::get<Hello>(host_sees.value.payload).process_kind, ProcessKind::ShellHandler);
 
-    const auto exchange = [](const RequestPayload& request, MessageType type, const ReplyPayload& reply) {
-        auto out = encode_request_frame(7, 0, 1500, request);
+    // After Hello the session is the connection: ShellOpen has no document, and what it answers with is the documentId of everything after it.
+    const auto exchange = [](const RequestPayload& request, std::uint32_t document, MessageType type, const ReplyPayload& reply) {
+        auto out = encode_request_frame(7, document, 1500, request);  // what the handler sends
         ASSERT_TRUE(out.ok()) << out.detail;
-        ASSERT_TRUE(decode_request_frame(out.value).ok());
+        const auto host_reads = decode_request_frame(out.value);      // what ShellHost reads
+        ASSERT_TRUE(host_reads.ok()) << host_reads.detail;
+        EXPECT_EQ(host_reads.value.document_id, document);
+        EXPECT_TRUE(host_reads.value.payload == request);
         auto in = encode_response_frame(7, Status::Ok, type, &reply);  // what ShellHost answers
         ASSERT_TRUE(in.ok()) << in.detail;
         const auto decoded = decode_response_frame(in.value);          // what the handler reads
@@ -1380,37 +1389,37 @@ TEST(ProtocolClient, AShellHandlerSpeaksTheShellMessagesWithTheClientHalfOfTheCo
         EXPECT_TRUE(decoded.value.payload == reply);
     };
     ShellOpen open;
-    open.file_handle = 5;
-    open.file_size = 1234;
+    open.section = 5;  // a handle value valid in the handler: ShellHost duplicates it from this process
+    open.bytes = 1234;
     ShellOpenReply opened;
-    opened.session_id = 3;
+    opened.document_id = 3;
     opened.page_count = 9;
-    opened.first_width_pt = 612.0f;
-    opened.first_height_pt = 792.0f;
-    exchange(open, MessageType::ShellOpen, opened);
+    opened.first_width = 612.0f;
+    opened.first_height = 792.0f;
+    exchange(open, 0, MessageType::ShellOpen, opened);
     ShellRenderPage render;
-    render.session_id = 3;
     render.max_width = 256;
     render.max_height = 256;
-    render.section = 9;
-    render.section_bytes = 262144;
+    render.pixels = 9;
+    render.pixel_bytes = 262144;
     ShellRenderPageReply rendered;
     rendered.width = 198;
     rendered.height = 256;
     rendered.stride = 792;
-    exchange(render, MessageType::ShellRenderPage, rendered);
-    ShellClose close;
-    close.session_id = 3;
-    exchange(close, MessageType::ShellClose, ShellCloseReply{});
+    exchange(render, opened.document_id, MessageType::ShellRenderPage, rendered);
+    exchange(ShellClose{}, opened.document_id, MessageType::ShellClose, ShellCloseReply{});
 
-    // The client refuses to send what the host would refuse: a picture bigger than the section, a flag that does not exist, a document id.
-    render.max_width = 4097;
-    EXPECT_EQ(encode_request_frame(8, 0, 0, render).status, Status::InvalidArgument);
+    // The client refuses to send what the host would refuse: a picture the tile limit does not allow, a flag that does not exist, a render outside a session,
+    // a session id on the open.
+    render.max_width = 1025;
+    EXPECT_EQ(encode_request_frame(8, 3, 0, render).status, Status::InvalidArgument);
     render.max_width = 256;
     render.flags = 2;
-    EXPECT_EQ(encode_request_frame(8, 0, 0, render).status, Status::InvalidArgument);
+    EXPECT_EQ(encode_request_frame(8, 3, 0, render).status, Status::InvalidArgument);
     render.flags = 0;
-    EXPECT_EQ(encode_request_frame(8, 5, 0, render).status, Status::InvalidArgument);
+    EXPECT_EQ(encode_request_frame(8, 0, 0, render).status, Status::InvalidArgument);
+    EXPECT_EQ(encode_request_frame(8, 3, 0, open).status, Status::InvalidArgument);
+    EXPECT_EQ(encode_request_frame(8, 0, 0, ShellClose{}).status, Status::InvalidArgument);
     // And it refuses a reply that lies: a stride that is not a row of pixels.
     rendered.stride = 3;
     const ReplyPayload lie = rendered;

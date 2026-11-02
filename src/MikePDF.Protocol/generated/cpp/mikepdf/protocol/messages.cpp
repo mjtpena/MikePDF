@@ -2661,10 +2661,10 @@ Result<ValidateStructureReply> ValidateStructureReply::decode(Reader& reader) {
 }
 
 Status ShellOpen::validate() const {
-    if (file_handle < 1ull) {
+    if (section < 1ull) {
         return Status::InvalidArgument;
     }
-    if (file_size > 1099511627776ull) {
+    if (bytes < 1u || bytes > 33554432u) {
         return Status::InvalidArgument;
     }
     return Status::Ok;
@@ -2675,8 +2675,8 @@ Status ShellOpen::encode(Writer& writer) const {
         return valid;
     }
     writer.write_array_header(2);
-    writer.write_uint(file_handle);
-    writer.write_uint(file_size);
+    writer.write_uint(section);
+    writer.write_uint(bytes);
     return writer.status();
 }
 
@@ -2684,10 +2684,10 @@ Result<ShellOpen> ShellOpen::decode(Reader& reader) {
     ShellOpen m;
     Status s = reader.expect_array(2);
     if (s == Status::Ok) {
-        s = reader.read_u64(m.file_handle, 1ull, 18446744073709551615ull);
+        s = reader.read_u64(m.section, 1ull, 18446744073709551615ull);
     }
     if (s == Status::Ok) {
-        s = reader.read_u64(m.file_size, 0ull, 1099511627776ull);
+        s = reader.read_u32(m.bytes, 1u, 33554432u);
     }
     if (s == Status::Ok) {
         s = m.validate();
@@ -2702,16 +2702,16 @@ Result<ShellOpen> ShellOpen::decode(Reader& reader) {
 }
 
 Status ShellOpenReply::validate() const {
-    if (session_id < 1u) {
+    if (document_id < 1u) {
         return Status::InvalidArgument;
     }
     if (page_count > 10000000u) {
         return Status::InvalidArgument;
     }
-    if (!std::isfinite(first_width_pt) || first_width_pt <= 0.0f || first_width_pt > 14400.0f) {
+    if (!std::isfinite(first_width) || first_width <= 0.0f || first_width > 14400.0f) {
         return Status::InvalidArgument;
     }
-    if (!std::isfinite(first_height_pt) || first_height_pt <= 0.0f || first_height_pt > 14400.0f) {
+    if (!std::isfinite(first_height) || first_height <= 0.0f || first_height > 14400.0f) {
         return Status::InvalidArgument;
     }
     return Status::Ok;
@@ -2722,10 +2722,10 @@ Status ShellOpenReply::encode(Writer& writer) const {
         return valid;
     }
     writer.write_array_header(4);
-    writer.write_uint(session_id);
+    writer.write_uint(document_id);
     writer.write_uint(page_count);
-    writer.write_f32(first_width_pt);
-    writer.write_f32(first_height_pt);
+    writer.write_f32(first_width);
+    writer.write_f32(first_height);
     return writer.status();
 }
 
@@ -2733,16 +2733,16 @@ Result<ShellOpenReply> ShellOpenReply::decode(Reader& reader) {
     ShellOpenReply m;
     Status s = reader.expect_array(4);
     if (s == Status::Ok) {
-        s = reader.read_u32(m.session_id, 1u, 4294967295u);
+        s = reader.read_u32(m.document_id, 1u, 4294967295u);
     }
     if (s == Status::Ok) {
         s = reader.read_u32(m.page_count, 0u, 10000000u);
     }
     if (s == Status::Ok) {
-        s = reader.read_f32(m.first_width_pt, 0.0f, 14400.0f, true);
+        s = reader.read_f32(m.first_width, 0.0f, 14400.0f, true);
     }
     if (s == Status::Ok) {
-        s = reader.read_f32(m.first_height_pt, 0.0f, 14400.0f, true);
+        s = reader.read_f32(m.first_height, 0.0f, 14400.0f, true);
     }
     if (s == Status::Ok) {
         s = m.validate();
@@ -2757,25 +2757,22 @@ Result<ShellOpenReply> ShellOpenReply::decode(Reader& reader) {
 }
 
 Status ShellRenderPage::validate() const {
-    if (session_id < 1u) {
-        return Status::InvalidArgument;
-    }
     if (page > 9999999u) {
         return Status::InvalidArgument;
     }
-    if (max_width < 1u || max_width > 4096u) {
+    if (max_width < 16u || max_width > 1024u) {
         return Status::InvalidArgument;
     }
-    if (max_height < 1u || max_height > 4096u) {
+    if (max_height < 16u || max_height > 1024u) {
         return Status::InvalidArgument;
     }
     if (flags > 1u) {
         return Status::InvalidArgument;
     }
-    if (section < 1ull) {
+    if (pixels < 1ull) {
         return Status::InvalidArgument;
     }
-    if (section_bytes < 4u || section_bytes > 67108864u) {
+    if (pixel_bytes < 4u || pixel_bytes > 4194304u) {
         return Status::InvalidArgument;
     }
     return Status::Ok;
@@ -2785,40 +2782,36 @@ Status ShellRenderPage::encode(Writer& writer) const {
     if (const Status valid = validate(); valid != Status::Ok) {
         return valid;
     }
-    writer.write_array_header(7);
-    writer.write_uint(session_id);
+    writer.write_array_header(6);
     writer.write_uint(page);
     writer.write_uint(max_width);
     writer.write_uint(max_height);
     writer.write_uint(flags);
-    writer.write_uint(section);
-    writer.write_uint(section_bytes);
+    writer.write_uint(pixels);
+    writer.write_uint(pixel_bytes);
     return writer.status();
 }
 
 Result<ShellRenderPage> ShellRenderPage::decode(Reader& reader) {
     ShellRenderPage m;
-    Status s = reader.expect_array(7);
-    if (s == Status::Ok) {
-        s = reader.read_u32(m.session_id, 1u, 4294967295u);
-    }
+    Status s = reader.expect_array(6);
     if (s == Status::Ok) {
         s = reader.read_u32(m.page, 0u, 9999999u);
     }
     if (s == Status::Ok) {
-        s = reader.read_u32(m.max_width, 1u, 4096u);
+        s = reader.read_u32(m.max_width, 16u, 1024u);
     }
     if (s == Status::Ok) {
-        s = reader.read_u32(m.max_height, 1u, 4096u);
+        s = reader.read_u32(m.max_height, 16u, 1024u);
     }
     if (s == Status::Ok) {
         s = reader.read_u32(m.flags, 0u, 1u);
     }
     if (s == Status::Ok) {
-        s = reader.read_u64(m.section, 1ull, 18446744073709551615ull);
+        s = reader.read_u64(m.pixels, 1ull, 18446744073709551615ull);
     }
     if (s == Status::Ok) {
-        s = reader.read_u32(m.section_bytes, 4u, 67108864u);
+        s = reader.read_u32(m.pixel_bytes, 4u, 4194304u);
     }
     if (s == Status::Ok) {
         s = m.validate();
@@ -2833,13 +2826,13 @@ Result<ShellRenderPage> ShellRenderPage::decode(Reader& reader) {
 }
 
 Status ShellRenderPageReply::validate() const {
-    if (width < 1u || width > 4096u) {
+    if (width < 1u || width > 1024u) {
         return Status::InvalidArgument;
     }
-    if (height < 1u || height > 4096u) {
+    if (height < 1u || height > 1024u) {
         return Status::InvalidArgument;
     }
-    if (stride < 4u || stride > 16384u) {
+    if (stride < 4u || stride > 4096u) {
         return Status::InvalidArgument;
     }
     return Status::Ok;
@@ -2860,13 +2853,13 @@ Result<ShellRenderPageReply> ShellRenderPageReply::decode(Reader& reader) {
     ShellRenderPageReply m;
     Status s = reader.expect_array(3);
     if (s == Status::Ok) {
-        s = reader.read_u32(m.width, 1u, 4096u);
+        s = reader.read_u32(m.width, 1u, 1024u);
     }
     if (s == Status::Ok) {
-        s = reader.read_u32(m.height, 1u, 4096u);
+        s = reader.read_u32(m.height, 1u, 1024u);
     }
     if (s == Status::Ok) {
-        s = reader.read_u32(m.stride, 4u, 16384u);
+        s = reader.read_u32(m.stride, 4u, 4096u);
     }
     if (s == Status::Ok) {
         s = m.validate();
@@ -2881,9 +2874,6 @@ Result<ShellRenderPageReply> ShellRenderPageReply::decode(Reader& reader) {
 }
 
 Status ShellClose::validate() const {
-    if (session_id < 1u) {
-        return Status::InvalidArgument;
-    }
     return Status::Ok;
 }
 
@@ -2891,17 +2881,13 @@ Status ShellClose::encode(Writer& writer) const {
     if (const Status valid = validate(); valid != Status::Ok) {
         return valid;
     }
-    writer.write_array_header(1);
-    writer.write_uint(session_id);
+    writer.write_array_header(0);
     return writer.status();
 }
 
 Result<ShellClose> ShellClose::decode(Reader& reader) {
     ShellClose m;
-    Status s = reader.expect_array(1);
-    if (s == Status::Ok) {
-        s = reader.read_u32(m.session_id, 1u, 4294967295u);
-    }
+    Status s = reader.expect_array(0);
     if (s == Status::Ok) {
         s = m.validate();
         if (s != Status::Ok) {

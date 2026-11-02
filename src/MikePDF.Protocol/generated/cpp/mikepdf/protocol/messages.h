@@ -740,8 +740,10 @@ struct ValidateStructureReply {
 /// Request payload of ShellOpen (message type 2048).
 struct ShellOpen {
     static constexpr MessageType kMessageType = MessageType::ShellOpen;
-    std::uint64_t file_handle{};
-    std::uint64_t file_size{};
+    /// A section handle valid in the handler (the sender), read access.
+    std::uint64_t section{};
+    /// The file size, at most 32 MiB.
+    std::uint32_t bytes{};
 
     /// Checks every schema limit.
     [[nodiscard]] Status validate() const;
@@ -756,10 +758,13 @@ struct ShellOpen {
 /// Reply payload of ShellOpen (message type 2048).
 struct ShellOpenReply {
     static constexpr MessageType kMessageType = MessageType::ShellOpen;
-    std::uint32_t session_id{};
+    /// The session: the envelope documentId of ShellRenderPage and ShellClose.
+    std::uint32_t document_id{};
     std::uint32_t page_count{};
-    float first_width_pt{};
-    float first_height_pt{};
+    /// Points.
+    float first_width{};
+    /// Points.
+    float first_height{};
 
     /// Checks every schema limit.
     [[nodiscard]] Status validate() const;
@@ -774,13 +779,14 @@ struct ShellOpenReply {
 /// Request payload of ShellRenderPage (message type 2049).
 struct ShellRenderPage {
     static constexpr MessageType kMessageType = MessageType::ShellRenderPage;
-    std::uint32_t session_id{};
     std::uint32_t page{};
     std::uint32_t max_width{};
     std::uint32_t max_height{};
+    /// Bit 0 annotations.
     std::uint32_t flags{};
-    std::uint64_t section{};
-    std::uint32_t section_bytes{};
+    /// A section handle valid in the handler (the sender), write access.
+    std::uint64_t pixels{};
+    std::uint32_t pixel_bytes{};
 
     /// Checks every schema limit.
     [[nodiscard]] Status validate() const;
@@ -797,6 +803,7 @@ struct ShellRenderPageReply {
     static constexpr MessageType kMessageType = MessageType::ShellRenderPage;
     std::uint32_t width{};
     std::uint32_t height{};
+    /// Equal to 4 x width.
     std::uint32_t stride{};
 
     /// Checks every schema limit.
@@ -812,7 +819,6 @@ struct ShellRenderPageReply {
 /// Request payload of ShellClose (message type 2050).
 struct ShellClose {
     static constexpr MessageType kMessageType = MessageType::ShellClose;
-    std::uint32_t session_id{};
 
     /// Checks every schema limit.
     [[nodiscard]] Status validate() const;

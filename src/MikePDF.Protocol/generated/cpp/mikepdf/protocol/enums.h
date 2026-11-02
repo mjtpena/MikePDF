@@ -187,9 +187,9 @@ enum class DocumentIdRule : std::uint8_t {
         case MessageType::ShellOpen:
             return DocumentIdRule::None;
         case MessageType::ShellRenderPage:
-            return DocumentIdRule::None;
+            return DocumentIdRule::Required;
         case MessageType::ShellClose:
-            return DocumentIdRule::None;
+            return DocumentIdRule::Required;
     }
     return DocumentIdRule::Required;
 }

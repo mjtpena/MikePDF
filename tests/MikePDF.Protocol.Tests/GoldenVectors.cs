@@ -388,12 +388,15 @@ public static class GoldenVectors
             return band;
         }
 
+        // The shell session (ADR-0018): ShellOpen carries no document, the rest carry the session's documentId (3 here).
         static ShellRenderPage Shell(Action<ShellRenderPage> edit)
         {
-            var render = new ShellRenderPage { SessionId = 1, Page = 0, MaxWidth = 256, MaxHeight = 256, Flags = 0, Section = 1, SectionBytes = 262144 };
+            var render = new ShellRenderPage { Page = 0, MaxWidth = 256, MaxHeight = 256, Flags = 0, Pixels = 1, PixelBytes = 262144 };
             edit(render);
             return render;
         }
+
+        static byte[] InSession(object message, MessageType type, uint documentId = 3) => RawFrame.Request(RawFrame.Serialized(message), type, 9, documentId, 1000);
 
         Req("viewer_preferences_without_a_document", RawFrame.Request(Items(), MessageType.GetViewerPreferences, 21, 0), Invalid);
         Req("viewer_preferences_with_a_field", RawFrame.Request(Items(1u), MessageType.GetViewerPreferences, 21, 7), Protocol);
@@ -413,21 +416,24 @@ public static class GoldenVectors
         Req("render_band_page_10000000", Doc(Band(b => b.Page = 10000000), MessageType.RenderBand), Invalid);
         Req("render_band_dpi_is_a_float", RawFrame.Request(Items(0u, 150.5f, (ushort)0, 1275u, 1650u, 0u, 256u, 5u, 1u, 1UL), MessageType.RenderBand, 22, 7), Protocol);
 
-        Req("shell_open_without_a_handle", NoDoc(new ShellOpen { FileHandle = 0, FileSize = 1 }, MessageType.ShellOpen), Invalid);
-        Req("shell_open_size_above_2_40", NoDoc(new ShellOpen { FileHandle = 1, FileSize = 1_099_511_627_777UL }, MessageType.ShellOpen), Invalid);
-        Req("shell_open_with_a_document", RawFrame.Request(RawFrame.Serialized(new ShellOpen { FileHandle = 1, FileSize = 1 }), MessageType.ShellOpen, 9, 7), Invalid);
-        Req("shell_render_page_session_zero", NoDoc(Shell(r => r.SessionId = 0), MessageType.ShellRenderPage), Invalid);
-        Req("shell_render_page_width_zero", NoDoc(Shell(r => r.MaxWidth = 0), MessageType.ShellRenderPage), Invalid);
-        Req("shell_render_page_width_4097", NoDoc(Shell(r => r.MaxWidth = 4097), MessageType.ShellRenderPage), Invalid);
-        Req("shell_render_page_height_zero", NoDoc(Shell(r => r.MaxHeight = 0), MessageType.ShellRenderPage), Invalid);
-        Req("shell_render_page_height_4097", NoDoc(Shell(r => r.MaxHeight = 4097), MessageType.ShellRenderPage), Invalid);
-        Req("shell_render_page_flags_2", NoDoc(Shell(r => r.Flags = 2), MessageType.ShellRenderPage), Invalid);
-        Req("shell_render_page_section_zero", NoDoc(Shell(r => r.Section = 0), MessageType.ShellRenderPage), Invalid);
-        Req("shell_render_page_section_bytes_3", NoDoc(Shell(r => r.SectionBytes = 3), MessageType.ShellRenderPage), Invalid);
-        Req("shell_render_page_section_bytes_64_mib_plus_1", NoDoc(Shell(r => r.SectionBytes = 67108865), MessageType.ShellRenderPage), Invalid);
-        Req("shell_render_page_page_10000000", NoDoc(Shell(r => r.Page = 10000000), MessageType.ShellRenderPage), Invalid);
-        Req("shell_close_session_zero", NoDoc(new ShellClose { SessionId = 0 }, MessageType.ShellClose), Invalid);
-        Req("shell_close_with_a_field", RawFrame.Request(Items(1u, 2u), MessageType.ShellClose, 9, 0), Protocol);
+        Req("shell_open_without_a_section", NoDoc(new ShellOpen { Section = 0, Bytes = 1 }, MessageType.ShellOpen), Invalid);
+        Req("shell_open_zero_bytes", NoDoc(new ShellOpen { Section = 1, Bytes = 0 }, MessageType.ShellOpen), Invalid);
+        Req("shell_open_bytes_above_32_mib", NoDoc(new ShellOpen { Section = 1, Bytes = 33_554_433 }, MessageType.ShellOpen), Invalid);
+        Req("shell_open_with_a_document", RawFrame.Request(RawFrame.Serialized(new ShellOpen { Section = 1, Bytes = 1 }), MessageType.ShellOpen, 9, 7), Invalid);
+        Req("shell_open_with_a_password", RawFrame.Request(Items(1UL, 1u, "secret"), MessageType.ShellOpen, 9, 0), Protocol); // a shell never prompts: there is no such field
+        Req("shell_render_page_without_a_session", RawFrame.Request(RawFrame.Serialized(Shell(_ => { })), MessageType.ShellRenderPage, 9, 0), Invalid);
+        Req("shell_render_page_width_15", InSession(Shell(r => r.MaxWidth = 15), MessageType.ShellRenderPage), Invalid);
+        Req("shell_render_page_width_1025", InSession(Shell(r => r.MaxWidth = 1025), MessageType.ShellRenderPage), Invalid);
+        Req("shell_render_page_height_15", InSession(Shell(r => r.MaxHeight = 15), MessageType.ShellRenderPage), Invalid);
+        Req("shell_render_page_height_1025", InSession(Shell(r => r.MaxHeight = 1025), MessageType.ShellRenderPage), Invalid);
+        Req("shell_render_page_flags_2", InSession(Shell(r => r.Flags = 2), MessageType.ShellRenderPage), Invalid);
+        Req("shell_render_page_pixels_zero", InSession(Shell(r => r.Pixels = 0), MessageType.ShellRenderPage), Invalid);
+        Req("shell_render_page_pixel_bytes_3", InSession(Shell(r => r.PixelBytes = 3), MessageType.ShellRenderPage), Invalid);
+        Req("shell_render_page_pixel_bytes_4_mib_plus_1", InSession(Shell(r => r.PixelBytes = 4_194_305), MessageType.ShellRenderPage), Invalid);
+        Req("shell_render_page_page_10000000", InSession(Shell(r => r.Page = 10000000), MessageType.ShellRenderPage), Invalid);
+        Req("shell_close_without_a_session", NoDoc(new ShellClose(), MessageType.ShellClose), Invalid);
+        Req("shell_close_with_a_field", RawFrame.Request(Items(1u), MessageType.ShellClose, 9, 3), Protocol);
+
 
         Rsp("pong_without_progress", RawFrame.Response(Items(1UL), MessageType.Ping), Protocol); // the schema 4 layout
         Rsp("pong_progress_is_a_float", RawFrame.Response(Items(1UL, 1.5f), MessageType.Ping), Protocol);
@@ -445,15 +451,17 @@ public static class GoldenVectors
         Rsp("render_band_reply_stride_3", Reply(new RenderBandReply { SlotIndex = 0, Width = 1, Height = 1, Stride = 3, Generation = 0 }, MessageType.RenderBand), Invalid);
         Rsp("render_band_reply_stride_262145", Reply(new RenderBandReply { SlotIndex = 0, Width = 1, Height = 1, Stride = 262145, Generation = 0 }, MessageType.RenderBand), Invalid);
         Rsp("render_band_reply_slot_1024", Reply(new RenderBandReply { SlotIndex = 1024, Width = 1, Height = 1, Stride = 4, Generation = 0 }, MessageType.RenderBand), Invalid);
-        Rsp("shell_open_reply_session_zero", Reply(new ShellOpenReply { SessionId = 0, PageCount = 1, FirstWidthPt = 612f, FirstHeightPt = 792f }, MessageType.ShellOpen), Invalid);
-        Rsp("shell_open_reply_pages_10000001", Reply(new ShellOpenReply { SessionId = 1, PageCount = 10000001, FirstWidthPt = 612f, FirstHeightPt = 792f }, MessageType.ShellOpen), Invalid);
-        Rsp("shell_open_reply_width_zero", Reply(new ShellOpenReply { SessionId = 1, PageCount = 1, FirstWidthPt = 0f, FirstHeightPt = 792f }, MessageType.ShellOpen), Invalid);
-        Rsp("shell_open_reply_height_14401", Reply(new ShellOpenReply { SessionId = 1, PageCount = 1, FirstWidthPt = 612f, FirstHeightPt = 14401f }, MessageType.ShellOpen), Invalid);
+        Rsp("shell_open_reply_document_zero", Reply(new ShellOpenReply { DocumentId = 0, PageCount = 1, FirstWidth = 612f, FirstHeight = 792f }, MessageType.ShellOpen), Invalid);
+        Rsp("shell_open_reply_pages_10000001", Reply(new ShellOpenReply { DocumentId = 1, PageCount = 10000001, FirstWidth = 612f, FirstHeight = 792f }, MessageType.ShellOpen), Invalid);
+        Rsp("shell_open_reply_width_zero", Reply(new ShellOpenReply { DocumentId = 1, PageCount = 1, FirstWidth = 0f, FirstHeight = 792f }, MessageType.ShellOpen), Invalid);
+        Rsp("shell_open_reply_height_14401", Reply(new ShellOpenReply { DocumentId = 1, PageCount = 1, FirstWidth = 612f, FirstHeight = 14401f }, MessageType.ShellOpen), Invalid);
         Rsp("shell_open_reply_width_infinite", RawFrame.Response(Items(1u, 1u, RawInf, 792f), MessageType.ShellOpen), Invalid);
-        Rsp("shell_render_page_reply_width_4097", Reply(new ShellRenderPageReply { Width = 4097, Height = 1, Stride = 4 }, MessageType.ShellRenderPage), Invalid);
+        Rsp("shell_open_reply_width_nan", RawFrame.Response(Items(1u, 1u, RawNan, 792f), MessageType.ShellOpen), Invalid);
+        Rsp("shell_render_page_reply_width_1025", Reply(new ShellRenderPageReply { Width = 1025, Height = 1, Stride = 4 }, MessageType.ShellRenderPage), Invalid);
         Rsp("shell_render_page_reply_height_zero", Reply(new ShellRenderPageReply { Width = 1, Height = 0, Stride = 4 }, MessageType.ShellRenderPage), Invalid);
+        Rsp("shell_render_page_reply_height_1025", Reply(new ShellRenderPageReply { Width = 1, Height = 1025, Stride = 4 }, MessageType.ShellRenderPage), Invalid);
         Rsp("shell_render_page_reply_stride_3", Reply(new ShellRenderPageReply { Width = 1, Height = 1, Stride = 3 }, MessageType.ShellRenderPage), Invalid);
-        Rsp("shell_render_page_reply_stride_16385", Reply(new ShellRenderPageReply { Width = 1, Height = 1, Stride = 16385 }, MessageType.ShellRenderPage), Invalid);
+        Rsp("shell_render_page_reply_stride_4097", Reply(new ShellRenderPageReply { Width = 1, Height = 1, Stride = 4097 }, MessageType.ShellRenderPage), Invalid);
         Rsp("shell_close_reply_with_a_field", RawFrame.Response(Items(1u), MessageType.ShellClose), Protocol);
 
         return v;
