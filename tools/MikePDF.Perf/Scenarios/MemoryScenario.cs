@@ -28,7 +28,7 @@ internal static class MemoryScenario
             var details = new Dictionary<string, List<double>>(StringComparer.Ordinal);
             for (var i = 0; i < context.Profile.Warmup + context.Profile.HeavyIterations; i++)
             {
-                var sample = await OnceAsync(context, path, cancellationToken);
+                var sample = await context.Resilient(() => OnceAsync(context, path, cancellationToken), MetricCatalog.EnginePeakWorkingSet.Id);
                 if (i < context.Profile.Warmup)
                 {
                     continue; // the first full scroll in a process pays for one-off allocations the second does not

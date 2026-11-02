@@ -55,7 +55,7 @@ internal static class OpenScenarios
         var samples = new List<double>();
         for (var i = 0; i < context.Profile.Warmup + context.Profile.Iterations; i++)
         {
-            var timing = await OneSessionAsync(context, document.Path);
+            var timing = await context.Resilient(() => OneSessionAsync(context, document.Path), definition.Id);
             if (i < context.Profile.Warmup)
             {
                 continue;
@@ -147,20 +147,25 @@ internal static class OpenScenarios
         var samples = new List<double>();
         for (var i = 0; i < context.Profile.Warmup + context.Profile.Iterations; i++)
         {
-            var start = Clock.Now();
-            var opened = Checks.Require(await engine.OpenDocumentAsync(path), "OpenDocument");
-            await using var document = opened;
-            _ = Checks.Require(await document.GetInfoAsync(), "GetDocumentInfo");
-            var sizes = Checks.Require(await document.GetPageSizesAsync(0, (uint)Math.Min(document.PageCount, FirstSizeChunk)), "GetPageSizes");
-            var lease = Checks.Require(await document.RenderTileAsync(AppTiles.First(0, sizes.Widths[0], sizes.Heights[0]), 1), "RenderTile");
-            var elapsed = Clock.MillisecondsSince(start);
-            using (lease)
+            var elapsed = await context.Resilient(async () =>
             {
-                if (!AppTiles.HasInk(lease))
+                var start = Clock.Now();
+                var opened = Checks.Require(await engine.OpenDocumentAsync(path), "OpenDocument");
+                await using var document = opened;
+                _ = Checks.Require(await document.GetInfoAsync(), "GetDocumentInfo");
+                var sizes = Checks.Require(await document.GetPageSizesAsync(0, (uint)Math.Min(document.PageCount, FirstSizeChunk)), "GetPageSizes");
+                var lease = Checks.Require(await document.RenderTileAsync(AppTiles.First(0, sizes.Widths[0], sizes.Heights[0]), 1), "RenderTile");
+                var took = Clock.MillisecondsSince(start);
+                using (lease)
                 {
-                    throw new PerfException("A tile of a page of text came back blank.");
+                    if (!AppTiles.HasInk(lease))
+                    {
+                        throw new PerfException("A tile of a page of text came back blank.");
+                    }
                 }
-            }
+
+                return took;
+            }, definition.Id);
 
             if (i >= context.Profile.Warmup)
             {

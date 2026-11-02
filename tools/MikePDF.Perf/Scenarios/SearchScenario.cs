@@ -28,7 +28,7 @@ internal static class SearchScenario
             var full = new List<double>();
             for (var i = 0; i < context.Profile.Warmup + context.Profile.HeavyIterations; i++)
             {
-                var (toFirst, toFull) = await OnceAsync(pool, spec, path);
+                var (toFirst, toFull) = await context.Resilient(() => OnceAsync(pool, spec, path), MetricCatalog.SearchFull.Id);
                 if (i >= context.Profile.Warmup)
                 {
                     first.Add(toFirst);

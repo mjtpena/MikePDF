@@ -23,7 +23,8 @@ public sealed class HarnessFixture : IDisposable
 
     internal string DocumentsDirectory => _documentsDirectory;
 
-    internal PerfContext Context(PerfProfile profile) => new() { Engine = Engine, Documents = Documents, Profile = profile };
+    internal PerfContext Context(PerfProfile profile, TimeSpan? crashBackoff = null) =>
+        new() { Engine = Engine, Documents = Documents, Profile = profile, CrashBackoff = crashBackoff ?? TimeSpan.FromMilliseconds(250) };
 
     public void Dispose()
     {

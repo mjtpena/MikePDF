@@ -105,17 +105,18 @@ public static class PerfRunner
             Machine = machine,
             Engine = engine.Info,
             BackgroundCpuBusyPercent = background,
+            UnexpectedEngineCrashes = context.UnexpectedEngineCrashes,
             Profile = new ProfileInfo(options.Profile.Name, options.Profile.Warmup, options.Profile.Iterations, options.Profile.HeavyIterations),
             Documents = [.. documents.Select(d => new DocumentInfo(d.Spec.Id, d.Spec.Pages, d.Bytes, d.Sha256))],
             Metrics = finalMetrics,
-            Notes = Notes(options, machine, finalMetrics, background, waited),
+            Notes = Notes(options, machine, finalMetrics, background, waited, context.UnexpectedEngineCrashes),
         };
     }
 
     /// <summary>Above this share of background CPU use the timings are flagged as inflated.</summary>
     public const double BusyWarningPercent = 15;
 
-    private static List<string> Notes(PerfRunOptions options, MachineInfo machine, IReadOnlyList<MetricResult> metrics, double? background, TimeSpan waited)
+    private static List<string> Notes(PerfRunOptions options, MachineInfo machine, IReadOnlyList<MetricResult> metrics, double? background, TimeSpan waited, int crashes)
     {
         var notes = new List<string>
         {
@@ -134,6 +135,11 @@ public static class PerfRunner
         if (background is > BusyWarningPercent)
         {
             notes.Add($"The machine was {background:0}% busy with other work before the run began (all programs, all logical processors): every timing here is inflated by that. Rerun on an idle machine before trusting a number.");
+        }
+
+        if (crashes > 0)
+        {
+            notes.Add($"The sandboxed engine died on its own {crashes} time(s) while being measured (not counting the deliberate kills of the recovery scenario). Each affected iteration was thrown away and repeated. An engine that exits by itself is a defect to be found; see docs/perf/README.md, 'Known engine crash'.");
         }
 
         if (machine.CiHosted)

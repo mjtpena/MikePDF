@@ -25,7 +25,7 @@ internal static class RecoveryScenario
             var supervisorFigure = new List<double>();
             for (var i = 0; i < context.Profile.Warmup + context.Profile.Iterations; i++)
             {
-                var (wall, restore) = await OnceAsync(context, path, cancellationToken);
+                var (wall, restore) = await context.Resilient(() => OnceAsync(context, path, cancellationToken), MetricCatalog.CrashToTile.Id);
                 if (i >= context.Profile.Warmup)
                 {
                     toTile.Add(wall);

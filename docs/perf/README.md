@@ -9,7 +9,7 @@ Master prompt §11 sets the budgets and §15.1 step 7 puts a "performance smoke 
 | File | What it is |
 |---|---|
 | `budgets.json` | Every row of §11: the R1, R2 and R3 target, the statistic compared, which tool measures it, and notes. A test holds it to the §11 table |
-| `baselines/*.json`, `*.md` | Result files kept as baselines, one per runner (`ci-x64`, `ci-arm64`, `dev-...`) |
+| `baselines/*.json`, `*.md` | Result files kept as baselines: `ci-x64.<cpu>.json` and `ci-arm64.<cpu>.json` for each CPU the hosted pool has handed out, and `dev-...` for a development machine |
 | `README.md` | This file |
 
 ## Running it
@@ -22,7 +22,8 @@ dotnet build tools/MikePDF.Perf -c Release
 $perf = (Get-ChildItem tools/MikePDF.Perf/bin/Release -Recurse -Filter MikePDF.Perf.exe).FullName
 
 & $perf run --profile ci   --out perf-results                    # measure; writes perf-results.json and .md
-& $perf gate --profile ci  --baseline docs/perf/baselines/ci-x64.json --runner-id ci-x64   # measure and compare, exit 1 on a regression
+& $perf gate --profile ci  --baseline-dir docs/perf/baselines --runner-id ci-x64   # measure and compare with the baseline for this CPU, exit 1 on a regression
+& $perf report --results docs/perf/baselines/dev-275hx.json                    # render a result file as Markdown
 & $perf compare --baseline a.json --current b.json              # compare two result files
 & $perf generate --out docs-out                                  # just write the test PDFs
 ```
@@ -110,7 +111,7 @@ Not measured by this harness, and why:
 3. **Fresh processes where it matters.** Opens start new engines each iteration (as the app does). Memory uses a new engine per iteration. Recovery uses a new supervisor per iteration.
 4. **Two conditions to regress.** A metric regresses only if it is worse than the baseline by more than **10% of the baseline** *and* by more than its **absolute floor** (`Metrics/MetricCatalog.cs`: 0.25 ms for a tile, 3 to 8 ms for opens, 25 ms for search and recovery, 8 MB for memory, 1 MB for sizes, 40 tiles/s for throughput). 10% of a 1 ms tile is 0.1 ms, below what a hosted runner's scheduler can resolve; the floors are about a scheduler time-slice or two of jitter, chosen by judgement. A change under its floor is reported as "under the floor" and passes.
 5. **Retry the suspects, vote.** After the first run, only the metrics that look regressed are measured again, alone, twice more. Their reported value is the **median of the three run medians**, so a real slowdown must show up in at least two of the three runs, and one bad run is outvoted. The cost is at most two extra runs of the suspect scenarios, not the whole suite. If a run were independently wrong 5% of the time, two of three being wrong would be about 0.7%; runs on a shared machine are not independent (a noisy neighbour lasts minutes), so the real figure is higher. That is the main residual risk.
-6. **Per-runner baselines, reviewed.** The baseline is `docs/perf/baselines/ci-<arch>.json` and is only ever changed by a commit someone reviews, never by CI, so slow drift cannot ratchet in. The comparer warns when the baseline's architecture, runner id or CPU differs (hosted runners are drawn from a pool of different VM types).
+6. **Baselines per runner and per CPU, reviewed.** Baselines are `docs/perf/baselines/ci-<arch>.<cpu>.json` and only ever change by a commit someone reviews, never by CI, so slow drift cannot ratchet in. This is not tidiness: the first two CI runs of this branch were given an AMD EPYC 7763 and then an EPYC 9V45, and the same code was 37% to 47% faster on the second (tile throughput 1015 and then 1935 tiles/s); on ARM64 a Cobalt 100 and then a Cobalt 200 differed by 28% to 36%. A single baseline per architecture would have failed or passed builds according to which VM the pool handed out. `gate --baseline-dir` therefore picks the baseline whose CPU equals the current one. If there is none, the closest is shown **for information only**: regressions against a baseline from another CPU (or architecture) are reported as advisory and never fail the build, and the job output names the file to commit to start gating on the new CPU. The cost: a regression that lands while only a new CPU class is being drawn is not caught until its baseline is committed.
 7. **Cannot measure is a failure; skipped is not.** A metric that errors (the engine will not start, a correctness check fails, the search finds the wrong number of matches) fails the gate. A metric skipped with a stated reason (no package) does not.
 8. **No baseline passes, loudly.** The first run on a runner compares nothing, says so in the job summary, and uploads its results as the candidate baseline.
 9. **Advisory metrics.** A metric whose `MetricDefinition.Gate` is false is compared and reported but never fails the build. None is advisory today; this is the lever for a metric that proves too noisy on hosted runners.
@@ -119,9 +120,9 @@ If the hosted gate proves flaky anyway, R-09's fallback applies: keep these resu
 
 ## CI
 
-`.github/workflows/perf.yml` runs on every PR and `m*/**` push, nightly, and on demand, for **x64** (`windows-2025-vs2026`) and **ARM64** (`windows-11-vs2026-arm`): build the native engine (`build.ps1 -SkipManaged`), build the tool, run `gate --profile ci` against `docs/perf/baselines/ci-<arch>.json`, write the Markdown to the job summary, and upload `perf-results/` (JSON and Markdown) as an artifact. It is a separate workflow so that it does not collide with edits to `ci.yml`.
+`.github/workflows/perf.yml` runs on every PR and `m*/**` push, nightly, and on demand, for **x64** (`windows-2025-vs2026`) and **ARM64** (`windows-11-vs2026-arm`): build the native engine (`build.ps1 -SkipManaged`), build the tool, shut down the compiler servers, run `gate --profile ci --baseline-dir docs/perf/baselines`, write the Markdown to the job summary, and upload `perf-results/` (JSON and Markdown) as an artifact. It is a separate workflow so that it does not collide with edits to `ci.yml`.
 
-**Setting or changing a baseline**: take `perf-results.json` from the artifact of a CI run you judge typical (not one that ran during an incident), commit it as `docs/perf/baselines/ci-x64.json` or `ci-arm64.json` in a reviewed change, and say why. Re-baseline after an intended change in speed (better or worse) and after the hosted image changes the CPU class. These runners are **not reference hardware**: CI numbers say "no worse than last time on this kind of VM", never "meets the budget".
+**Setting or changing a baseline**: take `perf-results.json` from the artifact of a CI run you judge typical (not one that ran during an incident), commit it under the name the job output suggests (`ci-x64.<cpu>.json`; `MikePDF.Perf report --results <json> --out <md>` refreshes the Markdown beside it) in a reviewed change, and say why. Re-baseline after an intended change in speed (better or worse). A new CPU class in the pool needs its own baseline file; the job tells you when it is missing. These runners are **not reference hardware**: CI numbers say "no worse than last time on this kind of VM", never "meets the budget".
 
 ## Reference hardware
 
@@ -140,6 +141,15 @@ Record the exact machine models in an ADR (§11 asks for it; ADR-0001 has none y
 
 * **The app starts two engine processes for every document it opens** (`DocumentSession`: a document engine, then a pool engine, both new). The harness measures that sequence (`open.warm.first_tile.*`) next to the same open in an already-running engine (`open.engine_warm.first_tile.*`); the gap is the price of two AppContainer process starts. The §11 "warm open (app running)" budget is 250 ms.
 * The harness caught a mistake of its own that is worth recording: `RenderTileArgs.TileX/TileY` are **pixel offsets** in the scaled page (as `TileGrid.Rect` produces), not tile indexes. A first version passed indexes and rendered the wrong regions. A test now renders all six tiles of a page and checks which have ink.
+
+## Engines that die during a measurement (found while building this)
+
+The sandboxed engine sometimes disappears under the harness, and the harness counts it (`unexpectedEngineCrashes` in the result file, a line in the report and a note) instead of hiding it. Two causes were found; the second is a possible product defect that was **not** investigated to the end:
+
+1. **Other programs killing it.** On the shared development machine, other work packages' UI test runs (`build/run-ui-tests.ps1` and the journey tests) kill every `MikePDF.Engine.exe` on the machine by name (`Get-Process MikePDF, MikePDF.Engine | Stop-Process -Force`). To the harness that looks exactly like a crash: `EngineCrashed: The engine closed the pipe`, a supervisor event of `ProcessExited`, and an exit code that cannot be read (`SandboxedProcess.ExitCode` returns `0xFFFFFFFF` when `GetExitCodeProcess` fails). It was seen a handful of times in many hundreds of runs, once three times in a row inside one scenario. A dedicated machine and the CI runners have no such neighbours. This is a reason to measure on a machine nothing else uses.
+2. **A starved CPU (possible defect).** With a busy thread on every logical processor, starting a document engine failed at once, five times out of five (`EngineStartException: The engine's Hello failed with status EngineCrashed (Writing to the engine failed: Pipe is broken.)`). With the machine otherwise idle, 3,000 consecutive start/open/info/sizes/tile iterations did not fail. If that holds outside this machine, the engine's start-up does not tolerate a saturated CPU, which a user running a build while opening a PDF could meet. No Windows Error Reporting entry was written. Reproduce it by starting engines through `EngineSupervisor.StartAsync` while spinning a thread per logical processor.
+
+What the harness does: an iteration in which the engine dies (or fails to start) is thrown away and repeated after a growing pause (up to five times in a row, then the metric fails); the count goes into the result. It does not fail the gate by itself, so that a neighbour cannot break a build, and the report names it so that a real defect cannot hide.
 
 ## Limits and follow-ups
 

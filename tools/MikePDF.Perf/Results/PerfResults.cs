@@ -125,6 +125,9 @@ public sealed record PerfResults
     /// <summary>How busy the whole machine was (percent of all logical processors) in the half second before the run began, before any work of the harness's own. A high figure means other programs were running and the timings are inflated.</summary>
     public double? BackgroundCpuBusyPercent { get; init; }
 
+    /// <summary>How many times the sandboxed engine died on its own while a scenario ran (each such iteration was thrown away and repeated). Not zero means a defect in the engine or the broker, not noise.</summary>
+    public int UnexpectedEngineCrashes { get; init; }
+
     public required ProfileInfo Profile { get; init; }
 
     public IReadOnlyList<DocumentInfo> Documents { get; init; } = [];

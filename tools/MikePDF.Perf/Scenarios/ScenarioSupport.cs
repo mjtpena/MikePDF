@@ -41,12 +41,51 @@ public sealed class PerfContext
     /// <summary>An explicit MSIX to measure; null to look in build/out/package.</summary>
     public string? PackagePath { get; init; }
 
+    private int _unexpectedCrashes;
+
+    /// <summary>Engines that died on their own while a scenario was running (it is not counted when a scenario kills one on purpose). Each such iteration was repeated.</summary>
+    public int UnexpectedEngineCrashes => Volatile.Read(ref _unexpectedCrashes);
+
+    /// <summary>The most one iteration is repeated after the engine dies under it; the next death is a failure of the metric.</summary>
+    public const int MaxCrashRepeats = 5;
+
+    /// <summary>How long to wait before repeating an iteration, times the number of the repeat: whatever killed the engine (a starved machine, another program) may still be at it.</summary>
+    public TimeSpan CrashBackoff { get; init; } = TimeSpan.FromMilliseconds(250);
+
+    /// <summary>
+    /// Runs one iteration. If the sandboxed engine dies on its own while it runs (which it must not), the death is counted and logged, the iteration is thrown
+    /// away and run again, up to <see cref="MaxCrashRepeats"/> times in a row: a measurement is not worth failing a build over, but the count goes into the
+    /// result file and the report, because an engine that dies by itself is a defect to be found, not noise to be hidden.
+    /// </summary>
+    public async Task<T> Resilient<T>(Func<Task<T>> iteration, string what)
+    {
+        ArgumentNullException.ThrowIfNull(iteration);
+        for (var attempt = 1; ; attempt++)
+        {
+            try
+            {
+                return await iteration();
+            }
+            catch (Exception e) when (e is EngineCrashedException or EngineStartException)
+            {
+                Interlocked.Increment(ref _unexpectedCrashes);
+                Log($"{what}: the engine died during an iteration ({e.Message}); repeating it ({attempt} of {MaxCrashRepeats})");
+                if (attempt >= MaxCrashRepeats)
+                {
+                    throw;
+                }
+
+                await Task.Delay(CrashBackoff * attempt);
+            }
+        }
+    }
+
     public GeneratedDocument Document(DocumentSpec spec) =>
         Documents.TryGetValue(spec.Id, out var document) ? document : throw new PerfException($"The document {spec.Id} was not generated.");
 }
 
 /// <summary>A scenario could not produce a trustworthy number: the engine failed, or what it returned was not what the document must give.</summary>
-public sealed class PerfException : Exception
+public class PerfException : Exception
 {
     public PerfException(string message)
         : base(message)
@@ -59,11 +98,22 @@ public sealed class PerfException : Exception
     }
 }
 
+/// <summary>The engine process died under a request (status EngineCrashed).</summary>
+public sealed class EngineCrashedException(string message) : PerfException(message);
+
 internal static class Checks
 {
     public static T Require<T>(EngineResult<T> result, string what)
-        where T : class =>
-        result is { Status: Status.Ok, Value: { } value } ? value : throw new PerfException($"{what} failed: {result.Status} {result.Detail}");
+        where T : class
+    {
+        if (result is { Status: Status.Ok, Value: { } value })
+        {
+            return value;
+        }
+
+        var message = $"{what} failed: {result.Status} {result.Detail}";
+        throw result.Status == Status.EngineCrashed ? new EngineCrashedException(message) : new PerfException(message);
+    }
 }
 
 /// <summary>The render parameters the app uses at 100% zoom on a 96 dpi display, so that a tile here is a tile there.</summary>

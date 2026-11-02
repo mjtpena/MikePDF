@@ -7,7 +7,7 @@ namespace MikePDF.Perf.Results;
 /// <summary>The results as a Markdown page: for the CI job summary and for docs/perf/baselines.</summary>
 public static class MarkdownReport
 {
-    public static string Render(PerfResults results, ComparisonReport? comparison = null)
+    public static string Render(PerfResults results, ComparisonReport? comparison = null, string? baselineNote = null)
     {
         ArgumentNullException.ThrowIfNull(results);
         var text = new StringBuilder();
@@ -21,6 +21,11 @@ public static class MarkdownReport
         if (results.BackgroundCpuBusyPercent is { } busy)
         {
             text.AppendLine(CultureInfo.InvariantCulture, $"- Machine busy with other work before the run: {busy:0}%");
+        }
+
+        if (results.UnexpectedEngineCrashes > 0)
+        {
+            text.AppendLine(CultureInfo.InvariantCulture, $"- **Unexpected engine crashes during the run: {results.UnexpectedEngineCrashes}** (iterations repeated)");
         }
 
         text.AppendLine(CultureInfo.InvariantCulture, $"- Profile: {results.Profile.Name} (warm-up {results.Profile.Warmup}, {results.Profile.Iterations} iterations, {results.Profile.HeavyIterations} for the heavy scenarios)");
@@ -42,6 +47,11 @@ public static class MarkdownReport
         if (comparison is not null)
         {
             text.AppendLine().AppendLine("## Against the baseline").AppendLine();
+            if (baselineNote is not null)
+            {
+                text.AppendLine(baselineNote).AppendLine();
+            }
+
             text.AppendLine(comparison.HasBaseline
                 ? $"A metric fails when it is worse than the baseline by more than {comparison.Threshold:P0} and by more than its absolute floor, after the retries described in docs/perf/README.md."
                 : "**No baseline exists for this runner yet, so nothing was compared.** The first results are the candidate baseline: review them and commit them as `docs/perf/baselines/<runner>.json`.");
