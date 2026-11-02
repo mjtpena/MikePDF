@@ -40,7 +40,7 @@ public static class MetricCatalog
         "Open a 2,000-page PDF in a running engine to the first sharp tile.", null, 5, AbFloor: 0.7);
 
     public static readonly MetricDefinition SearchFirst = new("search.first_result.text500", "ms", "lower",
-        "Start a search of a 500-page text PDF from page 1 to the first match (on page 5), through FindSession and DocumentReader.", "search.500p.first", 8, AbFloor: 1.2);
+        "Start a search of a 500-page text PDF from page 1 to the first match (on page 5), through FindSession and DocumentReader.", "search.500p.first", 8, AbFloor: 0.75);
 
     public static readonly MetricDefinition SearchFull = new("search.full.text500", "ms", "lower",
         "The same search to the last page searched, every match found.", "search.500p.full", 25, AbFloor: 15);

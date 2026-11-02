@@ -91,6 +91,16 @@ public sealed class AbComparerTests
     }
 
     [Fact]
+    public void EveryTimeAndMemoryMetricHasAnABFloorNoLargerThanTheOneForStoredBaselines()
+    {
+        foreach (var metric in MetricCatalog.All.Where(m => !m.Id.StartsWith("package.", StringComparison.Ordinal)))
+        {
+            Assert.True(metric.AbFloor is > 0, metric.Id + " has no A/B floor");
+            Assert.True(metric.AbFloor <= metric.Floor, metric.Id + ": the A/B floor must not exceed the stored-baseline floor");
+        }
+    }
+
+    [Fact]
     public void ForAThroughputFewerTilesPerSecondIsWorseAndTheRatioIsBelowOne()
     {
         var item = One(Rounds(Throughput, 1000, Enumerable.Repeat(1.0, 8), Enumerable.Repeat(0.82, 8)));

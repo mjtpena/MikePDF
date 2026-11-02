@@ -49,6 +49,41 @@ public sealed class AbSupportTests
     }
 
     [Fact]
+    public async Task CalibrateCountsTheVerdictsOfManyRunsPerRunnerAndMetric()
+    {
+        AbFile Run(string runner, double headCost, double planted)
+        {
+            var rounds = Enumerable.Range(0, 8).Select(_ => new AbRound(
+                Make.Results(runner, Make.Metric(MetricCatalog.SearchFull, 1000)), Make.Results(runner, Make.Metric(MetricCatalog.SearchFull, 1000 * headCost)))).ToList();
+            return new AbFile(new AbMeta("base", "head", runner, "ci", 8, 8, [], planted, null, null), AbComparer.Compare(rounds));
+        }
+
+        var directory = Path.Combine(Path.GetTempPath(), "mikepdf-perf-cal-" + Guid.NewGuid().ToString("N")[..8]);
+        Directory.CreateDirectory(Path.Combine(directory, "x64", "1"));
+        Directory.CreateDirectory(Path.Combine(directory, "x64", "2"));
+        Directory.CreateDirectory(Path.Combine(directory, "arm64", "3"));
+        try
+        {
+            File.WriteAllText(Path.Combine(directory, "x64", "1", "perf-ab.json"), ResultsJson.Serialize(Run("ci-x64", 1.01, 0)));
+            File.WriteAllText(Path.Combine(directory, "x64", "2", "perf-ab.json"), ResultsJson.Serialize(Run("ci-x64", 1.20, 0.2)));
+            File.WriteAllText(Path.Combine(directory, "arm64", "3", "perf-ab.json"), ResultsJson.Serialize(Run("ci-arm64", 1.00, 0)));
+            using var output = new StringWriter();
+            using var error = new StringWriter();
+            var exit = await Commands.RunAsync(["calibrate", "--dir", directory], output, error);
+            var text = output.ToString();
+            Assert.Equal(0, exit);
+            Assert.Contains("## `ci-arm64`: 1 run(s), no slowdown planted", text, StringComparison.Ordinal);
+            Assert.Contains("## `ci-x64`: 2 run(s), planted slowdown 0%, 20%", text, StringComparison.Ordinal);
+            Assert.Contains("Runs with at least one regressed metric: **1 of 2**", text, StringComparison.Ordinal);
+            Assert.Contains("| `search.full.text500` | 2 | 1% | 10.5% | 20% | 20% | 1 | 0 | 1 |", text, StringComparison.Ordinal);
+        }
+        finally
+        {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    [Fact]
     public async Task AMissingExecutableIsAUsageError()
     {
         using var output = new StringWriter();
@@ -81,7 +116,7 @@ public sealed class AbCommandTests(HarnessFixture fixture)
 
             // Two rounds are too few for a 95% interval, so nothing can fail: the exit code is 0 and the metric is "unconfirmed".
             Assert.True(exit == 0, error + output.ToString());
-            var report = ResultsJson.Deserialize<AbCommandFile>(await File.ReadAllTextAsync(Path.Combine(directory, "perf-ab.json"))).Report;
+            var report = ResultsJson.Deserialize<AbFile>(await File.ReadAllTextAsync(Path.Combine(directory, "perf-ab.json"))).Report;
             var item = Assert.Single(report.Items);
             Assert.Equal(2, item.Pairs);
             Assert.InRange(item.Ratio!.Value, 0.5, 0.85); // 3 tiles in flight, every time 1.5 times as long: about 0.67 of the base's throughput
@@ -108,6 +143,4 @@ public sealed class AbCommandTests(HarnessFixture fixture)
             }
         }
     }
-
-    private sealed record AbCommandFile(AbMeta Meta, AbReport Report);
 }

@@ -84,7 +84,7 @@ internal static class AbCommand
         Directory.CreateDirectory(outDir);
         ResultsJson.Save(Path.Combine(outDir, "perf-results.json"), head); // the head over all rounds: also the candidate for docs/perf/baselines (trend record)
         ResultsJson.Save(Path.Combine(outDir, "perf-results-base.json"), outcome.Base);
-        await File.WriteAllTextAsync(Path.Combine(outDir, "perf-ab.json"), ResultsJson.Serialize(new { meta, outcome.Report }), cancellationToken);
+        await File.WriteAllTextAsync(Path.Combine(outDir, "perf-ab.json"), ResultsJson.Serialize(new AbFile(meta, outcome.Report)), cancellationToken);
         await File.WriteAllTextAsync(Path.Combine(outDir, "perf-results.md"), markdown, cancellationToken);
         await output.WriteLineAsync(markdown);
 

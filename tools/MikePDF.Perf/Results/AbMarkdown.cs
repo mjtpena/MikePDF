@@ -18,6 +18,9 @@ public sealed record AbMeta(
     string? ReferenceTier,
     string? TrendNote);
 
+/// <summary>The decision file of an A/B run (<c>perf-ab.json</c>): what was compared and the verdict of every metric.</summary>
+public sealed record AbFile(AbMeta Meta, AbReport Report);
+
 /// <summary>The A/B run as Markdown: the gate table (base, head, ratio, interval, verdict), the §11 targets, and the stored-baseline trend.</summary>
 public static class AbMarkdown
 {
