@@ -1,0 +1,8 @@
+<Project>
+  <!-- Keep S6 build output out of the source tree's bin/obj sharing with other spikes -->
+  <PropertyGroup>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+  </PropertyGroup>
+</Project>

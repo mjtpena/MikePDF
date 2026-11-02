@@ -1,0 +1,18 @@
+<Window
+    x:Class="HelloQuire.MainWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:canvas="using:Microsoft.Graphics.Canvas.UI.Xaml"
+    Title="HelloQuire (S6 spike)">
+    <Grid x:Name="Root" RowDefinitions="Auto,*" Background="#FF202428">
+        <StackPanel Orientation="Horizontal" Spacing="12" Margin="12">
+            <Button x:Name="ClickButton" AutomationProperties.AutomationId="ClickButton" Content="Click me" Click="ClickButton_Click" />
+            <TextBlock x:Name="StatusText" AutomationProperties.AutomationId="StatusText" Text="Not clicked" VerticalAlignment="Center" Foreground="White" />
+            <Button x:Name="LaunchEngineButton" AutomationProperties.AutomationId="LaunchEngineButton" Content="Launch engine" Click="LaunchEngineButton_Click" />
+            <TextBlock x:Name="EngineText" AutomationProperties.AutomationId="EngineText" Text="" VerticalAlignment="Center" Foreground="White" />
+        </StackPanel>
+        <canvas:CanvasVirtualControl x:Name="Canvas" Grid.Row="1"
+            AutomationProperties.AutomationId="PageCanvas"
+            RegionsInvalidated="Canvas_RegionsInvalidated" CreateResources="Canvas_CreateResources" />
+    </Grid>
+</Window>

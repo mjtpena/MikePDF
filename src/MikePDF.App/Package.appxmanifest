@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Source of the package manifest. The identity below is a development placeholder. It is a plain CN, because loose registration (Add-AppxPackage -Register) refuses the unsigned-namespace form. build/package.ps1 replaces Name,
+  Publisher, PublisherDisplayName, DisplayName and Version from build/store/identity.json (or parameters) and sets MaxVersionTested.
+  Declared and why (docs/store/):
+  - runFullTrust: the UI process is a full-trust desktop app. It starts the sandboxed engine and reads the files the user opens.
+  - the .pdf file type association (Open with ...). The user chooses the default app in Windows Settings; MikePDF never changes it.
+  - an execution alias (mikepdf.exe) so a document can be opened from a command line.
+  No thumbnail or preview handlers in this build (they would parse untrusted files at medium integrity; ADR-0015 decision 6).
+-->
+<Package
+  xmlns="http://schemas.microsoft.com/appx/manifest/foundation/windows10"
+  xmlns:uap="http://schemas.microsoft.com/appx/manifest/uap/windows10"
+  xmlns:uap3="http://schemas.microsoft.com/appx/manifest/uap/windows10/3"
+  xmlns:desktop="http://schemas.microsoft.com/appx/manifest/desktop/windows10"
+  xmlns:rescap="http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities"
+  IgnorableNamespaces="uap uap3 desktop rescap">
+
+  <Identity Name="MikePDF.Dev" Publisher="CN=MikePDF Dev" Version="1.0.0.0" />
+
+  <Properties>
+    <DisplayName>MikePDF</DisplayName>
+    <PublisherDisplayName>MikePDF contributors</PublisherDisplayName>
+    <Logo>Assets\StoreLogo.png</Logo>
+  </Properties>
+
+  <Dependencies>
+    <TargetDeviceFamily Name="Windows.Desktop" MinVersion="10.0.26100.0" MaxVersionTested="10.0.26300.0" />
+  </Dependencies>
+
+  <Resources>
+    <Resource Language="en-US" />
+  </Resources>
+
+  <Applications>
+    <Application Id="App" Executable="$targetnametoken$.exe" EntryPoint="$targetentrypoint$">
+      <uap:VisualElements
+        DisplayName="MikePDF"
+        Description="A fast, private PDF reader."
+        BackgroundColor="transparent"
+        Square150x150Logo="Assets\Square150x150Logo.png"
+        Square44x44Logo="Assets\Square44x44Logo.png">
+        <uap:DefaultTile Wide310x150Logo="Assets\Wide310x150Logo.png" />
+      </uap:VisualElements>
+      <Extensions>
+        <uap:Extension Category="windows.fileTypeAssociation">
+          <uap:FileTypeAssociation Name="pdf">
+            <uap:SupportedFileTypes>
+              <uap:FileType>.pdf</uap:FileType>
+            </uap:SupportedFileTypes>
+            <uap:DisplayName>PDF document</uap:DisplayName>
+            <uap:Logo>Assets\Square44x44Logo.png</uap:Logo>
+            <uap:InfoTip>Open with MikePDF</uap:InfoTip>
+            <uap:EditFlags OpenIsSafe="false" />
+          </uap:FileTypeAssociation>
+        </uap:Extension>
+        <uap3:Extension Category="windows.appExecutionAlias" EntryPoint="Windows.FullTrustApplication" Executable="MikePDF.exe">
+          <uap3:AppExecutionAlias>
+            <desktop:ExecutionAlias Alias="mikepdf.exe" />
+          </uap3:AppExecutionAlias>
+        </uap3:Extension>
+      </Extensions>
+    </Application>
+  </Applications>
+
+  <Capabilities>
+    <rescap:Capability Name="runFullTrust" />
+  </Capabilities>
+</Package>

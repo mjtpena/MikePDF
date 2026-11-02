@@ -1,0 +1,27 @@
+INFO	isAppContainer	0
+INFO	integrityRid	0x3000
+INFO	capabilityCount	0
+INFO	capabilitySids	
+INFO	privilegeCount	24
+INFO	mit.creation.DEP	0x3
+INFO	mit.creation.ASLR	0x5
+INFO	mit.creation.DynamicCode	0x0
+INFO	mit.creation.StrictHandleCheck	0x0
+INFO	mit.creation.SystemCallDisable	0x0
+INFO	mit.creation.MitigationOptionsMask	0x33333303
+INFO	mit.creation.ExtensionPointDisable	0x0
+INFO	mit.creation.ControlFlowGuard	0x1
+INFO	mit.creation.Signature	0x0
+INFO	mit.creation.FontDisable	0x0
+INFO	mit.creation.ImageLoad	0x0
+INFO	mit.creation.SystemCallFilter	0x0
+INFO	mit.creation.PayloadRestriction	0x0
+INFO	mit.creation.ChildProcess	0x0
+INFO	mit.creation.SideChannelIsolation	0x0
+INFO	mit.creation.UserShadowStack	err50
+INFO	mit.creation.RedirectionTrust	0x2
+INFO	mit.creation.UserPointerAuth	0x1
+INFO	mit.creation.SEHOP	0x1
+MARKER	ROGUE-CODE-RAN
+RESULT	dll.load.rogue-marker	deny	ALLOWED	0	image loaded
+DONE

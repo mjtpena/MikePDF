@@ -1,0 +1,56 @@
+# MikePDF
+
+A Windows-native PDF reader built on WinUI 3 and PDFium, designed so that a malicious PDF can't reach your files. Licensed under [Apache-2.0](LICENSE).
+
+> **Status: early development.** The foundations exist and are tested, but this is not yet a finished product. See [docs/STATUS.md](docs/STATUS.md) for what works, what's been measured, and what hasn't.
+
+## Why another PDF reader
+- **Sandboxed by design.** PDF parsing never happens in the app's UI process. PDFium runs in a separate process inside an AppContainer that requests no capabilities: no user files beyond the document it was handed, no network, no child processes. A crash there is contained and recovered from. In an installed package, Windows also gives it the package's own identity, so anything the app must keep from it lives in a directory it can't open ([ADR-0004](docs/adr/0004-process-model-and-sandbox.md), amendment A2).
+- **Native.** WinUI 3, Fluent design, pen and touch, and accessibility through UI Automation.
+- **Honest saves.** MikePDF writes its own annotation objects and appearance streams, so other viewers see what you saw, and saves are atomic.
+- **Private by default.** No telemetry without opt-in, and no account.
+
+## Architecture
+```text
+MikePDF.App (UI + broker, medium integrity)  never parses PDF bytes
+   |  named pipe (MessagePack, every response validated)
+   |  shared-memory slots (tiles, read-only in the UI)
+   +-- MikePDF.Engine      C++20 + PDFium, AppContainer, one per document
+   +-- MikePDF.WriterHost  .NET + MikePDF.PdfWriter, AppContainer, for saves and validation
+```
+
+| Path | What it is |
+|---|---|
+| `src/MikePDF.App` | WinUI 3 application |
+| `src/MikePDF.Core` | View, layout and tile logic with no UI dependency |
+| `src/MikePDF.Broker` | Sandbox launcher, pipe server, response validation, watchdog |
+| `src/MikePDF.Engine`, `src/MikePDF.Engine.Pdfium` | Sandboxed C++ engine host and the PDFium wrapper |
+| `src/MikePDF.Protocol` | IPC schema and generated C#/C++ codecs |
+| `src/MikePDF.PdfWriter`, `src/MikePDF.WriterHost` | Strict PDF parser, incremental writer, and its sandboxed host |
+| `docs/adr` | Architecture decisions |
+| `docs/spikes` | Feasibility spike reports, with raw numbers |
+| `docs/threat-model` | Threat model |
+| `spikes` | Frozen spike code, kept as evidence. Never used by production code |
+
+## Building
+You need Windows 11, the .NET 10 SDK, and Visual Studio or Build Tools with the C++ workload and CMake.
+
+```powershell
+./build.ps1 -Test
+```
+
+PDFium is downloaded on first build and verified against the SHA-256 in [build/pdfium.lock](build/pdfium.lock).
+
+The app only runs as a package, because the sandbox relies on package identity. With Developer Mode on, this builds and registers a local copy without a certificate or elevation:
+
+```powershell
+./build/package.ps1 -Arch x64 -RegisterLocal
+```
+
+Remove it with `./build/package.ps1 -Arch x64 -Unregister`. UI tests run with `./build/run-ui-tests.ps1`. Publishing is covered in [docs/store/README.md](docs/store/README.md).
+
+## Contributing and security
+See [CONTRIBUTING.md](CONTRIBUTING.md). Please report vulnerabilities privately, as described in [SECURITY.md](SECURITY.md).
+
+## Licence
+Apache License 2.0, see [LICENSE](LICENSE) and [NOTICE](NOTICE). Third-party components are listed in [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).

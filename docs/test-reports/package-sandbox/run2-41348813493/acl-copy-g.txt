@@ -1,0 +1,8 @@
+C:\ProgramData\Quire-probe\engine-copy-1ecccaac S-1-15-2-1858972943-3405380640-321896579-116791022-2625772238-946535615-3133892250-329789988-3524764629-4215146597-2989021428:(OI)(CI)(RX)
+                                                NT AUTHORITY\SYSTEM:(I)(OI)(CI)(F)
+                                                BUILTIN\Administrators:(I)(OI)(CI)(F)
+                                                CREATOR OWNER:(I)(OI)(CI)(IO)(F)
+                                                BUILTIN\Users:(I)(OI)(CI)(RX)
+                                                BUILTIN\Users:(I)(CI)(WD,AD,WEA,WA)
+
+Successfully processed 1 files; Failed processing 0 files

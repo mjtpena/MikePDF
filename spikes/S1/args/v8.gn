@@ -1,0 +1,6 @@
+# S1.2 config (b): V8 on (JavaScript), XFA off. pdfium-binaries ties XFA to V8, so it never ships this
+# combination; whether PDFium's own GN accepts pdf_enable_v8=true with pdf_enable_xfa=false is UNVERIFIED.
+pdf_enable_v8 = true
+pdf_enable_xfa = false
+v8_use_external_startup_data = false
+v8_enable_i18n_support = false

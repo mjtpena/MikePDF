@@ -1,0 +1,48 @@
+INFO	isAppContainer	0
+INFO	integrityRid	0x3000
+INFO	capabilityCount	0
+INFO	capabilitySids	
+INFO	privilegeCount	24
+INFO	mit.creation.DEP	0x3
+INFO	mit.creation.ASLR	0x5
+INFO	mit.creation.DynamicCode	0x0
+INFO	mit.creation.StrictHandleCheck	0x0
+INFO	mit.creation.SystemCallDisable	0x0
+INFO	mit.creation.MitigationOptionsMask	0x33333303
+INFO	mit.creation.ExtensionPointDisable	0x0
+INFO	mit.creation.ControlFlowGuard	0x1
+INFO	mit.creation.Signature	0x0
+INFO	mit.creation.FontDisable	0x0
+INFO	mit.creation.ImageLoad	0x0
+INFO	mit.creation.SystemCallFilter	0x0
+INFO	mit.creation.PayloadRestriction	0x0
+INFO	mit.creation.ChildProcess	0x0
+INFO	mit.creation.SideChannelIsolation	0x0
+INFO	mit.creation.UserShadowStack	err50
+INFO	mit.creation.RedirectionTrust	0x2
+INFO	mit.creation.UserPointerAuth	0x1
+INFO	mit.creation.SEHOP	0x1
+RESULT	fs.read.documents.open	deny	ALLOWED	0	directory opened
+RESULT	fs.read.documents.enumerate	deny	ALLOWED	0	enumerated
+RESULT	fs.write.temp	deny	ALLOWED	0	file created and deleted
+RESULT	fs.write.repo-dir	deny	ALLOWED	0	file created and deleted
+RESULT	fs.read.repo-file	deny	ALLOWED	0	file opened
+RESULT	fs.read.other-package-file	deny	ALLOWED	0	file opened
+RESULT	fs.read.parent-package-data	deny	ALLOWED	0	file opened
+RESULT	fs.write.parent-package-data	deny	ALLOWED	0	file created and deleted
+RESULT	fs.write.engine-dir	deny	DENIED	5	create file
+RESULT	fs.rename.engine-dir	deny	DENIED	5	rename directory
+RESULT	fs.read.protected-private-file	deny	ALLOWED	0	file opened
+RESULT	fs.rename.protected-private-dir	deny	ALLOWED	0	directory renamed and renamed back
+RESULT	fs.read.unc	deny	ALLOWED	0	UNC path opened
+RESULT	net.tcp.connect-loopback	deny	ALLOWED	0	connected to 127.0.0.1
+RESULT	net.tcp.connect-lan-address	deny	ALLOWED	0	connected to 10.1.0.139
+RESULT	proc.create.cmd.exe	deny	ALLOWED	0	child process started and reaped
+RESULT	proc.open.parent.query-limited	deny	ALLOWED	0	pid of the broker
+RESULT	proc.open.parent.vm-read-dup-handle	deny	ALLOWED	0	pid of the broker
+RESULT	ui.clipboard.read	deny	ALLOWED	0	clipboard opened
+RESULT	reg.write.hkcu	deny	ALLOWED	0	key created and removed
+RESULT	dll.load.unsigned-temp-copy	deny	ALLOWED	0	image loaded
+RESULT	ctl.read.engine-dir	allow	ALLOWED	0	file opened
+RESULT	ctl.dll.load.microsoft-signed	allow	ALLOWED	0	image loaded
+DONE

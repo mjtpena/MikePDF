@@ -1,0 +1,6 @@
+# S1.2 config (c): XFA on, which requires V8. Identical to the pdfium-binaries "v8" flavour
+# (pdf_enable_v8 = pdf_enable_xfa = true), which is what the pinned pdfium-v8-win-x64 prebuilt contains.
+pdf_enable_v8 = true
+pdf_enable_xfa = true
+v8_use_external_startup_data = false
+v8_enable_i18n_support = false

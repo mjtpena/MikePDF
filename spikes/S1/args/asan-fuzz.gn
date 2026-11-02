@@ -1,0 +1,5 @@
+# S1.5 (NOT EXECUTED): ASan + libFuzzer overlay, appended to nov8.gn. Chromium-style arg names,
+# UNVERIFIED for Windows on the pinned branch (Chromium libFuzzer docs / PDFium testing/fuzzers).
+is_asan = true
+use_libfuzzer = true
+is_component_build = false

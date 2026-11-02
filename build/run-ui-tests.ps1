@@ -1,0 +1,63 @@
+<#
+.SYNOPSIS
+  Runs the FlaUI UI journeys (tests/MikePDF.UI.Tests) against a loosely registered MikePDF package. Needs an unlocked, interactive desktop.
+.DESCRIPTION
+  ADR-0009. Not part of ./build.ps1 -Test: the tests drive real windows, so they cannot run headless.
+  Steps: build the native engine (unless -SkipBuild) and the app, register the build output with Add-AppxPackage -Register (Developer Mode,
+  no certificate and no elevation), run the tests, take screenshots into build/out/shots, then unregister (unless -KeepInstalled).
+  Never adds a certificate to any trust store and never asks for administrator rights.
+.EXAMPLE
+  ./build/run-ui-tests.ps1
+  ./build/run-ui-tests.ps1 -SkipBuild -Filter-method "*Password*"
+  ./build/run-ui-tests.ps1 -SkipBuild -PackageLayout build/out/package/stage-x64
+#>
+param(
+    [ValidateSet('x64', 'arm64')] [string] $Arch = $(if ([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture -eq 'Arm64') { 'arm64' } else { 'x64' }),
+    [switch] $SkipBuild,
+    [switch] $SkipNativeBuild,
+    [switch] $KeepInstalled,
+    # A package layout made by build/package.ps1 (its stage-<arch> folder) to test instead of the build output: the shipped, published app.
+    [string] $PackageLayout,
+    [string] ${Filter-method}
+)
+$ErrorActionPreference = 'Stop'
+$root = Resolve-Path (Join-Path $PSScriptRoot '..')
+Set-Location $root
+
+if (-not $SkipBuild -and -not $SkipNativeBuild) {
+    & (Join-Path $root 'build.ps1') -Arch $Arch -SkipManaged
+    if ($LASTEXITCODE -ne 0) { throw 'native build failed' }
+}
+
+Get-Process MikePDF, MikePDF.Engine -ErrorAction SilentlyContinue | Stop-Process -Force
+if (-not $SkipBuild) {
+    dotnet build (Join-Path $root 'src/MikePDF.App') -c Release "-p:MikePDFArch=$Arch" -nologo -v q
+    if ($LASTEXITCODE -ne 0) { throw 'app build failed' }
+    dotnet build (Join-Path $root 'tests/MikePDF.UI.Tests') -c Release "-p:MikePDFArch=$Arch" -nologo -v q
+    if ($LASTEXITCODE -ne 0) { throw 'UI test build failed' }
+}
+
+$layout = if ($PackageLayout) { (Resolve-Path $PackageLayout).Path } else { Join-Path $root "src/MikePDF.App/bin/Release/net10.0-windows10.0.26100.0/win-$Arch" }
+$manifest = Join-Path $layout 'AppxManifest.xml'
+if (-not (Test-Path $manifest)) { throw "No package layout at $layout. Build src/MikePDF.App first." }
+$identity = ([xml](Get-Content $manifest -Raw)).Package.Identity.Name
+$previous = Get-AppxPackage -Name $identity
+if ($previous) { Remove-AppxPackage $previous.PackageFullName }
+Add-AppxPackage -Register $manifest
+$shots = Join-Path $root 'build/out/shots'
+New-Item -ItemType Directory -Force $shots | Out-Null
+try {
+    $env:MIKEPDF_UI_TESTS = '1'
+    $env:MIKEPDF_SHOTS_DIR = $shots
+    $arguments = @('test', '--project', (Join-Path $root 'tests/MikePDF.UI.Tests'), '-c', 'Release', '--no-build')
+    if (${Filter-method}) { $arguments += @('--filter-method', ${Filter-method}) }
+    dotnet @arguments
+    $code = $LASTEXITCODE
+}
+finally {
+    Remove-Item Env:MIKEPDF_UI_TESTS, Env:MIKEPDF_SHOTS_DIR -ErrorAction SilentlyContinue
+    Get-Process MikePDF, MikePDF.Engine -ErrorAction SilentlyContinue | Stop-Process -Force
+    if (-not $KeepInstalled) { Get-AppxPackage -Name $identity | Remove-AppxPackage }
+}
+Write-Host "Screenshots: $shots"
+exit $code

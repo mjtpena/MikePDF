@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><OutputType>Exe</OutputType></PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\core\S8.Core.csproj" />
+    <ProjectReference Include="..\validate\S8.Validate.csproj" />
+    <ProjectReference Include="..\sign\S8.Sign.csproj" />
+    <PackageReference Include="System.Security.Cryptography.Pkcs" Version="10.0.*" />
+  </ItemGroup>
+</Project>

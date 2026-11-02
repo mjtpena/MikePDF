@@ -1,0 +1,65 @@
+INFO	isAppContainer	1
+INFO	integrityRid	0x1000
+INFO	capabilityCount	1
+INFO	capabilitySids	S-1-15-3-1858972943-3405380640-321896579-116791022-2625772238-946535615-3133892250
+INFO	privilegeCount	2
+INFO	mit.creation.DEP	0x3
+INFO	mit.creation.ASLR	0xF
+INFO	mit.creation.DynamicCode	0x1
+INFO	mit.creation.StrictHandleCheck	0x3
+INFO	mit.creation.SystemCallDisable	0x0
+INFO	mit.creation.MitigationOptionsMask	0x33333303
+INFO	mit.creation.ExtensionPointDisable	0x1
+INFO	mit.creation.ControlFlowGuard	0x1
+INFO	mit.creation.Signature	0x0
+INFO	mit.creation.FontDisable	0x1
+INFO	mit.creation.ImageLoad	0x7
+INFO	mit.creation.SystemCallFilter	0x0
+INFO	mit.creation.PayloadRestriction	0x0
+INFO	mit.creation.ChildProcess	0x1
+INFO	mit.creation.SideChannelIsolation	0x0
+INFO	mit.creation.UserShadowStack	0x105
+INFO	mit.creation.RedirectionTrust	0x2
+INFO	mit.creation.UserPointerAuth	err50
+INFO	mit.creation.SEHOP	0x1
+INFO	runtimeSignaturePolicy	ok
+INFO	mit.runtime.DEP	0x3
+INFO	mit.runtime.ASLR	0xF
+INFO	mit.runtime.DynamicCode	0x1
+INFO	mit.runtime.StrictHandleCheck	0x3
+INFO	mit.runtime.SystemCallDisable	0x0
+INFO	mit.runtime.MitigationOptionsMask	0x33333303
+INFO	mit.runtime.ExtensionPointDisable	0x1
+INFO	mit.runtime.ControlFlowGuard	0x1
+INFO	mit.runtime.Signature	0x5
+INFO	mit.runtime.FontDisable	0x1
+INFO	mit.runtime.ImageLoad	0x7
+INFO	mit.runtime.SystemCallFilter	0x0
+INFO	mit.runtime.PayloadRestriction	0x0
+INFO	mit.runtime.ChildProcess	0x1
+INFO	mit.runtime.SideChannelIsolation	0x0
+INFO	mit.runtime.UserShadowStack	0x105
+INFO	mit.runtime.RedirectionTrust	0x2
+INFO	mit.runtime.UserPointerAuth	err50
+INFO	mit.runtime.SEHOP	0x1
+RESULT	fs.read.documents.open	deny	DENIED	5	open directory
+RESULT	fs.read.documents.enumerate	deny	DENIED	5	enumerate
+RESULT	fs.write.temp	deny	DENIED	5	create file
+RESULT	fs.write.repo-dir	deny	DENIED	5	create file
+RESULT	fs.read.repo-file	deny	DENIED	5	open file
+RESULT	fs.read.other-package-file	deny	DENIED	5	open file
+RESULT	fs.read.parent-package-data	deny	ALLOWED	0	file opened
+RESULT	fs.write.parent-package-data	deny	ALLOWED	0	file created and deleted
+RESULT	fs.read.unc	deny	DENIED	65	open UNC path
+RESULT	net.tcp.connect-loopback	deny	DENIED	10060	no answer from 127.0.0.1
+RESULT	net.tcp.connect-lan-address	deny	DENIED	10060	no answer from 10.1.0.36
+RESULT	proc.create.cmd.exe	deny	DENIED	367	cmd.exe
+RESULT	proc.open.parent.query-limited	deny	DENIED	5	pid of the broker
+RESULT	proc.open.parent.vm-read-dup-handle	deny	DENIED	5	pid of the broker
+RESULT	ui.clipboard.read	deny	DENIED	5	OpenClipboard
+RESULT	reg.write.hkcu	deny	DENIED	5	RegCreateKeyEx HKCU\Software\QuireSandboxProbe
+RESULT	dll.load.unsigned-temp-copy	deny	DENIED	5	LoadLibrary
+RESULT	dll.load.unsigned-in-engine-dir	deny	DENIED	577	LoadLibrary
+RESULT	ctl.read.engine-dir	allow	ALLOWED	0	file opened
+RESULT	ctl.dll.load.microsoft-signed	allow	ALLOWED	0	image loaded
+DONE

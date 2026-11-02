@@ -1,0 +1,18 @@
+# S1.2 (NOT EXECUTED): GN args shared by all Quire PDFium configurations.
+# Base is the pdfium-binaries Windows arg set (steps/05-configure.sh), which is also what the
+# pinned prebuilt used (see spikes/_shared/pdfium/pdfium-win-x64/args.gn). target_cpu is appended by build.ps1.
+is_debug = false
+is_component_build = false          # one self-contained pdfium.dll; needs the shared_library patch (build.ps1)
+pdf_is_standalone = true
+pdf_use_partition_alloc = false
+target_os = "win"
+treat_warnings_as_errors = false    # pin-bump friendliness. Revisit for our own code, not for PDFium
+
+# --- Section 13.2 hardening: the prebuilt shows CFG (+ /CETCOMPAT on x64) WITHOUT any explicit arg,
+# --- so they appear to come from Chromium //build defaults. The args below are UNVERIFIED candidate
+# --- names to pin those defaults explicitly; confirm against //build/config/win/BUILD.gn and
+# --- //build/config/compiler on the pinned branch before enabling, and read the result back with
+# --- symdiff.py (GuardFlags, DllCharacteristics, CET debug entry).
+# win_enable_cfg_guards = true
+# is_cfi = false                     # CFI needs LTO; not needed for Windows CFG
+# /Qspectre, /sdl, /guard:ehcont, /guard:xfg: no GN arg known; would need a custom config. OPEN.

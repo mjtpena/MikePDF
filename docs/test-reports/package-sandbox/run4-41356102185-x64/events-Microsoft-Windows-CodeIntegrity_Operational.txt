@@ -1,0 +1,408 @@
+
+
+TimeCreated  : 11/1/2026 10:17:34 PM
+Id           : 3089
+ProviderName : Microsoft-Windows-CodeIntegrity
+Message      : Signature information for another event. Match using the Correlation Id.
+
+TimeCreated  : 11/1/2026 10:17:34 PM
+Id           : 3033
+ProviderName : Microsoft-Windows-CodeIntegrity
+Message      : Code Integrity determined that a process (\Device\HarddiskVolume3\Users\runneradmin\AppData\Local\Packages\Quire.SandboxProbe_rtt22k44bspry\LocalState\engine-copy-26c1f3ab\Quire.Engine.SandboxProbe.exe) 
+               attempted to load \Device\HarddiskVolume3\Users\runneradmin\AppData\Local\Packages\Quire.SandboxProbe_rtt22k44bspry\LocalState\engine-copy-26c1f3ab\rogue-marker.dll that did not meet the Microsoft signing 
+               level requirements.
+
+TimeCreated  : 11/1/2026 10:17:27 PM
+Id           : 3089
+ProviderName : Microsoft-Windows-CodeIntegrity
+Message      : Signature information for another event. Match using the Correlation Id.
+
+TimeCreated  : 11/1/2026 10:17:27 PM
+Id           : 3033
+ProviderName : Microsoft-Windows-CodeIntegrity
+Message      : Code Integrity determined that a process (\Device\HarddiskVolume3\Program Files\WindowsApps\Quire.SandboxProbe_1.0.0.0_x64__rtt22k44bspry\Engine\Quire.Engine.SandboxProbe.exe) attempted to load 
+               \Device\HarddiskVolume3\Program Files\WindowsApps\Quire.SandboxProbe_1.0.0.0_x64__rtt22k44bspry\Engine\rogue-marker.dll that did not meet the Microsoft signing level requirements.
+
+TimeCreated  : 11/1/2026 10:12:06 PM
+Id           : 3116
+ProviderName : Microsoft-Windows-CodeIntegrity
+Message      : Signature information for Code Integrity policy ID {d2bda982-ccf6-4344-ac5b-0b44427b6816}.
+
+TimeCreated  : 11/1/2026 10:12:06 PM
+Id           : 3099
+ProviderName : Microsoft-Windows-CodeIntegrity
+Message      : Refreshed and activated Code Integrity policy {d2bda982-ccf6-4344-ac5b-0b44427b6816} Microsoft Windows Driver Policy. id 10.0.29520.0. Status 0x0
+
+TimeCreated  : 11/1/2026 10:12:06 PM
+Id           : 3116
+ProviderName : Microsoft-Windows-CodeIntegrity
+Message      : Signature information for Code Integrity policy ID {a072029f-588b-4b5e-b7f9-05aad67df687}.
+
+TimeCreated  : 11/1/2026 10:12:06 PM
+Id           : 3099
+ProviderName : Microsoft-Windows-CodeIntegrity
+Message      : Refreshed and activated Code Integrity policy {a072029f-588b-4b5e-b7f9-05aad67df687} Microsoft Windows Virtualization Based Security Policy. id 10.0.29661.0. Status 0x0
+
+TimeCreated  : 11/1/2026 10:12:06 PM
+Id           : 3116
+ProviderName : Microsoft-Windows-CodeIntegrity
+Message      : Signature information for Code Integrity policy ID {784c4414-79f4-4c32-a6a5-f0fb42a51d0d}.
+
+TimeCreated  : 11/1/2026 10:12:06 PM
+Id           : 3099
+ProviderName : Microsoft-Windows-CodeIntegrity
+Message      : Refreshed and activated Code Integrity policy {784c4414-79f4-4c32-a6a5-f0fb42a51d0d} Microsoft Windows Cross Certificates for Code Integrity Exceptions Policy. id 10.29480.0.0. Status 0x0
+
+TimeCreated  : 11/1/2026 10:12:06 PM
+Id           : 3085
+ProviderName : Microsoft-Windows-CodeIntegrity
+Message      : Code Integrity will disable WHQL driver enforcement for this boot session.  Settings 0x0.
+
+TimeCreated  : 10/21/2026 10:16:46 PM
+Id           : 3116
+ProviderName : Microsoft-Windows-CodeIntegrity
+Message      : Signature information for Code Integrity policy ID {d2bda982-ccf6-4344-ac5b-0b44427b6816}.
+
+TimeCreated  : 10/21/2026 10:16:46 PM
+Id           : 3099
+ProviderName : Microsoft-Windows-CodeIntegrity
+Message      : Refreshed and activated Code Integrity policy {d2bda982-ccf6-4344-ac5b-0b44427b6816} Microsoft Windows Driver Policy. id 10.0.29520.0. Status 0x0
+
+TimeCreated  : 10/21/2026 10:16:46 PM
+Id           : 3116
+ProviderName : Microsoft-Windows-CodeIntegrity
+Message      : Signature information for Code Integrity policy ID {a072029f-588b-4b5e-b7f9-05aad67df687}.
+
+TimeCreated  : 10/21/2026 10:16:46 PM
+Id           : 3099
+ProviderName : Microsoft-Windows-CodeIntegrity
+Message      : Refreshed and activated Code Integrity policy {a072029f-588b-4b5e-b7f9-05aad67df687} Microsoft Windows Virtualization Based Security Policy. id 10.0.29661.0. Status 0x0
+
+TimeCreated  : 10/21/2026 10:16:46 PM
+Id           : 3116
+ProviderName : Microsoft-Windows-CodeIntegrity
+Message      : Signature information for Code Integrity policy ID {784c4414-79f4-4c32-a6a5-f0fb42a51d0d}.
+
+TimeCreated  : 10/21/2026 10:16:46 PM
+Id           : 3099
+ProviderName : Microsoft-Windows-CodeIntegrity
+Message      : Refreshed and activated Code Integrity policy {784c4414-79f4-4c32-a6a5-f0fb42a51d0d} Microsoft Windows Cross Certificates for Code Integrity Exceptions Policy. id 10.29480.0.0. Status 0x0
+
+TimeCreated  : 10/21/2026 10:16:46 PM
+Id           : 3085
+ProviderName : Microsoft-Windows-CodeIntegrity
+Message      : Code Integrity will disable WHQL driver enforcement for this boot session.  Settings 0x0.
+
+TimeCreated  : 10/21/2026 9:42:50 PM
+Id           : 3116
+ProviderName : Microsoft-Windows-CodeIntegrity
+Message      : Signature information for Code Integrity policy ID {d2bda982-ccf6-4344-ac5b-0b44427b6816}.
+
+TimeCreated  : 10/21/2026 9:42:50 PM
+Id           : 3099
+ProviderName : Microsoft-Windows-CodeIntegrity
+Message      : Refreshed and activated Code Integrity policy {d2bda982-ccf6-4344-ac5b-0b44427b6816} Microsoft Windows Driver Policy. id 10.0.29520.0. Status 0x0
+
+TimeCreated  : 10/21/2026 9:42:50 PM
+Id           : 3116
+ProviderName : Microsoft-Windows-CodeIntegrity
+Message      : Signature information for Code Integrity policy ID {a072029f-588b-4b5e-b7f9-05aad67df687}.
+
+TimeCreated  : 10/21/2026 9:42:50 PM
+Id           : 3099
+ProviderName : Microsoft-Windows-CodeIntegrity
+Message      : Refreshed and activated Code Integrity policy {a072029f-588b-4b5e-b7f9-05aad67df687} Microsoft Windows Virtualization Based Security Policy. id 10.0.29661.0. Status 0x0
+
+TimeCreated  : 10/21/2026 9:42:50 PM
+Id           : 3116
+ProviderName : Microsoft-Windows-CodeIntegrity
+Message      : Signature information for Code Integrity policy ID {784c4414-79f4-4c32-a6a5-f0fb42a51d0d}.
+
+TimeCreated  : 10/21/2026 9:42:50 PM
+Id           : 3099
+ProviderName : Microsoft-Windows-CodeIntegrity
+Message      : Refreshed and activated Code Integrity policy {784c4414-79f4-4c32-a6a5-f0fb42a51d0d} Microsoft Windows Cross Certificates for Code Integrity Exceptions Policy. id 10.29480.0.0. Status 0x0
+
+TimeCreated  : 10/21/2026 9:42:50 PM
+Id           : 3085
+ProviderName : Microsoft-Windows-CodeIntegrity
+Message      : Code Integrity will disable WHQL driver enforcement for this boot session.  Settings 0x0.
+
+TimeCreated  : 10/21/2026 9:17:10 PM
+Id           : 3116
+ProviderName : Microsoft-Windows-CodeIntegrity
+Message      : Signature information for Code Integrity policy ID {d2bda982-ccf6-4344-ac5b-0b44427b6816}.
+
+TimeCreated  : 10/21/2026 9:17:10 PM
+Id           : 3099
+ProviderName : Microsoft-Windows-CodeIntegrity
+Message      : Refreshed and activated Code Integrity policy {d2bda982-ccf6-4344-ac5b-0b44427b6816} Microsoft Windows Driver Policy. id 10.0.29520.0. Status 0x0
+
+TimeCreated  : 10/21/2026 9:17:10 PM
+Id           : 3116
+ProviderName : Microsoft-Windows-CodeIntegrity
+Message      : Signature information for Code Integrity policy ID {a072029f-588b-4b5e-b7f9-05aad67df687}.
+
+TimeCreated  : 10/21/2026 9:17:10 PM
+Id           : 3099
+ProviderName : Microsoft-Windows-CodeIntegrity
+Message      : Refreshed and activated Code Integrity policy {a072029f-588b-4b5e-b7f9-05aad67df687} Microsoft Windows Virtualization Based Security Policy. id 10.0.29661.0. Status 0x0
+
+TimeCreated  : 10/21/2026 9:17:10 PM
+Id           : 3116
+ProviderName : Microsoft-Windows-CodeIntegrity
+Message      : Signature information for Code Integrity policy ID {784c4414-79f4-4c32-a6a5-f0fb42a51d0d}.
+
+TimeCreated  : 10/21/2026 9:17:10 PM
+Id           : 3099
+ProviderName : Microsoft-Windows-CodeIntegrity
+Message      : Refreshed and activated Code Integrity policy {784c4414-79f4-4c32-a6a5-f0fb42a51d0d} Microsoft Windows Cross Certificates for Code Integrity Exceptions Policy. id 10.29480.0.0. Status 0x0
+
+TimeCreated  : 10/21/2026 9:17:10 PM
+Id           : 3085
+ProviderName : Microsoft-Windows-CodeIntegrity
+Message      : Code Integrity will disable WHQL driver enforcement for this boot session.  Settings 0x0.
+
+TimeCreated  : 10/21/2026 8:05:14 PM
+Id           : 3116
+ProviderName : Microsoft-Windows-CodeIntegrity
+Message      : Signature information for Code Integrity policy ID {d2bda982-ccf6-4344-ac5b-0b44427b6816}.
+
+TimeCreated  : 10/21/2026 8:05:14 PM
+Id           : 3099
+ProviderName : Microsoft-Windows-CodeIntegrity
+Message      : Refreshed and activated Code Integrity policy {d2bda982-ccf6-4344-ac5b-0b44427b6816} Microsoft Windows Driver Policy. id 10.0.29520.0. Status 0x0
+
+TimeCreated  : 10/21/2026 8:05:14 PM
+Id           : 3116
+ProviderName : Microsoft-Windows-CodeIntegrity
+Message      : Signature information for Code Integrity policy ID {a072029f-588b-4b5e-b7f9-05aad67df687}.
+
+TimeCreated  : 10/21/2026 8:05:14 PM
+Id           : 3099
+ProviderName : Microsoft-Windows-CodeIntegrity
+Message      : Refreshed and activated Code Integrity policy {a072029f-588b-4b5e-b7f9-05aad67df687} Microsoft Windows Virtualization Based Security Policy. id 10.0.29661.0. Status 0x0
+
+TimeCreated  : 10/21/2026 8:05:14 PM
+Id           : 3116
+ProviderName : Microsoft-Windows-CodeIntegrity
+Message      : Signature information for Code Integrity policy ID {784c4414-79f4-4c32-a6a5-f0fb42a51d0d}.
+
+TimeCreated  : 10/21/2026 8:05:14 PM
+Id           : 3099
+ProviderName : Microsoft-Windows-CodeIntegrity
+Message      : Refreshed and activated Code Integrity policy {784c4414-79f4-4c32-a6a5-f0fb42a51d0d} Microsoft Windows Cross Certificates for Code Integrity Exceptions Policy. id 10.29480.0.0. Status 0x0
+
+TimeCreated  : 10/21/2026 8:05:14 PM
+Id           : 3085
+ProviderName : Microsoft-Windows-CodeIntegrity
+Message      : Code Integrity will disable WHQL driver enforcement for this boot session.  Settings 0x0.
+
+TimeCreated  : 10/21/2026 6:31:02 PM
+Id           : 3116
+ProviderName : Microsoft-Windows-CodeIntegrity
+Message      : Signature information for Code Integrity policy ID {d2bda982-ccf6-4344-ac5b-0b44427b6816}.
+
+TimeCreated  : 10/21/2026 6:31:02 PM
+Id           : 3099
+ProviderName : Microsoft-Windows-CodeIntegrity
+Message      : Refreshed and activated Code Integrity policy {d2bda982-ccf6-4344-ac5b-0b44427b6816} Microsoft Windows Driver Policy. id 10.0.29520.0. Status 0x0
+
+TimeCreated  : 10/21/2026 6:31:02 PM
+Id           : 3116
+ProviderName : Microsoft-Windows-CodeIntegrity
+Message      : Signature information for Code Integrity policy ID {a072029f-588b-4b5e-b7f9-05aad67df687}.
+
+TimeCreated  : 10/21/2026 6:31:02 PM
+Id           : 3099
+ProviderName : Microsoft-Windows-CodeIntegrity
+Message      : Refreshed and activated Code Integrity policy {a072029f-588b-4b5e-b7f9-05aad67df687} Microsoft Windows Virtualization Based Security Policy. id 10.0.29661.0. Status 0x0
+
+TimeCreated  : 10/21/2026 6:31:02 PM
+Id           : 3116
+ProviderName : Microsoft-Windows-CodeIntegrity
+Message      : Signature information for Code Integrity policy ID {784c4414-79f4-4c32-a6a5-f0fb42a51d0d}.
+
+TimeCreated  : 10/21/2026 6:31:02 PM
+Id           : 3099
+ProviderName : Microsoft-Windows-CodeIntegrity
+Message      : Refreshed and activated Code Integrity policy {784c4414-79f4-4c32-a6a5-f0fb42a51d0d} Microsoft Windows Cross Certificates for Code Integrity Exceptions Policy. id 10.29480.0.0. Status 0x0
+
+TimeCreated  : 10/21/2026 6:31:02 PM
+Id           : 3085
+ProviderName : Microsoft-Windows-CodeIntegrity
+Message      : Code Integrity will disable WHQL driver enforcement for this boot session.  Settings 0x0.
+
+TimeCreated  : 10/21/2026 5:53:08 PM
+Id           : 3116
+ProviderName : Microsoft-Windows-CodeIntegrity
+Message      : Signature information for Code Integrity policy ID {d2bda982-ccf6-4344-ac5b-0b44427b6816}.
+
+TimeCreated  : 10/21/2026 5:53:08 PM
+Id           : 3099
+ProviderName : Microsoft-Windows-CodeIntegrity
+Message      : Refreshed and activated Code Integrity policy {d2bda982-ccf6-4344-ac5b-0b44427b6816} Microsoft Windows Driver Policy. id 10.0.29520.0. Status 0x0
+
+TimeCreated  : 10/21/2026 5:53:08 PM
+Id           : 3116
+ProviderName : Microsoft-Windows-CodeIntegrity
+Message      : Signature information for Code Integrity policy ID {a072029f-588b-4b5e-b7f9-05aad67df687}.
+
+TimeCreated  : 10/21/2026 5:53:08 PM
+Id           : 3099
+ProviderName : Microsoft-Windows-CodeIntegrity
+Message      : Refreshed and activated Code Integrity policy {a072029f-588b-4b5e-b7f9-05aad67df687} Microsoft Windows Virtualization Based Security Policy. id 10.0.29661.0. Status 0x0
+
+TimeCreated  : 10/21/2026 5:53:08 PM
+Id           : 3116
+ProviderName : Microsoft-Windows-CodeIntegrity
+Message      : Signature information for Code Integrity policy ID {784c4414-79f4-4c32-a6a5-f0fb42a51d0d}.
+
+TimeCreated  : 10/21/2026 5:53:08 PM
+Id           : 3099
+ProviderName : Microsoft-Windows-CodeIntegrity
+Message      : Refreshed and activated Code Integrity policy {784c4414-79f4-4c32-a6a5-f0fb42a51d0d} Microsoft Windows Cross Certificates for Code Integrity Exceptions Policy. id 10.29480.0.0. Status 0x0
+
+TimeCreated  : 10/21/2026 5:53:08 PM
+Id           : 3085
+ProviderName : Microsoft-Windows-CodeIntegrity
+Message      : Code Integrity will disable WHQL driver enforcement for this boot session.  Settings 0x0.
+
+TimeCreated  : 10/21/2026 5:06:47 PM
+Id           : 3116
+ProviderName : Microsoft-Windows-CodeIntegrity
+Message      : Signature information for Code Integrity policy ID {d2bda982-ccf6-4344-ac5b-0b44427b6816}.
+
+TimeCreated  : 10/21/2026 5:06:47 PM
+Id           : 3099
+ProviderName : Microsoft-Windows-CodeIntegrity
+Message      : Refreshed and activated Code Integrity policy {d2bda982-ccf6-4344-ac5b-0b44427b6816} Microsoft Windows Driver Policy. id 10.0.29520.0. Status 0x0
+
+TimeCreated  : 10/21/2026 5:06:47 PM
+Id           : 3116
+ProviderName : Microsoft-Windows-CodeIntegrity
+Message      : Signature information for Code Integrity policy ID {a072029f-588b-4b5e-b7f9-05aad67df687}.
+
+TimeCreated  : 10/21/2026 5:06:47 PM
+Id           : 3099
+ProviderName : Microsoft-Windows-CodeIntegrity
+Message      : Refreshed and activated Code Integrity policy {a072029f-588b-4b5e-b7f9-05aad67df687} Microsoft Windows Virtualization Based Security Policy. id 10.0.29661.0. Status 0x0
+
+TimeCreated  : 10/21/2026 5:06:47 PM
+Id           : 3116
+ProviderName : Microsoft-Windows-CodeIntegrity
+Message      : Signature information for Code Integrity policy ID {784c4414-79f4-4c32-a6a5-f0fb42a51d0d}.
+
+TimeCreated  : 10/21/2026 5:06:47 PM
+Id           : 3099
+ProviderName : Microsoft-Windows-CodeIntegrity
+Message      : Refreshed and activated Code Integrity policy {784c4414-79f4-4c32-a6a5-f0fb42a51d0d} Microsoft Windows Cross Certificates for Code Integrity Exceptions Policy. id 10.29480.0.0. Status 0x0
+
+TimeCreated  : 10/21/2026 5:06:47 PM
+Id           : 3085
+ProviderName : Microsoft-Windows-CodeIntegrity
+Message      : Code Integrity will disable WHQL driver enforcement for this boot session.  Settings 0x0.
+
+TimeCreated  : 10/21/2026 4:59:45 PM
+Id           : 3116
+ProviderName : Microsoft-Windows-CodeIntegrity
+Message      : Signature information for Code Integrity policy ID {d2bda982-ccf6-4344-ac5b-0b44427b6816}.
+
+TimeCreated  : 10/21/2026 4:59:45 PM
+Id           : 3099
+ProviderName : Microsoft-Windows-CodeIntegrity
+Message      : Refreshed and activated Code Integrity policy {d2bda982-ccf6-4344-ac5b-0b44427b6816} Microsoft Windows Driver Policy. id 10.0.29520.0. Status 0x0
+
+TimeCreated  : 10/21/2026 4:59:45 PM
+Id           : 3116
+ProviderName : Microsoft-Windows-CodeIntegrity
+Message      : Signature information for Code Integrity policy ID {a072029f-588b-4b5e-b7f9-05aad67df687}.
+
+TimeCreated  : 10/21/2026 4:59:45 PM
+Id           : 3099
+ProviderName : Microsoft-Windows-CodeIntegrity
+Message      : Refreshed and activated Code Integrity policy {a072029f-588b-4b5e-b7f9-05aad67df687} Microsoft Windows Virtualization Based Security Policy. id 10.0.29661.0. Status 0x0
+
+TimeCreated  : 10/21/2026 4:59:45 PM
+Id           : 3116
+ProviderName : Microsoft-Windows-CodeIntegrity
+Message      : Signature information for Code Integrity policy ID {784c4414-79f4-4c32-a6a5-f0fb42a51d0d}.
+
+TimeCreated  : 10/21/2026 4:59:45 PM
+Id           : 3099
+ProviderName : Microsoft-Windows-CodeIntegrity
+Message      : Refreshed and activated Code Integrity policy {784c4414-79f4-4c32-a6a5-f0fb42a51d0d} Microsoft Windows Cross Certificates for Code Integrity Exceptions Policy. id 10.29480.0.0. Status 0x0
+
+TimeCreated  : 10/21/2026 4:59:45 PM
+Id           : 3085
+ProviderName : Microsoft-Windows-CodeIntegrity
+Message      : Code Integrity will disable WHQL driver enforcement for this boot session.  Settings 0x0.
+
+TimeCreated  : 10/21/2026 3:53:34 PM
+Id           : 3102
+ProviderName : Microsoft-Windows-CodeIntegrity
+Message      : Code Integrity policy refresh finished for 2 policies.
+
+TimeCreated  : 10/21/2026 3:53:34 PM
+Id           : 3096
+ProviderName : Microsoft-Windows-CodeIntegrity
+Message      : No change in active Code Integrity policy {d2bda982-ccf6-4344-ac5b-0b44427b6816} Microsoft Windows Driver Policy after refresh. id 10.0.29520.0. Status 0x0
+
+TimeCreated  : 10/21/2026 3:53:34 PM
+Id           : 3096
+ProviderName : Microsoft-Windows-CodeIntegrity
+Message      : No change in active Code Integrity policy {784c4414-79f4-4c32-a6a5-f0fb42a51d0d} Microsoft Windows Cross Certificates for Code Integrity Exceptions Policy after refresh. id 10.29480.0.0. Status 0x0
+
+TimeCreated  : 10/21/2026 3:53:34 PM
+Id           : 3103
+ProviderName : Microsoft-Windows-CodeIntegrity
+Message      : Ignoring refresh for Code Integrity policy ID {5951a96a-e0b5-4d3d-8fb8-3e5b61030784}. Status 0x0.
+
+TimeCreated  : 10/21/2026 3:53:34 PM
+Id           : 3105
+ProviderName : Microsoft-Windows-CodeIntegrity
+Message      : Trying to refresh Code Integrity policy with policy ID {5951a96a-e0b5-4d3d-8fb8-3e5b61030784}.
+
+TimeCreated  : 10/21/2026 3:53:34 PM
+Id           : 3105
+ProviderName : Microsoft-Windows-CodeIntegrity
+Message      : Trying to refresh Code Integrity policy with policy ID {5951a96a-e0b5-4d3d-8fb8-3e5b61030784}.
+
+TimeCreated  : 10/21/2026 3:53:34 PM
+Id           : 3105
+ProviderName : Microsoft-Windows-CodeIntegrity
+Message      : Trying to refresh Code Integrity policy with policy ID {784c4414-79f4-4c32-a6a5-f0fb42a51d0d}.
+
+TimeCreated  : 10/21/2026 3:53:34 PM
+Id           : 3101
+ProviderName : Microsoft-Windows-CodeIntegrity
+Message      : Code Integrity policy refresh started for 2 policies.
+
+TimeCreated  : 10/19/2026 12:12:27 AM
+Id           : 3116
+ProviderName : Microsoft-Windows-CodeIntegrity
+Message      : Signature information for Code Integrity policy ID {d2bda982-ccf6-4344-ac5b-0b44427b6816}.
+
+TimeCreated  : 10/19/2026 12:12:27 AM
+Id           : 3099
+ProviderName : Microsoft-Windows-CodeIntegrity
+Message      : Refreshed and activated Code Integrity policy {d2bda982-ccf6-4344-ac5b-0b44427b6816} Microsoft Windows Driver Policy. id 10.0.29520.0. Status 0x0
+
+TimeCreated  : 10/19/2026 12:12:27 AM
+Id           : 3116
+ProviderName : Microsoft-Windows-CodeIntegrity
+Message      : Signature information for Code Integrity policy ID {784c4414-79f4-4c32-a6a5-f0fb42a51d0d}.
+
+TimeCreated  : 10/19/2026 12:12:27 AM
+Id           : 3099
+ProviderName : Microsoft-Windows-CodeIntegrity
+Message      : Refreshed and activated Code Integrity policy {784c4414-79f4-4c32-a6a5-f0fb42a51d0d} Microsoft Windows Cross Certificates for Code Integrity Exceptions Policy. id 10.29480.0.0. Status 0x0
+
+TimeCreated  : 10/19/2026 12:12:27 AM
+Id           : 3085
+ProviderName : Microsoft-Windows-CodeIntegrity
+Message      : Code Integrity will disable WHQL driver enforcement for this boot session.  Settings 0x0.
+
+
+
+

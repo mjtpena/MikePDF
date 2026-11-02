@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <!-- The generator is referenced as a library, to run its stale-output check and read the schema model. -->
+    <ValidateExecutableReferencesMatchSelfContained>false</ValidateExecutableReferencesMatchSelfContained>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\MikePDF.Protocol\MikePDF.Protocol.csproj" />
+    <ProjectReference Include="..\..\tools\MikePDF.ProtocolGen\MikePDF.ProtocolGen.csproj" />
+  </ItemGroup>
+</Project>

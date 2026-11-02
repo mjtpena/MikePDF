@@ -1,0 +1,3 @@
+# S1.2 config (a): default, no V8, no XFA. This is the proposed shipping flavour.
+pdf_enable_v8 = false
+pdf_enable_xfa = false

@@ -1,0 +1,23 @@
+<Project>
+  <!-- Central package management. Every version change needs a licence check (ADR-0003). -->
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+    <CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>
+  </PropertyGroup>
+  <ItemGroup>
+    <!-- MIT --><PackageVersion Include="MessagePack" Version="3.1.12" />
+    <!-- MIT --><PackageVersion Include="Microsoft.Windows.CsWin32" Version="0.3.367" />
+    <!-- MIT --><PackageVersion Include="SharpFuzz" Version="2.3.0" />
+    <!-- MikePDF.App only. Windows App SDK: Microsoft Software License Terms; the files its NuGet package binplaces are redistributable (licence section 3a). -->
+    <PackageVersion Include="Microsoft.WindowsAppSDK" Version="2.5.1" />
+    <!-- MIT -->
+    <PackageVersion Include="Microsoft.Graphics.Win2D" Version="1.4.0" />
+    <!-- Build only (MSIX tooling, makeappx/makepri/signtool); Microsoft Software License Terms, nothing from it is shipped -->
+    <PackageVersion Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.26100.9169" />
+    <!-- Test only (UI automation, ADR-0009). MIT -->
+    <PackageVersion Include="FlaUI.UIA3" Version="5.0.0" />
+    <!-- Test only. xunit.v3: Apache-2.0. CodeCoverage: Microsoft licence (test-time use, not shipped) -->
+    <PackageVersion Include="xunit.v3" Version="4.0.2" />
+    <PackageVersion Include="Microsoft.Testing.Extensions.CodeCoverage" Version="18.12.0" />
+  </ItemGroup>
+</Project>
