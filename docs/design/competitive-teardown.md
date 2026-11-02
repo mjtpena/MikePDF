@@ -244,7 +244,7 @@ All rows depend on evidence not yet collected. Collect the competitor value, the
 |---|---|---|---|---|
 | F1 | Upgrade prompts | Reported frequent **[src weak]** | **Zero** | Audit |
 | F2 | OCR in the free version | Reported absent **[src weak]** | OCR is P1 (not v1.0). Don't claim until shipped | n/a |
-| F3 | Visible commands in the default view | Not measured | At most **12** visible buttons at L width, everything else in the palette and menus | Count |
+| F3 | Visible commands in the default view | Not measured | At most **13** visible buttons at L width (12, plus Save when there are edits), everything else in the palette and menus | Count |
 | F4 | Vertical chrome | Not measured | At most **80 epx** | Screenshot |
 
 ### 4.5 Against PDF-XChange Editor

@@ -16,7 +16,7 @@ The window a document lives in. It must show the page first, keep every command 
 +--------------------------------------------------------------------------------------------+
 |[M] Annual report.pdf  x | Contract v3.pdf  | Receipts      +                    [_] [[]] [X] | 40  Mica Alt
 +--------------------------------------------------------------------------------------------+
-|[=]|[<] 12 /612 [>]|[-] 125% v [+]|[pg v]|[Mark]| [find] |            |[prt]|[cmd]|[i]|      | 40  commanding layer
+|[open]|[=]|[<] 12 /612 [>]|[-] 125% v [+]|[pg v]|[Mark]| [find] |         |[prt]|[cmd]|[i]|   | 40  commanding layer
 +---------------+-----------------------------------------------------------------+----------+
 | [thm][out][ann]|                                                                 |          |
 | [att][srch]    |                                                                 |          |
@@ -40,6 +40,7 @@ Key to the command bar, left to right (each `|` is a group divider; AutomationId
 
 | Group | Contents | Notes |
 |---|---|---|
+| Open | `[open]` Open (`file.open`, `Ctrl+O`) | Keeps the existing `OpenButton` |
 | Panes | `[=]` Left pane toggle (`pane.toggleLeft`, F4) | Name "Panes" |
 | Page | `[<]` previous, **page box** "12" "/ 612", `[>]` next | Inline edit; replaces the `PageIndicator` button. Shows a page label such as "iv" when the document has page labels (E1) |
 | Zoom | `[-]`, **zoom box** "125%" with drop-down, `[+]` | Drop-down: Fit width, Fit page, Actual size, 50, 75, 100, 125, 150, 200, 400, **Zoom to...** |
@@ -51,7 +52,7 @@ Key to the command bar, left to right (each `|` is a group divider; AutomationId
 | Commands | `[cmd]` Command palette | `app.commandPalette` |
 | Details | `[i]` Right-pane toggle | `pane.toggleRight`; badge dot when the open document has comments |
 
-That is 11 buttons (12 when Save is shown) plus the page box and zoom box. Today there are 10 icon buttons plus the page-indicator button **[repo]**, and 7 of those are zoom, fit and rotate controls. Here those 7 become the zoom group and the View menu, so the **number of things on screen does not grow**, while Markup, Print, Commands and Details are added.
+That is 12 buttons (13 when Save is shown) plus the page box and zoom box. Today there are 10 icon buttons plus the page-indicator button **[repo]**, and 7 of those are zoom, fit and rotate controls. Here those 7 become the zoom group and the View menu, and Markup, Print, Commands and Details are added. So the bar holds **a few more controls than today (14 against 11)** and offers far more, in the same 40 epx row that is 8 epx shorter than the 48 epx default app bar.
 
 ### 2.2 Standard laptop (M, 911 x 512 epx = 1366 x 768 at 150%), panes closed
 
@@ -59,7 +60,7 @@ That is 11 buttons (12 when Save is shown) plus the page box and zoom box. Today
 +----------------------------------------------------------------------------+
 |[M] Annual report.pdf x | Contract...  +                        [_] [[]] [X] |40
 +----------------------------------------------------------------------------+
-|[=]|[<] 12/612 [>]|[Zoom 125% v]|[pg v]|[find]|[Mark]|          |[...]|        |40
+|[open]|[=]|[<] 12/612 [>]|[Zoom 125% v]|[pg v]|[find]|[Mark]|     |[...]|     |40
 +----------------------------------------------------------------------------+
 |                                                                            |
 |                         +--------------------------+                       |
@@ -171,6 +172,7 @@ While tiles load the surface shows the low-resolution fallback or a page-shaped 
 | Tab close | Button | "Close {title}" | `TabClose_{n}` | |
 | New tab | Button | "New tab" | `NewTabButton` | |
 | Command bar | ToolBar | "Document commands" | `Commands` **[repo]** | |
+| Open | Button | "Open" **[repo]** | `OpenButton` **[repo]** | Tooltip "Open a PDF (Ctrl+O)" **[repo]** |
 | Panes toggle | Button (toggle) | "Panes" | `SidebarButton` **[repo]** | Toggle pattern. Tooltip "Show or hide the panes (F4)" |
 | Previous page / next page | Button | "Previous page" / "Next page" | `PagePreviousButton`, `PageNextButton` | |
 | Page box | Edit | "Page, 12 of 612" (with a label: "Page iv, 4 of 612") | `PageIndicator` **[repo, now an Edit]** | Value pattern. Enter goes. Arrow Up and Down step. HelpText "Type a page number and press Enter" |

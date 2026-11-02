@@ -148,15 +148,16 @@ Overflow order (what leaves the command bar first), set with `CommandBar.Dynamic
 
 | Order | Item |
 |---|---|
-| 1 | Open (the leftmost group's pane toggle), page box |
-| 2 | Find |
-| 3 | Zoom group |
-| 4 | **Markup** button |
-| 5 | View menu |
-| 6 | Print |
-| 7 | Details pane toggle |
-| 8 | Commands (palette button) |
-| 9 | Document properties |
+| 1 | Panes toggle, page box |
+| 2 | Open |
+| 3 | Find |
+| 4 | Zoom group (collapses to a single **Zoom** button before it leaves) |
+| 5 | **Markup** button |
+| 6 | View menu |
+| 7 | Print |
+| 8 | Details pane toggle |
+| 9 | Commands (palette button) |
+| 10 | Document properties (always in overflow) |
 
 ### 3.3 Window and shell behaviour
 
@@ -570,7 +571,7 @@ Read from [MainWindow.xaml](../../src/MikePDF.App/MainWindow.xaml) **[repo]**:
 | Today | Design |
 |---|---|
 | One document per window; title text only | Title-bar `TabView` ([01](screens/01-main-window.md)) |
-| `CommandBar` of 10 icon buttons plus a page-indicator button, 7 of them zoom, fit and rotate | Page box, zoom group, one **View** menu, Find, Markup, Print, palette, Details (11 buttons plus two boxes at L width) |
+| `CommandBar` of 10 icon buttons plus a page-indicator button, 7 of them zoom, fit and rotate | Page box, zoom group, one **View** menu, Find, Markup, Print, palette, Details (12 buttons plus two boxes at L width) |
 | Sidebar toggled with two labelled toggle buttons | `SelectorBar` of icons with up to six panes |
 | Page indicator is a button that opens a dialog | An inline editable page box |
 | Find box has Match case only | Find bar with case, whole word, regex, diacritics, results list, scroll-rail ticks |
