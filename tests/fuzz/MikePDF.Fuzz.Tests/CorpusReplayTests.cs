@@ -56,6 +56,22 @@ public class CorpusReplayTests
     {
         var seeds = FuzzAssets.Files(FuzzAssets.Directory("seeds", "journal"), "*.jsonl");
         Assert.True(seeds.Count >= 6, "the journal seeds are missing");
+
+        // The seeds must still be journals: a line ending converted on checkout breaks every checksum and leaves the fuzzer nothing valid to start from.
+        var expected = new (MikePDF.Core.Editing.Journal.JournalReadStatus Status, int Records)[]
+        {
+            (MikePDF.Core.Editing.Journal.JournalReadStatus.Ok, 0),
+            (MikePDF.Core.Editing.Journal.JournalReadStatus.Ok, 1),
+            (MikePDF.Core.Editing.Journal.JournalReadStatus.Ok, 4),
+            (MikePDF.Core.Editing.Journal.JournalReadStatus.Ok, 8),
+            (MikePDF.Core.Editing.Journal.JournalReadStatus.TornTail, 7),
+        };
+        for (var i = 0; i < expected.Length; i++)
+        {
+            var read = MikePDF.Core.Editing.Journal.JournalCodec.Parse(File.ReadAllBytes(seeds[i]));
+            Assert.Equal(expected[i], (read.Status, read.ValidRecords));
+        }
+
         foreach (var file in seeds)
             ReplayWithEveryTruncationAndFlip(File.ReadAllBytes(file), MikePDF.PdfWriter.Fuzz.SaveFuzzTargets.JournalOutcome);
 
@@ -68,6 +84,9 @@ public class CorpusReplayTests
     {
         var seeds = FuzzAssets.Files(FuzzAssets.Directory("seeds", "editblob"), "*.bin");
         Assert.True(seeds.Count >= 3, "the edit blob seeds are missing");
+        foreach (var file in seeds)
+            Assert.True(MikePDF.Protocol.Edits.EditBlobCodec.TryDecode(File.ReadAllBytes(file), out _, out var why), file + ": " + why);
+
         foreach (var file in seeds)
             ReplayWithEveryTruncationAndFlip(File.ReadAllBytes(file), MikePDF.PdfWriter.Fuzz.SaveFuzzTargets.EditBlobOutcome);
 
