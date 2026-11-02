@@ -56,12 +56,56 @@ public static class Stats
     }
 }
 
-/// <summary>A stopwatch in milliseconds with sub-microsecond resolution (Stopwatch ticks are not milliseconds on every machine).</summary>
+/// <summary>Numbers as text for reports: the same on every machine.</summary>
+public static class Fmt
+{
+    /// <summary>A fraction as a percentage with <paramref name="decimals"/> decimals: 0.1234 is "12.3%".</summary>
+    public static string Percent(double fraction, int decimals = 1) =>
+        (fraction * 100).ToString("0." + new string('#', decimals) + "'%'", System.Globalization.CultureInfo.InvariantCulture);
+}
+
+/// <summary>
+/// A stopwatch in milliseconds with sub-microsecond resolution (Stopwatch ticks are not milliseconds on every machine).
+/// <para>
+/// <b>Planted slowdown (test only).</b> With the environment variable <see cref="PlantVariable"/> set to a fraction (0.18), every elapsed time this class
+/// returns is lengthened by that fraction of itself: the call spins for the extra time (so the process really is that much slower than the stopwatch saw)
+/// and returns the elapsed time including it. It exists to prove that the A/B gate catches a slowdown of a known size on a noisy runner. It lives in this
+/// tool, which is not part of any package, and is off unless the variable is set; a result made with it says so in its notes. It does not touch the
+/// memory and size metrics, which are not times.
+/// </para>
+/// </summary>
 public static class Clock
 {
+    public const string PlantVariable = "MIKEPDF_PERF_PLANT_SLOWDOWN";
+
+    /// <summary>The planted fraction (0 when off). Read once, from the environment of this process.</summary>
+    public static double PlantedSlowdown { get; } = ReadPlant(System.Environment.GetEnvironmentVariable(PlantVariable));
+
     public static long Now() => System.Diagnostics.Stopwatch.GetTimestamp();
 
-    public static double MillisecondsSince(long start) => System.Diagnostics.Stopwatch.GetElapsedTime(start).TotalMilliseconds;
+    public static double MillisecondsSince(long start) => Planted(System.Diagnostics.Stopwatch.GetElapsedTime(start).TotalMilliseconds);
 
-    public static double Milliseconds(long start, long end) => System.Diagnostics.Stopwatch.GetElapsedTime(start, end).TotalMilliseconds;
+    public static double Milliseconds(long start, long end) => Planted(System.Diagnostics.Stopwatch.GetElapsedTime(start, end).TotalMilliseconds);
+
+    /// <summary>Parses the variable: a fraction between 0 and 2, anything else (or nothing) is off.</summary>
+    public static double ReadPlant(string? text) =>
+        double.TryParse(text, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var value) && value is > 0 and <= 2 ? value : 0;
+
+    private static double Planted(double milliseconds)
+    {
+        if (PlantedSlowdown <= 0 || milliseconds <= 0)
+        {
+            return milliseconds;
+        }
+
+        var spinStart = System.Diagnostics.Stopwatch.GetTimestamp();
+        var extra = milliseconds * PlantedSlowdown;
+        double spun;
+        do
+        {
+            spun = System.Diagnostics.Stopwatch.GetElapsedTime(spinStart).TotalMilliseconds;
+        }
+        while (spun < extra);
+        return milliseconds + spun;
+    }
 }

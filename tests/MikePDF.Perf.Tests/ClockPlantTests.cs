@@ -1,0 +1,36 @@
+using MikePDF.Perf.Measurement;
+
+namespace MikePDF.Perf.Tests;
+
+public sealed class ClockPlantTests
+{
+    [Theory]
+    [InlineData("0.18", 0.18)]
+    [InlineData("1", 1.0)]
+    [InlineData("2", 2.0)]
+    [InlineData("0", 0.0)]
+    [InlineData("-0.1", 0.0)]
+    [InlineData("3", 0.0)]
+    [InlineData("fast", 0.0)]
+    [InlineData("", 0.0)]
+    [InlineData(null, 0.0)]
+    public void ThePlantedSlowdownIsAFractionBetweenZeroAndTwoAndAnythingElseIsOff(string? text, double expected) =>
+        Assert.Equal(expected, Clock.ReadPlant(text));
+
+    [Fact]
+    public void WithoutTheVariableTheClockIsNotPlanted()
+    {
+        // The test process does not set it; if this ever fails, a plant has leaked into the environment of the test run.
+        Assert.Equal(0, Clock.PlantedSlowdown);
+        Assert.InRange(Clock.MillisecondsSince(Clock.Now()), 0, 5);
+    }
+
+    [Fact]
+    public void PercentIsTheSameOnEveryMachine()
+    {
+        Assert.Equal("12.3%", Fmt.Percent(0.1234, 1));
+        Assert.Equal("10%", Fmt.Percent(0.1, 0));
+        Assert.Equal("96.9%", Fmt.Percent(0.96875, 1));
+        Assert.Equal("-4.5%", Fmt.Percent(-0.045, 1));
+    }
+}
