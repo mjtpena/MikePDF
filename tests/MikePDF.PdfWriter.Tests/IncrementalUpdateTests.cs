@@ -183,6 +183,23 @@ public sealed class IncrementalUpdateTests
         Assert.Equal(PdfErrorCode.InvalidTrailer, update.Build().Error.Code);
     }
 
+    // Found by the append fuzz target (tests/fuzz/regressions/pdfwriter/tiny-real-append-selfcheck.pdf): numbers with more than 15
+    // fractional digits were cut when written, so the writer's own read-back check refused to save the object.
+    [Fact]
+    public void ObjectsHoldingLongRealsAreSavedWithoutChangingThem()
+    {
+        var doc = DocInfo.Strict(PdfBuilder.Classic().Bytes);
+        var update = new IncrementalUpdate(doc);
+        var reals = new PdfArray([new PdfReal(0), new PdfReal(595.2755905511812), new PdfReal(841.8897637795277), new PdfReal(0.1 + 0.2), new PdfReal(1e-19), new PdfReal(-8.5e-7)]);
+        var added = update.Add(new PdfDictionary([new(new PdfName("Box"), reals)])).Value;
+
+        var built = update.Build();
+
+        Assert.True(built.IsSuccess, built.IsSuccess ? "" : built.Error.ToString());
+        var after = DocInfo.Strict(built.Value);
+        Assert.True(PdfObjects.DeepEquals(after.GetObject(added.Number).Value, new PdfDictionary([new(new PdfName("Box"), reals)])));
+    }
+
     [Fact]
     public void StreamObjectsGetTheirLength()
     {
