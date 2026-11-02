@@ -10,5 +10,6 @@
     <ProjectReference Include="..\..\..\src\MikePDF.PdfWriter\MikePDF.PdfWriter.csproj" />
     <PackageReference Include="SharpFuzz" />
     <Compile Include="..\Shared\MutationalFuzzer.cs" Link="Shared\MutationalFuzzer.cs" />
+    <InternalsVisibleTo Include="MikePDF.Fuzz.Tests" />
   </ItemGroup>
 </Project>

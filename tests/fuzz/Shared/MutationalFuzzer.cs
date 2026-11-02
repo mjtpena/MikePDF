@@ -33,7 +33,8 @@ internal static class MutationalFuzzer
         Func<byte[], long> Run,
         string[] SeedExtensions,
         Func<byte[], IEnumerable<byte[]>>? DerivedSeeds = null,
-        string[]? LeadingArgs = null);
+        string[]? LeadingArgs = null,
+        IReadOnlyList<byte[]>? BuiltInSeeds = null);
 
     internal sealed class Options
     {
@@ -49,11 +50,39 @@ internal static class MutationalFuzzer
         public bool Worker { get; set; }
         public string? CurrentFile { get; set; }
         public string? MinimizeFile { get; set; }
+        public string? SelfTest { get; set; }
+        public int MaxFindings { get; set; } = MaxFindingsPerRun;
     }
 
     /// <summary>True when `args` ask for a mutational run (or one of its helper modes) rather than a replay or SharpFuzz run.</summary>
     public static bool Handles(string[] args) =>
         args.Any(a => a is "--mutate" or "--worker" or "--minimize");
+
+    /// <summary>
+    /// Targets that fail on purpose once the mutator has made an input start with "FZZ": <c>--selftest throw|hang|overflow</c> replaces the real
+    /// target. They prove that the fuzzer finds an exception, a hang (watchdog) and a stack overflow (supervisor) and keeps a reproducer.
+    /// </summary>
+    internal static Target SelfTestTarget(string kind) => new(
+        "selftest-" + kind,
+        input =>
+        {
+            if (input.Length >= 3 && input[0] == 'F' && input[1] == 'Z' && input[2] == 'Z')
+            {
+                switch (kind)
+                {
+                    case "throw": throw new InvalidOperationException("selftest: the planted failure was reached");
+                    case "hang": Thread.Sleep(Timeout.Infinite); break;
+                    default: Overflow(1); break;
+                }
+            }
+
+            return input.Length >= 2 && input[0] == 'F' && input[1] == 'Z' ? 1 : 0;
+        },
+        SeedExtensions: [],
+        BuiltInSeeds: [[(byte)'F', (byte)'Z', (byte)'A']],
+        LeadingArgs: ["--selftest", kind]);
+
+    private static int Overflow(int depth) => depth == 0 ? 0 : Overflow(depth + 1) + 1;
 
     public static int Run(Target target, string[] args)
     {
@@ -70,6 +99,7 @@ internal static class MutationalFuzzer
             return 2;
         }
 
+        if (options.SelfTest is not null) target = SelfTestTarget(options.SelfTest);
         if (options.MinimizeFile is not null) return Minimize(target, options);
         return options.Worker ? RunWorker(target, options) : RunSupervisor(target, options);
     }
@@ -97,6 +127,8 @@ internal static class MutationalFuzzer
                 case "--worker": o.Worker = true; break;
                 case "--current": o.CurrentFile = Next(); break;
                 case "--minimize": o.MinimizeFile = Next(); break;
+                case "--selftest": o.SelfTest = Next(); break;
+                case "--max-findings": o.MaxFindings = int.Parse(Next(), System.Globalization.CultureInfo.InvariantCulture); break;
                 default: throw new ArgumentException("unknown argument " + args[i]);
             }
         }
@@ -120,7 +152,7 @@ internal static class MutationalFuzzer
 
         try
         {
-            while (DateTime.UtcNow < deadline && findings < MaxFindingsPerRun)
+            while (DateTime.UtcNow < deadline && findings < o.MaxFindings)
             {
                 int remaining = Math.Max(1, (int)Math.Ceiling((deadline - DateTime.UtcNow).TotalSeconds));
                 var (exit, stderr) = RunWorkerProcess(target, o, remaining, currentFile, o.Rng + workers++);
@@ -273,6 +305,7 @@ internal static class MutationalFuzzer
                     foreach (var derived in target.DerivedSeeds(bytes)) AddSeed(derived);
             }
 
+            foreach (var builtIn in target.BuiltInSeeds ?? []) AddSeed(builtIn);
             if (corpus.Count == 0) AddSeed([0]);
             Console.WriteLine($"worker: {corpus.Count} seeds, {signatures.Count} distinct outcomes");
 
@@ -325,7 +358,7 @@ internal static class MutationalFuzzer
     // ------------------------------------------------------------------------------------------------------------------
     // Minimiser
 
-    private static int Minimize(Target target, Options o)
+    internal static int Minimize(Target target, Options o)
     {
         byte[] best = File.ReadAllBytes(o.MinimizeFile!);
         string? wanted = Describe(target, best);

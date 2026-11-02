@@ -54,9 +54,9 @@ function Find-CMake {
 # ---- build ---------------------------------------------------------------------------------------------------------------
 $nativeBin = Join-Path $root 'build/out/fuzz-x64/fuzz/Release'
 $csBin = @{
-    'protocol-cs'      = Join-Path $OutRoot 'bin/protocol'
-    'pdfwriter-parse'  = Join-Path $OutRoot 'bin/pdfwriter'
-    'pdfwriter-append' = Join-Path $OutRoot 'bin/pdfwriter'
+    'protocol-cs'      = Join-Path $root 'build/out/fuzz-bin/protocol'
+    'pdfwriter-parse'  = Join-Path $root 'build/out/fuzz-bin/pdfwriter'
+    'pdfwriter-append' = Join-Path $root 'build/out/fuzz-bin/pdfwriter'
 }
 
 if (-not $SkipBuild) {
