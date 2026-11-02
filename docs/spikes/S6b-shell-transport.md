@@ -4,7 +4,7 @@
 - Date: 2026-11-02
 - Author: Sonnet (S6b). Reviewer: Opus.
 - Target: [shell-extensions](../features/shell-extensions.md) 3.2 and 11 (OQ-SHELL-1, -2, -3, -4, -8), risk R-16, master prompt 5.3 and 8.11. Output: a proposed [ADR-0018](#proposed-adr-0018-shell-handler-transport), the message list and schema v5 contents below.
-- Branch `m3/spike-shell`; `src/` is untouched. Code: `spikes/S6b/` (throwaway). Raw output: `spikes/S6b/out/` (the folder is gitignored; CSV, text and log results are force-added). Every number below comes from those files. CI: `.github/workflows/s6b-shell-transport.yml`.
+- Branch `m3/spike-shell`; `src/` is untouched. Code: `spikes/S6b/` (throwaway). Raw output: `spikes/S6b/out/` (the folder is gitignored; CSV, text and log results are force-added). Every number below comes from those files. CI: `.github/workflows/s6b-shell-transport.yml` (removed on 2026-11-03: the probe became the real integration job `.github/workflows/shell-integration.yml`, which installs the real package; the spike code stays in `spikes/S6b/` for the record).
 - Nothing was registered on the developer machine: no COM class, shell extension, package, file association, `HKLM` or `HKCU\Software\Classes` value. The handler DLL is loaded by a test host with `LoadLibrary` and `DllGetClassObject`. Packaged registration, the real shell and the registry experiments ran only on disposable hosted runners.
 
 ## Recommendation

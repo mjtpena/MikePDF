@@ -63,7 +63,7 @@ Interfaces: `IThumbnailProvider` and **`IInitializeWithStream` only**. Microsoft
 3. Return a 32-bit premultiplied BGRA `HBITMAP` with `WTSAT_ARGB`, opaque white page, no border or badge.
 4. Total time limit **2 s** from entry to return, of which the handler gives ShellHost **1.7 s**. On expiry: cancel the request (ShellHost kills the engine), return a failure `HRESULT`; Explorer falls back to the generic icon. Never block longer; never leave an engine behind.
 
-Rules: `/Rotate` and CropBox are applied (the same displayed box as the viewer). Annotations are drawn; form fields are drawn without highlight. Password-protected files fail (no password prompt from a shell). Zero-byte, non-PDF, damaged and unsupported files fail. A file larger than 32 MiB fails (generic icon).
+Rules: `/Rotate` and CropBox are applied (the same displayed box as the viewer). Annotations are drawn. Form fields are meant to be drawn without highlight, but the engine answers `Unsupported` to the form-fields flag until forms ship (no form-fill environment), so today they are not drawn; ShellHost asks for annotations only (ADR-0018 amendment 3). Password-protected files fail (no password prompt from a shell). Zero-byte, non-PDF, damaged and unsupported files fail. A file larger than 32 MiB fails (generic icon).
 
 **Concurrency.** Explorer asks for many thumbnails at once. ShellHost runs at most `shell.maxEngines` (default **3**, range 1 to 6, set by the policy `ShellMaxEngines`) engines, and the spare engine started ahead counts toward that number. Requests queue newest first; a request whose deadline has passed while queued is dropped without work. The queue holds at most 64 requests; the oldest is dropped beyond that.
 
@@ -143,7 +143,7 @@ Not applicable. These handlers are read-only and never modify, create or lock us
 
 The text below was corrected in `m3/engine` after S6b: the handle direction, the field names and limits and the session in the envelope.
 
-New `ProcessKind` value `ShellHandler = 3`, sent by the handler in `Hello`; ShellHost accepts no other kind and an engine refuses this one. The framing is the engine's (4-byte length, MessagePack, ADR-0005 limits), one pipe connection per handler instance, and the connection is the session. Ids from 2048 never collide with engine (16 to 63) or writer-host (1024 and up) ids.
+New `ProcessKind` value `ShellHandler = 3`, sent by the handler in `Hello`; ShellHost accepts no other kind and an engine refuses this one. The framing is the engine's (4-byte length, MessagePack, ADR-0005 limits), one pipe connection per handler instance, and the connection is the session. There are **two pipes**, one per feature (`MikePDF.Shell.<user SID>` for thumbnails, the same name plus `.Preview` for previews), so that ShellHost knows which switch and which fit rule applies without a field in the messages (ADR-0018 amendment 1). Ids from 2048 never collide with engine (16 to 63) or writer-host (1024 and up) ids.
 
 **`ShellOpen` (2048, no document).** Request: `section` (u64, min 1), a section handle valid in the **handler** (the sending process) with read access, which ShellHost duplicates from the process at the other end of the pipe (`GetNamedPipeClientProcessId`, then `DuplicateHandle`); `bytes` (u32, 1 to 33554432), the file size (the section may be larger). Reply: `documentId` (u32, min 1, the session), `pageCount` (u32, max 10000000), `firstWidth` and `firstHeight` (f32, exclusive min 0, max 14400, points). No password: a shell never prompts.
 
@@ -168,9 +168,13 @@ Strings that the handler shows live in the DLL's resources (`MikePDF.ShellExt.rc
 | `Shell_Preview_Password` | This file is protected by a password. Open it in MikePDF to read it. |
 | `Shell_Preview_Off` | Preview is turned off |
 | `Shell_Preview_OffPolicy` | Preview is turned off by your organisation |
-| `Settings_Shell_Thumbnails` | Show page thumbnails in File Explorer |
-| `Settings_Shell_Preview` | Show previews in the File Explorer preview pane |
-| `Settings_Shell_CacheNote` | Windows keeps its own cache of thumbnails. Turning this off doesn't delete thumbnails Windows already saved. |
+| `Setting_shell_thumbnails_Name` | Show page thumbnails in File Explorer |
+| `Setting_shell_thumbnails_Description` | Windows keeps its own cache of thumbnails. Turning this off doesn't delete thumbnails Windows already saved. While it is off, File Explorer shows the generic PDF icon. (The last sentence stays until the integration job records that the shell falls through to the next handler: OQ-SHELL-14.) |
+| `Setting_shell_preview_Name` | Show previews in the File Explorer preview pane |
+| `Setting_shell_preview_Description` | While it is off, the preview pane says that the preview is turned off. Windows does not preview files downloaded from the internet until they are unblocked in their Properties. |
+| `Setting_shell_maxEngines_Name` / `_Description` | Viewers for File Explorer / The most viewer processes that File Explorer's thumbnails and previews may start at once. (No control yet: the policy `ShellMaxEngines` sets it.) |
+
+The handler's own strings (the seven `Shell_Preview_*` rows above) are in `src/MikePDF.ShellExt/MikePDF.ShellExt.rc` and in the app's `Resources.resw`; `ShellStringsTests` fails if they differ.
 
 Telemetry: none.
 
@@ -223,3 +227,32 @@ Telemetry: none.
 | SHELL-24 | With another app as the default, the handlers are still used by Explorer (measured on the hosted runners in S6b with Edge as the default; this criterion records it on a real machine, including one with Acrobat installed: OQ-SHELL-11). | Manual record |
 | SHELL-25 | ARM64: the DLL is a native ARM64 image (PE machine type check) and SHELL-02 passes on the ARM64 runner. | Integration |
 | SHELL-26 | Uninstall leaves no handler registration: after removal the CLSIDs are gone from `CLSID` and `PackagedCom`, and `CoCreateInstance` of each fails with `REGDB_E_CLASSNOTREG`. | Integration |
+
+## 15. Implementation status (work package W2-shell, 2026-11-03)
+
+What exists and what checks it. "Hosted" means the job `shell-integration` on a GitHub-hosted runner (x64 and ARM64) with the real package installed; "local" means `./build.ps1 -Test` with no registration of anything. The completion note of the work package has the run links and counts.
+
+| Id | Checked by | Not checked |
+|---|---|---|
+| SHELL-01 | `ShellManifestTests` (manifest, GUIDs against `shellext_ids.h`); `makeappx` in `build/package.ps1`; hosted: `PackagedCom` keys after install | |
+| SHELL-02 | Hosted: the probe's `CoCreateInstance` of both classes, and the preview in the shell's preview host | Locally only the COM contract (`thumbnail_tests`) and `DllGetClassObject` through the test host |
+| SHELL-03 | `thumbnail_tests`, `ShellHostEngineTests`, `ShellHandlerTests` (32, 96, 256, 1024 through the whole chain); hosted: through the real shell | |
+| SHELL-04 | `ShellHostEngineTests`: four coloured corners in the right places, a rotated page and a CropBox with an origin; hosted: the same corners through the shell | **SSIM >= 0.95 on 20 fixtures: not done** (no such fixture set; the corner and geometry checks stand in) |
+| SHELL-05, SHELL-06 | Measured and printed by `ShellHandlerTests` and the probe | No R1 or R2 number; criteria are not met until those runs exist |
+| SHELL-07 | Handler: returns at 2.0 s; ShellHost: engine killed within 1 s of its deadline, next request works (engine double) | **A real PDFium hang** (no fixture makes the real engine hang) |
+| SHELL-08 | Real crash (process killed) and double; fake clock for the ten minutes | |
+| SHELL-09 | `ShellHandlerTests` and the probe | |
+| SHELL-10 | `ShellHostServerTests` (idle exit), `ShellHandlerTests` (2 s idle), hosted: the real 75 s | |
+| SHELL-11 | `validation_tests`, `client_tests` (hostile replies) | |
+| SHELL-12 | Pool, server and 30-request real-engine flood; hosted: 504 requests, engine count sampled | Memory bound is 128 MB until a number is set from R1 and R2 |
+| SHELL-13 | Real engine, handler and probe | |
+| SHELL-14 | | **Not checkable from a handler** (stream initialisation); manual, UNVERIFIED |
+| SHELL-15 | `policy_tests`, `thumbnail_tests`, `ShellSwitchesTests`; hosted: HKLM policy, ShellHost never started | |
+| SHELL-16 | `ShellHostServerTests` (under 100 ms), `ShellHandlerTests`; hosted: the switch file in LocalState | |
+| SHELL-17 | DACL, label, squatter, family check (`ShellHostServerTests`, `client_tests`); hosted: unpackaged client closed, squatter refused | **Another user and another package** (no accounts may be created): UNVERIFIED |
+| SHELL-18 | `fuzz_shell_reply` (libFuzzer) and `MikePDF.ShellHost.Fuzz` (SharpFuzz) in the fuzz workflow; seeds include the SHELL-11 cases | |
+| SHELL-19 to SHELL-22 | `layout_tests`, `ShellHandlerTests` (200 pages, GDI objects, Unload, keys, wheel, Tab to a stub frame, resize, UI Automation); hosted: UI Automation in the shell's preview host | **DPI change** (`WM_DPICHANGED_AFTERPARENT` path), touch pan, and `IPreviewHandlerFrame` from a real Explorer: UNVERIFIED |
+| SHELL-23 | | **Not run** (a person on R1 and R2) |
+| SHELL-24 | Hosted: S6b's measurement repeated with a competing classic handler | A machine with Acrobat (OQ-SHELL-11) |
+| SHELL-25 | `ShellHandlerTests` (PE header) and `install-test.ps1 -Mode Shell` on both architectures | |
+| SHELL-26 | Hosted: `probe --after-uninstall` | |
