@@ -10,6 +10,11 @@
     <PublishAot>true</PublishAot>
     <IsAotCompatible>true</IsAotCompatible>
     <InvariantGlobalization>true</InvariantGlobalization>
+    <!-- The only packages this project restores are the SDK's own Native AOT toolchain (Microsoft.DotNet.ILCompiler and its runtime pack, Microsoft.NET.ILLink.Tasks), whose version is
+         the SDK's: a lock file written by one SDK patch is refused by the next (NU1004 in CI). Everything ShellHost uses at run time comes from project references, which the
+         locked projects that reference it (the integration tests, the fuzz harness) still pin. -->
+    <RestorePackagesWithLockFile>false</RestorePackagesWithLockFile>
+    <RestoreLockedMode>false</RestoreLockedMode>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <UseSystemResourceKeys>true</UseSystemResourceKeys>
     <!-- Stack traces and exception messages are for the log file only; nothing here is shown to a person. -->
