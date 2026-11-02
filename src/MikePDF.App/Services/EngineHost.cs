@@ -18,7 +18,14 @@ internal sealed class EngineHost
     {
         _profile = profile;
         _enginePath = enginePath;
+        Budget = new EngineBudget(new EngineBudgetOptions { Document = DocumentOptions(), Pool = PoolOptions() });
     }
+
+    /// <summary>
+    /// The engines the app may have at once (ADR-0004 amendment A3): one shared pool engine and at most six document engines, the least recently used suspended over the cap.
+    /// Every <see cref="DocumentSession"/> takes its engines from here; the app opens one document at a time today, and tabs will open several.
+    /// </summary>
+    public EngineBudget Budget { get; }
 
     public static EngineHost Create()
     {

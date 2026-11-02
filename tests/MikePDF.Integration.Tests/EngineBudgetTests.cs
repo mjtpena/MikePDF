@@ -13,10 +13,10 @@ public sealed class EngineBudgetTests(SandboxFixture sandbox)
 {
     private static readonly RenderTileArgs Corner = new(0, 1f, 0, 0, 0, 200, 300);
 
-    private EngineBudget NewBudget(int cap, TimeSpan? slotWait = null, Func<EngineSupervisorOptions, EngineSupervisorOptions>? document = null) => new(new EngineBudgetOptions
+    private EngineBudget NewBudget(int cap, TimeSpan? slotWait = null, Func<EngineSupervisorOptions, EngineSupervisorOptions>? document = null, Func<EngineSupervisorOptions, EngineSupervisorOptions>? pool = null) => new(new EngineBudgetOptions
     {
         Document = sandbox.Options(o => document is null ? o with { SlotCount = 4, SlotSize = 1 << 20 } : document(o with { SlotCount = 4, SlotSize = 1 << 20 })),
-        Pool = sandbox.Options(o => o with { SlotCount = 4, SlotSize = 1 << 20 }),
+        Pool = sandbox.Options(o => pool is null ? o with { SlotCount = 4, SlotSize = 1 << 20 } : pool(o with { SlotCount = 4, SlotSize = 1 << 20 })),
         MaxDocumentEngines = cap,
         SlotWaitTimeout = slotWait ?? TimeSpan.FromSeconds(60),
     });
@@ -362,12 +362,66 @@ public sealed class EngineBudgetTests(SandboxFixture sandbox)
     }
 
     [Fact]
+    public async Task OneDocumentAtATimeAsTheAppUsesItKeepsOnePoolEngineAcrossDocuments()
+    {
+        // DocumentSession: a document engine from the budget, the document opened in it, the same document opened in the shared pool; closing the session
+        // closes the engine and the pool document, and the next session finds the same pool process.
+        var before = NativeTestMethods.RunningEnginesIn(sandbox.DeployDirectory);
+        await using var budget = NewBudget(cap: 6);
+        uint firstPool;
+        for (var session = 0; session < 3; session++)
+        {
+            var engine = await budget.CreateDocumentEngineAsync();
+            var main = (await engine.OpenDocumentAsync(SandboxFixture.FixturePath("rectangles.pdf"))).Value!;
+            var pool = await budget.GetPoolAsync();
+            var inPool = (await pool.OpenDocumentAsync(SandboxFixture.FixturePath("rectangles.pdf"))).Value!;
+            await RenderAsync(main);
+            Assert.True((await inPool.GetPageSizesAsync(0, 1)).IsOk);
+            Assert.Equal(2, NativeTestMethods.RunningEnginesIn(sandbox.DeployDirectory) - before); // this document's engine and the pool
+
+            if (session == 0)
+            {
+                firstPool = budget.PoolProcessId;
+                Assert.NotEqual(0u, firstPool);
+            }
+            else
+            {
+                Assert.Equal(budget.PoolProcessId, pool.EngineProcessId);
+            }
+
+            await inPool.DisposeAsync();
+            await main.DisposeAsync();
+            await engine.DisposeAsync();
+            await WaitForAsync(() => NativeTestMethods.RunningEnginesIn(sandbox.DeployDirectory) - before == 1);
+            Assert.Equal(1, NativeTestMethods.RunningEnginesIn(sandbox.DeployDirectory) - before); // only the pool is left
+            Assert.Equal(0, budget.LiveDocumentEngines);
+        }
+
+        Assert.Equal(0, (await budget.GetPoolAsync()).RestartCount); // the same pool engine the whole time, never restarted
+    }
+
+    [Fact]
     public async Task ThePoolIsReplacedWhenItGivesUpAndOnlyThen()
     {
-        await using var budget = NewBudget(cap: 2);
+        await using var budget = NewBudget(cap: 2, pool: o => o with { MaxRestartsPerWindow = 1, MaxStartAttempts = 1 });
         var pool = await budget.GetPoolAsync();
         Assert.Same(pool, await budget.GetPoolAsync());
-        Assert.False(pool.IsFailed);
+        var failed = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var restored = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        pool.Failed += (_, _) => failed.TrySetResult();
+        pool.Restored += (_, _) => restored.TrySetResult();
+
+        pool.CurrentProcess!.Kill();
+        await restored.Task.WaitAsync(TimeSpan.FromSeconds(30));
+        Assert.Same(pool, await budget.GetPoolAsync()); // a restart is the supervisor's business: it is still the pool
+        pool.CurrentProcess!.Kill();
+        await failed.Task.WaitAsync(TimeSpan.FromSeconds(30));
+
+        var replacement = await budget.GetPoolAsync(); // it gave up: a new pool takes its place
+        Assert.NotSame(pool, replacement);
+        Assert.False(replacement.IsFailed);
+        Assert.Equal(Status.Ok, (await replacement.OpenDocumentAsync(SandboxFixture.FixturePath("rectangles.pdf"))).Status);
+        Assert.Same(replacement, await budget.GetPoolAsync());
     }
 
     private static async Task WaitForAsync(Func<bool> condition)
