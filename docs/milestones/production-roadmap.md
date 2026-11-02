@@ -88,6 +88,7 @@ Found while reviewing wave 1. Each gets a work package or joins one.
 | `HangDetectionTests.AHeavyButAlivePageThatOvershootsItsDeadlineIsNotKilledAsHung` fails under heavy machine load (seen twice locally, never in CI) | W2-tabs, W2-engine-2 | Engine WP |
 | `CommandsSettingsJourneyTests.CMD05_…CtrlCCopiesTheBoxText` timed out on the clipboard once in a full UI run; passes alone | Opus, main verification | W2-views (running) |
 | Large axis-aligned scans render slightly softer in tiles than in a whole-page render (43 corpus pages, about 2.7 levels mean). A whole-page bitmap cache for image-heavy pages would fix it; measure against §11 first-tile and memory budgets first | W2-engine-2 | Engine WP |
+| The view-mode metrics (PV-12 open of 10,000 pages in two-page mode, PV-17 presentation turn) live in `tools/MikePDF.Perf/Metrics/ViewModeMetrics.cs` and `Scenarios/ViewModeScenarios.cs` but are not registered in `PerfRunner` or `MetricCatalog`, so `run --only` cannot select them and the A/B gate does not see them | W2-views-2 | Next perf work package: register them, ungated first, then gate after A/A calibration |
 
 ## What only the user can do
 The following gate v1.0, and agents can't do them:
