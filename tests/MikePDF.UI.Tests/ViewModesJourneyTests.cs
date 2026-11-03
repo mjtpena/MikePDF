@@ -186,7 +186,7 @@ public sealed class ViewModesJourneyTests : IDisposable
 
     // ---- one page at a time -----------------------------------------------------------------------------------------------------------------------------
 
-    [UiFact]
+    [UiFact(ciQuarantine: "the mouse-wheel notch does not reach the app on the hosted runners (the first notch never turned the page in 4 of 5 runs, with the pointer over the page and the app idle); keys, clicks and drags work. Roadmap: CI UI journeys")]
     public void PV08_PV20_InThePagedFlowTheKeysTurnPagesAndTheWheelNeedsOneNotchMore()
     {
         using var app = Open("paged.pdf", 6);
@@ -216,18 +216,7 @@ public sealed class ViewModesJourneyTests : IDisposable
 
         // The wheel: a page that fits turns at each notch (never twice in a flick).
         MoveMouseTo(Centre(app.Require("PageSurface")));
-        // A notch sent in the instant the pointer arrives can be lost to the pointer-enter (it timed out once on a hosted runner): wait for the page, and send the notch again only if nothing turned.
-        for (var attempt = 0; attempt < 3 && app.CurrentPage != 2; attempt++)
-        {
-            Thread.Sleep(400);
-            Mouse.Scroll(-1);
-            var turned = DateTime.UtcNow + TimeSpan.FromSeconds(3);
-            while (app.CurrentPage != 2 && DateTime.UtcNow < turned)
-            {
-                Thread.Sleep(100);
-            }
-        }
-
+        Mouse.Scroll(-1);
         app.WaitFor("page 2 by the wheel", () => app.CurrentPage == 2);
         Mouse.Scroll(1);
         Thread.Sleep(400);

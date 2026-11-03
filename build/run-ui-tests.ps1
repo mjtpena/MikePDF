@@ -113,6 +113,7 @@ $shots = Join-Path $root 'build/out/shots'
 New-Item -ItemType Directory -Force $shots | Out-Null
 try {
     $env:MIKEPDF_UI_TESTS = '1'
+    if ($Ci) { $env:MIKEPDF_UI_CI = '1'; $env:MIKEPDF_UI_ARCH = $Arch }
     $env:MIKEPDF_SHOTS_DIR = $shots
     $arguments = @('test', '--project', (Join-Path $root 'tests/MikePDF.UI.Tests'), '-c', 'Release', '--no-build')
     if ($Ci) {
@@ -125,7 +126,7 @@ try {
     $code = $LASTEXITCODE
 }
 finally {
-    Remove-Item Env:MIKEPDF_UI_TESTS, Env:MIKEPDF_SHOTS_DIR -ErrorAction SilentlyContinue
+    Remove-Item Env:MIKEPDF_UI_TESTS, Env:MIKEPDF_UI_CI, Env:MIKEPDF_UI_ARCH, Env:MIKEPDF_SHOTS_DIR -ErrorAction SilentlyContinue
     Stop-MikePDF
     if (-not $KeepInstalled) { Get-AppxPackage -Name $identity | Remove-AppxPackage }
 }

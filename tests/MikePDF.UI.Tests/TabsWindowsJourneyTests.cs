@@ -252,7 +252,7 @@ public sealed class TabsWindowsJourneyTests : IDisposable
 
     // ---- close prompts, TAB-10 and TAB-11 (a fake dirty flag until the save pipeline exists) ----------------------------------------------------------------
 
-    [UiFact]
+    [UiFact(ciQuarantine: "on ARM64 the second Ctrl+W after Cancel never shows the question: keyboard focus is on the first tab header, not the page (passes on x64 and in local runs). Roadmap: CI UI journeys", ciArch: "arm64")]
     public void TAB10_ClosingATabWithUnsavedEditsAsksAndCancelKeepsItAndDontSaveClosesIt()
     {
         var alpha = Pdf("alpha", 3);

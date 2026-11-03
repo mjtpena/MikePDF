@@ -610,16 +610,25 @@ public sealed class MikePDFApp : IDisposable
     }
 }
 
-/// <summary>A test that needs the installed package and an interactive desktop. Skipped unless MIKEPDF_UI_TESTS=1 (set by build/run-ui-tests.ps1).</summary>
+/// <summary>
+/// A test that needs the installed package and an interactive desktop. Skipped unless MIKEPDF_UI_TESTS=1 (set by build/run-ui-tests.ps1).
+/// <c>ciQuarantine</c> names a reason the journey is skipped on the GitHub-hosted runner (build/run-ui-tests.ps1 -Ci sets MIKEPDF_UI_CI=1 and MIKEPDF_UI_ARCH),
+/// for <c>ciArch</c> only when that is given. Every quarantine has a row in docs/milestones/production-roadmap.md; local runs are not affected.
+/// </summary>
 [AttributeUsage(AttributeTargets.Method)]
 public sealed class UiFactAttribute : FactAttribute
 {
-    public UiFactAttribute([System.Runtime.CompilerServices.CallerFilePath] string? sourceFilePath = null, [System.Runtime.CompilerServices.CallerLineNumber] int sourceLineNumber = -1)
+    public UiFactAttribute(string? ciQuarantine = null, string? ciArch = null, [System.Runtime.CompilerServices.CallerFilePath] string? sourceFilePath = null, [System.Runtime.CompilerServices.CallerLineNumber] int sourceLineNumber = -1)
         : base(sourceFilePath, sourceLineNumber)
     {
         if (Environment.GetEnvironmentVariable("MIKEPDF_UI_TESTS") != "1")
         {
             Skip = "UI tests need an interactive desktop and the installed package: run build/run-ui-tests.ps1";
+        }
+        else if (ciQuarantine is not null && Environment.GetEnvironmentVariable("MIKEPDF_UI_CI") == "1"
+            && (ciArch is null || string.Equals(ciArch, Environment.GetEnvironmentVariable("MIKEPDF_UI_ARCH"), StringComparison.OrdinalIgnoreCase)))
+        {
+            Skip = "Quarantined on the GitHub-hosted runner: " + ciQuarantine;
         }
     }
 }
