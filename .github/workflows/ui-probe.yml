@@ -25,56 +25,13 @@ jobs:
       - name: Try to get rid of the OOBE page
         shell: pwsh
         run: |
-          Add-Type -AssemblyName System.Windows.Forms, System.Drawing
+          Add-Type -AssemblyName System.Windows.Forms, System.Drawing, UIAutomationClient, UIAutomationTypes
           Add-Type -TypeDefinition @'
-          using System; using System.Runtime.InteropServices;
+          using System; using System.Collections.Generic; using System.Runtime.InteropServices;
           public static class W {
-            [DllImport("user32.dll", CharSet = CharSet.Unicode)] public static extern IntPtr FindWindow(string cls, string title);
             [DllImport("user32.dll")] public static extern bool PostMessage(IntPtr h, uint msg, IntPtr w, IntPtr l);
-            [DllImport("user32.dll")] public static extern bool ShowWindow(IntPtr h, int cmd);
             [DllImport("user32.dll")] public static extern bool IsWindowVisible(IntPtr h);
-            [DllImport("user32.dll")] public static extern bool GetWindowRect(IntPtr h, out RECT r);
-            [StructLayout(LayoutKind.Sequential)] public struct RECT { public int L, T, R, B; }
-          }
-          '@
-          function Shot($name) {
-            New-Item -ItemType Directory -Force probe | Out-Null
-            $b = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds
-            $bm = [System.Drawing.Bitmap]::new($b.Width, $b.Height)
-            [System.Drawing.Graphics]::FromImage($bm).CopyFromScreen($b.Location, [System.Drawing.Point]::Empty, $b.Size)
-            $bm.Save((Join-Path $PWD "probe/$name.png"))
-          }
-          $h = [W]::FindWindow('Shell_OOBEProxy', $null)
-          Write-Host "Shell_OOBEProxy handle: $h visible: $([W]::IsWindowVisible($h))"
-          if ($h -ne [IntPtr]::Zero) {
-            $r = [W+RECT]::new(); [void][W]::GetWindowRect($h, [ref]$r); Write-Host "rect: $($r.L),$($r.T) $($r.R),$($r.B)"
-            Shot 'before'
-            [void][W]::PostMessage($h, 0x0010, [IntPtr]::Zero, [IntPtr]::Zero)   # WM_CLOSE
-            Start-Sleep -Seconds 3
-            Write-Host "after WM_CLOSE: handle $([W]::FindWindow('Shell_OOBEProxy', $null)) visible $([W]::IsWindowVisible($h))"
-            Shot 'after-close'
-            [void][W]::ShowWindow($h, 0)   # SW_HIDE
-            Start-Sleep -Seconds 2
-            Write-Host "after SW_HIDE: visible $([W]::IsWindowVisible($h))"
-            Shot 'after-hide'
-          }
-          Add-Type -AssemblyName UIAutomationClient, UIAutomationTypes
-          $root = [System.Windows.Automation.AutomationElement]::RootElement
-          foreach ($k in $root.FindAll([System.Windows.Automation.TreeScope]::Children, [System.Windows.Automation.Condition]::TrueCondition)) { Write-Host ("window: '{0}' class={1} pid={2}" -f $k.Current.Name, $k.Current.ClassName, $k.Current.ProcessId) }
-          Get-Process | Where-Object SessionId -eq 2 | Select-Object Id, ProcessName | Sort-Object ProcessName | ForEach-Object { "$($_.Id):$($_.ProcessName)" } | Join-String -Separator ' ' | Write-Host
-      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        if: always()
-        with:
-          name: probe-${{ matrix.arch }}
-          path: probe/**
-          if-no-files-found: warn
-      - name: Display modes
-        shell: pwsh
-        run: |
-          Add-Type -TypeDefinition @'
-          using System;
-          using System.Runtime.InteropServices;
-          public static class Display {
+            [DllImport("user32.dll")] public static extern bool ShowWindow(IntPtr h, int cmd);
             [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Ansi)]
             public struct DEVMODE {
               [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 32)] public string dmDeviceName;
@@ -85,19 +42,53 @@ jobs:
               public short dmLogPixels;
               public int dmBitsPerPel, dmPelsWidth, dmPelsHeight, dmDisplayFlags, dmDisplayFrequency, dmICMMethod, dmICMIntent, dmMediaType, dmDitherType, dmReserved1, dmReserved2, dmPanningWidth, dmPanningHeight;
             }
-            [DllImport("user32.dll", CharSet = CharSet.Ansi, SetLastError = true)] public static extern bool EnumDisplaySettings(string device, int mode, ref DEVMODE dm);
+            [DllImport("user32.dll", CharSet = CharSet.Ansi)] static extern bool EnumDisplaySettings(string device, int mode, ref DEVMODE dm);
+            [DllImport("user32.dll", CharSet = CharSet.Ansi)] static extern int ChangeDisplaySettings(ref DEVMODE dm, int flags);
+            static DEVMODE Fresh() { var dm = new DEVMODE(); dm.dmDeviceName = ""; dm.dmFormName = ""; dm.dmSize = (short)Marshal.SizeOf(typeof(DEVMODE)); return dm; }
+            public static string Modes() {
+              var seen = new SortedSet<string>(); var dm = Fresh();
+              if (EnumDisplaySettings(null, -1, ref dm)) seen.Add("current " + dm.dmPelsWidth + "x" + dm.dmPelsHeight + "x" + dm.dmBitsPerPel); else seen.Add("current: enum failed");
+              for (int i = 0; ; i++) { dm = Fresh(); if (!EnumDisplaySettings(null, i, ref dm)) break; seen.Add(dm.dmPelsWidth + "x" + dm.dmPelsHeight + "x" + dm.dmBitsPerPel); }
+              return string.Join(" ", seen);
+            }
+            public static int Set(int w, int h) { var dm = Fresh(); EnumDisplaySettings(null, -1, ref dm); dm.dmPelsWidth = w; dm.dmPelsHeight = h; dm.dmFields = 0x80000 | 0x100000; return ChangeDisplaySettings(ref dm, 0); }
           }
           '@
-          $probe = [Display+DEVMODE]::new()
-          Write-Host ("DEVMODE size: " + [System.Runtime.InteropServices.Marshal]::SizeOf($probe))
-          $dm = [Display+DEVMODE]::new(); $dm.dmSize = [int16][System.Runtime.InteropServices.Marshal]::SizeOf($dm)
-          $ok = [Display]::EnumDisplaySettings($null, -1, [ref]$dm)
-          Write-Host "current: ok=$ok $($dm.dmPelsWidth)x$($dm.dmPelsHeight) bpp=$($dm.dmBitsPerPel) err=$([System.Runtime.InteropServices.Marshal]::GetLastWin32Error())"
-          $i = 0; $seen = @{}
-          while ($true) {
-            $dm = [Display+DEVMODE]::new(); $dm.dmSize = [int16][System.Runtime.InteropServices.Marshal]::SizeOf($dm)
-            if (-not [Display]::EnumDisplaySettings($null, $i, [ref]$dm)) { break }
-            $seen["$($dm.dmPelsWidth)x$($dm.dmPelsHeight)x$($dm.dmBitsPerPel)"] = 1; $i++
+          function Shot($name) {
+            New-Item -ItemType Directory -Force probe | Out-Null
+            $b = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds
+            $bm = [System.Drawing.Bitmap]::new($b.Width, $b.Height)
+            [System.Drawing.Graphics]::FromImage($bm).CopyFromScreen($b.Location, [System.Drawing.Point]::Empty, $b.Size)
+            $bm.Save((Join-Path $PWD "probe/$name.png"))
           }
-          Write-Host "modes ($i): $($seen.Keys -join ' ')"
-          Get-CimInstance Win32_VideoController | Select-Object Name, VideoModeDescription, CurrentHorizontalResolution, CurrentVerticalResolution, DriverVersion | Format-List | Out-String | Write-Host
+          Write-Host ("Modes: " + [W]::Modes())
+          foreach ($size in @(@(1920,1080), @(1600,900), @(1366,768), @(1280,1024), @(1280,800))) {
+            $r = [W]::Set($size[0], $size[1]); Write-Host "ChangeDisplaySettings $($size[0])x$($size[1]) -> $r"
+            if ($r -eq 0) { break }
+          }
+          Start-Sleep -Seconds 2
+          $scr = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds; Write-Host "Screen now $($scr.Width)x$($scr.Height)"
+          $root = [System.Windows.Automation.AutomationElement]::RootElement
+          $oobe = $root.FindFirst([System.Windows.Automation.TreeScope]::Children, [System.Windows.Automation.PropertyCondition]::new([System.Windows.Automation.AutomationElement]::ClassNameProperty, 'Shell_OOBEProxy'))
+          if ($oobe) {
+            $hwnd = [IntPtr]$oobe.Current.NativeWindowHandle
+            Write-Host "OOBE element: hwnd=$hwnd visible=$([W]::IsWindowVisible($hwnd)) offscreen=$($oobe.Current.IsOffscreen)"
+            $all = $oobe.FindAll([System.Windows.Automation.TreeScope]::Descendants, [System.Windows.Automation.Condition]::TrueCondition)
+            Write-Host "descendants: $($all.Count)"
+            $n = 0; foreach ($e in $all) { if ($n++ -ge 40) { break }; Write-Host ("  {0} '{1}' id={2}" -f $e.Current.ControlType.ProgrammaticName, $e.Current.Name, $e.Current.AutomationId) }
+            Shot 'before'
+            try { $oobe.GetCurrentPattern([System.Windows.Automation.WindowPattern]::Pattern).Close(); Write-Host 'WindowPattern.Close sent' } catch { Write-Host "WindowPattern.Close: $_" }
+            [void][W]::PostMessage($hwnd, 0x0010, [IntPtr]::Zero, [IntPtr]::Zero)
+            Start-Sleep -Seconds 3
+            Shot 'after-close'
+            [void][W]::ShowWindow($hwnd, 0)
+            Start-Sleep -Seconds 2
+            Write-Host "after hide: visible=$([W]::IsWindowVisible($hwnd))"
+            Shot 'after-hide'
+          } else { Write-Host 'no Shell_OOBEProxy window'; Shot 'no-oobe' }
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with:
+          name: probe-${{ matrix.arch }}
+          path: probe/**
+          if-no-files-found: warn
