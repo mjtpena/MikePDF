@@ -87,7 +87,7 @@ public static class PrintJob
         catch (PrintDeviceException e) when (!cancellationToken.IsCancellationRequested)
         {
             await run.AbortAsync().ConfigureAwait(false);
-            return run.Finish(PrintOutcome.Failed, PrintStrings.Failed, e.Message, Status.Ok);
+            return run.Finish(PrintOutcome.Failed, PrintStrings.Failed, e.Message, Status.Ok, e.Win32Error);
         }
         catch (Exception e) when (e is OperationCanceledException or PrintDeviceException && cancellationToken.IsCancellationRequested)
         {
@@ -192,7 +192,7 @@ public static class PrintJob
             }
 
             var landscape = SheetLayout.ChooseLandscape(Options.Orientation, sample, Options.PagesPerSheet);
-            Opened = await _thread.RunAsync(() => _devices.Open(new PrinterJobSettings(Request.PrinterName, Options, landscape))).ConfigureAwait(false);
+            Opened = await _thread.RunAsync(() => _devices.Open(new PrinterJobSettings(Request.PrinterName, Options, landscape, Request.PrinterDevMode))).ConfigureAwait(false);
             _device = Opened.Device;
             _abortRegistration = _cancellation.Register(static state => ((IPrintDevice)state!).RequestAbort(), _device);
 
@@ -232,8 +232,8 @@ public static class PrintJob
             await _thread.RunAsync(device.EndDocument).ConfigureAwait(false);
         }
 
-        public PrintResult Finish(PrintOutcome outcome, string? key, string? detail, Status status) => new(
-            outcome, key, detail, status, _sheetsPrinted, TotalSheets, [.. _missing], _formLayerUnavailable, _crashes, Opened?.Report, Opened?.Copies ?? default, _bands);
+        public PrintResult Finish(PrintOutcome outcome, string? key, string? detail, Status status, int win32Error = 0) => new(
+            outcome, key, detail, status, _sheetsPrinted, TotalSheets, [.. _missing], _formLayerUnavailable, _crashes, Opened?.Report, Opened?.Copies ?? default, _bands, win32Error);
 
         /// <summary>Ends the spool job without printing what is left (cancel, failure), then removes the empty file that <c>AbortDoc</c> leaves behind when printing to a file.</summary>
         public async Task AbortAsync()

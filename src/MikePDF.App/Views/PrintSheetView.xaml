@@ -1,0 +1,146 @@
+<UserControl
+    x:Class="MikePDF.App.Views.PrintSheetView"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:MikePDF.App.Views">
+
+    <!--
+      The print sheet (docs/design/screens/11-print.md): the options on one side, an honest preview of the first sheet on the other. The options come first in this file on purpose: the tab order of a
+      XAML tree is its document order, and the design's order is Printer, preferences, copies, pages, sides, layout, scale, paper, colour, include, the preview's pager, then the dialog's own buttons.
+      Narrow windows put the preview above the options (225% text), and narrower still behind a toggle.
+    -->
+    <Grid x:Name="Layout" ColumnSpacing="24" RowSpacing="12" MinHeight="320" AutomationProperties.AutomationId="PrintSheet" SizeChanged="OnLayoutSizeChanged">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition x:Name="PreviewColumn" Width="*" MinWidth="240" />
+            <ColumnDefinition x:Name="OptionsColumn" Width="390" />
+        </Grid.ColumnDefinitions>
+        <Grid.RowDefinitions>
+            <RowDefinition x:Name="PreviewRow" Height="*" />
+            <RowDefinition x:Name="OptionsRow" Height="0" />
+        </Grid.RowDefinitions>
+
+        <ScrollViewer x:Name="OptionsScroll" Grid.Column="1" VerticalScrollBarVisibility="Auto" HorizontalScrollMode="Disabled" HorizontalScrollBarVisibility="Disabled"
+                      AutomationProperties.AutomationId="PrintOptions" TabFocusNavigation="Local" IsTabStop="False">
+            <StackPanel Spacing="4" Padding="0,0,16,0">
+                <!-- Printer -->
+                <TextBlock x:Name="PrinterHeading" Style="{StaticResource BodyStrongTextBlockStyle}" AutomationProperties.HeadingLevel="Level2" />
+                <Grid ColumnSpacing="8">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <ComboBox x:Name="PrinterBox" HorizontalAlignment="Stretch" AccessKey="P" AutomationProperties.AutomationId="PrintPrinter"
+                              SelectionChanged="OnPrinterChanged" PlaceholderText="" />
+                    <ProgressRing x:Name="PrinterRing" Grid.Column="1" Width="20" Height="20" IsActive="True" VerticalAlignment="Center" AutomationProperties.AccessibilityView="Raw" />
+                </Grid>
+                <StackPanel x:Name="NoPrinters" Visibility="Collapsed" Spacing="4" AutomationProperties.AutomationId="PrintNoPrinters">
+                    <TextBlock x:Name="NoPrintersText" TextWrapping="Wrap" />
+                    <Button x:Name="OpenPrinterSettings" AutomationProperties.AutomationId="PrintOpenPrinterSettings" Click="OnOpenPrinterSettings" />
+                </StackPanel>
+                <Button x:Name="PreferencesButton" Click="OnPreferences" AutomationProperties.AutomationId="PrintPreferences" Margin="0,4,0,0" />
+
+                <!-- Copies -->
+                <Grid ColumnSpacing="16" Margin="0,12,0,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <NumberBox x:Name="CopiesBox" Minimum="1" Maximum="99" SpinButtonPlacementMode="Compact" SmallChange="1" LargeChange="5" AcceptsExpression="False"
+                               ValidationMode="InvalidInputOverwritten" AccessKey="C" AutomationProperties.AutomationId="PrintCopies" ValueChanged="OnCopiesChanged" MinWidth="130" />
+                    <CheckBox x:Name="CollateBox" Grid.Column="1" VerticalAlignment="Bottom" AutomationProperties.AutomationId="PrintCollate" Checked="OnOptionChanged" Unchecked="OnOptionChanged" />
+                </Grid>
+
+                <!-- Pages -->
+                <TextBlock x:Name="PagesHeading" Style="{StaticResource BodyStrongTextBlockStyle}" Margin="0,12,0,0" AutomationProperties.HeadingLevel="Level2" />
+                <!-- One tab stop for the three choices, the arrow keys move between them (design 11-print section 5). -->
+                <RadioButtons x:Name="ScopeButtons" MaxColumns="1" AccessKey="G" AutomationProperties.AutomationId="PrintPages" SelectionChanged="OnScopeChanged">
+                    <RadioButton x:Name="PagesAll" AutomationProperties.AutomationId="PrintPagesAll" />
+                    <RadioButton x:Name="PagesCurrent" AutomationProperties.AutomationId="PrintPagesCurrent" />
+                    <RadioButton x:Name="PagesRange" AutomationProperties.AutomationId="PrintPagesRange" />
+                </RadioButtons>
+                <TextBox x:Name="RangeBox" Margin="28,0,0,0" MaxLength="256" InputScope="Number" AutomationProperties.AutomationId="PrintRange" TextChanged="OnRangeChanged" GotFocus="OnRangeFocused" />
+                <TextBlock x:Name="RangeError" Margin="28,0,0,0" TextWrapping="Wrap" Visibility="Collapsed" AutomationProperties.AutomationId="PrintRangeError"
+                           AutomationProperties.LiveSetting="Assertive" Foreground="{ThemeResource SystemFillColorCriticalBrush}" />
+                <ComboBox x:Name="SubsetBox" Margin="28,4,0,0" HorizontalAlignment="Stretch" AutomationProperties.AutomationId="PrintSubset" SelectionChanged="OnOptionChanged" />
+
+                <!-- Layout -->
+                <ComboBox x:Name="SidesBox" Margin="0,12,0,0" HorizontalAlignment="Stretch" AutomationProperties.AutomationId="PrintSides" SelectionChanged="OnOptionChanged" />
+                <TextBlock x:Name="SidesNote" TextWrapping="Wrap" Visibility="Collapsed" Style="{StaticResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                           AutomationProperties.AutomationId="PrintSidesNote" />
+                <ComboBox x:Name="OrientationBox" Margin="0,8,0,0" HorizontalAlignment="Stretch" AutomationProperties.AutomationId="PrintOrientation" SelectionChanged="OnOptionChanged" />
+                <CheckBox x:Name="AutoRotateBox" AutomationProperties.AutomationId="PrintAutoRotate" Checked="OnOptionChanged" Unchecked="OnOptionChanged" />
+                <Grid ColumnSpacing="8" Margin="0,8,0,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <ComboBox x:Name="ScaleBox" HorizontalAlignment="Stretch" AutomationProperties.AutomationId="PrintScale" SelectionChanged="OnOptionChanged" />
+                    <NumberBox x:Name="ScalePercentBox" Grid.Column="1" Minimum="10" Maximum="400" SpinButtonPlacementMode="Compact" SmallChange="5" LargeChange="25" AcceptsExpression="False"
+                               ValidationMode="InvalidInputOverwritten" Visibility="Collapsed" VerticalAlignment="Bottom" MinWidth="120" AutomationProperties.AutomationId="PrintScaleCustom"
+                               ValueChanged="OnScalePercentChanged" />
+                </Grid>
+                <Grid ColumnSpacing="8" Margin="0,8,0,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <ComboBox x:Name="PerSheetBox" HorizontalAlignment="Stretch" AutomationProperties.AutomationId="PrintPagesPerSheet" SelectionChanged="OnOptionChanged" />
+                    <ComboBox x:Name="SheetOrderBox" Grid.Column="1" HorizontalAlignment="Stretch" AutomationProperties.AutomationId="PrintSheetOrder" SelectionChanged="OnOptionChanged" />
+                </Grid>
+                <ComboBox x:Name="PaperBox" Margin="0,8,0,0" HorizontalAlignment="Stretch" AutomationProperties.AutomationId="PrintPaper" SelectionChanged="OnOptionChanged" />
+                <ComboBox x:Name="ColourBox" Margin="0,8,0,0" HorizontalAlignment="Stretch" AutomationProperties.AutomationId="PrintColour" SelectionChanged="OnOptionChanged" />
+                <TextBlock x:Name="ColourNote" TextWrapping="Wrap" Visibility="Collapsed" Style="{StaticResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                           AutomationProperties.AutomationId="PrintColourNote" />
+
+                <!-- Include -->
+                <TextBlock x:Name="IncludeHeading" Style="{StaticResource BodyStrongTextBlockStyle}" Margin="0,12,0,0" AutomationProperties.HeadingLevel="Level2" />
+                <CheckBox x:Name="AnnotationsBox" AutomationProperties.AutomationId="PrintIncludeAnnotations" Checked="OnOptionChanged" Unchecked="OnOptionChanged" />
+                <CheckBox x:Name="FormsBox" AutomationProperties.AutomationId="PrintIncludeForms" Checked="OnOptionChanged" Unchecked="OnOptionChanged" />
+                <CheckBox x:Name="AsImageBox" AutomationProperties.AutomationId="PrintIncludeImage" Checked="OnOptionChanged" Unchecked="OnOptionChanged" />
+
+                <!-- What the printer or the document says about the job -->
+                <StackPanel x:Name="Notices" Spacing="4" Margin="0,12,0,0" AutomationProperties.AutomationId="PrintNotices">
+                    <InfoBar x:Name="CutOffNotice" Severity="Warning" IsOpen="False" IsClosable="False" AutomationProperties.AutomationId="PrintNoticeCutOff" />
+                    <InfoBar x:Name="LowQualityNotice" Severity="Informational" IsOpen="False" IsClosable="False" AutomationProperties.AutomationId="PrintNoticeLowQuality" />
+                    <InfoBar x:Name="DeviceNotice" Severity="Informational" IsOpen="False" IsClosable="False" AutomationProperties.AutomationId="PrintNoticeDevice" />
+                </StackPanel>
+            </StackPanel>
+        </ScrollViewer>
+
+        <Grid x:Name="PreviewPane" Grid.Column="0" RowSpacing="8" AutomationProperties.AutomationId="PrintPreviewPane">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+            <ToggleButton x:Name="PreviewToggle" Visibility="Collapsed" AutomationProperties.AutomationId="PrintShowPreview" Checked="OnPreviewToggled" Unchecked="OnPreviewToggled" />
+            <Border x:Name="PreviewFrame" Grid.Row="1" MinHeight="140" Padding="16" CornerRadius="8" Background="{ThemeResource LayerFillColorDefaultBrush}"
+                    BorderThickness="1" BorderBrush="{ThemeResource ControlStrokeColorDefaultBrush}">
+                <Grid>
+                    <!-- The page keeps its own colours; the surround is the system's (high contrast: Window and WindowText, design 5). -->
+                    <Border x:Name="PreviewPaperEdge" HorizontalAlignment="Center" VerticalAlignment="Center" BorderThickness="1" BorderBrush="{ThemeResource ControlStrokeColorDefaultBrush}">
+                        <Image x:Name="PreviewPicture" Stretch="Uniform" AutomationProperties.AutomationId="PrintPreview" AutomationProperties.LocalizedControlType="image" />
+                    </Border>
+                    <ProgressRing x:Name="PreviewRing" Width="32" Height="32" IsActive="False" HorizontalAlignment="Center" VerticalAlignment="Center" AutomationProperties.AccessibilityView="Raw" />
+                    <TextBlock x:Name="PreviewStatus" TextWrapping="Wrap" TextAlignment="Center" HorizontalAlignment="Center" VerticalAlignment="Center" MaxWidth="260"
+                               AutomationProperties.AutomationId="PrintPreviewStatus" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                </Grid>
+            </Border>
+            <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Center" Spacing="8">
+                <Button x:Name="PrevButton" AutomationProperties.AutomationId="PrintPrev" Click="OnPrevSheet" MinWidth="44" MinHeight="32">
+                    <FontIcon Glyph="&#xE76B;" FontSize="14" />
+                </Button>
+                <TextBlock x:Name="PagerText" VerticalAlignment="Center" MinWidth="110" TextAlignment="Center" AutomationProperties.AutomationId="PrintPager" />
+                <Button x:Name="NextButton" AutomationProperties.AutomationId="PrintNext" Click="OnNextSheet" MinWidth="44" MinHeight="32">
+                    <FontIcon Glyph="&#xE76C;" FontSize="14" />
+                </Button>
+            </StackPanel>
+            <StackPanel Grid.Row="3" Spacing="2" HorizontalAlignment="Center">
+                <TextBlock x:Name="SummaryText" TextWrapping="Wrap" TextAlignment="Center" AutomationProperties.AutomationId="PrintSummary" AutomationProperties.LiveSetting="Polite" />
+                <TextBlock x:Name="CopiesSummaryText" TextWrapping="Wrap" TextAlignment="Center" Visibility="Collapsed" Style="{StaticResource CaptionTextBlockStyle}"
+                           Foreground="{ThemeResource TextFillColorSecondaryBrush}" AutomationProperties.AutomationId="PrintCopiesSummary" />
+            </StackPanel>
+        </Grid>
+    </Grid>
+</UserControl>

@@ -25,14 +25,18 @@ public sealed class GdiPrintDevice : IPrintDevice
     private bool _documentEnded;
     private bool _disposed;
 
-    private GdiPrintDevice(HDC dc, nint key, PaperArea paper)
+    private GdiPrintDevice(HDC dc, nint key, PaperArea paper, PhysicalPaper physical)
     {
         _dc = dc;
         _key = key;
         Paper = paper;
+        Physical = physical;
     }
 
     public PaperArea Paper { get; }
+
+    /// <summary>The whole sheet of paper and where the printable area sits on it, in device pixels (the preview draws the margins from it).</summary>
+    public PhysicalPaper Physical { get; }
 
     /// <summary>
     /// Creates the device context for <paramref name="printer"/> with a validated DEVMODE and reads the printable area. Throws <see cref="PrintDeviceException"/>.
@@ -65,7 +69,12 @@ public sealed class GdiPrintDevice : IPrintDevice
             throw new PrintDeviceException("The printer reported no printable area");
         }
 
-        var device1 = new GdiPrintDevice(dc, (nint)dc.Value, paper);
+        var physical = new PhysicalPaper(
+            PInvoke.GetDeviceCaps(dc, GET_DEVICE_CAPS_INDEX.PHYSICALWIDTH),
+            PInvoke.GetDeviceCaps(dc, GET_DEVICE_CAPS_INDEX.PHYSICALHEIGHT),
+            PInvoke.GetDeviceCaps(dc, GET_DEVICE_CAPS_INDEX.PHYSICALOFFSETX),
+            PInvoke.GetDeviceCaps(dc, GET_DEVICE_CAPS_INDEX.PHYSICALOFFSETY));
+        var device1 = new GdiPrintDevice(dc, (nint)dc.Value, paper, physical);
         Devices[(nint)dc.Value] = device1;
         _ = PInvoke.SetAbortProc(dc, &AbortProcedure);
         return device1;

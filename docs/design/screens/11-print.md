@@ -174,3 +174,21 @@ About **6 actions** and no mouse needed. See [ux-metrics](../ux-metrics.md#2-tas
 3. Should the print dialog **remember per document** (e.g. last range)? This spec says no.
 4. Whether **vector** or **raster** goes to the printer matters for output quality at 600 dpi. Out of scope for the design, in scope for the ADR.
 5. `ms-settings:printers` is a guess; verify it opens the Printers & scanners page on the target Windows versions.
+
+## 10. As built (W2-print-sheet, `m3/print-sheet`)
+
+The sheet is `src/MikePDF.App/Views/PrintSheetView.xaml` in a `ContentDialog` (`MainWindow.Print.cs`), the rules are in `MikePDF.Core.Printing.PrintSheetModel`, and the preview is `MikePDF.Printing.PrintPreview`. Where the build differs from sections 3 to 7, and why:
+
+| Design | Built | Why |
+|---|---|---|
+| Scale as radio buttons plus a percent box | A `Scale` drop-down (fit, shrink large pages only, actual size, custom) with the percent box beside it when custom is chosen | The spec (print.md 3.2) has four modes, not three; four radios and a box are tall in a column that already scrolls at 225% text |
+| **Selected pages** radio | Not offered | The sidebar's thumbnail list is single-select until the page organiser (M4); no placeholder UI for an unbuilt feature (decisions.md Q16) |
+| Low-resolution permission forces **Print as image** at 150 dpi | The notice "The document's owner allows low-quality printing only." and a 150 dpi cap in the pipeline; Print as image stays the person's choice | print.md 3.7 says the cap and a notice; it does not force the image mode. The spec wins |
+| Narrator announces progress "at most every 2 pages" | The count is a polite live region that changes once per sheet, and once at the end (print.md 5, PRINT-21) | The spec wins |
+| **Pages per sheet** (design open question 2) | 1, 2, 4, 6, 9 and 16, with the page order (across then down, or down then across) | decisions.md, "After the print and shell reviews" |
+| Tab order ends with the preview pager | The options come first in the XAML, so the order is Printer, preferences, copies, collate, pages, range, subset, sides, orientation, rotate, scale, pages per sheet, order, paper, colour, include, the pager, then Print and Cancel. In the stacked layout (narrow window or 225% text) the preview is visually above the options but its pager still comes after them in the tab order | A XAML tree's tab order is its document order |
+| Access keys `Alt+P`, `Alt+C`, `Alt+G` | Set on the printer, copies and pages controls (`AccessKey`) | as designed |
+| Preview "updates 250 ms after an option change" | 250 ms debounce for the picture and the notices; the summary and a range error follow 500 ms after the last key, because they are live regions | design 6 (Narrator table) |
+| Progress as an `InfoBar` in the tab | An `InfoBar` over the document area of the window (not tied to one tab), with a `ProgressBar` named "Printing {document}", a live status line and **Cancel** (`Esc` while it has focus). One job at a time per window; closing the window mid-job asks first | A job outlives the tab it was started from |
+
+Open question 5 (`ms-settings:printers`): the button starts the address through the shell; whether it lands on Printers & scanners on every Windows version is not verified here.

@@ -75,6 +75,7 @@ public sealed partial class MainWindow
         SettingsPage.Attach(_services, this);
         SettingsPage.CloseRequested += CloseSettings;
         ApplySettings(null);
+        StartReasonTips();
 
         // Policy is read again every two seconds (a read is a size query per known name), which keeps a change inside the five seconds the spec allows.
         _policyTimer = DispatcherQueue.CreateTimer();
@@ -87,6 +88,10 @@ public sealed partial class MainWindow
     private void BindCommands()
     {
         Bind(OpenButton, "file.open");
+        Bind(PrintButton, "file.print");
+        Bind(PrintCancelButton, "print.cancel", Parts.Click | Parts.Tooltip | Parts.Accelerator);
+        PrintCancelButton.Content = Strings.Get("Print_Strip_Cancel");
+        AutomationProperties.SetName(PrintCancelButton, Strings.Get("Print_Cancel"));
         Bind(EmptyOpenButton, "file.open", Parts.Click | Parts.Accelerator);
         Bind(BackButton, "nav.back");
         Bind(ForwardButton, "nav.forward");
@@ -207,7 +212,14 @@ public sealed partial class MainWindow
 
             if (binding.Parts.HasFlag(Parts.Tooltip) && target is UIElement element)
             {
-                ToolTipService.SetToolTip(element, shown.Length == 0 ? name : name + " (" + shown + ")");
+                // A command that cannot run says why in its tooltip as well as in the control's help text and the palette (print.md PRINT-22).
+                var tip = shown.Length == 0 ? name : name + " (" + shown + ")";
+                if (!availability.IsEnabled && availability.Reason is { } why)
+                {
+                    tip += "\n" + Strings.Get(Reasons.ResourceKey(why));
+                }
+
+                ToolTipService.SetToolTip(element, tip);
             }
 
             if (binding.Parts.HasFlag(Parts.Accelerator))
@@ -262,6 +274,8 @@ public sealed partial class MainWindow
             Presentation = _presenting,
             ImportExportAllowed = policy.ImportExportAllowed,
             PrintingAllowed = policy.PrintingAllowed,
+            OwnerAllowsPrinting = !open || session!.OwnerAllowsPrinting,
+            PrintJobRunning = PrintJobRunning,
         };
     }
 
@@ -521,6 +535,7 @@ public sealed partial class MainWindow
         Sync("app.policies", () => ShowSettings("policies"));
         Async("app.about", ShowAboutAsync);
         RegisterSettingsActions(Sync, Async);
+        RegisterPrintActions(Sync, Async);
     }
 
     // Reload opens the same file again in the same tab, where it was.
@@ -621,6 +636,151 @@ public sealed partial class MainWindow
             OpenFind();
         }
     }
+
+    // ---- the reason a command bar button is off ---------------------------------------------------------------------------------------------------
+
+    private static readonly TimeSpan ReasonTipPoll = TimeSpan.FromMilliseconds(150);
+    private const int ReasonTipDwellPolls = 3; // about half a second: the usual delay of a tooltip
+    private DispatcherQueueTimer? _reasonTimer;
+    private Flyout? _reasonTip;
+    private AppBarButton? _reasonTarget;
+    private int _reasonPolls;
+    private bool _reasonArmed;
+    private bool _hasCursor;
+    private CursorPoint _lastCursor;
+
+    /// <summary>
+    /// WinUI delivers no pointer event to a disabled control (and no event at all from the place it covers), so it never shows that control's tooltip, and a button that is off could not say why with
+    /// one. While this window is the active one, the cursor is looked at every 150 ms; resting on a command bar button that is off for a reason shows the same tooltip text the button carries (its name,
+    /// its shortcut and the reason), after the usual delay (print.md PRINT-22).
+    /// </summary>
+    private void StartReasonTips()
+    {
+        if (_reasonTimer is not null)
+        {
+            return;
+        }
+
+        _reasonTimer = DispatcherQueue.CreateTimer();
+        _reasonTimer.IsRepeating = true;
+        _reasonTimer.Interval = ReasonTipPoll;
+        _reasonTimer.Tick += (_, _) =>
+        {
+            try
+            {
+                PollReasonTip();
+            }
+            catch (Exception e) when (e is InvalidOperationException or ArgumentException or System.Runtime.InteropServices.COMException)
+            {
+                // A tooltip is a courtesy: whatever the tree was doing while the cursor was looked at, the next look is 150 ms away.
+                System.Diagnostics.Debug.WriteLine("Reason tooltip: " + e.GetType().Name);
+                HideReasonTip();
+            }
+        };
+        Activated += (_, args) =>
+        {
+            if (args.WindowActivationState == WindowActivationState.Deactivated)
+            {
+                _reasonTimer?.Stop();
+                HideReasonTip();
+            }
+            else
+            {
+                _reasonTimer?.Start();
+            }
+        };
+        _reasonTimer.Start();
+    }
+
+    private void PollReasonTip()
+    {
+        if (_closed || Root.XamlRoot is null || !GetCursorPos(out var cursor))
+        {
+            HideReasonTip();
+            return;
+        }
+
+        var scale = Math.Max(0.1, Root.XamlRoot.RasterizationScale);
+        var client = cursor;
+        if (!ScreenToClient(WinRT.Interop.WindowNative.GetWindowHandle(this), ref client))
+        {
+            HideReasonTip();
+            return;
+        }
+
+        var point = new Windows.Foundation.Point(client.X / scale, client.Y / scale);
+        AppBarButton? over = null;
+        foreach (var binding in _bindings)
+        {
+            if (binding.Target is AppBarButton { IsEnabled: false, Visibility: Visibility.Visible } bar && bar.ActualWidth > 0 && ToolTipService.GetToolTip(bar) is string)
+            {
+                var box = bar.TransformToVisual(Root).TransformBounds(new Windows.Foundation.Rect(0, 0, bar.ActualWidth, bar.ActualHeight));
+                if (box.Contains(point))
+                {
+                    over = bar;
+                    break;
+                }
+            }
+        }
+
+        var moved = _hasCursor && (cursor.X != _lastCursor.X || cursor.Y != _lastCursor.Y);
+        _lastCursor = cursor;
+        _hasCursor = true;
+        if (_modalDepth > 0 || Palette.IsOpen)
+        {
+            HideReasonTip(); // a dialog or the palette has the person's attention
+            return;
+        }
+
+        if (!ReferenceEquals(over, _reasonTarget))
+        {
+            HideReasonTip();
+            _reasonTarget = over;
+            _reasonPolls = 0;
+            _reasonArmed = over is not null && moved; // a tooltip is for a pointer that arrives, not for one that was left there
+            return;
+        }
+
+        if (over is not null && _reasonArmed && _reasonTip is null && ++_reasonPolls >= ReasonTipDwellPolls && ToolTipService.GetToolTip(over) is string text)
+        {
+            // WinUI opens a ToolTip only for an enabled element, even from code, so the words are shown in a small flyout that is dismissed when the pointer moves away, as a tooltip is.
+            _reasonTip = new Flyout
+            {
+                Content = new TextBlock { Text = text, TextWrapping = TextWrapping.Wrap, MaxWidth = 320 },
+                Placement = Microsoft.UI.Xaml.Controls.Primitives.FlyoutPlacementMode.Bottom,
+                ShowMode = Microsoft.UI.Xaml.Controls.Primitives.FlyoutShowMode.TransientWithDismissOnPointerMoveAway,
+            };
+            _reasonTip.ShowAt(over);
+        }
+    }
+
+    private void HideReasonTip()
+    {
+        if (_reasonTip is not null)
+        {
+            _reasonTip.Hide();
+            _reasonTip = null;
+        }
+
+        _reasonTarget = null;
+        _reasonPolls = 0;
+        _reasonArmed = false;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct CursorPoint
+    {
+        public int X;
+        public int Y;
+    }
+
+    [DllImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool GetCursorPos(out CursorPoint point);
+
+    [DllImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool ScreenToClient(IntPtr hwnd, ref CursorPoint point);
 
     // ---- dialogs ----------------------------------------------------------------------------------------------------------------------------
 
