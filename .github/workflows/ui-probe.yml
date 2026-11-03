@@ -74,18 +74,12 @@ jobs:
           '@
           function Click($x, $y) { [void][M]::SetCursorPos($x, $y); Start-Sleep -Milliseconds 300; [M]::mouse_event(2, 0, 0, 0, [UIntPtr]::Zero); [M]::mouse_event(4, 0, 0, 0, [UIntPtr]::Zero) }
           Shot 'a-before'
-          Click ([int]($scr.Width * 0.65)) ([int]($scr.Height * 0.22))
-          Start-Sleep -Seconds 1
-          [System.Windows.Forms.SendKeys]::SendWait('{ENTER}')
-          Start-Sleep -Seconds 4
-          Shot 'b-after-enter-1'
-          [System.Windows.Forms.SendKeys]::SendWait('{ENTER}')
-          Start-Sleep -Seconds 4
-          Shot 'c-after-enter-2'
-          Write-Host ("webview2 processes: " + @(Get-Process msedgewebview2 -ErrorAction SilentlyContinue).Count)
-          Get-Process msedgewebview2 -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
-          Start-Sleep -Seconds 4
-          Shot 'd-after-kill-webview2'
+          # Next / Accept sits at the lower right of the card at 1920x1080 (x 1443, y 849).
+          foreach ($n in 1..4) {
+            Click 1443 849
+            Start-Sleep -Seconds 4
+            Shot "b-after-click-$n"
+          }
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always()
         with:
