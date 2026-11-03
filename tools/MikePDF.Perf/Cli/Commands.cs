@@ -17,6 +17,8 @@ public static class Commands
 
           run            Measure the headless suite and write perf-results.json and perf-results.md.
           gate           run, then compare with a baseline; re-measure metrics that look regressed; exit 1 on a regression.
+          ab             The CI gate: measure a built base and a built head on this machine, interleaved, and compare them with a confidence interval.
+          calibrate      Summarise many ab runs (the nightly A/A artifacts, docs/perf/calibration): how often did the rule fire, how big were the changes.
           compare        Compare two result files.
           report         Render a result file as Markdown (to refresh the .md beside a baseline).
           generate       Write the generated test PDFs.
@@ -33,6 +35,15 @@ public static class Commands
         gate options:
           --baseline <file> (a missing file means no baseline yet) or --baseline-dir <dir> (picks <runner-id>.*.json with the same CPU)
           --threshold 0.10   --retries 2
+        ab options:
+          --base-exe <MikePDF.Perf.exe> --base-engine <dir>   the base, built (tools/MikePDF.Perf/build-bundle.ps1)
+          --head-exe <MikePDF.Perf.exe> --head-engine <dir>   the head, built
+          --rounds 8   --confirm-rounds 4   --threshold 0.10   --margin 0.03   --confidence 0.95
+          --profile ci   --runner-id <id>   --out <dir>   --budgets <file>   --reference-tier R1|R2|R3
+          --baseline-dir <dir>   stored baselines, shown as a trend (never gates)   --base-label <text> --head-label <text>
+          --only <id,id,...>   just these metrics   --work-dir <dir>   generated PDFs   --appcontainer-prefix <name>
+          --plant-head 0.18      TEST ONLY: slow every time in the head by this fraction, to prove the gate catches it
+        calibrate options: --dir <directory searched for perf-ab*.json>
         report options:   --results <file> [--out <file.md>]
         compare options:  --baseline <file> --current <file> [--threshold 0.10] [--out <dir>]
         generate options: --out <dir> [--only text1,text20,text500,text2000]
@@ -59,6 +70,8 @@ public static class Commands
             {
                 "run" => await RunSuiteAsync(parsed, output, gate: false, cancellationToken),
                 "gate" => await RunSuiteAsync(parsed, output, gate: true, cancellationToken),
+                "ab" => await AbCommand.RunAsync(parsed, output, cancellationToken),
+                "calibrate" => await CalibrateCommand.RunAsync(parsed, output),
                 "compare" => await CompareAsync(parsed, output),
                 "report" => await ReportAsync(parsed, output),
                 "generate" => await GenerateAsync(parsed, output),

@@ -79,13 +79,16 @@ Found while reviewing wave 1. Each gets a work package or joins one.
 | Print to physical, PCL, PostScript, duplex and XPS printers, ARM64 printing, and the 1,000-page job are unverified | W2-print-core | Print sheet WP (XPS, 1,000 pages); the user (physical printers) |
 | The user-level policy comment says "stricter than the default", but the code compares against the least strict allowed value | W2-commands review | Wave 2 |
 | Open documents are capped at 16 because each holds two pool documents (placeholders, and text and search). Share one pool document per session to reach 32 | W2-tabs | Engine WP |
-| The performance gate fails on hosted runners without a code cause (3 times on 2026-11-02 and -03: every engine metric 20-30% slower at once). Measure the base and the head in the same job on the same runner instead of against a stored baseline | W2 reviews | Perf WP |
+| The performance gate fails on hosted runners without a code cause (3 times on 2026-11-02 and -03: every engine metric 20-30% slower at once). Measure the base and the head in the same job on the same runner instead of against a stored baseline | W2 reviews | Done in `m3/perf-gate`: same-runner A/B with a confidence interval; 0 false positives in 22 A/A jobs, 24 of 24 planted 15-20% slowdowns caught (`docs/perf/README.md`) |
+| `search.first_result` and `recovery.crash_to_first_tile` on x64 hosted runners are caught 8 times in 12 at a planted 15-20%; they are short (5 to 25 ms) and noisy. Use more iterations or a longer scenario for them | W2-perf-gate | Perf WP, next time `tools/MikePDF.Perf` is touched |
+| Slow drift (many pull requests of 5% each) is not gated. Read the nightly A/A and `main` runs for a month, then decide on a trend check against an older `main` build | W2-perf-gate | Opus, after the first weeks of nightly runs |
 | File activation and Jump List items not built: FA-09 to FA-12, FA-15 to FA-21, and the default-app prompt | W2-tabs | File association WP |
 | The test-seam gate ignores `MIKEPDF_TEST_*` in Store-signed packages; the Store path is unverified until a Store-signed package exists | W2-tabs | First Store submission (user) |
 | TAB-08 (move between monitors with different DPI) and TAB-30 (high contrast, 225% text) need a second monitor and system settings | W2-tabs | The user, or a WP with an accessibility test machine |
 | `HangDetectionTests.AHeavyButAlivePageThatOvershootsItsDeadlineIsNotKilledAsHung` fails under heavy machine load (seen twice locally, never in CI) | W2-tabs, W2-engine-2 | Engine WP |
 | `CommandsSettingsJourneyTests.CMD05_…CtrlCCopiesTheBoxText` timed out on the clipboard once in a full UI run; passes alone | Opus, main verification | W2-views (running) |
 | Large axis-aligned scans render slightly softer in tiles than in a whole-page render (43 corpus pages, about 2.7 levels mean). A whole-page bitmap cache for image-heavy pages would fix it; measure against §11 first-tile and memory budgets first | W2-engine-2 | Engine WP |
+| The view-mode metrics (PV-12 open of 10,000 pages in two-page mode, PV-17 presentation turn) live in `tools/MikePDF.Perf/Metrics/ViewModeMetrics.cs` and `Scenarios/ViewModeScenarios.cs` but are not registered in `PerfRunner` or `MetricCatalog`, so `run --only` cannot select them and the A/B gate does not see them | W2-views-2 | Next perf work package: register them, ungated first, then gate after A/A calibration |
 
 ## What only the user can do
 The following gate v1.0, and agents can't do them:

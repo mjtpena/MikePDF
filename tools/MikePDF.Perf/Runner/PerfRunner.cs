@@ -122,6 +122,11 @@ public static class PerfRunner
         {
             "Headless: the broker and the real sandboxed engine, no window. The app's process start, XAML, GPU upload and compositor are not in these numbers; they are measured by the app's trace markers (tools/MikePDF.Perf/measure-app.ps1), which have not been run end to end.",
         };
+        if (Measurement.Clock.PlantedSlowdown > 0)
+        {
+            notes.Add($"PLANTED SLOWDOWN of {Measurement.Fmt.Percent(Measurement.Clock.PlantedSlowdown, 0)} on every time in this run ({Measurement.Clock.PlantVariable} is set). This is a test of the regression gate, not a measurement of the engine; never commit these results as a baseline.");
+        }
+
         if (options.ReferenceTier is null)
         {
             notes.Add("Not reference hardware (R1, R2 and R3 are not declared for this run): every comparison with a §11 target is indicative only and proves nothing about the budget.");
