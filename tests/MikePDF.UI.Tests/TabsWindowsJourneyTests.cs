@@ -252,7 +252,7 @@ public sealed class TabsWindowsJourneyTests : IDisposable
 
     // ---- close prompts, TAB-10 and TAB-11 (a fake dirty flag until the save pipeline exists) ----------------------------------------------------------------
 
-    [UiFact]
+    [UiFact(ciQuarantine: "on ARM64 the second Ctrl+W after Cancel never shows the question, in 3 of 3 runs even with the wsl console and the Start menu kept away: keyboard focus is on the first tab header, not the page (passes on x64 and in local runs). Roadmap: CI UI journeys", ciArch: "arm64")]
     public void TAB10_ClosingATabWithUnsavedEditsAsksAndCancelKeepsItAndDontSaveClosesIt()
     {
         var alpha = Pdf("alpha", 3);
@@ -352,10 +352,23 @@ public sealed class TabsWindowsJourneyTests : IDisposable
         app.WaitForDocument(3);
         var handle = new IntPtr(app.Window.Properties.NativeWindowHandle.Value);
         GetWindowRect(handle, out var before);
-        var tab = Centre(app.TabItems()[0]);
-        app.Drag(tab, new System.Drawing.Point(tab.X + 220, tab.Y + 140));
-        Thread.Sleep(1500);
-        GetWindowRect(handle, out var after);
+        // The first press on a window that is not yet the active one can be spent activating it (the window did not move once on a hosted ARM64 runner): make it the foreground window, and
+        // drag again only when the window has not moved after a drag.
+        var after = before;
+        for (var attempt = 0; attempt < 3 && Math.Abs(after.Left - before.Left) <= 100; attempt++)
+        {
+            app.Window.SetForeground();
+            var tab = Centre(app.TabItems()[0]);
+            app.Drag(tab, new System.Drawing.Point(tab.X + 220, tab.Y + 140));
+            var settled = DateTime.UtcNow + TimeSpan.FromSeconds(2);
+            do
+            {
+                Thread.Sleep(150);
+                GetWindowRect(handle, out after);
+            }
+            while (Math.Abs(after.Left - before.Left) <= 100 && DateTime.UtcNow < settled);
+        }
+
         Assert.True(Math.Abs(after.Left - before.Left) > 100 && Math.Abs(after.Top - before.Top) > 60, $"the window was at {before.Left},{before.Top} and is at {after.Left},{after.Top} after a drag of 220,140");
         Assert.Single(app.AllWindows());
         Assert.Equal(["alpha"], app.TabNames());
