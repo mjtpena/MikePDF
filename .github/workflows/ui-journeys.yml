@@ -52,12 +52,8 @@ jobs:
           Write-Host "OS: $([System.Environment]::OSVersion.VersionString), arch $($env:PROCESSOR_ARCHITECTURE), user $env:USERNAME, session id $session, interactive $([System.Environment]::UserInteractive)"
           Write-Host "Primary screen: $($screen.Bounds.Width)x$($screen.Bounds.Height), working area $($screen.WorkingArea.Width)x$($screen.WorkingArea.Height)"
           Write-Host "Explorer running: $([bool](Get-Process explorer -ErrorAction SilentlyContinue))"
-          $clip = Start-Job { Add-Type -AssemblyName System.Windows.Forms; [System.Windows.Forms.Clipboard]::SetText('mikepdf-probe'); [System.Windows.Forms.Clipboard]::GetText() }
-          # Clipboard access needs an STA thread: run it in one.
-          $text = $null
-          $t = [System.Threading.Thread]::new({ try { [System.Windows.Forms.Clipboard]::SetText('mikepdf-probe'); $script:text = [System.Windows.Forms.Clipboard]::GetText() } catch { $script:text = "ERROR: $_" } })
-          $t.SetApartmentState('STA'); $t.Start(); $t.Join()
-          Remove-Job $clip -Force
+          # Clipboard access needs an STA thread: a child PowerShell started with -STA has one.
+          $text = pwsh -NoProfile -STA -Command "Add-Type -AssemblyName System.Windows.Forms; try { [System.Windows.Forms.Clipboard]::SetText('mikepdf-probe'); [System.Windows.Forms.Clipboard]::GetText() } catch { 'ERROR: ' + `$_ }"
           Write-Host "Clipboard round trip: $text"
       - name: Build, register a handler-free copy of the package, run the journeys
         shell: pwsh
