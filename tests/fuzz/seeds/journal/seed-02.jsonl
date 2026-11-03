@@ -1,0 +1,5 @@
+{"v":1,"type":"header","docPath":"C:\\Users\\a\\Documents\\report.pdf","fileId":"0123abcd","size":123456,"mtime":"2026-11-03T10:00:00.000Z","fingerprint":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","app":"1.0.0.0","pages":["p1","p2"],"crc":"37605847"}
+{"v":1,"seq":1,"t":"2026-11-03T10:30:00.123Z","cmd":"AddAnnotation","page":0,"kind":"Highlight","name":"h1","rect":[10,20,110,40],"color":[1,0.9,0],"contents":"caf\u00E9 \u2603","quads":[10,40,110,40,10,20,110,20],"crc":"4ddbade5"}
+{"v":1,"seq":2,"t":"2026-11-03T10:30:00.123Z","cmd":"SetFieldValue","field":"name","value":"Ada","crc":"1c57bb48"}
+{"v":1,"seq":3,"t":"2026-11-03T10:30:00.123Z","cmd":"Undo","target":2,"crc":"0b420200"}
+{"v":1,"seq":4,"t":"2026-11-03T10:30:00.123Z","cmd":"Redo","target":2,"crc":"91ae30fb"}

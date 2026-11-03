@@ -2660,6 +2660,548 @@ Result<ValidateStructureReply> ValidateStructureReply::decode(Reader& reader) {
     return {Status::Ok, std::move(m), ""};
 }
 
+Status AppendAnnotations::validate() const {
+    if (base_handle < 1ull) {
+        return Status::InvalidArgument;
+    }
+    if (edits_handle < 1ull) {
+        return Status::InvalidArgument;
+    }
+    if (edits_length < 1ull || edits_length > 268435456ull) {
+        return Status::InvalidArgument;
+    }
+    if (output_handle < 1ull) {
+        return Status::InvalidArgument;
+    }
+    if (page_count > 10000000u) {
+        return Status::InvalidArgument;
+    }
+    return Status::Ok;
+}
+
+Status AppendAnnotations::encode(Writer& writer) const {
+    if (const Status valid = validate(); valid != Status::Ok) {
+        return valid;
+    }
+    writer.write_array_header(5);
+    writer.write_uint(base_handle);
+    writer.write_uint(edits_handle);
+    writer.write_uint(edits_length);
+    writer.write_uint(output_handle);
+    writer.write_uint(page_count);
+    return writer.status();
+}
+
+Result<AppendAnnotations> AppendAnnotations::decode(Reader& reader) {
+    AppendAnnotations m;
+    Status s = reader.expect_array(5);
+    if (s == Status::Ok) {
+        s = reader.read_u64(m.base_handle, 1ull, 18446744073709551615ull);
+    }
+    if (s == Status::Ok) {
+        s = reader.read_u64(m.edits_handle, 1ull, 18446744073709551615ull);
+    }
+    if (s == Status::Ok) {
+        s = reader.read_u64(m.edits_length, 1ull, 268435456ull);
+    }
+    if (s == Status::Ok) {
+        s = reader.read_u64(m.output_handle, 1ull, 18446744073709551615ull);
+    }
+    if (s == Status::Ok) {
+        s = reader.read_u32(m.page_count, 0u, 10000000u);
+    }
+    if (s == Status::Ok) {
+        s = m.validate();
+        if (s != Status::Ok) {
+            reader.fail(s, "message violates a schema limit");
+        }
+    }
+    if (s != Status::Ok) {
+        return {s, AppendAnnotations{}, reader.detail()};
+    }
+    return {Status::Ok, std::move(m), ""};
+}
+
+Status AppendAnnotationsReply::validate() const {
+    if (annotations_added > 100000000u) {
+        return Status::InvalidArgument;
+    }
+    if (annotations_removed > 100000000u) {
+        return Status::InvalidArgument;
+    }
+    if (objects_written > 100000000u) {
+        return Status::InvalidArgument;
+    }
+    if (bytes_written > 2147483647ull) {
+        return Status::InvalidArgument;
+    }
+    if (issue_codes.size() > 256u) {
+        return Status::InvalidArgument;
+    }
+    for (const auto& v : issue_codes) {
+        if (v > 65535u) {
+            return Status::InvalidArgument;
+        }
+    }
+    if (issue_messages.size() > 256u) {
+        return Status::InvalidArgument;
+    }
+    for (const auto& v : issue_messages) {
+        if (v.size() > 192u || !is_valid_text(v)) {
+            return Status::InvalidArgument;
+        }
+    }
+    if (issue_messages.size() != issue_codes.size()) {
+        return Status::InvalidArgument;
+    }
+    return Status::Ok;
+}
+
+Status AppendAnnotationsReply::encode(Writer& writer) const {
+    if (const Status valid = validate(); valid != Status::Ok) {
+        return valid;
+    }
+    writer.write_array_header(8);
+    writer.write_bool(ok);
+    writer.write_uint(annotations_added);
+    writer.write_uint(annotations_removed);
+    writer.write_uint(objects_written);
+    writer.write_uint(bytes_written);
+    writer.write_bool(truncated);
+    writer.write_array_header(issue_codes.size());
+    for (const auto& v : issue_codes) {
+        writer.write_uint(v);
+    }
+    writer.write_array_header(issue_messages.size());
+    for (const auto& v : issue_messages) {
+        writer.write_string(v);
+    }
+    return writer.status();
+}
+
+Result<AppendAnnotationsReply> AppendAnnotationsReply::decode(Reader& reader) {
+    AppendAnnotationsReply m;
+    Status s = reader.expect_array(8);
+    if (s == Status::Ok) {
+        s = reader.read_bool(m.ok);
+    }
+    if (s == Status::Ok) {
+        s = reader.read_u32(m.annotations_added, 0u, 100000000u);
+    }
+    if (s == Status::Ok) {
+        s = reader.read_u32(m.annotations_removed, 0u, 100000000u);
+    }
+    if (s == Status::Ok) {
+        s = reader.read_u32(m.objects_written, 0u, 100000000u);
+    }
+    if (s == Status::Ok) {
+        s = reader.read_u64(m.bytes_written, 0ull, 2147483647ull);
+    }
+    if (s == Status::Ok) {
+        s = reader.read_bool(m.truncated);
+    }
+    if (s == Status::Ok) {
+        std::size_t count = 0;
+        s = reader.read_array_header(count, 256);
+        if (s == Status::Ok) {
+            m.issue_codes.reserve(count);
+            for (std::size_t i = 0; i < count && s == Status::Ok; ++i) {
+                std::uint32_t v{};
+                s = reader.read_u32(v, 0u, 65535u);
+                if (s == Status::Ok) {
+                    m.issue_codes.push_back(std::move(v));
+                }
+            }
+        }
+    }
+    if (s == Status::Ok) {
+        std::size_t count = 0;
+        s = reader.read_array_header(count, 256);
+        if (s == Status::Ok) {
+            m.issue_messages.reserve(count);
+            for (std::size_t i = 0; i < count && s == Status::Ok; ++i) {
+                std::string v{};
+                s = reader.read_string(v, 192);
+                if (s == Status::Ok) {
+                    m.issue_messages.push_back(std::move(v));
+                }
+            }
+        }
+    }
+    if (s == Status::Ok) {
+        s = m.validate();
+        if (s != Status::Ok) {
+            reader.fail(s, "message violates a schema limit");
+        }
+    }
+    if (s != Status::Ok) {
+        return {s, AppendAnnotationsReply{}, reader.detail()};
+    }
+    return {Status::Ok, std::move(m), ""};
+}
+
+Status RewriteDocument::validate() const {
+    if (base_handle < 1ull) {
+        return Status::InvalidArgument;
+    }
+    if (output_handle < 1ull) {
+        return Status::InvalidArgument;
+    }
+    if (flags > 3u) {
+        return Status::InvalidArgument;
+    }
+    return Status::Ok;
+}
+
+Status RewriteDocument::encode(Writer& writer) const {
+    if (const Status valid = validate(); valid != Status::Ok) {
+        return valid;
+    }
+    writer.write_array_header(3);
+    writer.write_uint(base_handle);
+    writer.write_uint(output_handle);
+    writer.write_uint(flags);
+    return writer.status();
+}
+
+Result<RewriteDocument> RewriteDocument::decode(Reader& reader) {
+    RewriteDocument m;
+    Status s = reader.expect_array(3);
+    if (s == Status::Ok) {
+        s = reader.read_u64(m.base_handle, 1ull, 18446744073709551615ull);
+    }
+    if (s == Status::Ok) {
+        s = reader.read_u64(m.output_handle, 1ull, 18446744073709551615ull);
+    }
+    if (s == Status::Ok) {
+        s = reader.read_u32(m.flags, 0u, 3u);
+    }
+    if (s == Status::Ok) {
+        s = m.validate();
+        if (s != Status::Ok) {
+            reader.fail(s, "message violates a schema limit");
+        }
+    }
+    if (s != Status::Ok) {
+        return {s, RewriteDocument{}, reader.detail()};
+    }
+    return {Status::Ok, std::move(m), ""};
+}
+
+Status RewriteDocumentReply::validate() const {
+    if (pages_changed > 10000000u) {
+        return Status::InvalidArgument;
+    }
+    if (annotations_flattened > 100000000u) {
+        return Status::InvalidArgument;
+    }
+    if (annotations_removed > 100000000u) {
+        return Status::InvalidArgument;
+    }
+    if (objects_written > 100000000u) {
+        return Status::InvalidArgument;
+    }
+    if (bytes_written > 2147483647ull) {
+        return Status::InvalidArgument;
+    }
+    if (issue_codes.size() > 256u) {
+        return Status::InvalidArgument;
+    }
+    for (const auto& v : issue_codes) {
+        if (v > 65535u) {
+            return Status::InvalidArgument;
+        }
+    }
+    if (issue_messages.size() > 256u) {
+        return Status::InvalidArgument;
+    }
+    for (const auto& v : issue_messages) {
+        if (v.size() > 192u || !is_valid_text(v)) {
+            return Status::InvalidArgument;
+        }
+    }
+    if (issue_messages.size() != issue_codes.size()) {
+        return Status::InvalidArgument;
+    }
+    return Status::Ok;
+}
+
+Status RewriteDocumentReply::encode(Writer& writer) const {
+    if (const Status valid = validate(); valid != Status::Ok) {
+        return valid;
+    }
+    writer.write_array_header(9);
+    writer.write_bool(ok);
+    writer.write_uint(pages_changed);
+    writer.write_uint(annotations_flattened);
+    writer.write_uint(annotations_removed);
+    writer.write_uint(objects_written);
+    writer.write_uint(bytes_written);
+    writer.write_bool(truncated);
+    writer.write_array_header(issue_codes.size());
+    for (const auto& v : issue_codes) {
+        writer.write_uint(v);
+    }
+    writer.write_array_header(issue_messages.size());
+    for (const auto& v : issue_messages) {
+        writer.write_string(v);
+    }
+    return writer.status();
+}
+
+Result<RewriteDocumentReply> RewriteDocumentReply::decode(Reader& reader) {
+    RewriteDocumentReply m;
+    Status s = reader.expect_array(9);
+    if (s == Status::Ok) {
+        s = reader.read_bool(m.ok);
+    }
+    if (s == Status::Ok) {
+        s = reader.read_u32(m.pages_changed, 0u, 10000000u);
+    }
+    if (s == Status::Ok) {
+        s = reader.read_u32(m.annotations_flattened, 0u, 100000000u);
+    }
+    if (s == Status::Ok) {
+        s = reader.read_u32(m.annotations_removed, 0u, 100000000u);
+    }
+    if (s == Status::Ok) {
+        s = reader.read_u32(m.objects_written, 0u, 100000000u);
+    }
+    if (s == Status::Ok) {
+        s = reader.read_u64(m.bytes_written, 0ull, 2147483647ull);
+    }
+    if (s == Status::Ok) {
+        s = reader.read_bool(m.truncated);
+    }
+    if (s == Status::Ok) {
+        std::size_t count = 0;
+        s = reader.read_array_header(count, 256);
+        if (s == Status::Ok) {
+            m.issue_codes.reserve(count);
+            for (std::size_t i = 0; i < count && s == Status::Ok; ++i) {
+                std::uint32_t v{};
+                s = reader.read_u32(v, 0u, 65535u);
+                if (s == Status::Ok) {
+                    m.issue_codes.push_back(std::move(v));
+                }
+            }
+        }
+    }
+    if (s == Status::Ok) {
+        std::size_t count = 0;
+        s = reader.read_array_header(count, 256);
+        if (s == Status::Ok) {
+            m.issue_messages.reserve(count);
+            for (std::size_t i = 0; i < count && s == Status::Ok; ++i) {
+                std::string v{};
+                s = reader.read_string(v, 192);
+                if (s == Status::Ok) {
+                    m.issue_messages.push_back(std::move(v));
+                }
+            }
+        }
+    }
+    if (s == Status::Ok) {
+        s = m.validate();
+        if (s != Status::Ok) {
+            reader.fail(s, "message violates a schema limit");
+        }
+    }
+    if (s != Status::Ok) {
+        return {s, RewriteDocumentReply{}, reader.detail()};
+    }
+    return {Status::Ok, std::move(m), ""};
+}
+
+Status VerifyAnnotations::validate() const {
+    if (base_handle < 1ull) {
+        return Status::InvalidArgument;
+    }
+    if (output_handle < 1ull) {
+        return Status::InvalidArgument;
+    }
+    if (page_count > 10000000u) {
+        return Status::InvalidArgument;
+    }
+    if (pages.size() > 2048u) {
+        return Status::InvalidArgument;
+    }
+    for (const auto& v : pages) {
+        if (v > 9999999u) {
+            return Status::InvalidArgument;
+        }
+    }
+    if (added.size() > 2048u) {
+        return Status::InvalidArgument;
+    }
+    for (const auto& v : added) {
+        if (v > 100000000u) {
+            return Status::InvalidArgument;
+        }
+    }
+    if (removed.size() > 2048u) {
+        return Status::InvalidArgument;
+    }
+    for (const auto& v : removed) {
+        if (v > 100000000u) {
+            return Status::InvalidArgument;
+        }
+    }
+    if (added.size() != pages.size()) {
+        return Status::InvalidArgument;
+    }
+    if (removed.size() != pages.size()) {
+        return Status::InvalidArgument;
+    }
+    return Status::Ok;
+}
+
+Status VerifyAnnotations::encode(Writer& writer) const {
+    if (const Status valid = validate(); valid != Status::Ok) {
+        return valid;
+    }
+    writer.write_array_header(6);
+    writer.write_uint(base_handle);
+    writer.write_uint(output_handle);
+    writer.write_uint(page_count);
+    writer.write_array_header(pages.size());
+    for (const auto& v : pages) {
+        writer.write_uint(v);
+    }
+    writer.write_array_header(added.size());
+    for (const auto& v : added) {
+        writer.write_uint(v);
+    }
+    writer.write_array_header(removed.size());
+    for (const auto& v : removed) {
+        writer.write_uint(v);
+    }
+    return writer.status();
+}
+
+Result<VerifyAnnotations> VerifyAnnotations::decode(Reader& reader) {
+    VerifyAnnotations m;
+    Status s = reader.expect_array(6);
+    if (s == Status::Ok) {
+        s = reader.read_u64(m.base_handle, 1ull, 18446744073709551615ull);
+    }
+    if (s == Status::Ok) {
+        s = reader.read_u64(m.output_handle, 1ull, 18446744073709551615ull);
+    }
+    if (s == Status::Ok) {
+        s = reader.read_u32(m.page_count, 0u, 10000000u);
+    }
+    if (s == Status::Ok) {
+        std::size_t count = 0;
+        s = reader.read_array_header(count, 2048);
+        if (s == Status::Ok) {
+            m.pages.reserve(count);
+            for (std::size_t i = 0; i < count && s == Status::Ok; ++i) {
+                std::uint32_t v{};
+                s = reader.read_u32(v, 0u, 9999999u);
+                if (s == Status::Ok) {
+                    m.pages.push_back(std::move(v));
+                }
+            }
+        }
+    }
+    if (s == Status::Ok) {
+        std::size_t count = 0;
+        s = reader.read_array_header(count, 2048);
+        if (s == Status::Ok) {
+            m.added.reserve(count);
+            for (std::size_t i = 0; i < count && s == Status::Ok; ++i) {
+                std::uint32_t v{};
+                s = reader.read_u32(v, 0u, 100000000u);
+                if (s == Status::Ok) {
+                    m.added.push_back(std::move(v));
+                }
+            }
+        }
+    }
+    if (s == Status::Ok) {
+        std::size_t count = 0;
+        s = reader.read_array_header(count, 2048);
+        if (s == Status::Ok) {
+            m.removed.reserve(count);
+            for (std::size_t i = 0; i < count && s == Status::Ok; ++i) {
+                std::uint32_t v{};
+                s = reader.read_u32(v, 0u, 100000000u);
+                if (s == Status::Ok) {
+                    m.removed.push_back(std::move(v));
+                }
+            }
+        }
+    }
+    if (s == Status::Ok) {
+        s = m.validate();
+        if (s != Status::Ok) {
+            reader.fail(s, "message violates a schema limit");
+        }
+    }
+    if (s != Status::Ok) {
+        return {s, VerifyAnnotations{}, reader.detail()};
+    }
+    return {Status::Ok, std::move(m), ""};
+}
+
+Status VerifyAnnotationsReply::validate() const {
+    if (mismatches.size() > 2048u) {
+        return Status::InvalidArgument;
+    }
+    for (const auto& v : mismatches) {
+        if (v > 9999999u) {
+            return Status::InvalidArgument;
+        }
+    }
+    return Status::Ok;
+}
+
+Status VerifyAnnotationsReply::encode(Writer& writer) const {
+    if (const Status valid = validate(); valid != Status::Ok) {
+        return valid;
+    }
+    writer.write_array_header(2);
+    writer.write_bool(ok);
+    writer.write_array_header(mismatches.size());
+    for (const auto& v : mismatches) {
+        writer.write_uint(v);
+    }
+    return writer.status();
+}
+
+Result<VerifyAnnotationsReply> VerifyAnnotationsReply::decode(Reader& reader) {
+    VerifyAnnotationsReply m;
+    Status s = reader.expect_array(2);
+    if (s == Status::Ok) {
+        s = reader.read_bool(m.ok);
+    }
+    if (s == Status::Ok) {
+        std::size_t count = 0;
+        s = reader.read_array_header(count, 2048);
+        if (s == Status::Ok) {
+            m.mismatches.reserve(count);
+            for (std::size_t i = 0; i < count && s == Status::Ok; ++i) {
+                std::uint32_t v{};
+                s = reader.read_u32(v, 0u, 9999999u);
+                if (s == Status::Ok) {
+                    m.mismatches.push_back(std::move(v));
+                }
+            }
+        }
+    }
+    if (s == Status::Ok) {
+        s = m.validate();
+        if (s != Status::Ok) {
+            reader.fail(s, "message violates a schema limit");
+        }
+    }
+    if (s != Status::Ok) {
+        return {s, VerifyAnnotationsReply{}, reader.detail()};
+    }
+    return {Status::Ok, std::move(m), ""};
+}
+
 Status ShellOpen::validate() const {
     if (section < 1ull) {
         return Status::InvalidArgument;
@@ -2981,6 +3523,12 @@ Result<RequestPayload> decode_request_payload(MessageType type, Reader& reader) 
             return lift<RequestPayload>(RenderBand::decode(reader));
         case MessageType::ValidateStructure:
             return lift<RequestPayload>(ValidateStructure::decode(reader));
+        case MessageType::AppendAnnotations:
+            return lift<RequestPayload>(AppendAnnotations::decode(reader));
+        case MessageType::RewriteDocument:
+            return lift<RequestPayload>(RewriteDocument::decode(reader));
+        case MessageType::VerifyAnnotations:
+            return lift<RequestPayload>(VerifyAnnotations::decode(reader));
         case MessageType::ShellOpen:
             return lift<RequestPayload>(ShellOpen::decode(reader));
         case MessageType::ShellRenderPage:
@@ -3033,6 +3581,12 @@ Result<ReplyPayload> decode_reply_payload(MessageType type, Reader& reader) {
             return lift<ReplyPayload>(RenderBandReply::decode(reader));
         case MessageType::ValidateStructure:
             return lift<ReplyPayload>(ValidateStructureReply::decode(reader));
+        case MessageType::AppendAnnotations:
+            return lift<ReplyPayload>(AppendAnnotationsReply::decode(reader));
+        case MessageType::RewriteDocument:
+            return lift<ReplyPayload>(RewriteDocumentReply::decode(reader));
+        case MessageType::VerifyAnnotations:
+            return lift<ReplyPayload>(VerifyAnnotationsReply::decode(reader));
         case MessageType::ShellOpen:
             return lift<ReplyPayload>(ShellOpenReply::decode(reader));
         case MessageType::ShellRenderPage:

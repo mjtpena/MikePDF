@@ -43,14 +43,14 @@
    3. The writer host **normalises PDFium's appended tail**: rewrites the appended xref section in the same form as the previous section (a stream after a stream, a table after a table), and strips `/PDFIUM_HasGeneratedAP`. A repair that only patches the original bytes is forbidden.
    4. *Annotation changes?* The writer host appends its own incremental update: new and replaced objects, the page `/Annots`, the xref, `/Prev`.
    5. A **fresh engine** reopens the result and checks it against the command model: page count, annotation count and properties, and field values (§7.5 step 2). The writer host's structural validator also walks the whole xref chain.
-   6. The broker does an atomic `ReplaceFileW`, keeping ACLs and alternate data streams. On any failure the original is untouched, and Save As is offered (§7.5 step 4).
+   6. ~~The broker does an atomic `ReplaceFileW`, keeping ACLs and alternate data streams.~~ **Replaced by amendment A1 below (S10).** On any failure the original is untouched, and Save As is offered (§7.5 step 4).
 4. **Full rewrite** (`FPDF_NO_INCREMENTAL`) is used only for Save As "optimised", flatten, and redaction (§8.6). **Never** for a signed document without an explicit warning that signatures will be invalidated.
 5. **One parser, strict semantics.**
    - `MikePDF.PdfWriter`'s parser rejects duplicate keys in any object it changes or validates.
    - Any construct where its reading could differ from PDFium's (duplicate keys, hybrid xref, ambiguous object streams) **fails closed**: the save is refused with Save As offered, or the signature verdict becomes Unknown.
    - A lenient parse must never upgrade a validation verdict (S8 §5 item 6).
 6. **Forms policy.** Accept PDFium's regenerated field appearances for v1. When only the selected state of a checkbox or radio changes, keep the author's existing state streams (S4 surprise 6). That needs an engine-side check in M4.
-7. **Crash safety.** No write feature ships without the §7.4 journal. The journal entry for a save is cleared only after `ReplaceFileW` succeeds.
+7. **Crash safety.** No write feature ships without the §7.4 journal. The journal entry for a save is cleared only after the replace succeeds (amendment A1: a `SaveIntent` record is written before the temporary file exists).
 
 ## Consequences
 - A third process type, `MikePDF.WriterHost`, joins the engine and the UI. The broker's engine pool (ADR-0004) manages it too.
@@ -61,3 +61,26 @@
 - M4 fidelity gate: every P0 operation is green in PDFium, pdf.js, Acrobat and Edge.
 - Until then, the manual Acrobat/Edge pass on the S4 and S8 checklists confirms or revokes this ADR's provisional status. If Acrobat rejects MikePDF-written xref streams, that is grounds to revisit stage 3.
 - A fuzz-found parser differential between PDFium and `MikePDF.PdfWriter` counts as a security bug (High).
+
+## Amendment A1 (2026-11-03): the replace step, from spike S10 (work package W3-save-core)
+Evidence: [S10](../spikes/S10-file-replace.md). Decided in `docs/design/decisions.md` ("After the M4 spikes"). This replaces decision 3 step 6 and master prompt §7.5 step 3, and adds a journal record to decision 7.
+
+**Decision 3 step 6 becomes:** the broker replaces the original by renaming the validated temporary file over it with `SetFileInformationByHandle(FileRenameInfoEx, REPLACE_IF_EXISTS | POSIX_SEMANTICS)` **while the engines still hold the old file**. Before that it verifies that the path still names the file it holds (file ID), resolves symbolic links, **clears the temporary file's Hidden attribute**, and copies the original's security descriptor, every alternate data stream (notably `Zone.Identifier`), attributes and creation time onto it. Where the rename is not supported (SMB, FAT: error 87, 50 or 1) it uses `ReplaceFileW` with a **journalled backup name**; recovery restores a missing target from that backup. `MoveFileEx` with replace-existing and rename-away-and-in are **not used**.
+
+**Master prompt §7.5 step 3, as read from now on:** the broker replaces the original atomically (a POSIX-semantics rename of the validated temporary file over it, with the original's ACL, alternate data streams and attributes copied onto the temporary file first; `ReplaceFileW` with a backup where that rename is unsupported), while the engines still map the old file.
+
+**Journal.** A `SaveIntent{temp, backup, target}` record is written and flushed before the temporary file is created. `SaveBegin` (with `outputSha256`) cannot exist until the output is complete, so without `SaveIntent` a crash while the output is being written leaks a temporary file that no record names (S10 section 8.1: 12 of 36 simulated kills). A stale temporary or backup file is removed at startup only if a `SaveIntent` or `SaveBegin` record names it.
+
+**Refusals (v1.0), each with Save As offered:** a read-only file, a directory that cannot hold the temporary file, a file with more than one hard link (every mechanism breaks the link: the other names keep the old content), an EFS-encrypted file, a file system where neither mechanism works. **Symbolic links:** the final target is replaced and the link survives.
+
+**Open flags.** Documents are opened with `FileShare.Read | FileShare.Delete` (ADR-0005 amendment A3). Another process may therefore rename, delete or replace the path of an open document but still cannot write to it. This is an accepted trade-off.
+
+**Retry and fallback.** Retry sharing violation (32), 33, access denied (5) and 1175, five times at 200 ms; then fail with Save As offered. Not measured: power loss, ARM64, file systems other than NTFS and a loopback SMB share, a real remote server (S10 section 11).
+
+## Amendment A2 (2026-11-03): stage 4 and 5 as built (work package W3-save-core)
+Decided while building the save pipeline; **for Opus to confirm**.
+1. **Stage 5 is a baseline comparison, not a clean bill.** The output may have no structure error the original did not have, counted by error code. The first version required `ValidateStructure(C)` to report nothing, and refused `hello_world.pdf` from PDFium's own test resources because that file has a stream without a usable `/Length` that the strict parser reads without trouble. Real files come with faults; a save must not add one. (Master prompt §12.4 already says this for the Arlington checker.)
+2. **Stage 5 has four independent checks:** the host's structure walk (above); the prefix hash (the broker hashes the first `len(base)` bytes of the output and of the base, reading bytes but parsing none) and a scan of the appended bytes for `/PDFIUM_`; `VerifyAnnotations`, a second parse of both files in the host that compares per-page annotation counts with what the edits say; and a fresh sandboxed engine that opens the output and agrees on the page count and reads the page sizes. The engine cannot yet report annotations (no such message), so the property-level check of save-pipeline 3.3 stage 5 item 3 (kind, rectangle, colour, contents) waits for the annotation work package's engine message; it is **not done**, and the host's count check stands in for the count part.
+3. **Annotation kinds the writer creates in this build:** Highlight, Underline, StrikeOut, Text (note), Ink, Square, Circle, each with a generated appearance stream (ADR-0008 decision 1). More kinds are one case in `AnnotationBuilder` and one value in the edit blob's `AnnotationKind`. Edits to a loaded annotation are delete, and update of rectangle and contents; changing the colour or opacity of a loaded annotation needs its appearance regenerated and is **not done**.
+4. **Copies.** A full rewrite (`DocumentRewriter`) keeps only what the catalog and the information dictionary reach and writes a classic table; the flattened copy draws each visible appearance into its page (12.5.5 placement) before removing the annotation and, for form fields, the form. It is done in `MikePDF.PdfWriter`, not by PDFium's `FPDFPage_Flatten`, so no engine message is needed and the same parser-differential argument (decision 5) covers it. Rewriting drops structure tags; the warning is the UI's.
+5. **Stages 2 and 3** (PDFium's incremental save and `NormalizeTail`) are not built: a snapshot holding form or page commands is refused with `UnsupportedEdits`. They arrive with the forms and page-organiser work packages.

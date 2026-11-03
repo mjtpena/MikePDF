@@ -46,6 +46,12 @@
           "Microsoft.Windows.SDK.Win32Metadata": "63.0.31-preview"
         }
       },
+      "mikepdf.core": {
+        "type": "Project",
+        "dependencies": {
+          "MikePDF.Protocol": "[1.0.0, )"
+        }
+      },
       "mikepdf.protocol": {
         "type": "Project",
         "dependencies": {

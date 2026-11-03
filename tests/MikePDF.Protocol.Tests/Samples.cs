@@ -54,6 +54,17 @@ public static class Samples
         }),
         new("req_shell_render_page_smallest", 28, 3, 1, new ShellRenderPage { Page = 0, MaxWidth = 16, MaxHeight = 16, Flags = 0, Pixels = 1, PixelBytes = 4 }),
         new("req_shell_close", 27, 3, 500, new ShellClose()),
+
+        // Schema 6: the writer host's save messages (save-pipeline 3.3).
+        new("req_append_annotations", 40, 0, 90000, new AppendAnnotations { BaseHandle = 0x1F4, EditsHandle = 0x1F8, EditsLength = 268_435_456, OutputHandle = 0x1FC, PageCount = 10_000_000 }),
+        new("req_append_annotations_smallest", 41, 0, 1, new AppendAnnotations { BaseHandle = 1, EditsHandle = 1, EditsLength = 1, OutputHandle = 1, PageCount = 0 }),
+        new("req_rewrite_document", 42, 0, 90000, new RewriteDocument { BaseHandle = 0x1F4, OutputHandle = 0x1FC, Flags = 3 }),
+        new("req_rewrite_document_plain", 43, 0, 90000, new RewriteDocument { BaseHandle = 0x1F4, OutputHandle = 0x1FC, Flags = 0 }),
+        new("req_verify_annotations", 44, 0, 90000, new VerifyAnnotations
+        {
+            BaseHandle = 0x1F4, OutputHandle = 0x1FC, PageCount = 342, Pages = [0, 9999999], Added = [3, 0], Removed = [1, 100_000_000],
+        }),
+        new("req_verify_annotations_no_pages", 45, 0, 90000, new VerifyAnnotations { BaseHandle = 1, OutputHandle = 2, PageCount = 1, Pages = [], Added = [], Removed = [] }),
     ];
 
     public static IReadOnlyList<ResponseSample> Responses { get; } =
@@ -146,6 +157,27 @@ public static class Samples
         new("rsp_shell_open", 25, Status.Ok, MessageType.ShellOpen, new ShellOpenReply { DocumentId = 3, PageCount = 342, FirstWidth = 612f, FirstHeight = 792f }),
         new("rsp_shell_render_page", 26, Status.Ok, MessageType.ShellRenderPage, new ShellRenderPageReply { Width = 1024, Height = 768, Stride = 4096 }),
         new("rsp_shell_close", 27, Status.Ok, MessageType.ShellClose, new ShellCloseReply()),
+
+        // Schema 6. (A refusal comes first for the two with issue lists: the generic limit tests mutate the first sample of a type, which needs elements.)
+        new("rsp_append_annotations_refused", 41, Status.Ok, MessageType.AppendAnnotations, new AppendAnnotationsReply
+        {
+            Ok = false, AnnotationsAdded = 0, AnnotationsRemoved = 0, ObjectsWritten = 0, BytesWritten = 0, Truncated = true, IssueCodes = [30, 65535], IssueMessages = ["error: an annotation's rectangle is not the one the edit expected", "café"],
+        }),
+        new("rsp_append_annotations", 40, Status.Ok, MessageType.AppendAnnotations, new AppendAnnotationsReply
+        {
+            Ok = true, AnnotationsAdded = 100_000_000, AnnotationsRemoved = 3, ObjectsWritten = 100_000_000, BytesWritten = 2_147_483_647, Truncated = false, IssueCodes = [], IssueMessages = [],
+        }),
+        new("rsp_append_annotations_timeout", 46, Status.Timeout, MessageType.AppendAnnotations, null),
+        new("rsp_rewrite_document_refused", 43, Status.Ok, MessageType.RewriteDocument, new RewriteDocumentReply
+        {
+            Ok = false, PagesChanged = 0, AnnotationsFlattened = 0, AnnotationsRemoved = 0, ObjectsWritten = 0, BytesWritten = 0, Truncated = false, IssueCodes = [1], IssueMessages = ["error: the writer cannot rewrite an encrypted document"],
+        }),
+        new("rsp_rewrite_document", 42, Status.Ok, MessageType.RewriteDocument, new RewriteDocumentReply
+        {
+            Ok = true, PagesChanged = 10_000_000, AnnotationsFlattened = 12, AnnotationsRemoved = 14, ObjectsWritten = 5000, BytesWritten = 1_048_576, Truncated = false, IssueCodes = [], IssueMessages = [],
+        }),
+        new("rsp_verify_annotations", 44, Status.Ok, MessageType.VerifyAnnotations, new VerifyAnnotationsReply { Ok = true, Mismatches = [7, 9999999] }),
+        new("rsp_verify_annotations_clean", 45, Status.Ok, MessageType.VerifyAnnotations, new VerifyAnnotationsReply { Ok = true, Mismatches = [] }),
         new("rsp_error_password_required", 4, Status.PasswordRequired, MessageType.OpenDocument, null),
         new("rsp_error_timeout", 9, Status.Timeout, MessageType.RenderTile, null),
     ];

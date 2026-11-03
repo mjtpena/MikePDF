@@ -49,6 +49,7 @@
       "mikepdf.broker": {
         "type": "Project",
         "dependencies": {
+          "MikePDF.Core": "[1.0.0, )",
           "MikePDF.Protocol": "[1.0.0, )"
         }
       },

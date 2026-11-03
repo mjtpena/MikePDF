@@ -32,6 +32,9 @@ internal static class ProtocolDispatch
         MessageType.CancelBefore => CancelBefore.Read(ref reader),
         MessageType.RenderBand => RenderBand.Read(ref reader),
         MessageType.ValidateStructure => ValidateStructure.Read(ref reader),
+        MessageType.AppendAnnotations => AppendAnnotations.Read(ref reader),
+        MessageType.RewriteDocument => RewriteDocument.Read(ref reader),
+        MessageType.VerifyAnnotations => VerifyAnnotations.Read(ref reader),
         MessageType.ShellOpen => ShellOpen.Read(ref reader),
         MessageType.ShellRenderPage => ShellRenderPage.Read(ref reader),
         MessageType.ShellClose => ShellClose.Read(ref reader),
@@ -102,6 +105,15 @@ internal static class ProtocolDispatch
             case ValidateStructure m:
                 m.Write(ref writer);
                 break;
+            case AppendAnnotations m:
+                m.Write(ref writer);
+                break;
+            case RewriteDocument m:
+                m.Write(ref writer);
+                break;
+            case VerifyAnnotations m:
+                m.Write(ref writer);
+                break;
             case ShellOpen m:
                 m.Write(ref writer);
                 break;
@@ -138,6 +150,9 @@ internal static class ProtocolDispatch
         MessageType.CancelBefore => CancelBeforeReply.Read(ref reader),
         MessageType.RenderBand => RenderBandReply.Read(ref reader),
         MessageType.ValidateStructure => ValidateStructureReply.Read(ref reader),
+        MessageType.AppendAnnotations => AppendAnnotationsReply.Read(ref reader),
+        MessageType.RewriteDocument => RewriteDocumentReply.Read(ref reader),
+        MessageType.VerifyAnnotations => VerifyAnnotationsReply.Read(ref reader),
         MessageType.ShellOpen => ShellOpenReply.Read(ref reader),
         MessageType.ShellRenderPage => ShellRenderPageReply.Read(ref reader),
         MessageType.ShellClose => ShellCloseReply.Read(ref reader),
@@ -206,6 +221,15 @@ internal static class ProtocolDispatch
                 m.Write(ref writer);
                 break;
             case ValidateStructureReply m:
+                m.Write(ref writer);
+                break;
+            case AppendAnnotationsReply m:
+                m.Write(ref writer);
+                break;
+            case RewriteDocumentReply m:
+                m.Write(ref writer);
+                break;
+            case VerifyAnnotationsReply m:
                 m.Write(ref writer);
                 break;
             case ShellOpenReply m:

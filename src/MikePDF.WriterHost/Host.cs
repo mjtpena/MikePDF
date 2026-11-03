@@ -8,7 +8,7 @@ namespace MikePDF.WriterHost;
 
 /// <summary>
 /// The host's two lanes, as in the engine (ADR-0005 rule 2): the reading lane answers Hello, Ping and Shutdown itself, so the broker's
-/// heartbeat keeps working during a long validation; ValidateStructure runs on one worker. Anything malformed or out of sequence ends the
+/// heartbeat keeps working during a long validation; ValidateStructure and the save messages (AppendAnnotations, RewriteDocument, VerifyAnnotations) run on one worker. Anything malformed or out of sequence ends the
 /// process; the broker restarts it.
 /// </summary>
 internal static class Host
@@ -126,7 +126,7 @@ internal static class Host
                         case Shutdown:
                             await ReplyAsync(request, Status.Ok, new ShutdownReply()).ConfigureAwait(false);
                             return await StopAsync(worker, ExitCode.Ok).ConfigureAwait(false);
-                        case ValidateStructure:
+                        case ValidateStructure or AppendAnnotations or RewriteDocument or VerifyAnnotations:
                             if (!_queue.Writer.TryWrite((request, received)))
                             {
                                 return Die(ExitCode.ProtocolViolation, "request queue overflow");
@@ -161,8 +161,15 @@ internal static class Host
         {
             await foreach (var (request, received) in _queue.Reader.ReadAllAsync().ConfigureAwait(false))
             {
-                var (status, reply) = Validate((ValidateStructure)request.Payload, request.DeadlineMs, received);
-                await ReplyAsync(request, status, reply).ConfigureAwait(false);
+                (Status Status, IReplyMessage? Reply) outcome = request.Payload switch
+                {
+                    ValidateStructure validate => Validate(validate, request.DeadlineMs, received),
+                    AppendAnnotations append => SaveOperations.Append(append, request.DeadlineMs, received),
+                    RewriteDocument rewrite => SaveOperations.Rewrite(rewrite, request.DeadlineMs, received),
+                    VerifyAnnotations verify => SaveOperations.Verify(verify, request.DeadlineMs, received),
+                    _ => (Status.Unsupported, null),
+                };
+                await ReplyAsync(request, outcome.Status, outcome.Reply).ConfigureAwait(false);
             }
         }
 

@@ -22,6 +22,9 @@
     <Content Include="..\dictionaries\*.dict" LinkBase="dictionaries" CopyToOutputDirectory="PreserveNewest" />
     <!-- The shell targets' seeds (SHELL-18), made by seeds/make_shell_seeds.py. -->
     <Content Include="..\seeds\shell-request\*.bin" LinkBase="seeds\shell-request" CopyToOutputDirectory="PreserveNewest" />
+    <!-- The save targets' seeds (save-pipeline 3.4 and 11.3), made by the PdfWriter fuzz harness with the option seeds-out (see its README). -->
+    <Content Include="..\seeds\journal\*.jsonl" LinkBase="seeds\journal" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="..\seeds\editblob\*.bin" LinkBase="seeds\editblob" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
   <ItemGroup>
     <!-- Where the harness apphosts are built (the same configuration and framework as this project). -->

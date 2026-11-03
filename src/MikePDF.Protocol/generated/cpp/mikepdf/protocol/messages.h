@@ -737,6 +737,126 @@ struct ValidateStructureReply {
     bool operator==(const ValidateStructureReply&) const = default;
 };
 
+/// Request payload of AppendAnnotations (message type 1025).
+struct AppendAnnotations {
+    static constexpr MessageType kMessageType = MessageType::AppendAnnotations;
+    std::uint64_t base_handle{};
+    std::uint64_t edits_handle{};
+    /// The blob's length in bytes, at most 256 MiB.
+    std::uint64_t edits_length{};
+    std::uint64_t output_handle{};
+    std::uint32_t page_count{};
+
+    /// Checks every schema limit.
+    [[nodiscard]] Status validate() const;
+    /// Validates, then writes the payload array. Writes nothing if validation fails.
+    [[nodiscard]] Status encode(Writer& writer) const;
+    /// Reads and fully validates one payload. The value is default-constructed on failure.
+    [[nodiscard]] static Result<AppendAnnotations> decode(Reader& reader);
+
+    bool operator==(const AppendAnnotations&) const = default;
+};
+
+/// Reply payload of AppendAnnotations (message type 1025).
+struct AppendAnnotationsReply {
+    static constexpr MessageType kMessageType = MessageType::AppendAnnotations;
+    bool ok{};
+    std::uint32_t annotations_added{};
+    std::uint32_t annotations_removed{};
+    std::uint32_t objects_written{};
+    std::uint64_t bytes_written{};
+    /// More issues were found than fit.
+    bool truncated{};
+    std::vector<std::uint32_t> issue_codes{};
+    std::vector<std::string> issue_messages{};
+
+    /// Checks every schema limit.
+    [[nodiscard]] Status validate() const;
+    /// Validates, then writes the payload array. Writes nothing if validation fails.
+    [[nodiscard]] Status encode(Writer& writer) const;
+    /// Reads and fully validates one payload. The value is default-constructed on failure.
+    [[nodiscard]] static Result<AppendAnnotationsReply> decode(Reader& reader);
+
+    bool operator==(const AppendAnnotationsReply&) const = default;
+};
+
+/// Request payload of RewriteDocument (message type 1029).
+struct RewriteDocument {
+    static constexpr MessageType kMessageType = MessageType::RewriteDocument;
+    std::uint64_t base_handle{};
+    std::uint64_t output_handle{};
+    std::uint32_t flags{};
+
+    /// Checks every schema limit.
+    [[nodiscard]] Status validate() const;
+    /// Validates, then writes the payload array. Writes nothing if validation fails.
+    [[nodiscard]] Status encode(Writer& writer) const;
+    /// Reads and fully validates one payload. The value is default-constructed on failure.
+    [[nodiscard]] static Result<RewriteDocument> decode(Reader& reader);
+
+    bool operator==(const RewriteDocument&) const = default;
+};
+
+/// Reply payload of RewriteDocument (message type 1029).
+struct RewriteDocumentReply {
+    static constexpr MessageType kMessageType = MessageType::RewriteDocument;
+    bool ok{};
+    std::uint32_t pages_changed{};
+    std::uint32_t annotations_flattened{};
+    std::uint32_t annotations_removed{};
+    std::uint32_t objects_written{};
+    std::uint64_t bytes_written{};
+    bool truncated{};
+    std::vector<std::uint32_t> issue_codes{};
+    std::vector<std::string> issue_messages{};
+
+    /// Checks every schema limit.
+    [[nodiscard]] Status validate() const;
+    /// Validates, then writes the payload array. Writes nothing if validation fails.
+    [[nodiscard]] Status encode(Writer& writer) const;
+    /// Reads and fully validates one payload. The value is default-constructed on failure.
+    [[nodiscard]] static Result<RewriteDocumentReply> decode(Reader& reader);
+
+    bool operator==(const RewriteDocumentReply&) const = default;
+};
+
+/// Request payload of VerifyAnnotations (message type 1030).
+struct VerifyAnnotations {
+    static constexpr MessageType kMessageType = MessageType::VerifyAnnotations;
+    std::uint64_t base_handle{};
+    std::uint64_t output_handle{};
+    std::uint32_t page_count{};
+    std::vector<std::uint32_t> pages{};
+    std::vector<std::uint32_t> added{};
+    std::vector<std::uint32_t> removed{};
+
+    /// Checks every schema limit.
+    [[nodiscard]] Status validate() const;
+    /// Validates, then writes the payload array. Writes nothing if validation fails.
+    [[nodiscard]] Status encode(Writer& writer) const;
+    /// Reads and fully validates one payload. The value is default-constructed on failure.
+    [[nodiscard]] static Result<VerifyAnnotations> decode(Reader& reader);
+
+    bool operator==(const VerifyAnnotations&) const = default;
+};
+
+/// Reply payload of VerifyAnnotations (message type 1030).
+struct VerifyAnnotationsReply {
+    static constexpr MessageType kMessageType = MessageType::VerifyAnnotations;
+    /// Both files parse strictly and the output has pageCount pages.
+    bool ok{};
+    std::vector<std::uint32_t> mismatches{};
+
+    /// Checks every schema limit.
+    [[nodiscard]] Status validate() const;
+    /// Validates, then writes the payload array. Writes nothing if validation fails.
+    [[nodiscard]] Status encode(Writer& writer) const;
+    /// Reads and fully validates one payload. The value is default-constructed on failure.
+    [[nodiscard]] static Result<VerifyAnnotationsReply> decode(Reader& reader);
+
+    bool operator==(const VerifyAnnotationsReply&) const = default;
+};
+
 /// Request payload of ShellOpen (message type 2048).
 struct ShellOpen {
     static constexpr MessageType kMessageType = MessageType::ShellOpen;
@@ -844,8 +964,8 @@ struct ShellCloseReply {
     bool operator==(const ShellCloseReply&) const = default;
 };
 
-using RequestPayload = std::variant<Hello, Ping, Shutdown, AttachSlotRing, OpenDocument, CloseDocument, GetDocumentInfo, GetPageSizes, GetOutline, GetPageLinks, GetLinkUri, GetPageBoxes, GetPageText, SearchPage, GetDocumentDetails, GetViewerPreferences, RenderTile, CancelBefore, RenderBand, ValidateStructure, ShellOpen, ShellRenderPage, ShellClose>;
-using ReplyPayload = std::variant<HelloReply, Pong, ShutdownReply, AttachSlotRingReply, OpenDocumentReply, CloseDocumentReply, GetDocumentInfoReply, GetPageSizesReply, GetOutlineReply, GetPageLinksReply, GetLinkUriReply, GetPageBoxesReply, GetPageTextReply, SearchPageReply, GetDocumentDetailsReply, GetViewerPreferencesReply, RenderTileReply, CancelBeforeReply, RenderBandReply, ValidateStructureReply, ShellOpenReply, ShellRenderPageReply, ShellCloseReply>;
+using RequestPayload = std::variant<Hello, Ping, Shutdown, AttachSlotRing, OpenDocument, CloseDocument, GetDocumentInfo, GetPageSizes, GetOutline, GetPageLinks, GetLinkUri, GetPageBoxes, GetPageText, SearchPage, GetDocumentDetails, GetViewerPreferences, RenderTile, CancelBefore, RenderBand, ValidateStructure, AppendAnnotations, RewriteDocument, VerifyAnnotations, ShellOpen, ShellRenderPage, ShellClose>;
+using ReplyPayload = std::variant<HelloReply, Pong, ShutdownReply, AttachSlotRingReply, OpenDocumentReply, CloseDocumentReply, GetDocumentInfoReply, GetPageSizesReply, GetOutlineReply, GetPageLinksReply, GetLinkUriReply, GetPageBoxesReply, GetPageTextReply, SearchPageReply, GetDocumentDetailsReply, GetViewerPreferencesReply, RenderTileReply, CancelBeforeReply, RenderBandReply, ValidateStructureReply, AppendAnnotationsReply, RewriteDocumentReply, VerifyAnnotationsReply, ShellOpenReply, ShellRenderPageReply, ShellCloseReply>;
 
 /// Decode the payload of a request or reply of the given type. An unknown type is a ProtocolError.
 [[nodiscard]] Result<RequestPayload> decode_request_payload(MessageType type, Reader& reader);

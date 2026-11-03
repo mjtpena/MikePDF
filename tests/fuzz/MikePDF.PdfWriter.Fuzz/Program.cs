@@ -6,6 +6,9 @@ internal static class Program
 {
     private delegate void Target(ReadOnlySpan<byte> input);
 
+    // Targets: parse, append (the parser and the incremental writer), edit (stage 4 and the copies on arbitrary files), journal (the edit journal's reader and the
+    // recovery code behind it), editblob (the edit blob's reader and the appender on what it decodes). `<journal|editblob> --seeds-out <dir>` writes their seeds.
+    // MikePDF.Fuzz.Shared and the targets below are also run by tests/fuzz/MikePDF.Fuzz.Tests on every build.
     // MikePDF.PdfWriter.Fuzz <parse|append> --libfuzzer                                               coverage-guided child mode for libfuzzer_dotnet.exe (ADR-0017)
     // MikePDF.PdfWriter.Fuzz <parse|append> --mutate <seconds> [--corpus d] [--seeds d]... [--dict f]   dependency-free mutational fuzzer, the fallback (no coverage feedback)
     // MikePDF.PdfWriter.Fuzz <parse|append> --minimize <file>                                         shrink a crashing input
@@ -17,19 +20,35 @@ internal static class Program
         {
             "parse" => FuzzTargets.ParseAndValidate,
             "append" => FuzzTargets.AppendRoundTrip,
+            "edit" => SaveFuzzTargets.EditPdf,
+            "journal" => SaveFuzzTargets.JournalParse,
+            "editblob" => SaveFuzzTargets.EditBlobDecode,
             _ => null,
         };
 
         if (target is null)
         {
-            Console.Error.WriteLine("usage: MikePDF.PdfWriter.Fuzz <parse|append> --libfuzzer | <parse|append> --replay <file> | <parse|append> --mutate <seconds> ...");
+            Console.Error.WriteLine("usage: MikePDF.PdfWriter.Fuzz <parse|append|edit|journal|editblob> --libfuzzer | <target> --replay <file> | <target> --mutate <seconds> ...");
             return 2;
+        }
+
+        if (args.Length == 3 && args[1] == "--seeds-out" && name is "journal" or "editblob")
+        {
+            SaveFuzzTargets.WriteSeeds(name, args[2]);
+            return 0;
         }
 
         var fuzz = new MutationalFuzzer.Target(
             name,
-            name == "parse" ? FuzzTargets.ParseOutcome : FuzzTargets.AppendOutcome,
-            SeedExtensions: [".pdf"],
+            name switch
+            {
+                "parse" => FuzzTargets.ParseOutcome,
+                "append" => FuzzTargets.AppendOutcome,
+                "edit" => SaveFuzzTargets.EditOutcome,
+                "journal" => SaveFuzzTargets.JournalOutcome,
+                _ => SaveFuzzTargets.EditBlobOutcome,
+            },
+            SeedExtensions: name switch { "journal" => [".jsonl"], "editblob" => [".bin"], _ => [".pdf"] },
             LeadingArgs: [name]);
 
         if (MutationalFuzzer.Handles(args)) return MutationalFuzzer.Run(fuzz, args[1..]);
