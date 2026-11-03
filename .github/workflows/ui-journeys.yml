@@ -55,30 +55,17 @@ jobs:
           # Clipboard access needs an STA thread: a child PowerShell started with -STA has one.
           $text = pwsh -NoProfile -STA -Command "Add-Type -AssemblyName System.Windows.Forms; try { [System.Windows.Forms.Clipboard]::SetText('mikepdf-probe'); [System.Windows.Forms.Clipboard]::GetText() } catch { 'ERROR: ' + `$_ }"
           Write-Host "Clipboard round trip: $text"
-      - name: Dismiss Windows' first-sign-in pages
-        # The ARM64 image shows "Choose privacy settings for your device" full screen over the desktop on its first sign-in, and it keeps the keyboard focus from the app.
-        # It is a page of the Cloud Experience Host, so ending that host removes it (and nothing the journeys need).
+      - name: Prepare the desktop (resolution, first-sign-in page)
+        # Two things on a fresh hosted runner stop the journeys, so this step removes them first. The desktop is 1024x768, where the command bar folds buttons into its overflow
+        # menu (FullScreenButton, PageColourButton, PropertiesButton are then not in the UIA tree) and a window cannot be smaller than the monitor: the display adapter offers
+        # 1920x1080 and this selects it. And the ARM64 image shows "Choose privacy settings for your device" (Windows' first-sign-in page, class Shell_OOBEProxy, a WebView
+        # that exposes no UIA tree) full screen over everything, on top of the app, until someone clicks through it: Next, Accept. It has the same layout at 1920x1080 every time.
         shell: pwsh
         run: |
-          $host_ = Get-Process CloudExperienceHost, CloudExperienceHostBroker -ErrorAction SilentlyContinue
-          Write-Host "Cloud Experience Host processes: $(@($host_).Count)"
-          $host_ | Stop-Process -Force -ErrorAction SilentlyContinue
-          Start-Sleep -Seconds 3
-          Add-Type -AssemblyName System.Windows.Forms, System.Drawing
-          New-Item -ItemType Directory -Force build/out/shots | Out-Null
-          $bounds = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds
-          $bitmap = [System.Drawing.Bitmap]::new($bounds.Width, $bounds.Height)
-          [System.Drawing.Graphics]::FromImage($bitmap).CopyFromScreen($bounds.Location, [System.Drawing.Point]::Empty, $bounds.Size)
-          $bitmap.Save((Join-Path $PWD 'build/out/shots/desktop-before-journeys.png'))
-      - name: Raise the screen resolution
-        # The runners start at 1024x768, where the command bar folds buttons into its overflow menu (FullScreenButton, PageColourButton, PropertiesButton are then not in the
-        # UIA tree) and a window cannot be smaller than the monitor. This takes the largest 16:9 mode up to 1920x1080 that the display adapter offers.
-        shell: pwsh
-        run: |
+          Add-Type -AssemblyName System.Windows.Forms, System.Drawing, UIAutomationClient, UIAutomationTypes
           Add-Type -TypeDefinition @'
-          using System;
-          using System.Runtime.InteropServices;
-          public static class Display {
+          using System; using System.Collections.Generic; using System.Runtime.InteropServices;
+          public static class Desktop {
             [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Ansi)]
             public struct DEVMODE {
               [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 32)] public string dmDeviceName;
@@ -89,30 +76,48 @@ jobs:
               public short dmLogPixels;
               public int dmBitsPerPel, dmPelsWidth, dmPelsHeight, dmDisplayFlags, dmDisplayFrequency, dmICMMethod, dmICMIntent, dmMediaType, dmDitherType, dmReserved1, dmReserved2, dmPanningWidth, dmPanningHeight;
             }
-            [DllImport("user32.dll", CharSet = CharSet.Ansi)] public static extern bool EnumDisplaySettings(string device, int mode, ref DEVMODE dm);
-            [DllImport("user32.dll", CharSet = CharSet.Ansi)] public static extern int ChangeDisplaySettings(ref DEVMODE dm, int flags);
+            [DllImport("user32.dll", CharSet = CharSet.Ansi)] static extern bool EnumDisplaySettings(string device, int mode, ref DEVMODE dm);
+            [DllImport("user32.dll", CharSet = CharSet.Ansi)] static extern int ChangeDisplaySettings(ref DEVMODE dm, int flags);
+            [DllImport("user32.dll")] static extern bool SetCursorPos(int x, int y);
+            [DllImport("user32.dll")] static extern void mouse_event(uint flags, uint dx, uint dy, uint data, UIntPtr extra);
+            static DEVMODE Fresh() { var dm = new DEVMODE(); dm.dmDeviceName = ""; dm.dmFormName = ""; dm.dmSize = (short)Marshal.SizeOf(typeof(DEVMODE)); return dm; }
+            public static string Modes() {
+              var seen = new SortedSet<string>();
+              for (int i = 0; ; i++) { var dm = Fresh(); if (!EnumDisplaySettings(null, i, ref dm)) break; seen.Add(dm.dmPelsWidth + "x" + dm.dmPelsHeight); }
+              return string.Join(" ", seen);
+            }
+            public static int SetMode(int w, int h) { var dm = Fresh(); EnumDisplaySettings(null, -1, ref dm); dm.dmPelsWidth = w; dm.dmPelsHeight = h; dm.dmFields = 0x80000 | 0x100000; return ChangeDisplaySettings(ref dm, 0); }
+            public static void Click(int x, int y) { SetCursorPos(x, y); System.Threading.Thread.Sleep(300); mouse_event(2, 0, 0, 0, UIntPtr.Zero); mouse_event(4, 0, 0, 0, UIntPtr.Zero); }
           }
           '@
-          $modes = @(); $i = 0
-          do {
-            $dm = [Display+DEVMODE]::new(); $dm.dmSize = [int16][System.Runtime.InteropServices.Marshal]::SizeOf($dm)
-            $ok = [Display]::EnumDisplaySettings($null, $i, [ref]$dm); $i++
-            if ($ok -and $dm.dmBitsPerPel -eq 32) { $modes += [pscustomobject]@{ W = $dm.dmPelsWidth; H = $dm.dmPelsHeight } }
-          } while ($ok)
-          $modes = $modes | Sort-Object W, H -Unique
-          Write-Host ("Modes offered: " + (($modes | ForEach-Object { "$($_.W)x$($_.H)" }) -join ' '))
-          $want = $modes | Where-Object { $_.W -le 1920 -and $_.H -le 1080 } | Sort-Object { $_.W * $_.H } -Descending | Select-Object -First 1
-          if ($want -and $want.W -gt 1024) {
-            $dm = [Display+DEVMODE]::new(); $dm.dmSize = [int16][System.Runtime.InteropServices.Marshal]::SizeOf($dm)
-            [void][Display]::EnumDisplaySettings($null, -1, [ref]$dm)
-            $dm.dmPelsWidth = $want.W; $dm.dmPelsHeight = $want.H; $dm.dmFields = 0x80000 -bor 0x100000
-            $result = [Display]::ChangeDisplaySettings([ref]$dm, 0)
-            Write-Host "ChangeDisplaySettings to $($want.W)x$($want.H): result $result (0 is success)"
-          } else { Write-Host 'No larger mode is offered; the journeys run at the current size.' }
-          Start-Sleep -Seconds 2
-          Add-Type -AssemblyName System.Windows.Forms
-          $screen = [System.Windows.Forms.Screen]::PrimaryScreen
-          Write-Host "Primary screen now: $($screen.Bounds.Width)x$($screen.Bounds.Height)"
+          function Shot($name) {
+            New-Item -ItemType Directory -Force build/out/shots | Out-Null
+            $b = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds
+            $bm = [System.Drawing.Bitmap]::new($b.Width, $b.Height)
+            [System.Drawing.Graphics]::FromImage($bm).CopyFromScreen($b.Location, [System.Drawing.Point]::Empty, $b.Size)
+            $bm.Save((Join-Path $PWD "build/out/shots/$name.png"))
+          }
+          function Test-FirstSignIn {
+            $root = [System.Windows.Automation.AutomationElement]::RootElement
+            $e = $root.FindFirst([System.Windows.Automation.TreeScope]::Children, [System.Windows.Automation.PropertyCondition]::new([System.Windows.Automation.AutomationElement]::ClassNameProperty, 'Shell_OOBEProxy'))
+            return ($null -ne $e -and -not $e.Current.IsOffscreen)
+          }
+          Write-Host "Modes offered: $([Desktop]::Modes())"
+          $result = [Desktop]::SetMode(1920, 1080)
+          Write-Host "ChangeDisplaySettings 1920x1080: $result (0 is success)"
+          if ($result -ne 0) { throw 'The runner would not switch to 1920x1080.' }
+          Start-Sleep -Seconds 3
+          $screen = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds
+          Write-Host "Primary screen: $($screen.Width)x$($screen.Height)"
+          if ($screen.Width -ne 1920) { throw 'The screen is not 1920x1080.' }
+          Shot 'desktop-before-journeys-0'
+          for ($i = 1; $i -le 5 -and (Test-FirstSignIn); $i++) {
+            Write-Host "First-sign-in page is up; clicking its button ($i)"
+            [Desktop]::Click(1443, 849)
+            Start-Sleep -Seconds 4
+          }
+          Write-Host "First-sign-in page still up: $(Test-FirstSignIn)"
+          Shot 'desktop-before-journeys'
       - name: Build, register a handler-free copy of the package, run the journeys
         shell: pwsh
         run: ./build/run-ui-tests.ps1 -Arch ${{ matrix.arch }} -Ci
