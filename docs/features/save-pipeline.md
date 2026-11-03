@@ -1,6 +1,6 @@
 # Feature spec: the save pipeline, the edit journal and crash recovery
 
-- Status: Draft for Opus review. **A security-review gate (§13.3) applies**: save pipeline, writer host, IPC changes. Depends on a spike (S10) for file replacement, section 3.6
+- Status: Draft for Opus review, **amended 2026-11-03 with the S10 findings** (file replacement, section 3.6, and the `SaveIntent` journal record). **A security-review gate (§13.3) applies**: save pipeline, writer host, IPC changes
 - Milestone: M4 (no write feature ships before this: §0.2 rule 5)
 - Master prompt: §7.4, §7.5, §0.2 rule 5 ("never write user data destructively"), §12.4, §12.5 journeys 3 to 5 and 8, §18 scenarios 1, 3, 5; ADR-0008; ADR-0004 amendments A1 and A2; risks R-31, R-37 to R-40
 - Author: Sonnet (W1-specs). Reviewer: Opus
@@ -71,7 +71,7 @@ Every file in the diagram is a temporary file in the same directory as the targe
 
 ### 3.3 The stages in detail
 
-**Stage 0, preflight.** Refuse, with a reason and Save As where it helps, when: the document is encrypted (3.8); larger than 1 GiB; `MikePDF.PdfWriter`'s strict parser refuses the structure (the writer host reports `Damaged`/`Unsupported`); permissions forbid the edits made; free space is below the original size plus 20% (full rewrite: twice the size); the directory can't hold a temporary file. If the document is signed, show the signed-document notice (annotation-core 3.8), and for operations that break signatures (flatten, full rewrite, page operations) require explicit confirmation. Take an **immutable snapshot** of the edit model (its sequence number is the new clean point). Write a `SaveBegin` journal record.
+**Stage 0, preflight.** Refuse, with a reason and Save As where it helps, when: the document is encrypted (3.8); larger than 1 GiB; `MikePDF.PdfWriter`'s strict parser refuses the structure (the writer host reports `Damaged`/`Unsupported`); permissions forbid the edits made; free space is below the original size plus 20% (full rewrite: twice the size); the directory can't hold a temporary file. If the document is signed, show the signed-document notice (annotation-core 3.8), and for operations that break signatures (flatten, full rewrite, page operations) require explicit confirmation. Take an **immutable snapshot** of the edit model (its sequence number is the new clean point). Write a **`SaveIntent`** journal record, flushed, naming the temporary file and the backup name the replace may use, **before any of those files is created** (3.4, 3.6). Refuse also when the original has more than one hard link (the other names would keep the old content) or is EFS-encrypted (`FILE_ATTRIBUTE_ENCRYPTED`; the copy of the metadata cannot carry the encryption): Save is refused with an explanation and Save As is offered (v1.0). A symbolic link at the path is resolved first (3.6 item 2).
 
 **Stage 1.** No commands since the clean point: do nothing (an incremental save of an unmodified document is not a no-op: +24% to +270% in S4). Page and form commands only, annotation commands only, or both, select the stages below.
 
@@ -83,11 +83,11 @@ Every file in the diagram is a temporary file in the same directory as the targe
 
 **Stage 5, validation.** All of:
 1. Writer host `ValidateStructure(C)` walks the whole xref chain with the strict parser: no issues.
-2. **Prefix check:** the first `len(base)` bytes of C equal the base (compared by the broker as a hash over the range; it reads bytes but does not parse them).
+2. **Prefix check:** the first `len(base)` bytes of C equal the base (compared by the broker as a hash over the range; it reads bytes but does not parse them). When the output is complete and flushed, the broker writes the `SaveBegin` record (`outputSha256`, `outputLength`); validation then runs on that exact file.
 3. A **fresh engine** (a new process, not the working one) opens C and checks against the model: page count; per page, the count of non-link, non-popup, non-widget annotations equals (loaded minus deleted plus added); for owned annotations, kind, rectangle (0.01 pt), colour, contents and author; for loaded foreign ones, subtype and rectangle unchanged unless moved; form values equal the model's; no `/PDFIUM_HasGeneratedAP` anywhere.
 4. Any failure aborts the save; the original is untouched; the user sees "MikePDF couldn't save safely. Your changes are still here." with Save As (to a different location), Try again, and Details (a short, non-sensitive reason code).
 
-**Stage 6, replace** (3.6). Then **rebase**: reopen the working engines on the new file, clear the pending model, move the clean point, delete the journal (after the replace has succeeded, never before), update recents and the position store, and swap the display without a gap (annotation-core AC-15).
+**Stage 6, replace** (3.6). The engines still map the old file while it runs (S10: that does not block a rename). Then **rebase**: reopen the working engines on the new file, clear the pending model, move the clean point, delete the journal (after the replace has succeeded, never before), update recents and the position store, and swap the display without a gap (annotation-core AC-15).
 
 **Save a flattened copy.** Run stages 0 to 4 into C (so owned annotations are in the file), then: a fresh engine opens C; `SaveDocument(mode=flattened, flags)` flattens each page (`FPDFPage_Flatten`; options: form fields, comments and markup) and saves a full copy D; validate D (page count equal; no widget annotations if fields were flattened; no flattened-type annotations left; text extractable; renders within SSIM 0.98 of C's render without field highlight); write D to the chosen path via a temporary file and move. The signed-document warning applies. The working document, its tab, its journal and the original file are untouched.
 
@@ -108,7 +108,7 @@ Every file in the diagram is a temporary file in the same directory as the targe
 {"v":1,"seq":3,"t":"...","cmd":"SaveBegin","outputSha256":"...","outputLength":123999,"crc":"..."}
 ```
 
-`crc` is CRC-32C of the record text without the `crc` field. Control records: `Undo` (target seq), `Redo`, `SaveBegin`, `SaveCommitted`, `Discard`. Command records are defined by each feature spec (`AddAnnotation`, `UpdateAnnotation`, `MoveAnnotation`, `ResizeAnnotation`, `DeleteAnnotation`, `AddReply`, `SetReviewState`, `AddInkStroke`, `EraseInk`, `SetFieldValue`, `ResetField`, `ClearForm`, `InsertPages`, `InsertBlankPage`, `DeletePages`, `MovePages`, `RotatePages`).
+`crc` is CRC-32C (Castagnoli) of the record text without the `crc` field. Precisely, as built: a line ends with `,"crc":"hhhhhhhh"}` (eight lower-case hex digits), and the checksum covers every byte before that suffix, that is the record without its `crc` field and without the closing brace. The line is ASCII (non-ASCII is escaped) and the sequence numbers run 1, 2, 3 across commands and control records alike. Control records: `Undo` (target seq), `Redo`, `SaveIntent`, `SaveBegin`, `SaveCommitted`, `Discard`. `SaveIntent{temp, backup, saveTarget}` (S10; the field is `saveTarget` because `target` is the field of `Undo` and `Redo`) is written and flushed at stage 0, **before the temporary file exists**, and names every file the save may create: the temporary file and the backup name the `ReplaceFileW` fallback uses. `SaveBegin` keeps `outputSha256` and `outputLength` and is written once the output is complete, flushed and about to be validated. Without `SaveIntent`, a crash while the output is being written leaves a hidden temporary file that no record names, so nothing would ever remove it (S10 section 8.1: 12 of 36 simulated kills leaked it). Command records are defined by each feature spec (`AddAnnotation`, `UpdateAnnotation`, `MoveAnnotation`, `ResizeAnnotation`, `DeleteAnnotation`, `AddReply`, `SetReviewState`, `AddInkStroke`, `EraseInk`, `SetFieldValue`, `ResetField`, `ClearForm`, `InsertPages`, `InsertBlankPage`, `DeletePages`, `MovePages`, `RotatePages`).
 
 **Writing.** Each command is appended and flushed (`FILE_FLAG_WRITE_THROUGH` plus `FlushFileBuffers`) **before the command is acknowledged** (§7.4). Ink strokes use a queued flush within 50 ms (ink-pen OQ-INK-7). The file is opened exclusively by the broker. Appends are single `WriteFile` calls so a crash leaves at most one torn line at the end.
 
@@ -128,23 +128,26 @@ A journal that exists when a document opens means unsaved changes were never sav
 2. **Prompt:** "MikePDF closed before {name} was saved. Restore the unsaved changes?" with a summary ("8 comments, 3 form fields, 2 page changes. Last change 10:31") from the journal. Buttons: **Restore**, **Discard**, **Not now** (keep for later).
 3. **Idempotency.** Before restoring, compare the journal header and the file. If the file's hash equals a `SaveBegin.outputSha256` record, the save completed but the journal wasn't cleared (crash between replace and cleanup): clear the journal silently and say nothing. If the file matches the header fingerprint, replay. If it differs from both ("The file changed after you made these edits"), warn and let the user choose Restore anyway (entries that no longer fit are skipped and counted), Discard, or Not now.
 4. **Replay** applies records in order, reconstructing the model and the undo and redo stacks (an `Undo` record pops, a `Redo` pushes). Entries that can't be applied (a page identity that no longer exists, a form field not found, a missing source file for inserted pages) are skipped and counted; a summary ("11 of 12 changes restored") is shown. The document is then **dirty**; nothing is saved by recovery.
-5. **Engine crash (not UI crash)** needs no prompt: the supervisor restarts the engine and the model is replayed into it (annotation-core 3.6).
-6. **Hard kill of the whole app** during editing, during a save at any stage, and between the replace and the cleanup, are all tested (section 14).
+5. **Interrupted saves** (S10 sections 8 and 9). The records after the last `SaveCommitted` say how far the last save got, and recovery acts on them before it offers anything: (a) `SaveIntent` only: the output was never complete; remove the recorded temporary file (and nothing else) and keep the edits. (b) `SaveBegin` and the target's hash equals `outputSha256`: the replace happened; remove the recorded temporary and backup files, clear the journal silently. (c) `SaveBegin` and the target is intact and is not the output: remove the recorded temporary file and keep the edits (the validated output is thrown away; the edits are still in the journal). (d) the target is **missing** and the recorded backup (or a `~RF*.TMP` file beside the target) exists: the `ReplaceFileW` fallback was killed between its two renames; restore the target from the backup (and remove the temporary file), then continue as (c). MikePDF removes only files a `SaveIntent` or `SaveBegin` record names, never others (the `~RF*.TMP` name is accepted only for restoring a missing target, in the directory of a recorded target).
+6. **Engine crash (not UI crash)** needs no prompt: the supervisor restarts the engine and the model is replayed into it (annotation-core 3.6).
+7. **Hard kill of the whole app** during editing, during a save at any stage, and between the replace and the cleanup, are all tested (section 14).
 
-### 3.6 Handles and the replace step (needs spike S10)
+### 3.6 Handles and the replace step (spike S10, decided 2026-11-02)
 
-ADR-0005 decision 6 has the broker open the document read-only **deny-write**, and the engine maps it. §7.5 says to replace with `ReplaceFileW`. These collide: `ReplaceFileW` cannot replace a file that anyone holds open without `FILE_SHARE_DELETE`, and a file with a mapped view may refuse deletion. Whether the existing handle flags (`FileShare.Read`) already block the save has **not been tested**.
+[S10](../spikes/S10-file-replace.md) measured the mechanisms on local NTFS, a loopback SMB share and a OneDrive Files On-Demand folder. What it found, and what this section now specifies:
 
-Proposal, to be proven by **spike S10** before implementation:
+1. **Open flags.** The broker opens documents, and opens every handle it gives the writer host or uses to verify a document, with `FileShare.Read | FileShare.Delete`, read-only (ADR-0005 amendment A3). Others still cannot write, append or truncate while a document is open; they can rename, delete or replace the path. This also stops MikePDF blocking Explorer renames, OneDrive updates and other programs' atomic saves. Contents stay immutable while held; the path does not, which item 3 checks.
+2. **The target.** Resolve the path with `GetFinalPathNameByHandle` on the broker's handle so that a symbolic link's target is replaced and the link survives. Refuse, offering Save As, a read-only file, a file with more than one hard link and an EFS-encrypted file (3.3 stage 0, 3.8).
+3. **Identity before replacing.** Open the path with an attribute-only handle and compare its `FileIdInfo` (volume serial and 128-bit ID) with the broker's own handle. Equal: the path still names the file whose bytes we have held since the open. Different, or the path is gone: ask Overwrite / Save As / Cancel (or, if gone, report "{name} was moved or deleted" and offer Save As). A fingerprint by timestamp is not safe: attribute-only opens can change timestamps under any sharing mode. A window of microseconds remains between this check and the rename; it can discard a concurrent change but cannot corrupt a file.
+4. **Prepare the temporary file.** Clear `Hidden` (a rename moves the temporary file's attributes onto the user's file: S10 found the user's PDF hidden after a save); copy the original's security descriptor (as a binary descriptor into a fresh `FileSecurity`: .NET's `SetAccessControl(GetAccessControl())` copies nothing), **every named stream** (`Zone.Identifier` first), the attributes (Archive, NotContentIndexed, Temporary; Compressed through `FSCTL_SET_COMPRESSION`) and the creation time; flush.
+5. **Replace, local NTFS.** `SetFileInformationByHandle(FileRenameInfoEx, FILE_RENAME_FLAG_REPLACE_IF_EXISTS | FILE_RENAME_FLAG_POSIX_SEMANTICS)` on the temporary file, while the engines still map the old file: one system call, and the old file is freed when its last holder closes (0 of 600 kills lost the target). The engines need not be closed first.
+6. **Retry.** On sharing violation (32), 33, access denied (5) and `ERROR_UNABLE_TO_REMOVE_REPLACED` (1175): up to 5 times at 200 ms (OneDrive produced a transient 5; a 1175 was seen once). Then fail with Save As offered.
+7. **Fallback.** When the rename returns 87, 50 or 1 (SMB, FAT, WebDAV): `ReplaceFileW(target, temp, backup)` with the backup name recorded in `SaveIntent`. It keeps the DACL, streams, attributes and creation time itself and works under share-delete. It is **not atomic against process death** (S10: target missing in 2.8% of 600 kills, with the old file under the backup name or `~RF*.TMP`), so recovery restores a missing target from the recorded backup (3.5 item 5). The backup is removed after `SaveCommitted`. `ReplaceFileW` can also fail after it has started (error 1177, `ERROR_UNABLE_TO_MOVE_REPLACEMENT_2`: the original is at the backup name and nothing is at the target; error 1176 with a backup name leaves both files named as they were, which the code checks instead of assuming): after any failure of the call the replacer looks at the target, and if nothing is there it moves the backup back at once (a plain move, retried for the transient errors) and reports the save as failed with the original in place. If that move fails as well, nothing is deleted (not the backup, not the validated temporary file), the journal keeps its `SaveIntent` and `SaveBegin` records, and the result carries the reason `RestorePending` and the path of the original so that the shell can tell the user where it is; the next start restores it (3.5 item 5).
+8. **Not used:** `MoveFileEx` with replace-existing and the non-POSIX `FileRenameInfo(Ex)` (both fail with access denied whenever any other handle is open), and rename-the-target-away-then-rename-in (the target was missing in 35% of kills, it defeats the read-only attribute and it loses the metadata).
+9. **The temporary file** is `.{name}.mikepdf-{8 random hex}.tmp` in the target's directory, created exclusive and hidden, **un-hidden before the rename** (item 4). It is removed on failure, and a stale one is removed at startup **only if** a `SaveIntent` or `SaveBegin` record names it (MikePDF never deletes files it did not record). If the directory can't hold the file (read-only, no permission), Save becomes Save As. §7.5 step 1's "or the app's temp folder" applies only to Save As to a different volume, where the final move is a copy and therefore not atomic; it is not used for Save.
+10. **Cloud placeholders.** Detect them with the recall attributes (`FILE_ATTRIBUTE_RECALL_ON_DATA_ACCESS`, `UNPINNED`), not the reparse bit: a process that is not cloud-aware does not see the reparse bit (S10 section 6). `ReplaceFileW` and the rename both work over an online-only placeholder.
 
-1. Open documents with `FILE_SHARE_READ | FILE_SHARE_DELETE` (others can't write; they can rename or replace the path). This also stops MikePDF blocking Explorer renames, OneDrive updates and other programs' atomic saves.
-2. At stage 6: re-check the original's fingerprint through a verification handle (also share-delete), then replace with `ReplaceFileW` (or a handle-based rename with replace semantics) **while the engines still map the old file**, if S10 shows that works; otherwise close the engine documents first (unmap and close), replace, then reopen (the rebase already does this).
-3. If another program changed the original since the model's baseline, ask: Overwrite / Save As / Cancel.
-4. On `ERROR_UNABLE_TO_MOVE_REPLACEMENT*`, sharing violation or access denied: retry up to 5 times at 200 ms; then fail with Save As offered. Fall back to `MoveFileExW` with replace-existing only for file systems that return `ERROR_NOT_SUPPORTED` for `ReplaceFileW` (some WebDAV-backed paths); on NTFS and SMB it is atomic.
-5. Preserve the security descriptor, attributes and alternate data streams, notably the Mark-of-the-Web (`Zone.Identifier`). Whether `ReplaceFileW` keeps them is part of S10; if not, copy them explicitly before the replace.
-6. The temporary file is `.{name}.mikepdf-{8 random hex}.tmp` in the target's directory, hidden, created exclusive. Temporary files are removed on failure, and a stale one is removed at startup **only if** a journal `SaveBegin` record names it (MikePDF never deletes files it did not record). If the directory can't hold the file (read-only, no permission), Save becomes Save As. §7.5 step 1's "or the app's temp folder" applies only to Save As to a different volume, where the final move is a copy and therefore not atomic; it is not used for Save.
-
-S10 must report, on x64 and ARM64: sharing combinations versus `ReplaceFileW` and handle-based rename, with and without mapped views and open engine handles; ACL and ADS preservation; behaviour on a OneDrive Files On-Demand folder (does the temporary file sync, does the replace create a conflict copy), a SharePoint-synced folder, an SMB share and a mapped drive.
+Not measured by S10 (stays unverified until someone runs it): ARM64, ReFS/FAT/exFAT, SharePoint-synced folders, WebDAV, a real remote SMB server, mapped drives, power loss, OneDrive server-side versions and conflicts, antivirus holding the temporary file.
 
 ### 3.7 The undo stack and the clean point
 
@@ -162,8 +165,12 @@ S10 must report, on x64 and ARM64: sharing combinations versus `ReplaceFileW` an
 | **Over 1 GiB** | Edits refused up front (R-38). |
 | **Read-only attribute, no write permission, directory not writable** | Save becomes Save As, with the reason. |
 | **File open elsewhere or locked** | Retry rule in 3.6; then error with Save As. |
+| **More than one hard link** | Save is refused: "{name} is also reachable under another name; saving would leave that name with the old content." Save As is offered (v1.0). |
+| **EFS-encrypted file** | Save is refused with an explanation and Save As is offered (v1.0). The copy is not EFS-encrypted. |
+| **Symbolic link** | The link's final target is replaced; the link survives. |
+| **Moved, deleted or replaced while open** | Moved or deleted: "{name} was moved or deleted", Save As offered. Replaced by another file (file ID differs): Overwrite / Save As / Cancel. |
 | **Cloud placeholder** | Hydrated when opened. Saving to a synced folder works as a normal replace; the sync client may briefly see the temporary file. Manual check on OneDrive and SharePoint (§12.7). |
-| **Network paths** | As cloud. Lost connection mid-save: the temporary file may remain and is cleaned on the next start via the `SaveBegin` record. |
+| **Network paths** | As cloud. Where the POSIX rename returns 87 (SMB), the `ReplaceFileW` fallback runs (3.6 item 7). Lost connection mid-save: the temporary file may remain and is cleaned on the next start via the `SaveIntent` record. |
 | **Damaged or repaired by PDFium** | Edits allowed only if the strict parser accepts the file (R-39); else tools are disabled with the structure message. |
 | **Another process changed the file while the tab was open** | A banner ("{name} changed on disk. Reload or keep your version.") appears when a change is noticed; saving over it asks first (3.6 item 3). |
 
@@ -210,7 +217,7 @@ Ctrl+S, Ctrl+Shift+S, `file.saveFlattenedCopy` (palette), `file.revert` (palette
 - **Hostile input:** a file whose xref has loops, duplicate keys, hybrid sections or a 4 GB claimed length fails strict parsing in the writer host and the save is refused with the structure message (R-31); a file crafted so PDFium and the writer disagree about an object is the parser-differential case, tracked as a High-severity bug if found.
 - **Antivirus or backup software locking the temporary file:** the retry rule covers it; the temp name is not reused.
 - **Clock changes and time zones:** `/M` and journal times use the system clock; out-of-order times are not an error.
-- **Power loss:** an interrupted stage 6 leaves either the old file or the new file (NTFS atomic replace); the stale temporary file is cleaned via the journal record.
+- **Power loss and process death:** a POSIX-semantics rename leaves the old or the new file (0 of 600 kills lost the target; **power loss was not tested**, and the temporary file's data is flushed before the rename). The `ReplaceFileW` fallback can leave the target missing with the old file under the recorded backup name or `~RF*.TMP`, which recovery restores (3.5 item 5). The stale temporary file is cleaned via the `SaveIntent` record.
 
 ## 8. Undo and redo
 
@@ -238,6 +245,8 @@ Reply: `bytesWritten` (u64, max 2^40), `pageCount` (u32, max 10000000). Statuses
 
 ### 11.2 Writer host (ids 1025 and up, same framing; `ValidateStructure` 1024 exists)
 
+**As built (schema 6, ADR-0005 A4).** `AppendAnnotations` (1025) is in the schema with the fields below, except that its reply is `ok`, `annotationsAdded`, `annotationsRemoved`, `objectsWritten`, `bytesWritten`, `truncated`, `issueCodes`, `issueMessages`; `RewriteDocument` (1029: `baseHandle`, `outputHandle`, `flags`) and `VerifyAnnotations` (1030: `baseHandle`, `outputHandle`, `pageCount`, `pages`, `added`, `removed`) were added for the copies and for stage 5. A refusal with a reason is an `Ok` reply with `ok` false. **`NormalizeTail` (1026) and the engine's `SaveDocument` are not in schema 6**: they come with the forms and page-organiser work packages.
+
 **`NormalizeTail` (1026).**
 
 | Request field | Type | Limits |
@@ -264,6 +273,8 @@ Reply: `ok`, `annotationsWritten` (u32, max 100000000), `objectsWritten` (u32), 
 ### 11.3 The edit blob
 
 The broker writes the edits for stage 4 into a file or section and passes its handle. It is **not** a frame, so the 64 KiB limit and the no-nesting rule of the control protocol do not apply to it. A second schema file, `src/MikePDF.Protocol/schema/mikepdf.edits.json`, defines it (MessagePack: a header map `{version, pageCount, assetCount}`, an array of edit maps, an array of asset blobs keyed by SHA-256) with explicit limits on every field (contents 16 KiB, points per stroke 1,000,000, strokes per annotation 100,000, edits 1,000,000, total 256 MiB), and a generator emits the C# reader and writer. The reader is a parser of broker-produced data inside the sandbox; it is still fuzzed (SharpFuzz) as defence in depth. Each edit on a loaded annotation carries its expectation (subtype, rectangle) for the stage 4 check. OPEN QUESTION OQ-SP-3: ADR-0005 states "messages have no nesting"; this is a deliberate second format for bulk data and needs Opus's decision (alternative: many small windowed messages, which is slow and complicated for ink).
+
+**As built.** The codec is `MikePDF.Protocol.Edits.EditBlobCodec`, hand-written on the frame codec's strict reader (no generator): `[magic "MikePDF.edits", version 1, pageCount, [edit...]]`, each edit an array of sixteen fields in a fixed order with nil where a field does not apply. Limits (writer and reader both): the blob 256 MiB; 1,000,000 edits; contents 16 KiB, author 256 bytes, `/NM` 128 bytes, expected subtype 32 bytes; 80,000 numbers of quadrilaterals; 100,000 strokes per annotation, 2,000,000 numbers per stroke and 16,000,000 over the whole blob; flags at most 1023; every coordinate finite and within +-10,000,000, colours 0 to 1, opacity above 0 and at most 1, width 0 to 1000. Rules beyond ranges: an Add has a known kind, a normalised rectangle, a colour and a name; a text markup has its quadrilaterals (a multiple of eight numbers); an ink annotation has strokes of at least two points; a Delete or Update names its target (object number or `/NM`) and carries what it expects to find (subtype and rectangle); an Update changes something. The reader refuses anything else, never throws, and refuses a truncated blob at every length. Pages are ordinals in the base. The pending commands become the blob in `AnnotationEditMapper`: the net effect, not the history (an annotation added and deleted in one snapshot is never written).
 
 ## 12. Localisation strings
 
@@ -310,13 +321,13 @@ Telemetry: none. If opt-in diagnostics are ever added, only counts of save stage
 
 | Id | Question | Who answers |
 |---|---|---|
-| OQ-SP-1 | Journal write failure: refuse the edit (strict) or continue with a warning (degraded, proposed). | Opus |
+| OQ-SP-1 | Journal write failure: refuse the edit (strict) or continue with a warning (degraded, proposed). **Built both**: `JournalFailureMode.Degraded` is the default (the command applies, `EditSession.BackedUp` goes false and the chip shows), `Strict` refuses the command. Opus to confirm the default. | Opus |
 | OQ-SP-2 | DPAPI-protect journal contents. | Opus (security), User |
-| OQ-SP-3 | Second schema for the edit blob versus windowed messages (11.3). | Opus |
-| OQ-SP-4 | Replace mechanism after spike S10; share-delete open flags; ADR-0005 decision 6 and §7.5 step 3 may need an amendment. | Opus |
+| OQ-SP-3 | Second schema for the edit blob versus windowed messages (11.3). **Decided in the build (ADR-0005 A4): a second format, hand-written on the strict primitives, not generated.** Opus to confirm. | Opus |
+| OQ-SP-4 | Closed by S10 and the decisions of 2026-11-02: share-delete open flags, POSIX rename with a `ReplaceFileW` fallback, ADR-0005 amendment A3, ADR-0008 amendment A1. §7.5 step 3 is read as the amended wording in ADR-0008 A1. | Closed |
 | OQ-SP-5 | Block all edits during a save (assumed), or allow annotation edits to queue. | Design |
 | OQ-SP-6 | Retention and cleanup suggestions for old journals. | User |
-| OQ-SP-7 | Confirm journals live in `LocalState\private\journals`, overriding §7.4's path. | Opus |
+| OQ-SP-7 | Confirm journals live in `LocalState\private\journals`, overriding §7.4's path. `JournalStore` takes the directory; the app creates it with `PrivateDirectory.Ensure` (the app shell, not this work package, wires `AppPaths`). | Opus |
 | OQ-SP-8 | Encrypted documents: block Save (assumed) until PDFium's behaviour is measured and encrypted writing exists. | Opus, User |
 | OQ-SP-9 | An Arlington-model checker as a test tool: licence and availability for CI (the model is published by the PDF Association; confirm the licence of the checker). | Opus |
 | OQ-SP-10 | M4 gate wording: "fidelity harness green for all P0 operations across PDFium, pdf.js, Acrobat Reader and Edge". Acrobat and Edge cells need the user (R-15); the gate cannot pass without that pass. | User |
@@ -340,8 +351,8 @@ Telemetry: none. If opt-in diagnostics are ever added, only counts of save stage
 | SP-13 | Stage 4 on classic and xref-stream bases and a base with a prior incremental update: valid xref, `/Prev` chain, `/Size`, trailer `/ID` first element kept and second new, `%%EOF`, original prefix. `qpdf --check` and the strict validator pass. | Unit (PdfWriter) + Fidelity |
 | SP-14 | No-op: save with no commands writes nothing and does not touch the file's timestamp. | Integration |
 | SP-15 | Validation catches faults: injected writer-host faults (drop an annotation, corrupt an xref offset, wrong `/Size`, leave a PDFium key) each fail stage 5, leave the original byte-identical, and delete temporary files. | Integration |
-| SP-16 | Atomicity under kill: killing the app, the engine and the writer host at each stage boundary (0 to 6) and during stage 6 leaves either the old file or the new file, never a mix (byte comparison), with no temporary file left after the next start. | Integration (fault injection) |
-| SP-17 | Replace semantics (needs S10): with engines holding the file, the chosen sharing flags and replace method succeed; the security descriptor, attributes and `Zone.Identifier` stream are identical before and after (compare SDDL and stream bytes). | Integration |
+| SP-16 | Atomicity under kill: killing the app, the engine and the writer host at each stage boundary (0 to 6) and during stage 6 leaves either the old file or the new file, never a mix (byte comparison), with no temporary file left after the next start. The sweep runs on both journal designs (S10 8.1): the literal one (`SaveBegin` only) must be shown to leak the temporary file for a kill between its creation and `SaveBegin`, and the `SaveIntent` design must not; and on both replace mechanisms (the POSIX rename and the `ReplaceFileW` fallback, whose "target missing, backup present" state recovery must restore). | Integration (fault injection) |
+| SP-17 | Replace semantics: with a handle open on the file and a mapped view, the chosen sharing flags and replace method succeed; after a save through the POSIX rename and through the `ReplaceFileW` fallback the security descriptor, attributes, creation time and `Zone.Identifier` and other streams are identical to the original's (compare SDDL and stream bytes) and Hidden is clear. | Integration |
 | SP-18 | Read-only file, read-only directory, no-permission directory, `WindowsApps` path: Save becomes Save As with the right message; nothing written. | Integration |
 | SP-19 | Disk full (small VHD): save fails with `Save_NoSpace`, original intact, temporary files removed. | Integration (needs mounted VHD; admin) |
 | SP-20 | Sharing violation and transient lock: the 5-retry rule succeeds when the lock clears within 600 ms and fails cleanly after. | Integration |
@@ -362,3 +373,50 @@ Telemetry: none. If opt-in diagnostics are ever added, only counts of save stage
 | SP-35 | Accessibility: progress, failure and recovery dialogs expose names, default buttons and polite announcements once each; dirty state is in tab names. | UI journey (a11y) |
 | SP-36 | OneDrive Files On-Demand and SharePoint-synced folders: save, no conflict copy, no leftover temporary file (manual checklist, §12.7); marked **not run** until done. | Manual record |
 | SP-37 | Performance recorded (no budget claimed): stage timings for a 20-page, a 600-page and a 5,000-page fixture with 100 annotations; peak memory of each process. | Integration (perf) |
+| SP-38 | Open flags: while a document is open another process can rename it but cannot write to it; the broker's handle and a mapped view read the original bytes after an external replace. | Integration |
+| SP-39 | A path replaced by another file between open and save is detected by file ID and prompts (Overwrite / Save As / Cancel); a path that was deleted or moved is reported with Save As. | Integration |
+| SP-40 | A symbolic link at the path: the link survives and the real file is updated. A file with more than one hard link, and an EFS-encrypted file: Save is refused with Save As offered, nothing written. | Integration |
+| SP-41 | The rename returns 87 (SMB, simulated by a replace layer that fails it the same way): the `ReplaceFileW` fallback runs with the recorded backup name, the result has the new bytes, and no temporary or backup file is left. `ReplaceFileW` failing part way (1177 after the original was moved aside; 1176 with nothing moved; the put-back also failing): the original is back at once and the save is failed with no file left over; with nothing moved nothing is touched; with the put-back failing nothing is deleted, the journal keeps `SaveIntent` and `SaveBegin`, the reason is `RestorePending` with the original's path, and recovery restores it. | Integration |
+
+## 15. Implementation status (work package W3-save-core, 2026-11-03)
+
+Built: the edit model and planner, the journal (format, strict reader, writer, store, privacy, limits, fuzz target), crash recovery, the file replace (S10), the writer host's `AppendAnnotations`, `RewriteDocument` and `VerifyAnnotations`, the save coordinator (Save, Save As, whole-file rewrite, flattened copy, validation, journal ordering) and the test layers below. No app UI: the shell wires `EditSession`, `SaveCoordinator`, `RecoveryService` and `AppPaths` in its own work package.
+
+| Criterion | Tests (where it is not "done", it says so) |
+|---|---|
+| SP-01 | `EditModelTests`: every combination of kinds, and the empty plan |
+| SP-02 | `EditModelTests`: dirty after a command, clean after a save, clean after undo to the clean point, dirty past it, the blocked-edit guard |
+| SP-03 | `JournalFormatTests`: round trip of every record, torn tail, corrupt middle, sequence gaps, unknown commands, hostile records, limits |
+| SP-04 | `JournalWriterTests`: append then flush then acknowledge, a failed flush in both modes |
+| SP-05 | `JournalFormatTests`: key stability and case, fingerprint changes |
+| SP-06 | `RecoveryTests`: replay with undo, redo and a new command after undo; skipped counts |
+| SP-07 | `RecoveryTests`: the idempotency table (output hash, fingerprint, changed, missing) |
+| SP-08 | `JournalWriterTests`: caps, the 90% warning, the control reserve, passwords, the 200 character excerpt. The byte scan of "a fixture session" covers the journal layer; the feature specs' own payloads are theirs to test |
+| SP-09 | `AnnotationEditMapperTests` (net effect), `AnnotationAppenderTests` (ordinals, expectation mismatch aborts). **Not done:** translating page identities to ordinals after page moves and deletes (page-organiser) |
+| SP-10 | `EditBlobTests` (round trip, every limit one over, truncation at every length, bit flips); fuzz target `EditBlob` |
+| SP-11 | `MikePDF.Protocol.Tests` golden and malformed frames and `protocol_tests.cpp` for the three schema 6 messages. `NormalizeTail` and `SaveDocument` are not in schema 6 |
+| SP-12 | **Not done**: stages 2 and 3 need the engine's PDFium save |
+| SP-13 | `AnnotationAppenderTests`: classic, xref-stream and hybrid bases, a base with earlier updates, `/Prev`, `/Size`, `/ID`, `%%EOF`, prefix; PDFium reads every annotation. `qpdf --check` is not run |
+| SP-14 | `SaveCoordinatorTests.ASaveWithNoCommands...` |
+| SP-15 | `SaveCoordinatorTests.AFaultyOutput...`: dropped annotation, corrupt xref offset, wrong `/Size`, a PDFium key, a damaged prefix, a fresh engine that disagrees |
+| SP-16 | `SaveCrashMatrixTests`: every step of the save for both replace mechanisms, a `ReplaceFileW` killed between its renames, the literal journal shown to leak, Save As killed at every step. A kill there is a thrown exception that nothing catches; `SaveKillTests` also ends a real child process with `TerminateProcess` at seven steps (intent, temporary file, output, begin, validated, replaced, committed) for both mechanisms and recovers afterwards. **Not done:** killing the engine or the writer host mid-stage (only a host killed between saves is tested), power loss |
+| SP-17 | `FileReplacerTests`: descriptor (SDDL), `Zone.Identifier` and another stream, attributes, creation time, Hidden clear, through both mechanisms |
+| SP-18 | `SaveCoordinatorTests`: read-only file, a directory that denies new files. **Not run:** a `WindowsApps` path |
+| SP-19 | **Not run** (needs a mounted VHD and elevation). The mapping of a disk-full error to `Save_NoSpace` is tested with an injected error |
+| SP-20 | `FileReplacerTests`, `SaveCoordinatorTests`: a lock that clears is retried, one that does not fails after five attempts |
+| SP-21 | `SaveCoordinatorTests`: the path replaced, deleted, or swapped between validation and the rename. The banner and the dialog are the shell's |
+| SP-22 | The prefix hash and the real signed fixtures (`two_signatures.pdf`) in `SaveCoordinatorTests.EveryRealFile...`. The notice and the confirmation dialogs are the shell's |
+| SP-23 | `SaveCoordinatorTests`, `RealWriterHostSaveTests`: a password protected file is refused and never replaced. **Not done:** Save As offering an unprotected copy |
+| SP-24 | `SaveCoordinatorTests`: a sparse file over 1 GiB |
+| SP-25 | `SaveCoordinatorTests`: Save As (new, same path, existing target, no edits, whole-file rewrite). The tab switch is the shell's |
+| SP-26 | `DocumentRewriterTests`, `SaveCoordinatorTests`: no widgets or flattened annotations left, one revision, the working file and journal untouched, PDFium reads it. **Not measured:** SSIM against the unflattened render, text extractability |
+| SP-27 | `SaveCoordinatorTests`: journal records and deletion ordered around the replace; a new journal against the saved file. The frame-level swap (AC-15) is the shell's |
+| SP-28, SP-30, SP-35 | **Not done** (UI journeys) |
+| SP-29 | `SaveCrashMatrixTests`, `RecoveryTests`: kill between replace and cleanup, torn tail, a changed file, a journal for a document not open. The empty-window list is the shell's |
+| SP-31 | `SaveCoordinatorTests`: a host that times out or dies fails the save once and the next works; `RealWriterHostSaveTests`: a real host process killed |
+| SP-32 | `SaveCoordinatorTests`, `EditModelTests`: a second save does not start, edits blocked and re-enabled |
+| SP-33 | **Not done** (fidelity harness, Acrobat and Edge cells) |
+| SP-34 | The existing differential tests against PDFium cover the parser; none was added for the new objects beyond PDFium reading every annotation |
+| SP-36 | **Not run** (manual) |
+| SP-37 | **Not recorded** |
+| SP-38 to SP-41 | `FileReplacerTests`, `SaveCoordinatorTests` |

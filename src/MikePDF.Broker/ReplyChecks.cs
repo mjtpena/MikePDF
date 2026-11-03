@@ -135,4 +135,9 @@ internal static class ReplyChecks
 
         return true;
     }
+
+    /// <summary>A save reply that says it worked wrote bytes and has no issues; one that says it did not, has a reason.</summary>
+    internal static string? CheckSaveReply(bool ok, int issueCount, ulong bytesWritten) =>
+        ok ? (bytesWritten == 0 || issueCount != 0 ? "a successful save reply is inconsistent" : null)
+           : (issueCount == 0 ? "a refused save has no reason" : null);
 }

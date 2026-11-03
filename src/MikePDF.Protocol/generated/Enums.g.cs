@@ -10,7 +10,7 @@ namespace MikePDF.Protocol;
 /// <summary>Constants taken from the schema.</summary>
 public static class ProtocolInfo
 {
-    public const uint SchemaVersion = 5u;
+    public const uint SchemaVersion = 6u;
     public const int MaxFrameBytes = 65536;
     public const uint MaxDeadlineMs = 86400000u;
 }
@@ -98,6 +98,9 @@ public enum MessageType : ushort
     CancelBefore = 33,
     RenderBand = 34,
     ValidateStructure = 1024,
+    AppendAnnotations = 1025,
+    RewriteDocument = 1029,
+    VerifyAnnotations = 1030,
     ShellOpen = 2048,
     ShellRenderPage = 2049,
     ShellClose = 2050,
@@ -116,7 +119,7 @@ public static class MessageTypeInfo
 {
     public static bool IsDefined(MessageType value) => value switch
     {
-        MessageType.Hello or MessageType.Ping or MessageType.Shutdown or MessageType.AttachSlotRing or MessageType.OpenDocument or MessageType.CloseDocument or MessageType.GetDocumentInfo or MessageType.GetPageSizes or MessageType.GetOutline or MessageType.GetPageLinks or MessageType.GetLinkUri or MessageType.GetPageBoxes or MessageType.GetPageText or MessageType.SearchPage or MessageType.GetDocumentDetails or MessageType.GetViewerPreferences or MessageType.RenderTile or MessageType.CancelBefore or MessageType.RenderBand or MessageType.ValidateStructure or MessageType.ShellOpen or MessageType.ShellRenderPage or MessageType.ShellClose => true,
+        MessageType.Hello or MessageType.Ping or MessageType.Shutdown or MessageType.AttachSlotRing or MessageType.OpenDocument or MessageType.CloseDocument or MessageType.GetDocumentInfo or MessageType.GetPageSizes or MessageType.GetOutline or MessageType.GetPageLinks or MessageType.GetLinkUri or MessageType.GetPageBoxes or MessageType.GetPageText or MessageType.SearchPage or MessageType.GetDocumentDetails or MessageType.GetViewerPreferences or MessageType.RenderTile or MessageType.CancelBefore or MessageType.RenderBand or MessageType.ValidateStructure or MessageType.AppendAnnotations or MessageType.RewriteDocument or MessageType.VerifyAnnotations or MessageType.ShellOpen or MessageType.ShellRenderPage or MessageType.ShellClose => true,
         _ => false,
     };
 
@@ -142,6 +145,9 @@ public static class MessageTypeInfo
         MessageType.CancelBefore => DocumentIdRule.Required,
         MessageType.RenderBand => DocumentIdRule.Required,
         MessageType.ValidateStructure => DocumentIdRule.None,
+        MessageType.AppendAnnotations => DocumentIdRule.None,
+        MessageType.RewriteDocument => DocumentIdRule.None,
+        MessageType.VerifyAnnotations => DocumentIdRule.None,
         MessageType.ShellOpen => DocumentIdRule.None,
         MessageType.ShellRenderPage => DocumentIdRule.Required,
         MessageType.ShellClose => DocumentIdRule.Required,

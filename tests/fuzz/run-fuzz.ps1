@@ -12,8 +12,11 @@
     pdfwriter-append  MikePDF.PdfWriter incremental writer round trip
     shell-reply-cpp   the Explorer handler's reply decoder and checks (SHELL-18, libFuzzer+ASan)   tests/fuzz/shell_reply_fuzz.cpp
     shell-request-cs  ShellHost's request decoder and rules (SHELL-18)                             tests/fuzz/MikePDF.ShellHost.Fuzz
+    pdfwriter-edit    MikePDF.PdfWriter stage 4 (annotation edits) and the copies on arbitrary files   tests/fuzz/MikePDF.PdfWriter.Fuzz
+    journal-cs        the edit journal's reader and the recovery code behind it (save-pipeline 3.4)
+    editblob-cs       the edit blob's reader and the appender on what it decodes (save-pipeline 11.3)
 
-  The three C# targets run in one of two modes (-CSharpMode, ADR-0017):
+  The C# targets run in one of two modes (-CSharpMode, ADR-0017):
     coverage    (default) SharpFuzz-instrumented MikePDF.Protocol.dll / MikePDF.PdfWriter.dll, driven by MSVC's libFuzzer through the
                 vendored libfuzzer-dotnet driver (tests/fuzz/libfuzzer-dotnet). Coverage-guided.
     mutational  the dependency-free fallback (tests/fuzz/Shared/MutationalFuzzer.cs): no coverage feedback, outcome-signature novelty only.
@@ -27,7 +30,7 @@
 #>
 [CmdletBinding()]
 param(
-    [ValidateSet('protocol-cpp', 'engine-document', 'protocol-cs', 'pdfwriter-parse', 'pdfwriter-append', 'shell-reply-cpp', 'shell-request-cs', 'all')]
+    [ValidateSet('protocol-cpp', 'engine-document', 'protocol-cs', 'pdfwriter-parse', 'pdfwriter-append', 'shell-reply-cpp', 'shell-request-cs', 'pdfwriter-edit', 'journal-cs', 'editblob-cs', 'all')]
     [string[]] $Target = @('all'),
     [int] $Seconds = 60,
     [string] $OutRoot,
@@ -49,7 +52,9 @@ $root = (Resolve-Path (Join-Path $PSScriptRoot '../..')).Path
 if (-not $OutRoot) { $OutRoot = Join-Path $root 'build/out/fuzz' }
 if (-not $CorpusRoot) { $CorpusRoot = Join-Path $OutRoot 'corpus' }
 if (-not $FindingsRoot) { $FindingsRoot = Join-Path $OutRoot 'findings' }
-$all = 'protocol-cpp', 'engine-document', 'protocol-cs', 'pdfwriter-parse', 'pdfwriter-append', 'shell-reply-cpp', 'shell-request-cs'
+$all = 'protocol-cpp', 'engine-document', 'protocol-cs', 'pdfwriter-parse', 'pdfwriter-append', 'shell-reply-cpp', 'shell-request-cs', 'pdfwriter-edit', 'journal-cs', 'editblob-cs'
+# One harness (MikePDF.PdfWriter.Fuzz) serves these; the first word it is started with picks the target.
+$pdfwriterGroup = 'pdfwriter-parse', 'pdfwriter-append', 'pdfwriter-edit', 'journal-cs', 'editblob-cs'
 if ($Target -contains 'all') { $Target = $all }
 if ($SelfTest) { $Target = @('protocol-cs'); $CSharpMode = 'coverage' }
 New-Item -ItemType Directory -Force $OutRoot, $CorpusRoot, $FindingsRoot, (Join-Path $OutRoot 'logs') | Out-Null
@@ -73,11 +78,14 @@ $csBin = @{
     'protocol-cs'      = Join-Path $root 'build/out/fuzz-bin/protocol'
     'pdfwriter-parse'  = Join-Path $root 'build/out/fuzz-bin/pdfwriter'
     'pdfwriter-append' = Join-Path $root 'build/out/fuzz-bin/pdfwriter'
+    'pdfwriter-edit'   = Join-Path $root 'build/out/fuzz-bin/pdfwriter'
+    'journal-cs'       = Join-Path $root 'build/out/fuzz-bin/pdfwriter'
+    'editblob-cs'      = Join-Path $root 'build/out/fuzz-bin/pdfwriter'
     'shell-request-cs' = Join-Path $root 'build/out/fuzz-bin/shellhost'
 }
 
 $driverExe = Join-Path $root 'build/out/fuzz-driver/driver/Release/libfuzzer_dotnet.exe'
-$useCoverage = ($CSharpMode -eq 'coverage') -and [bool] ($Target | Where-Object { $_ -in 'protocol-cs', 'pdfwriter-parse', 'pdfwriter-append', 'shell-request-cs' })
+$useCoverage = ($CSharpMode -eq 'coverage') -and [bool] ($Target | Where-Object { $_ -in 'protocol-cs', 'pdfwriter-parse', 'pdfwriter-append', 'pdfwriter-edit', 'journal-cs', 'editblob-cs', 'shell-request-cs' })
 # SharpFuzz.CommandLine 2.3.0 (MIT, tests/fuzz/.config/dotnet-tools.json): a tool-manifest version pins the version but not the bytes, so the
 # package's SHA-512 is pinned here and checked after the restore.
 $sharpFuzzCliSha512 = 'G/7VoIh0eqKYdGM9GZJqM+twCotc9T3WFl6QMaulYhzKNGwS90zdXx43JC3jYrwz/BTGVDv4Nu1VK5F+f12kzg=='
@@ -134,7 +142,7 @@ if (-not $SkipBuild) {
         dotnet build (Join-Path $root 'tests/fuzz/MikePDF.ShellHost.Fuzz') -c Release -o $csBin['shell-request-cs']
         if ($LASTEXITCODE -ne 0) { Write-Host 'build failed' -ForegroundColor Red; exit 2 }
     }
-    if ($Target | Where-Object { $_ -like 'pdfwriter-*' }) {
+    if ($Target | Where-Object { $_ -in $pdfwriterGroup }) {
         Write-Host '==> C# PdfWriter fuzz harness' -ForegroundColor Cyan
         dotnet build (Join-Path $root 'tests/fuzz/MikePDF.PdfWriter.Fuzz') -c Release -o $csBin['pdfwriter-parse']
         if ($LASTEXITCODE -ne 0) { Write-Host 'build failed' -ForegroundColor Red; exit 2 }
@@ -143,7 +151,7 @@ if (-not $SkipBuild) {
         Install-CoverageTools
         if ($Target -contains 'protocol-cs') { Install-Instrumented $csBin['protocol-cs'] @('MikePDF.Protocol.dll') }
         if ($Target -contains 'shell-request-cs') { Install-Instrumented $csBin['shell-request-cs'] @('MikePDF.Protocol.dll', 'MikePDF.ShellHost.dll') }
-        if ($Target | Where-Object { $_ -like 'pdfwriter-*' }) { Install-Instrumented $csBin['pdfwriter-parse'] @('MikePDF.PdfWriter.dll') }
+        if ($Target | Where-Object { $_ -in $pdfwriterGroup }) { Install-Instrumented $csBin['pdfwriter-parse'] @('MikePDF.PdfWriter.dll', 'MikePDF.Core.dll', 'MikePDF.Protocol.dll') }
     }
 }
 
@@ -173,6 +181,12 @@ foreach ($file in Get-ChildItem (Join-Path $PSScriptRoot 'seeds/shell-request') 
     $bytes = [IO.File]::ReadAllBytes($file.FullName)
     if ($bytes.Length -gt 4) { [IO.File]::WriteAllBytes((Join-Path $shellRequestSeeds ('body-' + $file.Name)), $bytes[4..($bytes.Length - 1)]) }
 }
+# The save targets' seeds were made by `MikePDF.PdfWriter.Fuzz <journal|editblob> --seeds-out <dir>` and are committed.
+$journalSeeds = Join-Path $seedRoot 'journal'
+$editblobSeeds = Join-Path $seedRoot 'editblob'
+New-Item -ItemType Directory -Force $journalSeeds, $editblobSeeds | Out-Null
+Copy-Item (Join-Path $PSScriptRoot 'seeds/journal/*.jsonl') $journalSeeds -Force
+Copy-Item (Join-Path $PSScriptRoot 'seeds/editblob/*.bin') $editblobSeeds -Force
 $dictionaries = Join-Path $PSScriptRoot 'dictionaries'
 
 # ---- run -----------------------------------------------------------------------------------------------------------------
@@ -316,6 +330,9 @@ foreach ($t in $Target) {
         'protocol-cs'      { $results += Invoke-CSharp $t 'MikePDF.Protocol.Fuzz' @() $protocolSeeds (Join-Path $dictionaries 'protocol.dict') 65540 }
         'pdfwriter-parse'  { $results += Invoke-CSharp $t 'MikePDF.PdfWriter.Fuzz' @('parse') $pdfSeeds (Join-Path $dictionaries 'pdf.dict') 131072 }
         'pdfwriter-append' { $results += Invoke-CSharp $t 'MikePDF.PdfWriter.Fuzz' @('append') $pdfSeeds (Join-Path $dictionaries 'pdf.dict') 131072 }
+        'pdfwriter-edit'   { $results += Invoke-CSharp $t 'MikePDF.PdfWriter.Fuzz' @('edit') $pdfSeeds (Join-Path $dictionaries 'pdf.dict') 131072 }
+        'journal-cs'       { $results += Invoke-CSharp $t 'MikePDF.PdfWriter.Fuzz' @('journal') $journalSeeds (Join-Path $dictionaries 'journal.dict') 65536 }
+        'editblob-cs'      { $results += Invoke-CSharp $t 'MikePDF.PdfWriter.Fuzz' @('editblob') $editblobSeeds (Join-Path $dictionaries 'protocol.dict') 65536 }
         'shell-reply-cpp'  { $results += Invoke-Native $t (Join-Path $nativeBin 'fuzz_shell_reply.exe') $shellReplySeeds (Join-Path $dictionaries 'protocol.dict') 65548 }
         'shell-request-cs' { $results += Invoke-CSharp $t 'MikePDF.ShellHost.Fuzz' @() $shellRequestSeeds (Join-Path $dictionaries 'protocol.dict') 65540 }
     }

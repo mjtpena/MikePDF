@@ -11,3 +11,6 @@
 *.tgz  binary
 *.zip  binary
 *.bin binary
+
+# Journal files and their fuzz seeds: every line carries a checksum of its bytes, so a line ending must never be converted
+*.jsonl -text

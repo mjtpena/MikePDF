@@ -313,6 +313,52 @@ std::vector<RequestSample> request_samples() {
         v.push_back({"req_shell_render_page_smallest", 28, 3, 1, m});
     }
     v.push_back({"req_shell_close", 27, 3, 500, ShellClose{}});
+
+    // Schema 6: the writer host's save messages. The engine answers none of them; the codec carries them for the broker and the host.
+    {
+        AppendAnnotations m;
+        m.base_handle = 0x1F4;
+        m.edits_handle = 0x1F8;
+        m.edits_length = 268'435'456;
+        m.output_handle = 0x1FC;
+        m.page_count = 10'000'000;
+        v.push_back({"req_append_annotations", 40, 0, 90000, m});
+    }
+    {
+        AppendAnnotations m;
+        m.base_handle = 1;
+        m.edits_handle = 1;
+        m.edits_length = 1;
+        m.output_handle = 1;
+        m.page_count = 0;
+        v.push_back({"req_append_annotations_smallest", 41, 0, 1, m});
+    }
+    {
+        RewriteDocument m;
+        m.base_handle = 0x1F4;
+        m.output_handle = 0x1FC;
+        m.flags = 3;
+        v.push_back({"req_rewrite_document", 42, 0, 90000, m});
+        m.flags = 0;
+        v.push_back({"req_rewrite_document_plain", 43, 0, 90000, m});
+    }
+    {
+        VerifyAnnotations m;
+        m.base_handle = 0x1F4;
+        m.output_handle = 0x1FC;
+        m.page_count = 342;
+        m.pages = {0, 9999999};
+        m.added = {3, 0};
+        m.removed = {1, 100'000'000};
+        v.push_back({"req_verify_annotations", 44, 0, 90000, m});
+    }
+    {
+        VerifyAnnotations m;
+        m.base_handle = 1;
+        m.output_handle = 2;
+        m.page_count = 1;
+        v.push_back({"req_verify_annotations_no_pages", 45, 0, 90000, m});
+    }
     return v;
 }
 
@@ -530,6 +576,51 @@ std::vector<ResponseSample> response_samples() {
         v.push_back({"rsp_shell_render_page", 26, Status::Ok, MessageType::ShellRenderPage, m});
     }
     v.push_back({"rsp_shell_close", 27, Status::Ok, MessageType::ShellClose, ShellCloseReply{}});
+
+    // Schema 6.
+    {
+        AppendAnnotationsReply m;
+        m.ok = false;
+        m.truncated = true;
+        m.issue_codes = {30, 65535};
+        m.issue_messages = {"error: an annotation's rectangle is not the one the edit expected", "caf" "\xC3\xA9"};
+        v.push_back({"rsp_append_annotations_refused", 41, Status::Ok, MessageType::AppendAnnotations, m});
+    }
+    {
+        AppendAnnotationsReply m;
+        m.ok = true;
+        m.annotations_added = 100'000'000;
+        m.annotations_removed = 3;
+        m.objects_written = 100'000'000;
+        m.bytes_written = 2'147'483'647;
+        v.push_back({"rsp_append_annotations", 40, Status::Ok, MessageType::AppendAnnotations, m});
+    }
+    v.push_back({"rsp_append_annotations_timeout", 46, Status::Timeout, MessageType::AppendAnnotations, std::nullopt});
+    {
+        RewriteDocumentReply m;
+        m.ok = false;
+        m.issue_codes = {1};
+        m.issue_messages = {"error: the writer cannot rewrite an encrypted document"};
+        v.push_back({"rsp_rewrite_document_refused", 43, Status::Ok, MessageType::RewriteDocument, m});
+    }
+    {
+        RewriteDocumentReply m;
+        m.ok = true;
+        m.pages_changed = 10'000'000;
+        m.annotations_flattened = 12;
+        m.annotations_removed = 14;
+        m.objects_written = 5000;
+        m.bytes_written = 1'048'576;
+        v.push_back({"rsp_rewrite_document", 42, Status::Ok, MessageType::RewriteDocument, m});
+    }
+    {
+        VerifyAnnotationsReply m;
+        m.ok = true;
+        m.mismatches = {7, 9999999};
+        v.push_back({"rsp_verify_annotations", 44, Status::Ok, MessageType::VerifyAnnotations, m});
+        m.mismatches = {};
+        v.push_back({"rsp_verify_annotations_clean", 45, Status::Ok, MessageType::VerifyAnnotations, m});
+    }
     v.push_back({"rsp_error_password_required", 4, Status::PasswordRequired, MessageType::OpenDocument, std::nullopt});
     v.push_back({"rsp_error_timeout", 9, Status::Timeout, MessageType::RenderTile, std::nullopt});
     return v;
@@ -927,7 +1018,7 @@ TEST(ProtocolRoundTrip, EveryStatusIsCarriedAsItsOwnValue) {
 
 TEST(ProtocolRoundTrip, TheSchemaConstantsAreWhatTheDocsSay) {
     EXPECT_EQ(kMaxFrameBytes, 65536u);
-    EXPECT_EQ(kSchemaVersion, 5u);
+    EXPECT_EQ(kSchemaVersion, 6u);
     EXPECT_EQ(kMaxDeadlineMs, 86400000u);
 }
 

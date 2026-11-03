@@ -9,7 +9,17 @@ risk R-31).
 | `parse` | strict open, lenient open, `StructureValidator`, object and stream access on arbitrary bytes | any exception that escapes, a hang, a limit exceeded, strict-accepts-but-lenient-refuses, a refused file reported valid |
 | `append` | strict open, then an incremental update that adds an object and re-writes up to 3 parsed objects, then re-opens the output | any exception, the writer's own output self-check failing on a strictly valid base, the input not being an exact prefix of the output |
 
-Both targets live in `FuzzTargets.cs`. They catch nothing: an escaped exception **is** the crash. The same checks run as a fixed-seed
+Three more targets belong to the save pipeline (save-pipeline 3.3, 3.4 and 11.3), in `SaveFuzzTargets.cs`; they need the `MikePDF.Core` and `MikePDF.Protocol` references this project now has:
+
+| Target | What it does | What counts as a finding |
+|---|---|---|
+| `edit` | strict open, the page tree walk, `AnnotationAppender` with an add, an add on the last page and an update and a delete aimed at what the file really has, and `DocumentRewriter` with each flatten flag | any exception, an output that does not reopen strictly or does not keep the input as a prefix, a rewrite that changes the page count |
+| `journal` | `JournalCodec.Parse` on arbitrary bytes, then the round trip of what it returned and the recovery code that consumes it (`RecoveryService.Summarise`, `SaveRecovery.IsPipelineFile`) | any exception, a hang, sequence numbers that are not 1, 2, 3, a record that does not survive being written and read again, a recorded path accepted from outside the target's folder |
+| `editblob` | `EditBlobCodec.TryDecode` on arbitrary bytes; an accepted blob must re-encode to the same bytes and is then applied to a built-in two page document by the appender | any exception, a blob that is not a fixed point, an output that does not reopen strictly with the input as a prefix |
+
+`MikePDF.PdfWriter.Fuzz <journal|editblob> --seeds-out <dir>` writes the seeds (committed under `tests/fuzz/seeds/journal` and `tests/fuzz/seeds/editblob`). The `edit` target takes the PDF seeds.
+
+Both of the first two targets live in `FuzzTargets.cs`. They catch nothing: an escaped exception **is** the crash. The same checks run as a fixed-seed
 mutation pass in `tests/MikePDF.PdfWriter.Tests/MutationTests.cs` on every test run.
 
 This project is **not** in `MikePDF.slnx` yet (another change is editing the solution). To add it:

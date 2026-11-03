@@ -464,6 +464,51 @@ public static class GoldenVectors
         Rsp("shell_render_page_reply_stride_4097", Reply(new ShellRenderPageReply { Width = 1, Height = 1, Stride = 4097 }, MessageType.ShellRenderPage), Invalid);
         Rsp("shell_close_reply_with_a_field", RawFrame.Response(Items(1u), MessageType.ShellClose), Protocol);
 
+        // Schema 6: the writer host's save messages. "none" messages carry no document.
+        static AppendAnnotations Append(Action<AppendAnnotations> edit)
+        {
+            var message = new AppendAnnotations { BaseHandle = 1, EditsHandle = 2, EditsLength = 100, OutputHandle = 3, PageCount = 2 };
+            edit(message);
+            return message;
+        }
+
+        Req("append_annotations_base_handle_zero", NoDoc(Append(m => m.BaseHandle = 0), MessageType.AppendAnnotations), Invalid);
+        Req("append_annotations_edits_handle_zero", NoDoc(Append(m => m.EditsHandle = 0), MessageType.AppendAnnotations), Invalid);
+        Req("append_annotations_output_handle_zero", NoDoc(Append(m => m.OutputHandle = 0), MessageType.AppendAnnotations), Invalid);
+        Req("append_annotations_edits_length_zero", NoDoc(Append(m => m.EditsLength = 0), MessageType.AppendAnnotations), Invalid);
+        Req("append_annotations_edits_above_256_mib", NoDoc(Append(m => m.EditsLength = 268_435_457), MessageType.AppendAnnotations), Invalid);
+        Req("append_annotations_pages_10000001", NoDoc(Append(m => m.PageCount = 10_000_001), MessageType.AppendAnnotations), Invalid);
+        Req("append_annotations_with_a_document", RawFrame.Request(RawFrame.Serialized(Append(_ => { })), MessageType.AppendAnnotations, 9, 7), Invalid);
+        Req("append_annotations_with_a_path", RawFrame.Request(Items(1UL, 2UL, 100UL, 3UL, 2u, "C:\\a.pdf"), MessageType.AppendAnnotations, 9, 0), Protocol); // handles only, never paths
+        Req("append_annotations_handle_is_a_string", RawFrame.Request(Items("1", 2UL, 100UL, 3UL, 2u), MessageType.AppendAnnotations, 9, 0), Protocol);
+        Req("rewrite_document_base_handle_zero", NoDoc(new RewriteDocument { BaseHandle = 0, OutputHandle = 1, Flags = 0 }, MessageType.RewriteDocument), Invalid);
+        Req("rewrite_document_output_handle_zero", NoDoc(new RewriteDocument { BaseHandle = 1, OutputHandle = 0, Flags = 0 }, MessageType.RewriteDocument), Invalid);
+        Req("rewrite_document_flags_reserved_bit", NoDoc(new RewriteDocument { BaseHandle = 1, OutputHandle = 2, Flags = 4 }, MessageType.RewriteDocument), Invalid);
+        Req("rewrite_document_with_a_document", RawFrame.Request(RawFrame.Serialized(new RewriteDocument { BaseHandle = 1, OutputHandle = 2, Flags = 0 }), MessageType.RewriteDocument, 9, 7), Invalid);
+        Req("verify_annotations_base_handle_zero", NoDoc(new VerifyAnnotations { BaseHandle = 0, OutputHandle = 1, PageCount = 1, Pages = [], Added = [], Removed = [] }, MessageType.VerifyAnnotations), Invalid);
+        Req("verify_annotations_2049_pages", NoDoc(new VerifyAnnotations { BaseHandle = 1, OutputHandle = 2, PageCount = 5000, Pages = new uint[2049], Added = new uint[2049], Removed = new uint[2049] }, MessageType.VerifyAnnotations), Invalid);
+        Req("verify_annotations_page_10000000", NoDoc(new VerifyAnnotations { BaseHandle = 1, OutputHandle = 2, PageCount = 1, Pages = [10_000_000], Added = [0], Removed = [0] }, MessageType.VerifyAnnotations), Invalid);
+        Req("verify_annotations_counts_differ_in_length", NoDoc(new VerifyAnnotations { BaseHandle = 1, OutputHandle = 2, PageCount = 1, Pages = [0, 1], Added = [0], Removed = [0, 0] }, MessageType.VerifyAnnotations), Invalid);
+        Req("verify_annotations_count_above_100_million", NoDoc(new VerifyAnnotations { BaseHandle = 1, OutputHandle = 2, PageCount = 1, Pages = [0], Added = [100_000_001], Removed = [0] }, MessageType.VerifyAnnotations), Invalid);
+        Rsp("append_annotations_reply_257_issues", RawFrame.Response(
+            (ref MessagePackWriter w) =>
+            {
+                w.WriteArrayHeader(8); w.Write(false); w.Write(0u); w.Write(0u); w.Write(0u); w.Write(0UL); w.Write(false);
+                w.WriteArrayHeader(257);
+                for (var i = 0; i < 257; i++) w.Write((uint)i);
+                w.WriteArrayHeader(0);
+            },
+            MessageType.AppendAnnotations), Invalid);
+        Rsp("append_annotations_reply_bytes_above_2_gib", Reply(new AppendAnnotationsReply { Ok = true, BytesWritten = 2_147_483_648UL, IssueCodes = [], IssueMessages = [] }, MessageType.AppendAnnotations), Invalid);
+        Rsp("append_annotations_reply_added_above_100_million", Reply(new AppendAnnotationsReply { Ok = true, AnnotationsAdded = 100_000_001, IssueCodes = [], IssueMessages = [] }, MessageType.AppendAnnotations), Invalid);
+        Rsp("append_annotations_reply_issue_codes_differ_in_length", Reply(new AppendAnnotationsReply { Ok = false, IssueCodes = [1, 2], IssueMessages = ["one"] }, MessageType.AppendAnnotations), Invalid);
+        Rsp("append_annotations_reply_message_193_bytes", Reply(new AppendAnnotationsReply { Ok = false, IssueCodes = [1], IssueMessages = [new string('m', 193)] }, MessageType.AppendAnnotations), Invalid);
+        Rsp("rewrite_document_reply_flattened_above_100_million", Reply(new RewriteDocumentReply { Ok = true, AnnotationsFlattened = 100_000_001, IssueCodes = [], IssueMessages = [] }, MessageType.RewriteDocument), Invalid);
+        Rsp("rewrite_document_reply_pages_10000001", Reply(new RewriteDocumentReply { Ok = true, PagesChanged = 10_000_001, IssueCodes = [], IssueMessages = [] }, MessageType.RewriteDocument), Invalid);
+        Rsp("verify_annotations_reply_2049_mismatches", Reply(new VerifyAnnotationsReply { Ok = false, Mismatches = new uint[2049] }, MessageType.VerifyAnnotations), Invalid);
+        Rsp("verify_annotations_reply_mismatch_page_10000000", Reply(new VerifyAnnotationsReply { Ok = false, Mismatches = [10_000_000] }, MessageType.VerifyAnnotations), Invalid);
+        Rsp("verify_annotations_reply_extra_field", RawFrame.Response(Items(true, 0u, 5u), MessageType.VerifyAnnotations), Protocol);
+
         return v;
     }
 }
