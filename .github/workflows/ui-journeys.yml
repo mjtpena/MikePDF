@@ -55,6 +55,21 @@ jobs:
           # Clipboard access needs an STA thread: a child PowerShell started with -STA has one.
           $text = pwsh -NoProfile -STA -Command "Add-Type -AssemblyName System.Windows.Forms; try { [System.Windows.Forms.Clipboard]::SetText('mikepdf-probe'); [System.Windows.Forms.Clipboard]::GetText() } catch { 'ERROR: ' + `$_ }"
           Write-Host "Clipboard round trip: $text"
+      - name: Dismiss Windows' first-sign-in pages
+        # The ARM64 image shows "Choose privacy settings for your device" full screen over the desktop on its first sign-in, and it keeps the keyboard focus from the app.
+        # It is a page of the Cloud Experience Host, so ending that host removes it (and nothing the journeys need).
+        shell: pwsh
+        run: |
+          $host_ = Get-Process CloudExperienceHost, CloudExperienceHostBroker -ErrorAction SilentlyContinue
+          Write-Host "Cloud Experience Host processes: $(@($host_).Count)"
+          $host_ | Stop-Process -Force -ErrorAction SilentlyContinue
+          Start-Sleep -Seconds 3
+          Add-Type -AssemblyName System.Windows.Forms, System.Drawing
+          New-Item -ItemType Directory -Force build/out/shots | Out-Null
+          $bounds = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds
+          $bitmap = [System.Drawing.Bitmap]::new($bounds.Width, $bounds.Height)
+          [System.Drawing.Graphics]::FromImage($bitmap).CopyFromScreen($bounds.Location, [System.Drawing.Point]::Empty, $bounds.Size)
+          $bitmap.Save((Join-Path $PWD 'build/out/shots/desktop-before-journeys.png'))
       - name: Build, register a handler-free copy of the package, run the journeys
         shell: pwsh
         run: ./build/run-ui-tests.ps1 -Arch ${{ matrix.arch }} -Ci

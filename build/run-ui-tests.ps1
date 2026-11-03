@@ -88,6 +88,15 @@ $left = Test-ShellEntries $manifest
 if ($left.Count -gt 0) { throw "The manifest copy still has shell handler entries ($($left -join ', ')); refusing to register it." }
 Write-Host "Shell handlers (thumbnail provider, preview handler, their COM servers) were REMOVED from the manifest this run registers; the rest, including the .pdf association, is unchanged. Layout: $layout" -ForegroundColor Yellow
 $identity = ([xml](Get-Content $manifest -Raw)).Package.Identity.Name
+if ($Ci) {
+    # A fresh hosted runner has no Windows App SDK framework package, which the package depends on (a developer machine has it from the store or an earlier install).
+    # It is the pinned NuGet package's own MSIX, the same one build/store/install-test.ps1 installs.
+    $pin = [regex]::Match((Get-Content (Join-Path $root 'Directory.Packages.props') -Raw), 'Include="Microsoft.WindowsAppSDK" Version="([^"]+)"').Groups[1].Value
+    $packages = if ($env:NUGET_PACKAGES) { $env:NUGET_PACKAGES } else { Join-Path $env:USERPROFILE '.nuget\packages' }
+    $framework = Join-Path $packages "microsoft.windowsappsdk.runtime\$pin	ools\MSIX\win10-$Arch\Microsoft.WindowsAppRuntime.2.msix"
+    if (-not (Test-Path $framework)) { throw "Windows App SDK framework package not found: $framework" }
+    Add-AppxPackage -Path $framework -ForceApplicationShutdown -ErrorAction Stop
+}
 $previous = Get-AppxPackage -Name $identity
 if ($previous) { Remove-AppxPackage $previous.PackageFullName }
 Add-AppxPackage -Register $manifest
