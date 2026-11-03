@@ -94,7 +94,7 @@ public static class JournalPrivacy
 public sealed class EditSession : IEditJournal, IDisposable
 {
     private readonly JournalStore? _store;
-    private readonly string? _documentPath;
+    private string? _documentPath;
     private readonly string _appVersion;
     private JournalWriter? _writer;
     private long _localSeq;
@@ -124,6 +124,12 @@ public sealed class EditSession : IEditJournal, IDisposable
     public JournalWriter? Journal => _writer;
 
     public JournalFailureMode FailureMode { get; }
+
+    /// <summary>
+    /// The journal could not even be set up (its folder cannot be made): edits go on, unprotected, and the chip says so. The same as the first command failing to start the journal in
+    /// <see cref="JournalFailureMode.Degraded"/> mode.
+    /// </summary>
+    public void MarkBackupUnavailable() => BackedUp = false;
 
     /// <summary>False once a command could not be journalled in <see cref="JournalFailureMode.Degraded"/> mode: "Changes can't be backed up right now."</summary>
     public bool BackedUp { get; private set; } = true;
@@ -196,6 +202,25 @@ public sealed class EditSession : IEditJournal, IDisposable
             _store.Delete(_documentPath);
             BackedUp = true;
         }
+    }
+
+    /// <summary>The path the journal is keyed by (null for a session with no store).</summary>
+    public string? DocumentPath => _documentPath;
+
+    /// <summary>
+    /// Save As switched the tab to another file (save-pipeline 3.2): from now on commands journal against <paramref name="newDocumentPath"/>, whose journal starts with the next command, against the
+    /// saved file. The old file's journal is removed (a save has normally done that already: the edits are in the new file). A session with no store keeps nothing and ignores this.
+    /// </summary>
+    public void Rekey(string newDocumentPath)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(newDocumentPath);
+        if (_store is null)
+        {
+            return;
+        }
+
+        ClearJournal();
+        _documentPath = newDocumentPath;
     }
 
     public void Dispose() => _writer?.Dispose();

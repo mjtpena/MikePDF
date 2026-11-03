@@ -38,6 +38,21 @@ public static class CommandCatalog
         : c.PrintJobRunning ? Fail(Reasons.PrintBusy)
         : Ok;
 
+    // Save needs a file on disk and something to write (commands.md: "Doc and Edits"); a save that is running makes a second one wait.
+    private static CommandAvailability CanSave(CommandContext c) =>
+        !c.HasDocument ? Fail(Reasons.NoDocument)
+        : !c.HasPath ? Fail(Reasons.NoPath)
+        : c.SaveRunning ? Fail(Reasons.SaveBusy)
+        : c.HasEdits ? Ok
+        : Fail(Reasons.NoEdits);
+
+    // Save as and the flattened copy work with or without edits (a copy of the file as it is).
+    private static CommandAvailability CanSaveCopy(CommandContext c) =>
+        !c.HasDocument ? Fail(Reasons.NoDocument)
+        : !c.HasPath ? Fail(Reasons.NoPath)
+        : c.SaveRunning ? Fail(Reasons.SaveBusy)
+        : Ok;
+
     private static CommandAvailability NeedsImportExport(CommandContext c) => c.ImportExportAllowed ? Ok : Fail(Reasons.Policy);
 
     private static CommandDefinition Define(
@@ -77,6 +92,9 @@ public static class CommandCatalog
             Define("file.reload", file, global, "", ["Ctrl+R"], c => c.Busy ? Fail(Reasons.Busy) : !c.HasDocument ? Fail(Reasons.NoDocument) : c.HasPath ? Ok : Fail(Reasons.NoPath), keywords: true),
             Define("file.properties", file, global, "", ["Ctrl+D"], NeedsDocument, keywords: true),
             Define("file.print", file, global, "", ["Ctrl+P"], CanPrint, keywords: true, dialog: true),
+            Define("file.save", file, global, "", ["Ctrl+S"], CanSave, keywords: true),
+            Define("file.saveAs", file, global, "", ["Ctrl+Shift+S"], CanSaveCopy, dialog: true, keywords: true),
+            Define("file.saveFlattenedCopy", file, global, "", [], CanSaveCopy, dialog: true, keywords: true),
             Define("file.printCurrentPage", file, global, "", [], CanPrint, keywords: true, dialog: true),
             Define("print.cancel", file, global, "", [], c => c.PrintJobRunning ? Ok : Fail(Reasons.NotPrinting), keywords: true, inPresentation: true),
             Define("file.newTab", file, global, "", ["Ctrl+T"], Always, keywords: true, inPresentation: true),
