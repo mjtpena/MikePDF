@@ -18,6 +18,9 @@ param(
     [switch] $KeepInstalled,
     # A package layout made by build/package.ps1 (its stage-<arch> folder) to test instead of the build output: the shipped, published app.
     [string] $PackageLayout,
+    # For the GitHub-hosted runner (.github/workflows/ui-journeys.yml): turns Developer Mode on (an HKLM write, so it refuses to run anywhere else), and
+    # writes a TRX report to build/out/ui-results. The registered manifest and the shell-handler check are the same as locally.
+    [switch] $Ci,
     [string] ${Filter-method}
 )
 $ErrorActionPreference = 'Stop'
@@ -38,6 +41,14 @@ function Stop-MikePDF {
     }
 }
 Set-Location $root
+
+if ($Ci) {
+    # Developer Mode is what lets Add-AppxPackage -Register take an unsigned layout. It is a machine setting (HKLM), so only a disposable hosted runner may have it set by a script.
+    if ($env:GITHUB_ACTIONS -ne 'true' -or $env:RUNNER_ENVIRONMENT -ne 'github-hosted') { throw '-Ci changes a machine setting and runs only on a GitHub-hosted runner.' }
+    $unlock = 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\AppModelUnlock'
+    New-Item -Path $unlock -Force | Out-Null
+    Set-ItemProperty -Path $unlock -Name AllowDevelopmentWithoutDevLicense -Value 1 -Type DWord
+}
 
 if (-not $SkipBuild -and -not $SkipNativeBuild) {
     & (Join-Path $root 'build.ps1') -Arch $Arch -SkipManaged
@@ -92,6 +103,11 @@ try {
     $env:MIKEPDF_UI_TESTS = '1'
     $env:MIKEPDF_SHOTS_DIR = $shots
     $arguments = @('test', '--project', (Join-Path $root 'tests/MikePDF.UI.Tests'), '-c', 'Release', '--no-build')
+    if ($Ci) {
+        $results = Join-Path $root 'build/out/ui-results'
+        New-Item -ItemType Directory -Force $results | Out-Null
+        $arguments += @('--results-directory', $results, '--report-xunit-trx', '--report-xunit-trx-filename', "ui-journeys-$Arch.trx")
+    }
     if (${Filter-method}) { $arguments += @('--filter-method', ${Filter-method}) }
     dotnet @arguments
     $code = $LASTEXITCODE

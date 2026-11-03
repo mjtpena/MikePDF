@@ -1,0 +1,88 @@
+name: UI journeys
+
+# The FlaUI journeys (tests/MikePDF.UI.Tests, ADR-0009) on a GitHub-hosted Windows runner, so that they no longer take over a developer's mouse and keyboard.
+# build/run-ui-tests.ps1 does the work, with -Ci: it builds, registers a COPY of the package whose manifest has the Explorer thumbnail and preview handlers and the
+# windows.comServer extension removed (and throws if any remain, before or after registering), and drives the real app through UI Automation. Developer Mode is switched on
+# by the script, which refuses to do that anywhere but a GitHub-hosted runner. Nothing is registered with the shell.
+# docs/testing.md ("UI journeys in CI") says what the runners give the journeys and which journeys are quarantined.
+on:
+  workflow_dispatch:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  # A manual run has a group of its own, so that several can be started side by side (to repeat a flaky check) and none cancels another.
+  group: ui-journeys-${{ github.ref }}-${{ github.event_name == 'workflow_dispatch' && github.run_id || 'auto' }}
+  # A newer push to a branch supersedes the older run; main's runs are each kept.
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+jobs:
+  journeys:
+    name: ui-journeys-${{ matrix.arch }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Runner labels are pinned explicitly, never *-latest (ADR-0001).
+          - arch: x64
+            runner: windows-2025-vs2026
+          - arch: arm64
+            runner: windows-11-vs2026-arm
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 60
+    env:
+      CI: 'true'
+      DOTNET_NOLOGO: 'true'
+      DOTNET_CLI_TELEMETRY_OPTOUT: 'true'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          dotnet-version: '10.0.4xx' # ADR-0001 pin (10.0.403); global.json rolls forward to it
+      - name: What this runner gives a UI test (session, screen, clipboard)
+        shell: pwsh
+        run: |
+          Add-Type -AssemblyName System.Windows.Forms, System.Drawing
+          $session = (Get-Process -Id $PID).SessionId
+          $screen = [System.Windows.Forms.Screen]::PrimaryScreen
+          Write-Host "OS: $([System.Environment]::OSVersion.VersionString), arch $($env:PROCESSOR_ARCHITECTURE), user $env:USERNAME, session id $session, interactive $([System.Environment]::UserInteractive)"
+          Write-Host "Primary screen: $($screen.Bounds.Width)x$($screen.Bounds.Height), working area $($screen.WorkingArea.Width)x$($screen.WorkingArea.Height)"
+          Write-Host "Explorer running: $([bool](Get-Process explorer -ErrorAction SilentlyContinue))"
+          $clip = Start-Job { Add-Type -AssemblyName System.Windows.Forms; [System.Windows.Forms.Clipboard]::SetText('mikepdf-probe'); [System.Windows.Forms.Clipboard]::GetText() }
+          # Clipboard access needs an STA thread: run it in one.
+          $text = $null
+          $t = [System.Threading.Thread]::new({ try { [System.Windows.Forms.Clipboard]::SetText('mikepdf-probe'); $script:text = [System.Windows.Forms.Clipboard]::GetText() } catch { $script:text = "ERROR: $_" } })
+          $t.SetApartmentState('STA'); $t.Start(); $t.Join()
+          Remove-Job $clip -Force
+          Write-Host "Clipboard round trip: $text"
+      - name: Build, register a handler-free copy of the package, run the journeys
+        shell: pwsh
+        run: ./build/run-ui-tests.ps1 -Arch ${{ matrix.arch }} -Ci
+      - name: Screenshot of the desktop after a failure
+        if: failure()
+        shell: pwsh
+        run: |
+          Add-Type -AssemblyName System.Windows.Forms, System.Drawing
+          New-Item -ItemType Directory -Force build/out/shots | Out-Null
+          $bounds = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds
+          $bitmap = [System.Drawing.Bitmap]::new($bounds.Width, $bounds.Height)
+          [System.Drawing.Graphics]::FromImage($bitmap).CopyFromScreen($bounds.Location, [System.Drawing.Point]::Empty, $bounds.Size)
+          $bitmap.Save((Join-Path $PWD 'build/out/shots/desktop-after-failure.png'))
+      - name: Upload the TRX report
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: ui-journeys-trx-${{ matrix.arch }}
+          path: build/out/ui-results/**
+          if-no-files-found: warn
+      - name: Upload the screenshots
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: ui-journeys-shots-${{ matrix.arch }}
+          path: build/out/shots/**
+          if-no-files-found: warn
