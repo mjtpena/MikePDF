@@ -1,6 +1,6 @@
 # Feature spec: printing and the §8.10 test matrix
 
-- Status: Draft for Opus review. **Blocked on ADR-0011**, which is not written yet (section 3.1)
+- Status: Built and reviewed in parts: the pipeline (W2-print-core) and the print sheet (W2-print-sheet, [section 17](#17-the-print-sheet-w2-print-sheet)). ADR-0011 is accepted. Not verified: physical, PCL, PostScript, duplex and ARM64 printers, XPS (sections 14 and 17)
 - Milestone: M3 (full reader); one step ([section 3.9](#39-printing-unsaved-edits)) completes in M4
 - Master prompt: §2.1 (print with the Windows print dialog, page ranges, scaling, duplex), §8.10, §12.5 journey 11, §18 scenario 2, Appendix C (ADR-0011)
 - Author: Sonnet (W1-specs). Reviewer: Opus
@@ -304,15 +304,67 @@ The pipeline behind the print sheet is built and tested; the sheet itself (desig
 | PRINT-06 | Amended criterion (see 274): `PrintContentTests` assert at most 0.3% differing pixels and none at a boundary. Measured: about 0.1%, on text, hairline and rectangle edges | `PrintContentTests` |
 | PRINT-08 | Engine reply as before; the defaults taken from it are clamped and junk is ignored | `PrintPolicyTests`, `PrintContentTests.HostilePrintPreferences...` |
 | PRINT-09 | Done, in the pipeline as well as in `PrintEligibility` | `PrintPolicyTests`, `PrintJobTests`, `PrintSessionTests` |
-| PRINT-10 | **Reduced.** Broker and engine private bytes from 10 to 60 pages with a discarding printer. The 1,000 page job to Print To PDF is manual and **UNVERIFIED** | `PrintRecoveryTests` |
+| PRINT-10 | **Reduced test passes; the full 1,000 page run (2026-11-04) fails the 5% bound**: broker +34%, engine 3.2 times (17.3) | `PrintRecoveryTests`, `PrintThousandPageTests` |
 | PRINT-11, -12 | Done, with a scripted engine and with the real one (killed twice, and three times) and the real PDF queue | `PrintJobTests`, `PrintRecoveryTests`, `PrintToPdfTests` |
-| PRINT-13 | Pipeline part done (SSIM of each printed page against the source render, box filtered by 4). 0.99 holds at readable sizes; shrunk text gives 0.98 (see the test). The UI journey is the sheet's | `PrintToPdfTests` |
+| PRINT-13 | Done at both layers. Pipeline: SSIM of each printed page against the source render, box filtered by 4 (0.99 at readable sizes; shrunk text 0.98, see the test). UI journey 11 (the sheet, Print To PDF, the file read back through the engine): range 3-5 at Fit, 0.9998 on every page; 4 pages per sheet, 0.9995 to 1.0000 in every cell of both sheets; custom 50%, 1.0000; a pseudo-RTL window, 0.9999 | `PrintToPdfTests`, `PrintJourneyTests` (`J11_*`, `RTL_*`) |
 | PRINT-14 | Done | `PrintContentTests` |
-| PRINT-15 | **Half.** No highlight ever prints. Field contents do **not** print: PDFium draws a widget only through `FPDF_FFLDraw`, `FPDF_ANNOT` never shows one, and the engine refuses `RenderBand` flag bit 1 until it has a form-fill environment (M4). The job asks again without the bit and says so in `PrintResult.FormLayerUnavailable`. The contents test skips itself, with that reason, until the engine accepts the bit | `PrintContentTests` |
+| PRINT-15 | Done. No highlight ever prints, and the engine draws widgets when `RenderBand` carries flag bit 1 (PR #19): a filled field prints its appearance | `PrintContentTests` |
 | PRINT-16, -17, -18 | Done | `PrintContentTests`, `PrintJobTests`, `PrintToPdfTests` |
 | PRINT-19, -20 | M4 (the snapshot of a modified document) | not built |
-| PRINT-21, -22 | The sheet | not built |
+| PRINT-21, -22 | Done by the sheet (section 17): names, roles, tab order, announcements, and the reason for a disabled Print in help text, palette, banner and a hover flyout | `PrintJourneyTests`, `PrintSheetSourceTests`, `PrintSheetTests` |
 | PRINT-23 | The Print To PDF cells marked A pass on this machine; no XPS queue exists here (OQ-PRINT-7) | `PrintToPdfTests` |
 | PRINT-24 | Done (pixel cap, protocol limits, 99 copies, junk `/PrintPageRange`) | `PrintJobTests`, `PrintContentTests` |
 
-Not in v1, by this spec: booklet. N-up is in the pipeline (`PrintOptions.PagesPerSheet`) and not in the section 3.2 options, so the sheet decides whether to offer it.
+Not in v1, by this spec: booklet. N-up is offered by the sheet (section 17): 2, 4, 6, 9 and 16 pages per sheet, as decisions.md says.
+
+## 17. The print sheet (W2-print-sheet, `m3/print-sheet`)
+
+### 17.1 What was built
+
+- **The sheet** (`Ctrl+P`, the **Print** button of the command bar, the palette, and **Print current page**): `src/MikePDF.App/Views/PrintSheetView.xaml` in a `ContentDialog`, driven by `MainWindow.Print.cs`. Printer, **Printer preferences...** (the driver's own dialog, `DocumentProperties` with `DM_PROMPT`; what is changed there is read back into the sheet and the whole DEVMODE rides on to the job), copies and collate, pages (all, current, a typed range with inline errors from `PageRangeParser`, odd or even), sides (only where the printer has them), orientation and auto-rotate, scale (shrink large pages, fit, actual size, custom 10 to 400%), pages per sheet with their order, paper from the driver's list, colour or black and white, comments and form contents, print as image. A summary says what will happen ("Printing 5 pages on 3 sheets, both sides").
+- **The preview** (`PrintPreview`): the first sheet of the selection (a pager steps through the others), drawn by the planner the job uses at screen size from engine bands, with the paper's margins from the device, 250 ms after the last change and never blocking the controls. Notices say what the printer did with the settings (`DeviceOpenReport`): a cleared duplex or paper, pages that would be cut off, low-quality-only permission, a printer that did not answer.
+- **Last-used values** in the `print.*` settings (`SettingsRegistry`, with names and descriptions; the printer and the paper are device state and are not exported). Copies and pages are not remembered. A document's `/ViewerPreferences` (`GetViewerPreferences`, clamped as the pipeline does: copies 1 to 99, junk ranges ignored) win over the remembered scale, copies, sides and pages for what they say.
+- **The job and its strip**: an `InfoBar` over the document area with a `ProgressBar` named "Printing {document}", the page count (one UIA notification per sheet and one at the end), **Cancel** (and `Esc` while the strip has focus; command `print.cancel`), the plain-language end state (sent, stopped after page n, or why not, with **Try again** and **Choose another printer**) and, for a failure, the printer's or engine's own words on a second line. The document stays readable; one job at a time per window; closing the window mid-job asks first. `PrintFailure` sorts a Win32 error or engine status into offline, access denied, spooler, engine failed (three crashes), page too slow, output unwritable, or the person closing the system's own save box.
+- **Disabled Print** (PRINT-22): `file.print` is off for no document, policy (`PrintingEnabled`), then the owner's permission (bit 3), then a running job, each with its own reason string. The reason is the UIA `HelpText`, the palette row, the banner `Ctrl+P` shows, and a hover flyout (WinUI shows no tooltip for a disabled control, so the command bar looks at the cursor every 150 ms while the window is active and shows the tooltip's words in a small flyout).
+- **Test seam** `MIKEPDF_TEST_PRINT_OUTPUT` (a folder; the job for Microsoft Print to PDF is written there as `print-<n>.pdf`, so no Save dialog appears), read only through `TestSeamGate`.
+
+### 17.2 Criteria to tests
+
+| Id | Test |
+|---|---|
+| PRINT-10 | `PrintThousandPageTests` (opt-in: `MIKEPDF_PRINT_1000=1`), the full criterion: **run on 2026-11-04 and it fails the 5% bound** (17.3); `PrintRecoveryTests` is the reduced one that always runs and passes |
+| PRINT-11 | `PrintJourneyTests.PRINT11_CancelStopsTheJobAtOnceLeavesNoFileOrSpoolJobAndTheNextPrintWorks` (through the UI: 94 to 390 ms from pressing Cancel to the strip saying it stopped, see 17.3), `PrintToPdfTests` and `PrintJobTests` (the pipeline) |
+| PRINT-13 | `PrintJourneyTests.J11_*` and `RTL_*` (section 16, PRINT-13) |
+| PRINT-21 | `PrintJourneyTests.PRINT21_*` (names, control types, the tab order of 18 stops, the progress bar, exactly five notifications for a four sheet job), `TheWholeJobWorksFromTheKeyboardAlone` (`Ctrl+P`, `Tab` to the range, `3-7`, `Enter`), `ANarrowWindow...` (stacked and hidden preview), `PrintSheetSourceTests` (system colours only, every automation id, document order, live regions) |
+| PRINT-22 | `PrintJourneyTests.PRINT22_*` (owner, with and without the owner password; policy through a throwaway HKCU key, off and back on), `PrintSheetTests` (the rule, every reason, the palette row) |
+| Also touched | the range grammar inline (`ARangeThatIsNotValid...`), settings persistence and the settings file holding no paths (`TheLastUsedOptions...`, `PrintSheetTests`), the driver's own preferences dialog (`ThePrintersOwnPreferences...`), the preview (`PrintSheetPipelineTests`, `PrintPreviewEngineTests`: bands, margins, N-up order, grey scale, flags, annotations and form fields with the real engine), failure kinds (`PrintSheetTests`), `TestSeamGateTests` |
+
+### 17.3 Measurements
+
+Taken on the development machine (Windows 11, Microsoft Print to PDF, no physical printer). The pipeline numbers are from `build/out/print-evidence.txt`, the UI numbers from the journeys' own evidence file `build/out/print-ui-evidence.txt`; neither file is committed.
+
+| What | Result | Run |
+|---|---|---|
+| PRINT-10, 10 pages | broker (test host) peak 163.8 MiB, engine 4.8 MiB, spooler side 150.8 MiB, 17 s, output 27.5 MiB | `PrintThousandPageTests`, 2026-11-04 |
+| PRINT-10, **1,000 pages** | broker peak **220.2 MiB (+34%)**, engine peak **15.3 MiB (3.2 times)**, spooler side 2,261 MiB, 1,428 s (1.43 s per page), output 2,230 MiB. **The test fails its 5% bound for both processes** | same run, 24 min |
+| PRINT-10, reduced (always runs) | broker 52.9 MiB at 10 pages and 57.4 MiB at 60 (passes with its allowance); engine 4.8 and 5.1 MiB | `PrintRecoveryTests` |
+| Cancel, pipeline | 26 ms from the cancel to the end of the job, 2 sheets printed | `PrintToPdfTests` |
+| Cancel, through the sheet | 94 to 390 ms over seven runs from pressing Cancel to the strip saying it stopped (the last four: "Stopped after page 2."), all under the 1 s of PRINT-11 | `PRINT11_*`, 2026-11-03, previous work package's runs |
+| PRINT-13, SSIM against the source render | pipeline 0.98 to 0.996; through the sheet: range 3-5 at Fit 0.9998 on every page, 4 pages per sheet 0.9995 to 1.0000, custom 50% 1.0000, pseudo-RTL 0.9999 | `PrintToPdfTests`, `J11_*`, `RTL_*` |
+| PRINT-21, notifications | five for a four sheet job: pages 1 to 4 and "Sent to Microsoft Print to PDF." | `PRINT21_*`, 2026-11-03 |
+
+**The PRINT-10 result is not explained yet.** The growth is real in the full run and the criterion says "within 5% of a 10-page job's peaks". Two readings, neither tested: (1) part of it is the document itself (the engine holds a 1,000 page file, about 10 KB a page; the test host holds the fixture and a longer-running .NET heap that is not collected until it must be), in which case the criterion should say "no growth from the bands or the pages already printed" and be measured after the document is loaded; (2) part of it is something the job keeps for each page (a retained bitmap, a handle, a pending item), in which case it is a leak of about 56 KB a page in the broker. The reduced test (10 to 60 pages, +8% at the broker with its allowance) cannot tell the two apart. ADR-0011 point 4 says page-count independence "stands for MikePDF's own processes"; this run does not support that as worded. Left for the reviewer (decisions list in the completion note); the criterion and the test were not changed.
+
+### 17.4 Not done, not verified
+
+- **XPS (OQ-PRINT-7): not run.** This machine has no XPS Document Writer: its printer drivers are Microsoft Print To PDF, the Virtual Print Class Driver, the IPP and Universal Print class drivers and OneNote's. Adding the driver or a queue changes the machine's printer configuration and needs elevation (the session is at medium integrity), which the rules forbid.
+- Physical, PCL and PostScript printers, duplex reaching a driver, collate by a driver, and ARM64 printing are unchanged from section 16: unverified. The sheet reads what a driver says (`DeviceCapabilities`, the merged DEVMODE) and shows what it did not apply, but no duplex printer was available to try it.
+- High contrast and 225% text scale were not run: both are system settings the rules do not allow an agent to change. What can be checked without them is: the sheet and the strip use theme resources only (`PrintSheetSourceTests`), the layout stacks at 640 px and hides the preview behind a toggle at 480 px (`ANarrowWindow...`), and the options scroll inside a fixed-height dialog with the buttons pinned. The Narrator pass is manual.
+- The **Open printer settings** button starts `ms-settings:printers` through the shell; not verified on other Windows versions, and not run here (it would open the Settings app).
+- **Selected pages** (design 11-print) is not offered: the thumbnail list is single-select until the page organiser (M4).
+- Printing a modified document (PRINT-19, -20) is M4's.
+- A job that is running when the window closes is stopped (after asking); a print that should continue after the app exits is not supported.
+
+### 17.5 Where the design and the spec disagreed (the spec was followed)
+
+See the table in [design 11-print, section 10](../design/screens/11-print.md): low-resolution permission (a notice and a 150 dpi cap, Print as image stays the person's choice), the cadence of announcements (once per page), the default scale (shrink large pages only, where the design said fit), and the error actions (the union of the spec's Retry and the design's Try again and Choose another printer).

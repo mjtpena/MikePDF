@@ -252,6 +252,21 @@ public static class SettingsRegistry
             Owner = "shell extensions",
             PolicyName = "ShellMaxEngines",
         },
+        // ---- print: the sheet's last-used values (docs/features/print.md 3.2: "Settings persist the last-used values"). No control in Settings: the print sheet is where they are changed.
+        new SettingDefinition { Key = "print.printer", Kind = SettingKind.Text, Default = string.Empty, MaxLength = 260, Owner = "print", Exported = false },
+        new SettingDefinition { Key = "print.paper", Kind = SettingKind.Number, Default = 0, Min = 0, Max = 32767, Owner = "print", Exported = false },
+        new SettingDefinition { Key = "print.scaling", Kind = SettingKind.Enum, Default = "Shrink", Values = ["Shrink", "Fit", "Actual", "Custom"], Owner = "print" },
+        new SettingDefinition { Key = "print.customPercent", Kind = SettingKind.Number, Default = 100, Min = 10, Max = 400, Owner = "print" },
+        new SettingDefinition { Key = "print.autoRotate", Kind = SettingKind.Bool, Default = true, Owner = "print" },
+        new SettingDefinition { Key = "print.orientation", Kind = SettingKind.Enum, Default = "Auto", Values = ["Auto", "Portrait", "Landscape"], Owner = "print" },
+        new SettingDefinition { Key = "print.pagesPerSheet", Kind = SettingKind.Number, Default = 1, Min = 1, Max = 16, Owner = "print" },
+        new SettingDefinition { Key = "print.sheetOrder", Kind = SettingKind.Enum, Default = "Horizontal", Values = ["Horizontal", "Vertical"], Owner = "print" },
+        new SettingDefinition { Key = "print.annotations", Kind = SettingKind.Bool, Default = true, Owner = "print" },
+        new SettingDefinition { Key = "print.formFields", Kind = SettingKind.Bool, Default = true, Owner = "print" },
+        new SettingDefinition { Key = "print.asImage", Kind = SettingKind.Bool, Default = false, Owner = "print" },
+        new SettingDefinition { Key = "print.grayscale", Kind = SettingKind.Bool, Default = false, Owner = "print" },
+        new SettingDefinition { Key = "print.collate", Kind = SettingKind.Bool, Default = true, Owner = "print" },
+        new SettingDefinition { Key = "print.duplex", Kind = SettingKind.Enum, Default = "None", Values = ["None", "LongEdge", "ShortEdge"], Owner = "print" },
         new SettingDefinition
         {
             Key = "engines.maxLiveTabs",

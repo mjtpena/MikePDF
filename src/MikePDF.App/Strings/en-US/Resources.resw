@@ -710,4 +710,184 @@
   <data name="Present_Surface_Name" xml:space="preserve"><value>Presentation, page {0} of {1}</value></data>
   <data name="Present_Hint_Name" xml:space="preserve"><value>Presentation controls</value></data>
   <data name="Present_Refused_Snapped" xml:space="preserve"><value>Presentation needs the whole screen</value></data>
+  <!-- print: docs/features/print.md section 12 and design 11-print -->
+  <data name="Cmd_file_print_Name" xml:space="preserve"><value>Print</value></data>
+  <data name="Cmd_file_print_Keywords" xml:space="preserve"><value>printer paper hard copy pdf</value></data>
+  <data name="Cmd_file_printCurrentPage_Name" xml:space="preserve"><value>Print current page</value></data>
+  <data name="Cmd_file_printCurrentPage_Keywords" xml:space="preserve"><value>printer one page this page</value></data>
+  <data name="Cmd_print_cancel_Name" xml:space="preserve"><value>Cancel printing</value></data>
+  <data name="Cmd_print_cancel_Keywords" xml:space="preserve"><value>stop abort job</value></data>
+  <data name="Reason_OwnerNoPrint" xml:space="preserve"><value>The document's owner doesn't allow printing.</value></data>
+  <data name="Reason_PrintBusy" xml:space="preserve"><value>A print job is already running in this window</value></data>
+  <data name="Reason_NotPrinting" xml:space="preserve"><value>Nothing is printing</value></data>
+  <data name="Print_Disabled_Owner" xml:space="preserve"><value>The document's owner doesn't allow printing.</value></data>
+  <data name="Print_Disabled_Policy" xml:space="preserve"><value>Printing is turned off by your organisation.</value></data>
+  <data name="Setting_print_printer_Name" xml:space="preserve"><value>Last printer</value></data>
+  <data name="Setting_print_printer_Description" xml:space="preserve"><value>The printer the print sheet starts with.</value></data>
+  <data name="Setting_print_paper_Name" xml:space="preserve"><value>Last paper size</value></data>
+  <data name="Setting_print_paper_Description" xml:space="preserve"><value>The paper the print sheet starts with, if the printer has it.</value></data>
+  <data name="Setting_print_scaling_Name" xml:space="preserve"><value>Print scale</value></data>
+  <data name="Setting_print_scaling_Description" xml:space="preserve"><value>How pages are scaled onto the paper. A document that asks for actual size starts with that.</value></data>
+  <data name="Setting_print_scaling_Value_Shrink" xml:space="preserve"><value>Shrink large pages only</value></data>
+  <data name="Setting_print_scaling_Value_Fit" xml:space="preserve"><value>Fit to printable area</value></data>
+  <data name="Setting_print_scaling_Value_Actual" xml:space="preserve"><value>Actual size</value></data>
+  <data name="Setting_print_scaling_Value_Custom" xml:space="preserve"><value>Custom scale</value></data>
+  <data name="Setting_print_customPercent_Name" xml:space="preserve"><value>Custom print scale</value></data>
+  <data name="Setting_print_customPercent_Description" xml:space="preserve"><value>The percentage used when the scale is custom, 10 to 400.</value></data>
+  <data name="Setting_print_autoRotate_Name" xml:space="preserve"><value>Rotate and centre pages</value></data>
+  <data name="Setting_print_autoRotate_Description" xml:space="preserve"><value>Turn a page on its side when that fits the paper better, and centre it.</value></data>
+  <data name="Setting_print_orientation_Name" xml:space="preserve"><value>Print orientation</value></data>
+  <data name="Setting_print_orientation_Description" xml:space="preserve"><value>The paper's orientation for a job: automatic, portrait or landscape.</value></data>
+  <data name="Setting_print_orientation_Value_Auto" xml:space="preserve"><value>Automatic</value></data>
+  <data name="Setting_print_orientation_Value_Portrait" xml:space="preserve"><value>Portrait</value></data>
+  <data name="Setting_print_orientation_Value_Landscape" xml:space="preserve"><value>Landscape</value></data>
+  <data name="Setting_print_pagesPerSheet_Name" xml:space="preserve"><value>Pages per sheet</value></data>
+  <data name="Setting_print_pagesPerSheet_Description" xml:space="preserve"><value>How many pages share one sheet of paper: 1, 2, 4, 6, 9 or 16.</value></data>
+  <data name="Setting_print_sheetOrder_Name" xml:space="preserve"><value>Page order on a sheet</value></data>
+  <data name="Setting_print_sheetOrder_Description" xml:space="preserve"><value>Across then down, or down then across, when several pages share a sheet.</value></data>
+  <data name="Setting_print_sheetOrder_Value_Horizontal" xml:space="preserve"><value>Across, then down</value></data>
+  <data name="Setting_print_sheetOrder_Value_Vertical" xml:space="preserve"><value>Down, then across</value></data>
+  <data name="Setting_print_annotations_Name" xml:space="preserve"><value>Print comments and markup</value></data>
+  <data name="Setting_print_annotations_Description" xml:space="preserve"><value>Print the comments, highlights and drawings that are set to print.</value></data>
+  <data name="Setting_print_formFields_Name" xml:space="preserve"><value>Print form field contents</value></data>
+  <data name="Setting_print_formFields_Description" xml:space="preserve"><value>Print what is typed into form fields. The field highlight never prints.</value></data>
+  <data name="Setting_print_asImage_Name" xml:space="preserve"><value>Print as image</value></data>
+  <data name="Setting_print_asImage_Description" xml:space="preserve"><value>Send each page as one picture, for printers that have trouble with the normal way.</value></data>
+  <data name="Setting_print_grayscale_Name" xml:space="preserve"><value>Print in black and white</value></data>
+  <data name="Setting_print_grayscale_Description" xml:space="preserve"><value>Print in shades of grey even on a colour printer.</value></data>
+  <data name="Setting_print_collate_Name" xml:space="preserve"><value>Collate copies</value></data>
+  <data name="Setting_print_collate_Description" xml:space="preserve"><value>Print whole copies one after another rather than every page of a number together.</value></data>
+  <data name="Setting_print_duplex_Name" xml:space="preserve"><value>Print on both sides</value></data>
+  <data name="Setting_print_duplex_Description" xml:space="preserve"><value>One-sided, or two-sided on the long or short edge, for printers that can.</value></data>
+  <data name="Setting_print_duplex_Value_None" xml:space="preserve"><value>One-sided</value></data>
+  <data name="Setting_print_duplex_Value_LongEdge" xml:space="preserve"><value>Two-sided, long edge</value></data>
+  <data name="Setting_print_duplex_Value_ShortEdge" xml:space="preserve"><value>Two-sided, short edge</value></data>
+  <data name="Print_Title" xml:space="preserve"><value>Print</value></data>
+  <data name="Print_Button_Print" xml:space="preserve"><value>Print</value></data>
+  <data name="Print_Button_Cancel" xml:space="preserve"><value>Cancel</value></data>
+  <data name="Print_Printer_Label" xml:space="preserve"><value>Printer</value></data>
+  <data name="Print_Printer_Looking" xml:space="preserve"><value>Looking for printers...</value></data>
+  <data name="Print_Printer_None" xml:space="preserve"><value>No printers were found. You can add one in Windows Settings.</value></data>
+  <data name="Print_Printer_OpenSettings" xml:space="preserve"><value>Open printer settings</value></data>
+  <data name="Print_Preferences" xml:space="preserve"><value>Printer preferences...</value></data>
+  <data name="Print_Preferences_Name" xml:space="preserve"><value>Printer preferences</value></data>
+  <data name="Print_Preferences_Failed" xml:space="preserve"><value>The printer's own settings couldn't be opened.</value></data>
+  <data name="Print_Copies_Label" xml:space="preserve"><value>Copies</value></data>
+  <data name="Print_Collate_Label" xml:space="preserve"><value>Collate</value></data>
+  <data name="Print_Pages_Heading" xml:space="preserve"><value>Pages</value></data>
+  <data name="Print_Range_All" xml:space="preserve"><value>All pages ({0})</value></data>
+  <data name="Print_Range_Current" xml:space="preserve"><value>Current page ({0})</value></data>
+  <data name="Print_Range_Pages" xml:space="preserve"><value>Pages</value></data>
+  <data name="Print_Range_AllName" xml:space="preserve"><value>Pages: All pages</value></data>
+  <data name="Print_Range_CurrentName" xml:space="preserve"><value>Pages: Current page</value></data>
+  <data name="Print_Range_PagesName" xml:space="preserve"><value>Pages: Custom range</value></data>
+  <data name="Print_Range_Box_Name" xml:space="preserve"><value>Page range, for example 3-7</value></data>
+  <data name="Print_Range_Hint" xml:space="preserve"><value>For example 1-3, 5, 8-</value></data>
+  <data name="Print_Range_Error_Syntax" xml:space="preserve"><value>Enter page numbers like 1-3, 5, 8-</value></data>
+  <data name="Print_Range_Error_Limit" xml:space="preserve"><value>The document has {0} pages.</value></data>
+  <data name="Print_Range_Error_Order" xml:space="preserve"><value>Pages must be in order, from lowest to highest.</value></data>
+  <data name="Print_Range_Error_None" xml:space="preserve"><value>No pages are selected.</value></data>
+  <data name="Print_Range_Invalid_Announce" xml:space="preserve"><value>That range isn't valid. {0}</value></data>
+  <data name="Print_Subset_Label" xml:space="preserve"><value>Print</value></data>
+  <data name="Print_Subset_All" xml:space="preserve"><value>All pages in range</value></data>
+  <data name="Print_Subset_Odd" xml:space="preserve"><value>Odd pages only</value></data>
+  <data name="Print_Subset_Even" xml:space="preserve"><value>Even pages only</value></data>
+  <data name="Print_Sides_Label" xml:space="preserve"><value>Sides</value></data>
+  <data name="Print_Sides_One" xml:space="preserve"><value>One-sided</value></data>
+  <data name="Print_Sides_Long" xml:space="preserve"><value>Two-sided, long edge</value></data>
+  <data name="Print_Sides_Short" xml:space="preserve"><value>Two-sided, short edge</value></data>
+  <data name="Print_Sides_Unavailable" xml:space="preserve"><value>This printer can't print on both sides</value></data>
+  <data name="Print_Orientation_Label" xml:space="preserve"><value>Orientation</value></data>
+  <data name="Print_Orientation_Auto" xml:space="preserve"><value>Automatic</value></data>
+  <data name="Print_Orientation_Portrait" xml:space="preserve"><value>Portrait</value></data>
+  <data name="Print_Orientation_Landscape" xml:space="preserve"><value>Landscape</value></data>
+  <data name="Print_AutoRotate" xml:space="preserve"><value>Rotate and centre each page</value></data>
+  <data name="Print_Scale_Label" xml:space="preserve"><value>Scale</value></data>
+  <data name="Print_Scale_Fit" xml:space="preserve"><value>Fit to printable area</value></data>
+  <data name="Print_Scale_Shrink" xml:space="preserve"><value>Shrink large pages only</value></data>
+  <data name="Print_Scale_Actual" xml:space="preserve"><value>Actual size</value></data>
+  <data name="Print_Scale_Custom" xml:space="preserve"><value>Custom scale</value></data>
+  <data name="Print_Scale_Percent_Name" xml:space="preserve"><value>Custom scale in percent</value></data>
+  <data name="Print_PerSheet_Label" xml:space="preserve"><value>Pages per sheet</value></data>
+  <data name="Print_PerSheet_1" xml:space="preserve"><value>1 page (normal)</value></data>
+  <data name="Print_PerSheet_N" xml:space="preserve"><value>{0} pages</value></data>
+  <data name="Print_Order_Label" xml:space="preserve"><value>Page order</value></data>
+  <data name="Print_Order_Horizontal" xml:space="preserve"><value>Across, then down</value></data>
+  <data name="Print_Order_Vertical" xml:space="preserve"><value>Down, then across</value></data>
+  <data name="Print_Paper_Label" xml:space="preserve"><value>Paper size</value></data>
+  <data name="Print_Paper_Default" xml:space="preserve"><value>The printer's default paper</value></data>
+  <data name="Print_Colour_Label" xml:space="preserve"><value>Colour</value></data>
+  <data name="Print_Colour_Colour" xml:space="preserve"><value>Colour</value></data>
+  <data name="Print_Colour_Grey" xml:space="preserve"><value>Black and white</value></data>
+  <data name="Print_Colour_Unavailable" xml:space="preserve"><value>This printer prints in black and white</value></data>
+  <data name="Print_Include_Heading" xml:space="preserve"><value>Include</value></data>
+  <data name="Print_Annotations" xml:space="preserve"><value>Print comments and markup</value></data>
+  <data name="Print_FormFields" xml:space="preserve"><value>Print form field contents</value></data>
+  <data name="Print_AsImage" xml:space="preserve"><value>Print as image (for printers that have trouble)</value></data>
+  <data name="Print_CutOff_Notice" xml:space="preserve"><value>Some pages are larger than the paper and will be cut off.</value></data>
+  <data name="Print_LowQuality_Notice" xml:space="preserve"><value>The document's owner allows low-quality printing only.</value></data>
+  <data name="Print_NotApplied_Duplex" xml:space="preserve"><value>This printer ignored two-sided printing, so pages come out on one side.</value></data>
+  <data name="Print_NotApplied_Paper" xml:space="preserve"><value>This printer didn't accept that paper size and will use its own.</value></data>
+  <data name="Print_Offline_Notice" xml:space="preserve"><value>This printer didn't answer. You can still try to print.</value></data>
+  <data name="Print_Preview_Name" xml:space="preserve"><value>Preview</value></data>
+  <data name="Print_Preview_Show" xml:space="preserve"><value>Show preview</value></data>
+  <data name="Print_Preview_Hide" xml:space="preserve"><value>Hide preview</value></data>
+  <data name="Print_Preview_Loading" xml:space="preserve"><value>Preparing the preview...</value></data>
+  <data name="Print_Preview_Failed" xml:space="preserve"><value>The preview couldn't be drawn. You can still print.</value></data>
+  <data name="Print_Preview_None" xml:space="preserve"><value>Choose pages to see a preview.</value></data>
+  <data name="Print_Preview_Prev" xml:space="preserve"><value>Previous page in preview</value></data>
+  <data name="Print_Preview_Next" xml:space="preserve"><value>Next page in preview</value></data>
+  <data name="Print_Pager_Page" xml:space="preserve"><value>Page {0} of {1}</value></data>
+  <data name="Print_Pager_Sheet" xml:space="preserve"><value>Sheet {0} of {1}</value></data>
+  <data name="Print_Preview_Description" xml:space="preserve"><value>Preview of page {0}. {1}, {2}, {3}.</value></data>
+  <data name="Print_Preview_DescriptionSheet" xml:space="preserve"><value>Preview of sheet {0}, with {1} pages on it. {2}, {3}.</value></data>
+  <data name="Print_Preview_Scale_Fit" xml:space="preserve"><value>scaled to fit</value></data>
+  <data name="Print_Preview_Scale_Shrink" xml:space="preserve"><value>large pages shrunk to fit</value></data>
+  <data name="Print_Preview_Scale_Actual" xml:space="preserve"><value>actual size</value></data>
+  <data name="Print_Preview_Scale_Custom" xml:space="preserve"><value>scaled to {0} percent</value></data>
+  <data name="Print_Preview_Scale_Cells" xml:space="preserve"><value>each page fitted to its place</value></data>
+  <data name="Print_Preview_Paper_Unknown" xml:space="preserve"><value>the printer's paper</value></data>
+  <data name="Print_Summary_Name" xml:space="preserve"><value>Summary</value></data>
+  <data name="Print_Summary_P1_S1" xml:space="preserve"><value>Printing {0} page on {1} sheet</value></data>
+  <data name="Print_Summary_P1_SN" xml:space="preserve"><value>Printing {0} page on {1} sheets</value></data>
+  <data name="Print_Summary_PN_S1" xml:space="preserve"><value>Printing {0} pages on {1} sheet</value></data>
+  <data name="Print_Summary_PN_SN" xml:space="preserve"><value>Printing {0} pages on {1} sheets</value></data>
+  <data name="Print_Summary_P1_S1_Both" xml:space="preserve"><value>Printing {0} page on {1} sheet, both sides</value></data>
+  <data name="Print_Summary_P1_SN_Both" xml:space="preserve"><value>Printing {0} page on {1} sheets, both sides</value></data>
+  <data name="Print_Summary_PN_S1_Both" xml:space="preserve"><value>Printing {0} pages on {1} sheet, both sides</value></data>
+  <data name="Print_Summary_PN_SN_Both" xml:space="preserve"><value>Printing {0} pages on {1} sheets, both sides</value></data>
+  <data name="Print_Summary_Copies_Collated" xml:space="preserve"><value>{0} copies, collated</value></data>
+  <data name="Print_Summary_Copies_Uncollated" xml:space="preserve"><value>{0} copies, not collated</value></data>
+  <data name="Print_Progress_Name" xml:space="preserve"><value>Printing {0}</value></data>
+  <data name="Print_Progress_Page" xml:space="preserve"><value>Printing page {0} of {1}</value></data>
+  <data name="Print_Progress_Sheet" xml:space="preserve"><value>Printing sheet {0} of {1}</value></data>
+  <data name="Print_Progress_Preparing" xml:space="preserve"><value>Preparing to print</value></data>
+  <data name="Print_Progress_Finishing" xml:space="preserve"><value>Sending to {0}</value></data>
+  <data name="Print_Done" xml:space="preserve"><value>Sent to {0}.</value></data>
+  <data name="Print_Done_Announce" xml:space="preserve"><value>Printing finished</value></data>
+  <data name="Print_Stopped" xml:space="preserve"><value>Stopped after page {0}.</value></data>
+  <data name="Print_StoppedSheet" xml:space="preserve"><value>Stopped after sheet {0}.</value></data>
+  <data name="Print_Stopped_Early" xml:space="preserve"><value>Printing was stopped before any page was sent.</value></data>
+  <data name="Print_Cancel" xml:space="preserve"><value>Cancel printing</value></data>
+  <data name="Print_Strip_Cancel" xml:space="preserve"><value>Cancel</value></data>
+  <data name="Print_Failed_Title" xml:space="preserve"><value>Couldn't print {0}</value></data>
+  <data name="Print_Error_Offline" xml:space="preserve"><value>The printer didn't accept the job. Check that it is on and connected, then try again.</value></data>
+  <data name="Print_Error_AccessDenied" xml:space="preserve"><value>You don't have permission to print to {0}. Choose another printer, or ask the person who looks after it.</value></data>
+  <data name="Print_Error_Spooler" xml:space="preserve"><value>Windows isn't answering print requests. Restart the Print Spooler service or the computer, then try again.</value></data>
+  <data name="Print_Error_Engine" xml:space="preserve"><value>MikePDF stopped three times while drawing a page, so printing was stopped. Try Print as image, or print fewer pages.</value></data>
+  <data name="Print_Error_Slow" xml:space="preserve"><value>A page took too long to draw. Try Print as image, or print fewer pages.</value></data>
+  <data name="Print_Error_Output" xml:space="preserve"><value>The output file couldn't be written. Check that the disk has room, then try again.</value></data>
+  <data name="Print_Error_Declined" xml:space="preserve"><value>Nothing was printed.</value></data>
+  <data name="Print_Error_Unknown" xml:space="preserve"><value>Printing to {0} stopped unexpectedly. Try again, or choose another printer.</value></data>
+  <data name="Print_Error_Disabled" xml:space="preserve"><value>This document can't be printed.</value></data>
+  <data name="Print_Error_Details" xml:space="preserve"><value>Details: {0}</value></data>
+  <data name="Print_TryAgain" xml:space="preserve"><value>Try again</value></data>
+  <data name="Print_ChooseOther" xml:space="preserve"><value>Choose another printer</value></data>
+  <data name="Print_Failed" xml:space="preserve"><value>Printing stopped: {0}</value></data>
+  <data name="Print_Missing_Content" xml:space="preserve"><value>Some content couldn't be printed on pages {0}.</value></data>
+  <data name="Print_Missing_Content_Image" xml:space="preserve"><value>Some content couldn't be printed on pages {0}. You can print them again with Print as image.</value></data>
+  <data name="Print_Close_Title" xml:space="preserve"><value>Printing isn't finished</value></data>
+  <data name="Print_Close_Body" xml:space="preserve"><value>Closing this window stops the print job.</value></data>
+  <data name="Print_Close_Stop" xml:space="preserve"><value>Stop printing and close</value></data>
+  <data name="Print_Close_Keep" xml:space="preserve"><value>Keep printing</value></data>
 </root>

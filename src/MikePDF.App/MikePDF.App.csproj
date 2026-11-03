@@ -39,6 +39,7 @@
     <ProjectReference Include="..\MikePDF.Core\MikePDF.Core.csproj" />
     <ProjectReference Include="..\MikePDF.Broker\MikePDF.Broker.csproj" />
     <ProjectReference Include="..\MikePDF.Protocol\MikePDF.Protocol.csproj" />
+    <ProjectReference Include="..\MikePDF.Printing\MikePDF.Printing.csproj" />
   </ItemGroup>
 
   <ItemGroup>
