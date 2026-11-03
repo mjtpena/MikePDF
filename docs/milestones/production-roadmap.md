@@ -89,6 +89,8 @@ Found while reviewing wave 1. Each gets a work package or joins one.
 | `CommandsSettingsJourneyTests.CMD05_…CtrlCCopiesTheBoxText` timed out on the clipboard once in a full UI run; passes alone | Opus, main verification | W2-views (running) |
 | Large axis-aligned scans render slightly softer in tiles than in a whole-page render (43 corpus pages, about 2.7 levels mean). A whole-page bitmap cache for image-heavy pages would fix it; measure against §11 first-tile and memory budgets first | W2-engine-2 | Engine WP |
 | The view-mode metrics (PV-12 open of 10,000 pages in two-page mode, PV-17 presentation turn) live in `tools/MikePDF.Perf/Metrics/ViewModeMetrics.cs` and `Scenarios/ViewModeScenarios.cs` but are not registered in `PerfRunner` or `MetricCatalog`, so `run --only` cannot select them and the A/B gate does not see them | W2-views-2 | Next perf work package: register them, ungated first, then gate after A/A calibration |
+| PRINT-10 full run (1,000 pages to Microsoft Print to PDF, `PrintThousandPageTests`): broker peak 220 MiB against 164 MiB at 10 pages, engine 15 MiB against 5 MiB, so the 5% bound fails. Find whether it is a per-page retention (about 56 KB a page in the broker) or heap that is never collected, and fix it | W2-print-sheet | Next print or engine work package |
+| Two UI journeys failed in a full local run on 2026-11-02 and were never reported fixed or flaky: `TAB10_ClosingATabWithUnsavedEdits...` and `C5_C6_C7_PageColoursChange...` | W2-print-sheet (seen in its logs) | Check them in the first green run of the CI UI journeys (#24) |
 
 ## What only the user can do
 The following gate v1.0, and agents can't do them:

@@ -90,3 +90,11 @@ The shell-extensions work package applies the ten spec corrections in the S6b re
 | Default layout settings | Two keys, `view.defaultArrangement` and `view.defaultFlow`, as `settings-policies.md` defines them; the feature spec's single `view.defaultMode` is the older name and is replaced. A document with its own saved view keeps it |
 | A document's `/PageLayout` (OQ-PV-5) | Not honoured in v1.0: the PDFium build exposes no call that reads it, and parsing the catalog outside the sandbox is not allowed. The person's default layout applies. Revisit if an engine work package adds a catalog read |
 | Drawing ahead in a presentation | The next spread, the one before and the one after the next, up to 70% of the tile cache, after the page on screen. Peak memory in a real presentation is still to be measured |
+
+## After the print sheet review (2026-11-04)
+| Item | Decision |
+|---|---|
+| PRINT-10 at 1,000 pages | The criterion stays as written. The full run fails it (broker peak +34%, engine 3.2 times the 10-page peak); the per-page retention is to be found and fixed, not defined away. The print sheet ships with this open |
+| `Print_Failed` | Kept: "Printing stopped: {0}" is the message for a job's failure reason |
+| Pages radios | Named "Pages: ..." each, with no group name, as built |
+| Selected pages and scale modes | The four scale modes of the spec. Selected pages waits for the multi-select thumbnail list in M4 |
