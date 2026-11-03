@@ -645,6 +645,9 @@ public sealed partial class MainWindow
     private Flyout? _reasonTip;
     private AppBarButton? _reasonTarget;
     private int _reasonPolls;
+    private bool _reasonArmed;
+    private bool _hasCursor;
+    private CursorPoint _lastCursor;
 
     /// <summary>
     /// WinUI delivers no pointer event to a disabled control (and no event at all from the place it covers), so it never shows that control's tooltip, and a button that is off could not say why with
@@ -720,15 +723,25 @@ public sealed partial class MainWindow
             }
         }
 
+        var moved = _hasCursor && (cursor.X != _lastCursor.X || cursor.Y != _lastCursor.Y);
+        _lastCursor = cursor;
+        _hasCursor = true;
+        if (_modalDepth > 0 || Palette.IsOpen)
+        {
+            HideReasonTip(); // a dialog or the palette has the person's attention
+            return;
+        }
+
         if (!ReferenceEquals(over, _reasonTarget))
         {
             HideReasonTip();
             _reasonTarget = over;
             _reasonPolls = 0;
+            _reasonArmed = over is not null && moved; // a tooltip is for a pointer that arrives, not for one that was left there
             return;
         }
 
-        if (over is not null && _reasonTip is null && ++_reasonPolls >= ReasonTipDwellPolls && ToolTipService.GetToolTip(over) is string text)
+        if (over is not null && _reasonArmed && _reasonTip is null && ++_reasonPolls >= ReasonTipDwellPolls && ToolTipService.GetToolTip(over) is string text)
         {
             // WinUI opens a ToolTip only for an enabled element, even from code, so the words are shown in a small flyout that is dismissed when the pointer moves away, as a tooltip is.
             _reasonTip = new Flyout
@@ -751,6 +764,7 @@ public sealed partial class MainWindow
 
         _reasonTarget = null;
         _reasonPolls = 0;
+        _reasonArmed = false;
     }
 
     [StructLayout(LayoutKind.Sequential)]

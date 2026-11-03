@@ -297,9 +297,19 @@ internal sealed partial class PrintSheetView : UserControl, IDisposable
                 return [];
             }
         });
+        // This is an event handler: nothing may leave it as an exception. What the document asks for is a courtesy (a failure is "it asks for nothing"), the printer list is not.
         try
         {
-            var hints = await defaults;
+            var hints = PrintDefaults.Plain;
+            try
+            {
+                hints = await defaults;
+            }
+            catch (Exception ex) when (ex is OperationCanceledException or InvalidOperationException or EngineStartException)
+            {
+                System.Diagnostics.Debug.WriteLine("Print defaults: " + ex.GetType().Name);
+            }
+
             if (!_touched && _context.Resume is null && !_lifetime.IsCancellationRequested)
             {
                 _state = PrintSheetModel.Initial(PrintPreferences.Load(_context.Settings), hints, _context.RequestedScope) with { Abilities = _state.Abilities };
@@ -314,9 +324,14 @@ internal sealed partial class PrintSheetView : UserControl, IDisposable
 
             ShowPrinters(list);
         }
-        catch (OperationCanceledException)
+        catch (Exception ex) when (ex is OperationCanceledException or InvalidOperationException or System.Runtime.InteropServices.COMException)
         {
-            // The sheet was closed before it finished starting.
+            // The sheet was closed before it finished starting, or the printers could not be listed: the sheet then says so (no printers) and Print stays off.
+            System.Diagnostics.Debug.WriteLine("Print sheet start: " + ex.GetType().Name);
+            if (!_lifetime.IsCancellationRequested && !_printersKnown)
+            {
+                ShowPrinters([]);
+            }
         }
     }
 
@@ -618,7 +633,7 @@ internal sealed partial class PrintSheetView : UserControl, IDisposable
             // The driver's own dialog: a Win32 modal over this window; it returns when it is closed. Nothing is saved as the printer's defaults.
             result = DevMode.ShowPreferences(_context.WindowHandle, printer, current);
         }
-        catch (PrintDeviceException)
+        catch (Exception ex) when (ex is PrintDeviceException or InvalidOperationException or System.Runtime.InteropServices.COMException)
         {
             DeviceNotice.Message = Strings.Get("Print_Preferences_Failed");
             DeviceNotice.IsOpen = true;

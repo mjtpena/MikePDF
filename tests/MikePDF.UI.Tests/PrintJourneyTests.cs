@@ -112,6 +112,7 @@ public sealed class PrintJourneyTests : IDisposable
         var sheet = OpenOnPdfQueue(app);
 
         // The options are on one side and the preview on the other (design 11-print section 3.1).
+        sheet.WaitForPreview();
         Assert.True(app.Require("PrintPreview").BoundingRectangle.Left < app.Require("PrintPrinter").BoundingRectangle.Left, "the preview is left of the printer drop-down, which is the first option");
 
         sheet.SetRange("3-5");
@@ -480,6 +481,7 @@ public sealed class PrintJourneyTests : IDisposable
         using var app = Launch(pdf, rtl: true);
         app.WaitForDocument(3);
         var sheet = OpenOnPdfQueue(app);
+        sheet.WaitForPreview(); // the picture has its place (an empty image sits wherever the layout left it)
         Assert.True(app.Require("PrintPreview").BoundingRectangle.Left > app.Require("PrintPrinter").BoundingRectangle.Left, "mirrored: the options are on the left and the preview on the right");
         sheet.SetRange("2");
         app.WaitFor("the preview of page 2", () => sheet.PreviewName == "Preview of page 2. Portrait, A4, scaled to fit.", TimeSpan.FromSeconds(60));
@@ -588,17 +590,9 @@ public sealed class PrintJourneyTests : IDisposable
         using var listening = app.ListenForNotifications(heard);
 
         sheet.Print();
-        app.WaitFor("the bar", () => sheet.Bar is not null);
-        var seenBar = false;
-        app.WaitFor("a page counted", () =>
-        {
-            if (sheet.Bar is { } bar && bar.Name == "Printing " + "live" && bar.Patterns.RangeValue.IsSupported && bar.Patterns.RangeValue.Pattern.Maximum.ValueOrDefault >= 4)
-            {
-                seenBar = true;
-            }
-
-            return sheet.StripStatus.StartsWith("Printing page", StringComparison.Ordinal);
-        }, TimeSpan.FromSeconds(60));
+        // A ProgressBar named for the document, whose range is the sheets of the job (its value moves with them).
+        app.WaitFor("the progress bar, named for the document, with the sheets of the job as its range", () =>
+            sheet.Bar is { } bar && bar.Properties.Name.ValueOrDefault == "Printing live" && bar.Patterns.RangeValue.IsSupported && bar.Patterns.RangeValue.Pattern.Maximum.ValueOrDefault >= 4, TimeSpan.FromSeconds(60));
         sheet.WaitForDone();
         Thread.Sleep(800);
 
@@ -609,7 +603,6 @@ public sealed class PrintJourneyTests : IDisposable
         }
 
         Note("PRINT-21 notifications (UIA): " + string.Join(" | ", events));
-        Assert.True(seenBar, "a ProgressBar named \"Printing live\" with a maximum of the sheet count");
         Assert.Equal(["Printing page 1 of 4", "Printing page 2 of 4", "Printing page 3 of 4", "Printing page 4 of 4", "Sent to " + Queue + "."], events); // once per page, once at the end, nothing per band
     }
 
