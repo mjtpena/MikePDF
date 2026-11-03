@@ -216,12 +216,12 @@ public sealed class PrintJourneyTests : IDisposable
         app.WaitForDocument(60);
         var sheet = OpenOnPdfQueue(app);
         sheet.Print();
-        app.WaitFor("a page counted", () => sheet.StripStatus.StartsWith("Printing page", StringComparison.Ordinal), TimeSpan.FromSeconds(60));
+        app.WaitFor("the third page counted, so two are done", () => sheet.StripStatus.StartsWith("Printing page 3 of", StringComparison.Ordinal), TimeSpan.FromSeconds(120));
         Assert.True(app.Require("PrintCancel").IsEnabled);
 
         var clock = Stopwatch.StartNew();
         sheet.CancelJob();
-        app.WaitFor("the strip to say where it stopped", () => sheet.StripStatus.StartsWith("Stopped after", StringComparison.Ordinal) || sheet.StripStatus == "Printing was stopped before any page was sent.", TimeSpan.FromSeconds(10));
+        app.WaitFor("the strip to say where it stopped", () => sheet.StripStatus.StartsWith("Stopped after page", StringComparison.Ordinal), TimeSpan.FromSeconds(10));
         var took = clock.Elapsed;
         Note($"PRINT-11 (UI): {took.TotalMilliseconds:F0} ms from pressing Cancel to the strip saying '{sheet.StripStatus}'");
         Assert.True(took < TimeSpan.FromSeconds(2.5), $"cancel took {took.TotalMilliseconds:F0} ms (the engine is idle within 1 s; this is the whole round trip through the UI)");
