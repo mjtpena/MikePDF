@@ -68,24 +68,24 @@ jobs:
           }
           Start-Sleep -Seconds 2
           $scr = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds; Write-Host "Screen now $($scr.Width)x$($scr.Height)"
-          $root = [System.Windows.Automation.AutomationElement]::RootElement
-          $oobe = $root.FindFirst([System.Windows.Automation.TreeScope]::Children, [System.Windows.Automation.PropertyCondition]::new([System.Windows.Automation.AutomationElement]::ClassNameProperty, 'Shell_OOBEProxy'))
-          if ($oobe) {
-            $hwnd = [IntPtr]$oobe.Current.NativeWindowHandle
-            Write-Host "OOBE element: hwnd=$hwnd visible=$([W]::IsWindowVisible($hwnd)) offscreen=$($oobe.Current.IsOffscreen)"
-            $all = $oobe.FindAll([System.Windows.Automation.TreeScope]::Descendants, [System.Windows.Automation.Condition]::TrueCondition)
-            Write-Host "descendants: $($all.Count)"
-            $n = 0; foreach ($e in $all) { if ($n++ -ge 40) { break }; Write-Host ("  {0} '{1}' id={2}" -f $e.Current.ControlType.ProgrammaticName, $e.Current.Name, $e.Current.AutomationId) }
-            Shot 'before'
-            try { $oobe.GetCurrentPattern([System.Windows.Automation.WindowPattern]::Pattern).Close(); Write-Host 'WindowPattern.Close sent' } catch { Write-Host "WindowPattern.Close: $_" }
-            [void][W]::PostMessage($hwnd, 0x0010, [IntPtr]::Zero, [IntPtr]::Zero)
-            Start-Sleep -Seconds 3
-            Shot 'after-close'
-            [void][W]::ShowWindow($hwnd, 0)
-            Start-Sleep -Seconds 2
-            Write-Host "after hide: visible=$([W]::IsWindowVisible($hwnd))"
-            Shot 'after-hide'
-          } else { Write-Host 'no Shell_OOBEProxy window'; Shot 'no-oobe' }
+          Add-Type -TypeDefinition @'
+          using System; using System.Runtime.InteropServices;
+          public static class M { [DllImport("user32.dll")] public static extern bool SetCursorPos(int x, int y); [DllImport("user32.dll")] public static extern void mouse_event(uint f, uint dx, uint dy, uint d, UIntPtr e); }
+          '@
+          function Click($x, $y) { [void][M]::SetCursorPos($x, $y); Start-Sleep -Milliseconds 300; [M]::mouse_event(2, 0, 0, 0, [UIntPtr]::Zero); [M]::mouse_event(4, 0, 0, 0, [UIntPtr]::Zero) }
+          Shot 'a-before'
+          Click ([int]($scr.Width * 0.65)) ([int]($scr.Height * 0.22))
+          Start-Sleep -Seconds 1
+          [System.Windows.Forms.SendKeys]::SendWait('{ENTER}')
+          Start-Sleep -Seconds 4
+          Shot 'b-after-enter-1'
+          [System.Windows.Forms.SendKeys]::SendWait('{ENTER}')
+          Start-Sleep -Seconds 4
+          Shot 'c-after-enter-2'
+          Write-Host ("webview2 processes: " + @(Get-Process msedgewebview2 -ErrorAction SilentlyContinue).Count)
+          Get-Process msedgewebview2 -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
+          Start-Sleep -Seconds 4
+          Shot 'd-after-kill-webview2'
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always()
         with:
