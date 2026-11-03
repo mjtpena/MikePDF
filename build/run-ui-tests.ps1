@@ -93,7 +93,7 @@ if ($Ci) {
     # It is the pinned NuGet package's own MSIX, the same one build/store/install-test.ps1 installs.
     $pin = [regex]::Match((Get-Content (Join-Path $root 'Directory.Packages.props') -Raw), 'Include="Microsoft.WindowsAppSDK" Version="([^"]+)"').Groups[1].Value
     $packages = if ($env:NUGET_PACKAGES) { $env:NUGET_PACKAGES } else { Join-Path $env:USERPROFILE '.nuget\packages' }
-    $framework = Join-Path $packages "microsoft.windowsappsdk.runtime\$pin	ools\MSIX\win10-$Arch\Microsoft.WindowsAppRuntime.2.msix"
+    $framework = Join-Path $packages "microsoft.windowsappsdk.runtime\$pin\tools\MSIX\win10-$Arch\Microsoft.WindowsAppRuntime.2.msix"
     if (-not (Test-Path $framework)) { throw "Windows App SDK framework package not found: $framework" }
     Add-AppxPackage -Path $framework -ForceApplicationShutdown -ErrorAction Stop
 }
