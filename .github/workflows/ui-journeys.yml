@@ -117,6 +117,13 @@ jobs:
             Start-Sleep -Seconds 4
           }
           Write-Host "First-sign-in page still up: $(Test-FirstSignIn)"
+          # After it, the ARM64 image leaves the Start menu open (it takes the keyboard from the app), and a console of wsl.exe ("Press any key to install Windows Subsystem for
+          # Linux", also a window that takes keys) behind it. End the console and close the menu.
+          $wsl = Get-Process wsl, wslhost -ErrorAction SilentlyContinue
+          Write-Host "wsl processes: $(@($wsl).Count)"
+          $wsl | Stop-Process -Force -ErrorAction SilentlyContinue
+          [System.Windows.Forms.SendKeys]::SendWait('{ESC}')
+          Start-Sleep -Seconds 2
           Shot 'desktop-before-journeys'
       - name: Build, register a handler-free copy of the package, run the journeys
         shell: pwsh

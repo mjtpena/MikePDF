@@ -19,9 +19,16 @@ public sealed partial class ReaderGapsJourneyTests : IDisposable
 
     private readonly string _work = Path.Combine(Path.GetTempPath(), "mikepdf-ui-" + Guid.NewGuid().ToString("N")[..8]);
 
+    public ReaderGapsJourneyTests()
+    {
+        MikePDFApp.KillAll();
+        AppData.ResetSettings(); // each journey starts from the defaults: C5_C6_C7 expects normal paper, and an earlier journey (or run) may have left dark pages
+    }
+
     public void Dispose()
     {
         MikePDFApp.KillAll();
+        AppData.ResetSettings();
         try
         {
             if (Directory.Exists(_work))

@@ -15,9 +15,16 @@ public sealed class ViewModesJourneyTests : IDisposable
 {
     private readonly string _work = Path.Combine(Path.GetTempPath(), "mikepdf-ui-" + Guid.NewGuid().ToString("N")[..8]);
 
+    public ViewModesJourneyTests()
+    {
+        MikePDFApp.KillAll();
+        AppData.ResetSettings(); // each journey starts from the defaults, whatever an earlier one left (the dark-pages journey leaves page colour dark)
+    }
+
     public void Dispose()
     {
         MikePDFApp.KillAll();
+        AppData.ResetSettings();
         try
         {
             if (Directory.Exists(_work))
@@ -209,7 +216,18 @@ public sealed class ViewModesJourneyTests : IDisposable
 
         // The wheel: a page that fits turns at each notch (never twice in a flick).
         MoveMouseTo(Centre(app.Require("PageSurface")));
-        Mouse.Scroll(-1);
+        // A notch sent in the instant the pointer arrives can be lost to the pointer-enter (it timed out once on a hosted runner): wait for the page, and send the notch again only if nothing turned.
+        for (var attempt = 0; attempt < 3 && app.CurrentPage != 2; attempt++)
+        {
+            Thread.Sleep(400);
+            Mouse.Scroll(-1);
+            var turned = DateTime.UtcNow + TimeSpan.FromSeconds(3);
+            while (app.CurrentPage != 2 && DateTime.UtcNow < turned)
+            {
+                Thread.Sleep(100);
+            }
+        }
+
         app.WaitFor("page 2 by the wheel", () => app.CurrentPage == 2);
         Mouse.Scroll(1);
         Thread.Sleep(400);
