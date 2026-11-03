@@ -304,7 +304,7 @@ The pipeline behind the print sheet is built and tested; the sheet itself (desig
 | PRINT-06 | Amended criterion (see 274): `PrintContentTests` assert at most 0.3% differing pixels and none at a boundary. Measured: about 0.1%, on text, hairline and rectangle edges | `PrintContentTests` |
 | PRINT-08 | Engine reply as before; the defaults taken from it are clamped and junk is ignored | `PrintPolicyTests`, `PrintContentTests.HostilePrintPreferences...` |
 | PRINT-09 | Done, in the pipeline as well as in `PrintEligibility` | `PrintPolicyTests`, `PrintJobTests`, `PrintSessionTests` |
-| PRINT-10 | **Reduced.** Broker and engine private bytes from 10 to 60 pages with a discarding printer. The 1,000 page job to Print To PDF is manual and **UNVERIFIED** | `PrintRecoveryTests` |
+| PRINT-10 | **Reduced test passes; the full 1,000 page run (2026-11-04) fails the 5% bound**: broker +34%, engine 3.2 times (17.3) | `PrintRecoveryTests`, `PrintThousandPageTests` |
 | PRINT-11, -12 | Done, with a scripted engine and with the real one (killed twice, and three times) and the real PDF queue | `PrintJobTests`, `PrintRecoveryTests`, `PrintToPdfTests` |
 | PRINT-13 | Done at both layers. Pipeline: SSIM of each printed page against the source render, box filtered by 4 (0.99 at readable sizes; shrunk text 0.98, see the test). UI journey 11 (the sheet, Print To PDF, the file read back through the engine): range 3-5 at Fit, 0.9998 on every page; 4 pages per sheet, 0.9995 to 1.0000 in every cell of both sheets; custom 50%, 1.0000; a pseudo-RTL window, 0.9999 | `PrintToPdfTests`, `PrintJourneyTests` (`J11_*`, `RTL_*`) |
 | PRINT-14 | Done | `PrintContentTests` |
@@ -332,8 +332,8 @@ Not in v1, by this spec: booklet. N-up is offered by the sheet (section 17): 2, 
 
 | Id | Test |
 |---|---|
-| PRINT-10 | `PrintThousandPageTests` (opt-in: `MIKEPDF_PRINT_1000=1`), the full criterion; `PrintRecoveryTests` is the reduced one that always runs. Numbers in 17.3 |
-| PRINT-11 | `PrintJourneyTests.PRINT11_CancelStopsTheJobAtOnceLeavesNoFileOrSpoolJobAndTheNextPrintWorks` (through the UI: {{CANCEL}}), `PrintToPdfTests` and `PrintJobTests` (the pipeline) |
+| PRINT-10 | `PrintThousandPageTests` (opt-in: `MIKEPDF_PRINT_1000=1`), the full criterion: **run on 2026-11-04 and it fails the 5% bound** (17.3); `PrintRecoveryTests` is the reduced one that always runs and passes |
+| PRINT-11 | `PrintJourneyTests.PRINT11_CancelStopsTheJobAtOnceLeavesNoFileOrSpoolJobAndTheNextPrintWorks` (through the UI: 94 to 390 ms from pressing Cancel to the strip saying it stopped, see 17.3), `PrintToPdfTests` and `PrintJobTests` (the pipeline) |
 | PRINT-13 | `PrintJourneyTests.J11_*` and `RTL_*` (section 16, PRINT-13) |
 | PRINT-21 | `PrintJourneyTests.PRINT21_*` (names, control types, the tab order of 18 stops, the progress bar, exactly five notifications for a four sheet job), `TheWholeJobWorksFromTheKeyboardAlone` (`Ctrl+P`, `Tab` to the range, `3-7`, `Enter`), `ANarrowWindow...` (stacked and hidden preview), `PrintSheetSourceTests` (system colours only, every automation id, document order, live regions) |
 | PRINT-22 | `PrintJourneyTests.PRINT22_*` (owner, with and without the owner password; policy through a throwaway HKCU key, off and back on), `PrintSheetTests` (the rule, every reason, the palette row) |
@@ -341,7 +341,19 @@ Not in v1, by this spec: booklet. N-up is offered by the sheet (section 17): 2, 
 
 ### 17.3 Measurements
 
-{{MEASUREMENTS}}
+Taken on the development machine (Windows 11, Microsoft Print to PDF, no physical printer). The pipeline numbers are from `build/out/print-evidence.txt`, the UI numbers from the journeys' own evidence file `build/out/print-ui-evidence.txt`; neither file is committed.
+
+| What | Result | Run |
+|---|---|---|
+| PRINT-10, 10 pages | broker (test host) peak 163.8 MiB, engine 4.8 MiB, spooler side 150.8 MiB, 17 s, output 27.5 MiB | `PrintThousandPageTests`, 2026-11-04 |
+| PRINT-10, **1,000 pages** | broker peak **220.2 MiB (+34%)**, engine peak **15.3 MiB (3.2 times)**, spooler side 2,261 MiB, 1,428 s (1.43 s per page), output 2,230 MiB. **The test fails its 5% bound for both processes** | same run, 24 min |
+| PRINT-10, reduced (always runs) | broker 52.9 MiB at 10 pages and 57.4 MiB at 60 (passes with its allowance); engine 4.8 and 5.1 MiB | `PrintRecoveryTests` |
+| Cancel, pipeline | 26 ms from the cancel to the end of the job, 2 sheets printed | `PrintToPdfTests` |
+| Cancel, through the sheet | 94 to 390 ms over seven runs from pressing Cancel to the strip saying it stopped (the last four: "Stopped after page 2."), all under the 1 s of PRINT-11 | `PRINT11_*`, 2026-11-03, previous work package's runs |
+| PRINT-13, SSIM against the source render | pipeline 0.98 to 0.996; through the sheet: range 3-5 at Fit 0.9998 on every page, 4 pages per sheet 0.9995 to 1.0000, custom 50% 1.0000, pseudo-RTL 0.9999 | `PrintToPdfTests`, `J11_*`, `RTL_*` |
+| PRINT-21, notifications | five for a four sheet job: pages 1 to 4 and "Sent to Microsoft Print to PDF." | `PRINT21_*`, 2026-11-03 |
+
+**The PRINT-10 result is not explained yet.** The growth is real in the full run and the criterion says "within 5% of a 10-page job's peaks". Two readings, neither tested: (1) part of it is the document itself (the engine holds a 1,000 page file, about 10 KB a page; the test host holds the fixture and a longer-running .NET heap that is not collected until it must be), in which case the criterion should say "no growth from the bands or the pages already printed" and be measured after the document is loaded; (2) part of it is something the job keeps for each page (a retained bitmap, a handle, a pending item), in which case it is a leak of about 56 KB a page in the broker. The reduced test (10 to 60 pages, +8% at the broker with its allowance) cannot tell the two apart. ADR-0011 point 4 says page-count independence "stands for MikePDF's own processes"; this run does not support that as worded. Left for the reviewer (decisions list in the completion note); the criterion and the test were not changed.
 
 ### 17.4 Not done, not verified
 
