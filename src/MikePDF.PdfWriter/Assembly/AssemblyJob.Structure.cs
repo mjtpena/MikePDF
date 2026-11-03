@@ -260,11 +260,16 @@ internal sealed partial class AssemblyJob
                 field = field.With("Q", defaults.Q);
         }
 
-        if (copy.SignatureNodes.Contains(number) && field["V"] is not null and not PdfNull)
+        if (copy.SignatureNodes.Contains(number))
         {
-            field = field.Without("V");
-            state.SignaturesCleared++;
-            _signaturesCleared++;
+            // The value is the signature dictionary; /DV (the default value) may name the same one, and it would carry it into the new file.
+            if (field["V"] is not null and not PdfNull)
+            {
+                state.SignaturesCleared++;
+                _signaturesCleared++;
+            }
+
+            field = field.Without("V").Without("DV");
         }
 
         return RenameFonts(state, field);
@@ -442,7 +447,7 @@ internal sealed partial class AssemblyJob
 
         List<OutlineNode> Level(PdfObject? first, int depth, bool parentKept)
         {
-            if (depth >= _limits.MaxOutlineDepth)
+            if (first is PdfReference && depth >= _limits.MaxOutlineDepth)
                 throw AssemblyAbort.Limit(AssemblyLimit.OutlineDepth, "the outline is nested too deeply", document.Index, document.Name);
             var result = new List<OutlineNode>();
             var current = first;

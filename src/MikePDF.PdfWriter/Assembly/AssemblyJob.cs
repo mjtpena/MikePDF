@@ -159,7 +159,7 @@ internal sealed partial class AssemblyJob
             {
                 var status = _statuses[entry.Source];
                 var why = status.Refusal;
-                throw new AssemblyAbort(new AssemblyRefusal(AssemblyRefusalReason.SourceRefused, why?.Message ?? "the source was refused", entry.Source, status.Name, why?.Error));
+                throw new AssemblyAbort(new AssemblyRefusal(AssemblyRefusalReason.SourceRefused, why?.Message ?? "the source was refused", entry.Source, status.Name, why?.Error, why?.Limit));
             }
 
             if (entry.Page < 0 || entry.Page >= document.Pages.Count)
@@ -175,9 +175,10 @@ internal sealed partial class AssemblyJob
 
             occurrences.TryGetValue(entry, out var occurrence);
             occurrences[entry] = occurrence + 1;
+            var known = state.Copies.Count;
             var copy = state.GetCopy(occurrence);
-            if (!_copies.Contains(copy))
-                _copies.Add(copy);
+            for (var c = known; c < state.Copies.Count; c++)
+                _copies.Add(state.Copies[c]);
             var number = FirstPageNumber + i;
             copy.PageOut[entry.Page] = number;
             copy.PageList.Add(entry.Page);
