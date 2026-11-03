@@ -555,7 +555,16 @@ public sealed class PrintJourneyTests : IDisposable
         for (var i = 0; i < order.Length - 1; i++)
         {
             app.Press(VirtualKeyShort.TAB);
-            seen.Add(FocusedControl(app));
+            // Focus moves a moment after the key (it was not on a control of the sheet yet, "?", once on a hosted ARM64 runner): wait for it to land.
+            var landed = FocusedControl(app);
+            var until = DateTime.UtcNow + TimeSpan.FromSeconds(3);
+            while (landed == "?" && DateTime.UtcNow < until)
+            {
+                Thread.Sleep(100);
+                landed = FocusedControl(app);
+            }
+
+            seen.Add(landed);
         }
 
         Assert.Equal(order, seen);

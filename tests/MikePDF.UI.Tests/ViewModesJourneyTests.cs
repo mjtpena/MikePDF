@@ -151,7 +151,7 @@ public sealed class ViewModesJourneyTests : IDisposable
     public void PV01_TheViewMenuHoldsTheModesAsARadioGroupAndAToggleAndNamesThem()
     {
         using var app = Open("menu.pdf", 6);
-        app.Click("ViewButton");
+        app.OpenMenu("ViewButton", "LayoutSingle");
         Assert.Equal("Single page", app.Require("LayoutSingle").Name);
         Assert.Equal("Two pages", app.Require("LayoutTwo").Name);
         Assert.Equal("Two pages with cover", app.Require("LayoutTwoCover").Name);
@@ -165,7 +165,7 @@ public sealed class ViewModesJourneyTests : IDisposable
         app.Click("LayoutTwo");
         WaitForLayout(app, "Two pages, continuous");
 
-        app.Click("ViewButton");
+        app.OpenMenu("ViewButton", "LayoutSingle");
         Assert.True(IsChecked(app.Require("LayoutTwo")));
         Assert.False(IsChecked(app.Require("LayoutSingle")));
         Assert.True(app.Require("LayoutCoverPage").IsEnabled);
@@ -173,7 +173,7 @@ public sealed class ViewModesJourneyTests : IDisposable
         WaitForLayout(app, "Two pages with cover, continuous");
         WaitForPages(app, 1, 1);
 
-        app.Click("ViewButton");
+        app.OpenMenu("ViewButton", "LayoutSingle");
         Assert.True(IsChecked(app.Require("LayoutTwoCover")));
         Assert.True(IsChecked(app.Require("LayoutCoverPage")));
         app.Click("LayoutContinuous");
@@ -280,12 +280,12 @@ public sealed class ViewModesJourneyTests : IDisposable
         var two = Box(app, "2");
         Assert.True(two.Right < one.Left, $"page 2 ({two}) is left of page 1 ({one}) for a right-to-left binding");
 
-        app.Click("ViewButton");
+        app.OpenMenu("ViewButton", "LayoutSingle");
         app.Click("DirectionMenu");
         app.Click("DirectionLtr");
         app.WaitFor("left to right", () => Box(app, "1").Left < Box(app, "2").Left);
 
-        app.Click("ViewButton");
+        app.OpenMenu("ViewButton", "LayoutSingle");
         app.Click("DirectionMenu");
         app.Click("DirectionAuto");
         app.WaitFor("the document's own direction again", () => Box(app, "1").Left > Box(app, "2").Left);

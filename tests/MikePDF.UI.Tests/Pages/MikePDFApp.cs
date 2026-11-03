@@ -238,8 +238,45 @@ public sealed class MikePDFApp : IDisposable
         }
     }
 
-    public AutomationElement Require(string automationId) =>
-        Retry.WhileNull(() => Find(automationId), Patience, TimeSpan.FromMilliseconds(150)).Result ?? throw new InvalidOperationException("No element with automation id " + automationId);
+    public AutomationElement Require(string automationId)
+    {
+        var found = Retry.WhileNull(() => Find(automationId), Patience, TimeSpan.FromMilliseconds(150)).Result;
+        if (found is null)
+        {
+            TryCapture("missing-" + new string(automationId.Where(char.IsLetterOrDigit).Take(40).ToArray()));
+            throw new InvalidOperationException("No element with automation id " + automationId);
+        }
+
+        return found;
+    }
+
+    /// <summary>
+    /// Opens the flyout of a command bar button and waits for <paramref name="itemId"/> in it. A flyout closes when the window loses focus for a moment (it did, on a hosted ARM64 runner, whatever took the
+    /// focus), so if the item is not there after a few seconds the button is pressed again, up to three times, instead of failing the journey on one lost flyout.
+    /// </summary>
+    public void OpenMenu(string buttonId, string itemId)
+    {
+        for (var attempt = 1; ; attempt++)
+        {
+            Click(buttonId);
+            var until = DateTime.UtcNow + TimeSpan.FromSeconds(4);
+            while (DateTime.UtcNow < until)
+            {
+                if (Find(itemId) is not null)
+                {
+                    return;
+                }
+
+                Thread.Sleep(150);
+            }
+
+            if (attempt == 3)
+            {
+                Require(itemId); // fails with the picture
+                return;
+            }
+        }
+    }
 
     public bool Exists(string automationId) => Find(automationId) is not null;
 

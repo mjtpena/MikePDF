@@ -197,7 +197,7 @@ public sealed class SpreadJourneyTests : IDisposable
         app.Capture("pseudo-rtl-command-bar");
 
         // The View menu opens, with its items and shortcuts as ever.
-        app.Click("ViewButton");
+        app.OpenMenu("ViewButton", "LayoutSingle");
         Assert.Equal("Two pages", app.Require("LayoutTwo").Name);
         Assert.Equal("Ctrl+5", app.Require("LayoutTwo").Properties.AcceleratorKey.ValueOrDefault);
         var item = app.Require("LayoutTwo").BoundingRectangle;

@@ -120,10 +120,10 @@ jobs:
           # After it, the ARM64 image leaves the Start menu open (it takes the keyboard from the app), and a console of wsl.exe ("Press any key to install Windows Subsystem for
           # Linux", also a window that takes keys) behind it. End the console and close the menu.
           # The console comes back later in the run (inside Windows Terminal on the ARM64 image) and takes the keyboard from the app in the middle of a journey, so a hidden watcher
-          # keeps ending it for the rest of the job. It touches only wsl, wslhost and a terminal window titled for wsl.exe.
+          # keeps ending it for the rest of the job. It touches only wsl, wslhost, the Widgets processes (their news badge and flyouts can take the focus) and a terminal window titled for wsl.exe.
           $watcher = @'
           while ($true) {
-            Get-Process wsl, wslhost -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
+            Get-Process wsl, wslhost, Widgets, WidgetService -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
             Get-Process WindowsTerminal -ErrorAction SilentlyContinue | Where-Object { $_.MainWindowTitle -match 'wsl' } | Stop-Process -Force -ErrorAction SilentlyContinue
             Start-Sleep -Seconds 2
           }
