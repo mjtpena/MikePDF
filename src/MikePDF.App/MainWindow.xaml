@@ -270,6 +270,9 @@
             <!-- The element a tab move or close is announced from, as a UIA notification (docs/features/tabs-windows-session.md 5): one announcement each, no live region that would say it twice. -->
             <TextBlock x:Name="TabAnnouncement" Width="1" Height="1" Opacity="0" AutomationProperties.AutomationId="TabAnnouncement" />
 
+            <!-- The same for printing: one notification for each page counted and one at the end (a live region that appears with the strip would miss its first update). -->
+            <TextBlock x:Name="PrintAnnouncement" Width="1" Height="1" Opacity="0" AutomationProperties.AutomationId="PrintAnnouncement" />
+
             <!-- Settings (Ctrl+,): a page over the document area. -->
             <views:SettingsView x:Name="SettingsPage" Visibility="Collapsed" AutomationProperties.AutomationId="SettingsPage" />
             <InfoBar x:Name="Banner" AutomationProperties.AutomationId="Banner" VerticalAlignment="Top" HorizontalAlignment="Center" Margin="16,8,16,0" MaxWidth="720"
@@ -289,7 +292,7 @@
                 <InfoBar.Content>
                     <StackPanel Spacing="6" Margin="0,0,0,12">
                         <ProgressBar x:Name="PrintBar" AutomationProperties.AutomationId="PrintProgressBar" Minimum="0" Maximum="1" Value="0" />
-                        <TextBlock x:Name="PrintStatus" AutomationProperties.AutomationId="PrintStatus" AutomationProperties.LiveSetting="Polite" TextWrapping="Wrap" />
+                        <TextBlock x:Name="PrintStatus" AutomationProperties.AutomationId="PrintStatus" TextWrapping="Wrap" />
                         <TextBlock x:Name="PrintDetail" AutomationProperties.AutomationId="PrintDetail" TextWrapping="Wrap" Style="{StaticResource CaptionTextBlockStyle}"
                                    Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
                         <StackPanel x:Name="PrintActions" Orientation="Horizontal" Spacing="8" Visibility="Collapsed" />

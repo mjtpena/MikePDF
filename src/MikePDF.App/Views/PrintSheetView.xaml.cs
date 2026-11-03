@@ -161,10 +161,7 @@ internal sealed partial class PrintSheetView : UserControl, IDisposable
         AutomationProperties.SetName(NextButton, Strings.Get("Print_Preview_Next"));
         ToolTipService.SetToolTip(PrevButton, Strings.Get("Print_Preview_Prev"));
         ToolTipService.SetToolTip(NextButton, Strings.Get("Print_Preview_Next"));
-        AutomationProperties.SetName(PagerText, Strings.Get("Print_Preview_Name"));
-        AutomationProperties.SetName(SummaryText, Strings.Get("Print_Summary_Name"));
         AutomationProperties.SetName(PreviewPicture, Strings.Get("Print_Preview_Name"));
-        AutomationProperties.SetName(PreviewStatus, Strings.Get("Print_Preview_Name"));
         PreviewStatus.Text = Strings.Get("Print_Preview_Loading");
         PreviewRing.IsActive = true;
         PrevButton.IsEnabled = false;
@@ -247,7 +244,7 @@ internal sealed partial class PrintSheetView : UserControl, IDisposable
         var o = state.Options;
         CopiesBox.Value = o.Copies;
         CollateBox.IsChecked = o.Collate;
-        (state.Scope switch { PrintScope.CurrentPage => PagesCurrent, PrintScope.Range => PagesRange, _ => PagesAll }).IsChecked = true;
+        ScopeButtons.SelectedIndex = state.Scope switch { PrintScope.CurrentPage => 1, PrintScope.Range => 2, _ => 0 };
         RangeBox.Text = state.RangeText;
         Select(SubsetBox, state.Subset);
         Select(SidesBox, o.Duplex);
@@ -451,7 +448,7 @@ internal sealed partial class PrintSheetView : UserControl, IDisposable
             Grid.SetRow(PreviewPane, 0);
             PreviewColumn.MinWidth = 0;
             OptionsColumn.Width = new GridLength(0);
-            PreviewRow.Height = hidden ? GridLength.Auto : new GridLength(260);
+            PreviewRow.Height = hidden ? GridLength.Auto : new GridLength(330);
             OptionsRow.Height = new GridLength(1, GridUnitType.Star);
         }
         else
@@ -515,15 +512,15 @@ internal sealed partial class PrintSheetView : UserControl, IDisposable
         ScheduleRefresh();
     }
 
-    private void OnScopeChecked(object sender, RoutedEventArgs e)
+    private void OnScopeChanged(object sender, SelectionChangedEventArgs e)
     {
-        if (_updating > 0)
+        if (_updating > 0 || ScopeButtons.SelectedIndex < 0)
         {
             return;
         }
 
         Touch();
-        var scope = ReferenceEquals(sender, PagesCurrent) ? PrintScope.CurrentPage : ReferenceEquals(sender, PagesRange) ? PrintScope.Range : PrintScope.AllPages;
+        var scope = ScopeButtons.SelectedIndex switch { 1 => PrintScope.CurrentPage, 2 => PrintScope.Range, _ => PrintScope.AllPages };
         _state = _state with { Scope = scope };
         _sheet = 0;
         Reflect(announceNow: true);
@@ -535,20 +532,21 @@ internal sealed partial class PrintSheetView : UserControl, IDisposable
         // Typing in the range box selects the range option (design 11-print section 4.2); reaching it with the keyboard does too, so Enter then prints that range.
         if (_state.Scope != PrintScope.Range && _updating == 0 && RangeBox.Text.Length > 0)
         {
-            PagesRange.IsChecked = true;
+            ScopeButtons.SelectedIndex = 2;
         }
     }
 
     private void OnRangeChanged(object sender, TextChangedEventArgs e)
     {
-        if (_updating > 0)
+        // TextChanged can arrive after the code that set the text has finished (the guard is then down): a text the state already has is not a change.
+        if (_updating > 0 || string.Equals(RangeBox.Text, _state.RangeText, StringComparison.Ordinal))
         {
             return;
         }
 
         Touch();
         _state = _state with { RangeText = RangeBox.Text, Scope = PrintScope.Range };
-        Quietly(() => PagesRange.IsChecked = true);
+        Quietly(() => ScopeButtons.SelectedIndex = 2);
         _sheet = 0;
         Reflect(announceNow: false);
         ScheduleRefresh();
@@ -804,9 +802,9 @@ internal sealed partial class PrintSheetView : UserControl, IDisposable
         {
             await previous.ConfigureAwait(true); // one render at a time on the session
         }
-        catch (Exception e) when (e is OperationCanceledException)
+        catch (Exception e) when (e is not OutOfMemoryException)
         {
-            // the one before was cancelled: that is why this runs
+            // the one before was cancelled or failed (it showed why): this one starts afresh
         }
 
         if (token.IsCancellationRequested)
@@ -874,7 +872,6 @@ internal sealed partial class PrintSheetView : UserControl, IDisposable
                 return;
             }
 
-
             var image = await PrintPreview.RenderAsync(session.Source, new PreviewRequest(options, pages, preflight.Paper, preflight.Device?.Physical ?? default), token).ConfigureAwait(true);
             token.ThrowIfCancellationRequested();
             ShowPreview(image, state, pages);
@@ -883,7 +880,7 @@ internal sealed partial class PrintSheetView : UserControl, IDisposable
         {
             // a newer refresh is on its way
         }
-        catch (Exception e) when (e is PrintDeviceException or InvalidOperationException or IOException)
+        catch (Exception e) when (e is PrintDeviceException or InvalidOperationException or IOException or EngineStartException)
         {
             System.Diagnostics.Debug.WriteLine("Print preview: " + e.GetType().Name);
             ShowPreviewMessage(Strings.Get("Print_Preview_Failed"), busy: false);

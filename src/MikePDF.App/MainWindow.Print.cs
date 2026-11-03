@@ -88,6 +88,7 @@ public sealed partial class MainWindow
         dialog.CloseButtonText = Strings.Get("Print_Button_Cancel");
         dialog.DefaultButton = ContentDialogButton.Primary;
         dialog.IsPrimaryButtonEnabled = view.CanPrint;
+        dialog.FlowDirection = Root.FlowDirection; // a dialog is a popup and does not inherit the window's direction (the pseudo-RTL journeys mirror the sheet)
         dialog.Resources["ContentDialogMaxWidth"] = 960.0;
         dialog.Resources["ContentDialogMinWidth"] = 320.0;
         AutomationProperties.SetAutomationId(dialog, "PrintDialog");
@@ -213,9 +214,8 @@ public sealed partial class MainWindow
         PrintBar.Maximum = 1;
         PrintBar.Visibility = Visibility.Visible;
         AutomationProperties.SetName(PrintBar, Strings.Format("Print_Progress_Name", run.DocumentName));
-        PrintStatus.Text = string.Empty;
-        PrintDetail.Text = Strings.Get("Print_Progress_Preparing");
-        PrintDetail.Visibility = Visibility.Visible;
+        PrintStatus.Text = Strings.Get("Print_Progress_Preparing"); // the live line says something from the first moment, so the element is in the accessibility tree before the first page is counted
+        PrintDetail.Visibility = Visibility.Collapsed;
         PrintActions.Children.Clear();
         PrintActions.Visibility = Visibility.Collapsed;
         PrintCancelButton.Visibility = Visibility.Visible;
@@ -234,6 +234,7 @@ public sealed partial class MainWindow
             // The spooler is converting the job; there is no page to count. Not a live region: the last page was announced, and the end is.
             PrintBar.IsIndeterminate = true;
             PrintDetail.Text = Strings.Format("Print_Progress_Finishing", run.Printer);
+            PrintDetail.Visibility = Visibility.Visible;
             return;
         }
 
@@ -244,6 +245,7 @@ public sealed partial class MainWindow
         PrintDetail.Visibility = Visibility.Collapsed;
         var sheetWise = run.PagesPerSheet > 1;
         PrintStatus.Text = Strings.Format(sheetWise ? "Print_Progress_Sheet" : "Print_Progress_Page", value.Sheet, value.TotalSheets);
+        AnnouncePrint(PrintStatus.Text);
     }
 
     private void FinishPrintStrip(PrintRun run, PrintResult? result, PrintFailureKind kind, bool disabled, PrintSheetChoice? choice = null, string? documentName = null, DocumentSession? document = null)
@@ -285,6 +287,12 @@ public sealed partial class MainWindow
             PrintStrip.Severity = declined ? InfoBarSeverity.Informational : InfoBarSeverity.Error;
             PrintStrip.Title = declined ? Strings.Format("Print_Progress_Name", run.DocumentName) : Strings.Format("Print_Failed_Title", run.DocumentName);
             PrintStatus.Text = failure;
+            if (!declined && result?.Detail is { Length: > 0 } detail)
+            {
+                PrintDetail.Text = Strings.Format("Print_Error_Details", detail); // what the printer or the engine said, for whoever is asked to help
+                PrintDetail.Visibility = Visibility.Visible;
+            }
+
             if (!declined && choice is not null && documentName is not null && document is not null)
             {
                 linger = TimeSpan.FromMinutes(5);
@@ -297,6 +305,8 @@ public sealed partial class MainWindow
             }
         }
 
+        AnnouncePrint(PrintStatus.Text); // once at the end: sent, stopped, or why not
+
         _printStripTimer ??= DispatcherQueue.CreateTimer();
         _printStripTimer.IsRepeating = false;
         _printStripTimer.Interval = linger;
@@ -304,6 +314,14 @@ public sealed partial class MainWindow
         _printStripTimer.Tick -= OnPrintStripTimer;
         _printStripTimer.Tick += OnPrintStripTimer;
         _printStripTimer.Start();
+    }
+
+    // A UIA notification from an element that is always there (the way tab moves are announced): once for each page counted and once at the end.
+    private void AnnouncePrint(string message)
+    {
+        var peer = Microsoft.UI.Xaml.Automation.Peers.FrameworkElementAutomationPeer.FromElement(PrintAnnouncement)
+            ?? Microsoft.UI.Xaml.Automation.Peers.FrameworkElementAutomationPeer.CreatePeerForElement(PrintAnnouncement);
+        peer?.RaiseNotificationEvent(Microsoft.UI.Xaml.Automation.Peers.AutomationNotificationKind.Other, Microsoft.UI.Xaml.Automation.Peers.AutomationNotificationProcessing.MostRecent, message, "PrintAnnouncement");
     }
 
     private void OnPrintStripTimer(DispatcherQueueTimer sender, object args)

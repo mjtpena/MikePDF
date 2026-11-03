@@ -45,16 +45,19 @@
                         <ColumnDefinition Width="Auto" />
                         <ColumnDefinition Width="*" />
                     </Grid.ColumnDefinitions>
-                    <NumberBox x:Name="CopiesBox" Minimum="1" Maximum="99" Value="1" SpinButtonPlacementMode="Compact" SmallChange="1" LargeChange="5" AcceptsExpression="False"
+                    <NumberBox x:Name="CopiesBox" Minimum="1" Maximum="99" SpinButtonPlacementMode="Compact" SmallChange="1" LargeChange="5" AcceptsExpression="False"
                                ValidationMode="InvalidInputOverwritten" AccessKey="C" AutomationProperties.AutomationId="PrintCopies" ValueChanged="OnCopiesChanged" MinWidth="130" />
                     <CheckBox x:Name="CollateBox" Grid.Column="1" VerticalAlignment="Bottom" AutomationProperties.AutomationId="PrintCollate" Checked="OnOptionChanged" Unchecked="OnOptionChanged" />
                 </Grid>
 
                 <!-- Pages -->
                 <TextBlock x:Name="PagesHeading" Style="{StaticResource BodyStrongTextBlockStyle}" Margin="0,12,0,0" AutomationProperties.HeadingLevel="Level2" />
-                <RadioButton x:Name="PagesAll" GroupName="PrintPages" AccessKey="G" AutomationProperties.AutomationId="PrintPagesAll" Checked="OnScopeChecked" />
-                <RadioButton x:Name="PagesCurrent" GroupName="PrintPages" AutomationProperties.AutomationId="PrintPagesCurrent" Checked="OnScopeChecked" />
-                <RadioButton x:Name="PagesRange" GroupName="PrintPages" AutomationProperties.AutomationId="PrintPagesRange" Checked="OnScopeChecked" />
+                <!-- One tab stop for the three choices, the arrow keys move between them (design 11-print section 5). -->
+                <RadioButtons x:Name="ScopeButtons" MaxColumns="1" AccessKey="G" AutomationProperties.AutomationId="PrintPages" SelectionChanged="OnScopeChanged">
+                    <RadioButton x:Name="PagesAll" AutomationProperties.AutomationId="PrintPagesAll" />
+                    <RadioButton x:Name="PagesCurrent" AutomationProperties.AutomationId="PrintPagesCurrent" />
+                    <RadioButton x:Name="PagesRange" AutomationProperties.AutomationId="PrintPagesRange" />
+                </RadioButtons>
                 <TextBox x:Name="RangeBox" Margin="28,0,0,0" MaxLength="256" InputScope="Number" AutomationProperties.AutomationId="PrintRange" TextChanged="OnRangeChanged" GotFocus="OnRangeFocused" />
                 <TextBlock x:Name="RangeError" Margin="28,0,0,0" TextWrapping="Wrap" Visibility="Collapsed" AutomationProperties.AutomationId="PrintRangeError"
                            AutomationProperties.LiveSetting="Assertive" Foreground="{ThemeResource SystemFillColorCriticalBrush}" />
@@ -72,7 +75,7 @@
                         <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
                     <ComboBox x:Name="ScaleBox" HorizontalAlignment="Stretch" AutomationProperties.AutomationId="PrintScale" SelectionChanged="OnOptionChanged" />
-                    <NumberBox x:Name="ScalePercentBox" Grid.Column="1" Minimum="10" Maximum="400" Value="100" SpinButtonPlacementMode="Compact" SmallChange="5" LargeChange="25" AcceptsExpression="False"
+                    <NumberBox x:Name="ScalePercentBox" Grid.Column="1" Minimum="10" Maximum="400" SpinButtonPlacementMode="Compact" SmallChange="5" LargeChange="25" AcceptsExpression="False"
                                ValidationMode="InvalidInputOverwritten" Visibility="Collapsed" VerticalAlignment="Bottom" MinWidth="120" AutomationProperties.AutomationId="PrintScaleCustom"
                                ValueChanged="OnScalePercentChanged" />
                 </Grid>
@@ -112,11 +115,11 @@
                 <RowDefinition Height="Auto" />
             </Grid.RowDefinitions>
             <ToggleButton x:Name="PreviewToggle" Visibility="Collapsed" AutomationProperties.AutomationId="PrintShowPreview" Checked="OnPreviewToggled" Unchecked="OnPreviewToggled" />
-            <Border x:Name="PreviewFrame" Grid.Row="1" MinHeight="200" Padding="16" CornerRadius="8" Background="{ThemeResource LayerOnAcrylicFillColorDefaultBrush}"
+            <Border x:Name="PreviewFrame" Grid.Row="1" MinHeight="140" Padding="16" CornerRadius="8" Background="{ThemeResource LayerFillColorDefaultBrush}"
                     BorderThickness="1" BorderBrush="{ThemeResource ControlStrokeColorDefaultBrush}">
                 <Grid>
                     <!-- The page keeps its own colours; the surround is the system's (high contrast: Window and WindowText, design 5). -->
-                    <Border x:Name="PreviewPaperEdge" HorizontalAlignment="Center" VerticalAlignment="Center" BorderThickness="1" BorderBrush="{ThemeResource ControlStrongStrokeColorDefaultBrush}">
+                    <Border x:Name="PreviewPaperEdge" HorizontalAlignment="Center" VerticalAlignment="Center" BorderThickness="1" BorderBrush="{ThemeResource ControlStrokeColorDefaultBrush}">
                         <Image x:Name="PreviewPicture" Stretch="Uniform" AutomationProperties.AutomationId="PrintPreview" AutomationProperties.LocalizedControlType="image" />
                     </Border>
                     <ProgressRing x:Name="PreviewRing" Width="32" Height="32" IsActive="False" HorizontalAlignment="Center" VerticalAlignment="Center" AutomationProperties.AccessibilityView="Raw" />

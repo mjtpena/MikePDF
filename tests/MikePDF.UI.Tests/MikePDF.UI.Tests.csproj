@@ -13,6 +13,19 @@
     <PackageReference Include="FlaUI.UIA3" />
   </ItemGroup>
   <ItemGroup>
+    <!--
+      The print journeys check the file a print wrote: how many pages, how big, and how much each looks like the page it came from (journey 11, PRINT-13). That takes the sandboxed engine, the page geometry
+      the app prints with, and the comparison the print tests use (linked from them), not FlaUI.
+    -->
+    <ProjectReference Include="..\..\src\MikePDF.Broker\MikePDF.Broker.csproj" />
+    <ProjectReference Include="..\..\src\MikePDF.Core\MikePDF.Core.csproj" />
+    <ProjectReference Include="..\..\src\MikePDF.Printing\MikePDF.Printing.csproj" />
+    <ProjectReference Include="..\..\src\MikePDF.Protocol\MikePDF.Protocol.csproj" />
+    <Compile Include="..\..\tools\MikePDF.Render\Imaging\Ssim.cs" Link="Printing\Linked\Ssim.cs" />
+    <Compile Include="..\..\tools\MikePDF.Render\Imaging\BgraImage.cs" Link="Printing\Linked\BgraImage.cs" />
+    <Compile Include="..\MikePDF.Integration.Tests\Printing\PageImages.cs" Link="Printing\Linked\PageImages.cs" />
+  </ItemGroup>
+  <ItemGroup>
     <!-- Fixtures shared with the integration tests (PDFium test PDFs, BSD-3-Clause). -->
     <Content Include="..\MikePDF.Integration.Tests\Fixtures\*.pdf" Link="Fixtures\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>

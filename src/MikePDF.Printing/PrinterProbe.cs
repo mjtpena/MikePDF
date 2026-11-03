@@ -21,16 +21,19 @@ public sealed record PrinterProbe(PrinterAbilities Abilities, int DefaultPaperId
         {
             var abilities = PrinterCapabilities.Read(printer).Abilities;
             var paper = 0;
+            var driverAnswered = false;
             try
             {
                 paper = DevMode.GetDefault(printer).PaperSize;
+                driverAnswered = true;
             }
             catch (PrintDeviceException)
             {
-                // The capabilities answered and the driver's defaults did not: the sheet falls back to the first paper in the list.
+                // The driver's defaults did not answer: the sheet falls back to the first paper in the list, if the capabilities had one.
             }
 
-            return new PrinterProbe(abilities, paper, true);
+            // DeviceCapabilities answers -1 (nothing) for a name that is no printer, without an error: only a printer that listed paper or opened with its defaults has answered.
+            return driverAnswered || abilities.Papers.Count > 0 ? new PrinterProbe(abilities, paper, true) : None;
         }
         catch (Exception e) when (e is PrintDeviceException or DllNotFoundException or EntryPointNotFoundException or InvalidOperationException)
         {
