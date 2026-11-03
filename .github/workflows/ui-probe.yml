@@ -1,0 +1,65 @@
+name: UI probe (temporary)
+on:
+  pull_request:
+    paths: ['.github/workflows/ui-probe.yml']
+permissions:
+  contents: read
+jobs:
+  probe:
+    name: probe-${{ matrix.arch }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { arch: x64, runner: windows-2025-vs2026 }
+          - { arch: arm64, runner: windows-11-vs2026-arm }
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 15
+    steps:
+      - name: Processes and windows
+        shell: pwsh
+        run: |
+          Get-Process | Where-Object { $_.SessionId -eq 2 -and ($_.MainWindowTitle -or $_.ProcessName -match 'Experience|OOBE|Cloud|Out|Setup|Privacy|ShellExperience|LockApp') } | Select-Object Id, ProcessName, MainWindowTitle, SessionId | Format-Table -AutoSize | Out-String -Width 200 | Write-Host
+          Write-Host '--- all process names in session 2'
+          (Get-Process | Where-Object SessionId -eq 2 | Select-Object -ExpandProperty ProcessName | Sort-Object -Unique) -join ', '
+      - name: UIA tree of the top-level windows
+        shell: pwsh
+        run: |
+          Add-Type -AssemblyName UIAutomationClient, UIAutomationTypes
+          $root = [System.Windows.Automation.AutomationElement]::RootElement
+          $kids = $root.FindAll([System.Windows.Automation.TreeScope]::Children, [System.Windows.Automation.Condition]::TrueCondition)
+          foreach ($k in $kids) { Write-Host ("window: '{0}' class={1} pid={2}" -f $k.Current.Name, $k.Current.ClassName, $k.Current.ProcessId) }
+          $buttons = $root.FindAll([System.Windows.Automation.TreeScope]::Descendants, [System.Windows.Automation.PropertyCondition]::new([System.Windows.Automation.AutomationElement]::ControlTypeProperty, [System.Windows.Automation.ControlType]::Button))
+          foreach ($b in $buttons) { Write-Host ("button: '{0}' id={1} pid={2}" -f $b.Current.Name, $b.Current.AutomationId, $b.Current.ProcessId) }
+      - name: Display modes
+        shell: pwsh
+        run: |
+          Add-Type -TypeDefinition @'
+          using System;
+          using System.Runtime.InteropServices;
+          public static class Display {
+            [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Ansi)]
+            public struct DEVMODE {
+              [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 32)] public string dmDeviceName;
+              public short dmSpecVersion, dmDriverVersion, dmSize, dmDriverExtra;
+              public int dmFields, dmPositionX, dmPositionY, dmDisplayOrientation, dmDisplayFixedOutput;
+              public short dmColor, dmDuplex, dmYResolution, dmTTOption, dmCollate;
+              [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 32)] public string dmFormName;
+              public short dmLogPixels;
+              public int dmBitsPerPel, dmPelsWidth, dmPelsHeight, dmDisplayFlags, dmDisplayFrequency, dmICMMethod, dmICMIntent, dmMediaType, dmDitherType, dmReserved1, dmReserved2, dmPanningWidth, dmPanningHeight;
+            }
+            [DllImport("user32.dll", CharSet = CharSet.Ansi, SetLastError = true)] public static extern bool EnumDisplaySettings(string device, int mode, ref DEVMODE dm);
+          }
+          '@
+          Write-Host ("DEVMODE size: " + [System.Runtime.InteropServices.Marshal]::SizeOf([Display+DEVMODE]))
+          $dm = [Display+DEVMODE]::new(); $dm.dmSize = [int16][System.Runtime.InteropServices.Marshal]::SizeOf($dm)
+          $ok = [Display]::EnumDisplaySettings($null, -1, [ref]$dm)
+          Write-Host "current: ok=$ok $($dm.dmPelsWidth)x$($dm.dmPelsHeight) bpp=$($dm.dmBitsPerPel) err=$([System.Runtime.InteropServices.Marshal]::GetLastWin32Error())"
+          $i = 0; $seen = @{}
+          while ($true) {
+            $dm = [Display+DEVMODE]::new(); $dm.dmSize = [int16][System.Runtime.InteropServices.Marshal]::SizeOf($dm)
+            if (-not [Display]::EnumDisplaySettings($null, $i, [ref]$dm)) { break }
+            $seen["$($dm.dmPelsWidth)x$($dm.dmPelsHeight)x$($dm.dmBitsPerPel)"] = 1; $i++
+          }
+          Write-Host "modes ($i): $($seen.Keys -join ' ')"
+          Get-CimInstance Win32_VideoController | Select-Object Name, VideoModeDescription, CurrentHorizontalResolution, CurrentVerticalResolution, DriverVersion | Format-List | Out-String | Write-Host
