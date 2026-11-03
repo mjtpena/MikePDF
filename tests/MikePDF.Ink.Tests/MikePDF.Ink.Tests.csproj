@@ -1,0 +1,5 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\MikePDF.Ink\MikePDF.Ink.csproj" />
+  </ItemGroup>
+</Project>

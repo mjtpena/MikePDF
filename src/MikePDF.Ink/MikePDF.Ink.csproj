@@ -1,0 +1,8 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <Description>Ink stroke model, pressure curves, smoothing, simplification, outline and Bezier fitting, eraser geometry and batching. No UI, no IPC, no dependencies (ADR-0007).</Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="MikePDF.Ink.Tests" />
+  </ItemGroup>
+</Project>

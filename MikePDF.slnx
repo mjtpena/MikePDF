@@ -3,6 +3,8 @@
     <Project Path="src/MikePDF.App/MikePDF.App.csproj" />
     <Project Path="src/MikePDF.Broker/MikePDF.Broker.csproj" />
     <Project Path="src/MikePDF.Core/MikePDF.Core.csproj" />
+    <Project Path="src/MikePDF.Ink/MikePDF.Ink.csproj" />
+    <Project Path="src/MikePDF.Markup/MikePDF.Markup.csproj" />
     <Project Path="src/MikePDF.PdfWriter/MikePDF.PdfWriter.csproj" />
     <Project Path="src/MikePDF.Printing/MikePDF.Printing.csproj" />
     <Project Path="src/MikePDF.Protocol/MikePDF.Protocol.csproj" />
@@ -11,7 +13,9 @@
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/MikePDF.Core.Tests/MikePDF.Core.Tests.csproj" />
+    <Project Path="tests/MikePDF.Ink.Tests/MikePDF.Ink.Tests.csproj" />
     <Project Path="tests/MikePDF.Integration.Tests/MikePDF.Integration.Tests.csproj" />
+    <Project Path="tests/MikePDF.Markup.Tests/MikePDF.Markup.Tests.csproj" />
     <Project Path="tests/MikePDF.PdfWriter.Tests/MikePDF.PdfWriter.Tests.csproj" />
     <Project Path="tests/MikePDF.Perf.Tests/MikePDF.Perf.Tests.csproj" />
     <Project Path="tests/MikePDF.UI.Tests/MikePDF.UI.Tests.csproj" />

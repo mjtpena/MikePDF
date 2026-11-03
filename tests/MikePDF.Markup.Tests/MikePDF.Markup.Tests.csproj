@@ -1,0 +1,8 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\MikePDF.Markup\MikePDF.Markup.csproj" />
+    <ProjectReference Include="..\..\src\MikePDF.Ink\MikePDF.Ink.csproj" />
+    <ProjectReference Include="..\..\src\MikePDF.Core\MikePDF.Core.csproj" />
+    <ProjectReference Include="..\..\src\MikePDF.Protocol\MikePDF.Protocol.csproj" />
+  </ItemGroup>
+</Project>
