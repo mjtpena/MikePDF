@@ -119,9 +119,17 @@ jobs:
           Write-Host "First-sign-in page still up: $(Test-FirstSignIn)"
           # After it, the ARM64 image leaves the Start menu open (it takes the keyboard from the app), and a console of wsl.exe ("Press any key to install Windows Subsystem for
           # Linux", also a window that takes keys) behind it. End the console and close the menu.
-          $wsl = Get-Process wsl, wslhost -ErrorAction SilentlyContinue
-          Write-Host "wsl processes: $(@($wsl).Count)"
-          $wsl | Stop-Process -Force -ErrorAction SilentlyContinue
+          # The console comes back later in the run (inside Windows Terminal on the ARM64 image) and takes the keyboard from the app in the middle of a journey, so a hidden watcher
+          # keeps ending it for the rest of the job. It touches only wsl, wslhost and a terminal window titled for wsl.exe.
+          $watcher = @'
+          while ($true) {
+            Get-Process wsl, wslhost -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
+            Get-Process WindowsTerminal -ErrorAction SilentlyContinue | Where-Object { $_.MainWindowTitle -match 'wsl' } | Stop-Process -Force -ErrorAction SilentlyContinue
+            Start-Sleep -Seconds 2
+          }
+          '@
+          Start-Process pwsh -WindowStyle Hidden -ArgumentList '-NoProfile', '-Command', $watcher
+          Start-Sleep -Seconds 3
           [System.Windows.Forms.SendKeys]::SendWait('{ESC}')
           Start-Sleep -Seconds 2
           Shot 'desktop-before-journeys'
