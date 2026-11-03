@@ -315,6 +315,18 @@ public sealed class PrintSheetTests
     }
 
     [Fact]
+    public void EveryResourceKeyThePrintPipelineNamesIsInTheResourcesFile()
+    {
+        // PrintStrings is the pipeline's list of keys (a result carries one); a key that is not in Resources.resw would show as an empty string.
+        var keys = typeof(PrintStrings).GetFields(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static)
+            .Where(f => f is { IsLiteral: true } && f.FieldType == typeof(string))
+            .Select(f => (string)f.GetRawConstantValue()!)
+            .ToList();
+        Assert.NotEmpty(keys);
+        Assert.All(keys, key => Assert.True(ResourceText.Has(key), key));
+    }
+
+    [Fact]
     public void TheOfflineSentenceIsTheOneTheDesignGives() =>
         Assert.Equal("The printer didn't accept the job. Check that it is on and connected, then try again.", ResourceText.Get(PrintFailure.ResourceKey(PrintFailureKind.PrinterOffline)));
 
