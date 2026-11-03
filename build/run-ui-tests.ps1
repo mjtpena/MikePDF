@@ -95,7 +95,10 @@ if ($Ci) {
     $packages = if ($env:NUGET_PACKAGES) { $env:NUGET_PACKAGES } else { Join-Path $env:USERPROFILE '.nuget\packages' }
     $framework = Join-Path $packages "microsoft.windowsappsdk.runtime\$pin\tools\MSIX\win10-$Arch\Microsoft.WindowsAppRuntime.2.msix"
     if (-not (Test-Path $framework)) { throw "Windows App SDK framework package not found: $framework" }
-    Add-AppxPackage -Path $framework -ForceApplicationShutdown -ErrorAction Stop
+    # The arm64 image already has a newer one (2.6.4), which satisfies the manifest and cannot be replaced by the older pin: install only when none at or above the pin is there.
+    $have = Get-AppxPackage -Name Microsoft.WindowsAppRuntime.2 | Where-Object { $_.Architecture -eq $Arch -and [version]$_.Version -ge [version]$pin }
+    if ($have) { Write-Host "Windows App SDK framework already installed: $(@($have)[0].PackageFullName)" }
+    else { Add-AppxPackage -Path $framework -ForceApplicationShutdown -ErrorAction Stop }
 }
 $previous = Get-AppxPackage -Name $identity
 if ($previous) { Remove-AppxPackage $previous.PackageFullName }

@@ -70,6 +70,49 @@ jobs:
           $bitmap = [System.Drawing.Bitmap]::new($bounds.Width, $bounds.Height)
           [System.Drawing.Graphics]::FromImage($bitmap).CopyFromScreen($bounds.Location, [System.Drawing.Point]::Empty, $bounds.Size)
           $bitmap.Save((Join-Path $PWD 'build/out/shots/desktop-before-journeys.png'))
+      - name: Raise the screen resolution
+        # The runners start at 1024x768, where the command bar folds buttons into its overflow menu (FullScreenButton, PageColourButton, PropertiesButton are then not in the
+        # UIA tree) and a window cannot be smaller than the monitor. This takes the largest 16:9 mode up to 1920x1080 that the display adapter offers.
+        shell: pwsh
+        run: |
+          Add-Type -TypeDefinition @'
+          using System;
+          using System.Runtime.InteropServices;
+          public static class Display {
+            [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Ansi)]
+            public struct DEVMODE {
+              [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 32)] public string dmDeviceName;
+              public short dmSpecVersion, dmDriverVersion, dmSize, dmDriverExtra;
+              public int dmFields, dmPositionX, dmPositionY, dmDisplayOrientation, dmDisplayFixedOutput;
+              public short dmColor, dmDuplex, dmYResolution, dmTTOption, dmCollate;
+              [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 32)] public string dmFormName;
+              public short dmLogPixels;
+              public int dmBitsPerPel, dmPelsWidth, dmPelsHeight, dmDisplayFlags, dmDisplayFrequency, dmICMMethod, dmICMIntent, dmMediaType, dmDitherType, dmReserved1, dmReserved2, dmPanningWidth, dmPanningHeight;
+            }
+            [DllImport("user32.dll", CharSet = CharSet.Ansi)] public static extern bool EnumDisplaySettings(string device, int mode, ref DEVMODE dm);
+            [DllImport("user32.dll", CharSet = CharSet.Ansi)] public static extern int ChangeDisplaySettings(ref DEVMODE dm, int flags);
+          }
+          '@
+          $modes = @(); $i = 0
+          do {
+            $dm = [Display+DEVMODE]::new(); $dm.dmSize = [int16][System.Runtime.InteropServices.Marshal]::SizeOf($dm)
+            $ok = [Display]::EnumDisplaySettings($null, $i, [ref]$dm); $i++
+            if ($ok -and $dm.dmBitsPerPel -eq 32) { $modes += [pscustomobject]@{ W = $dm.dmPelsWidth; H = $dm.dmPelsHeight } }
+          } while ($ok)
+          $modes = $modes | Sort-Object W, H -Unique
+          Write-Host ("Modes offered: " + (($modes | ForEach-Object { "$($_.W)x$($_.H)" }) -join ' '))
+          $want = $modes | Where-Object { $_.W -le 1920 -and $_.H -le 1080 } | Sort-Object { $_.W * $_.H } -Descending | Select-Object -First 1
+          if ($want -and $want.W -gt 1024) {
+            $dm = [Display+DEVMODE]::new(); $dm.dmSize = [int16][System.Runtime.InteropServices.Marshal]::SizeOf($dm)
+            [void][Display]::EnumDisplaySettings($null, -1, [ref]$dm)
+            $dm.dmPelsWidth = $want.W; $dm.dmPelsHeight = $want.H; $dm.dmFields = 0x80000 -bor 0x100000
+            $result = [Display]::ChangeDisplaySettings([ref]$dm, 0)
+            Write-Host "ChangeDisplaySettings to $($want.W)x$($want.H): result $result (0 is success)"
+          } else { Write-Host 'No larger mode is offered; the journeys run at the current size.' }
+          Start-Sleep -Seconds 2
+          Add-Type -AssemblyName System.Windows.Forms
+          $screen = [System.Windows.Forms.Screen]::PrimaryScreen
+          Write-Host "Primary screen now: $($screen.Bounds.Width)x$($screen.Bounds.Height)"
       - name: Build, register a handler-free copy of the package, run the journeys
         shell: pwsh
         run: ./build/run-ui-tests.ps1 -Arch ${{ matrix.arch }} -Ci
