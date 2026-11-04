@@ -1782,6 +1782,137 @@ public sealed class GetDocumentDetailsReply : IReplyMessage
     }
 }
 
+/// <summary>The request payload of GetTextQuads (message type 27).</summary>
+public sealed class GetTextQuads : IRequestMessage
+{
+    public uint Page { get; set; }
+    /// <summary>First character, in the numbering of GetPageText.</summary>
+    public uint Start { get; set; }
+    /// <summary>Characters; the range is cut at the end of the page's text.</summary>
+    public uint Count { get; set; }
+    public uint FirstQuad { get; set; }
+
+    public MessageType MessageType => MessageType.GetTextQuads;
+
+    /// <summary>
+    /// The only decoder for this type. Reads exactly the declared fields, enforcing wire types and every limit as it goes;
+    /// there is no other decoder (see StrictReader).
+    /// </summary>
+    internal static GetTextQuads Read(ref MessagePackReader reader)
+    {
+        StrictReader.ExpectArray(ref reader, 4);
+        var message = new GetTextQuads();
+        message.Page = StrictReader.ReadU32(ref reader, 0u, 9999999u);
+        message.Start = StrictReader.ReadU32(ref reader, 0u, 199999u);
+        message.Count = StrictReader.ReadU32(ref reader, 1u, 200000u);
+        message.FirstQuad = StrictReader.ReadU32(ref reader, 0u, 4095u);
+        return message;
+    }
+
+    /// <summary>Writes the payload array. Does not validate; the codec validates before it writes.</summary>
+    public void Write(ref MessagePackWriter writer)
+    {
+        writer.WriteArrayHeader(4);
+        writer.Write(Page);
+        writer.Write(Start);
+        writer.Write(Count);
+        writer.Write(FirstQuad);
+    }
+
+    /// <summary>Checks every schema limit. Returns null when the message is valid.</summary>
+    public ProtocolFailure? Validate()
+    {
+        if (Page > 9999999u) return ProtocolFailure.Invalid("GetTextQuads.page violates its limit");
+        if (Start > 199999u) return ProtocolFailure.Invalid("GetTextQuads.start violates its limit");
+        if (Count < 1u || Count > 200000u) return ProtocolFailure.Invalid("GetTextQuads.count violates its limit");
+        if (FirstQuad > 4095u) return ProtocolFailure.Invalid("GetTextQuads.firstQuad violates its limit");
+        return null;
+    }
+}
+
+/// <summary>The reply payload of GetTextQuads (message type 27).</summary>
+public sealed class GetTextQuadsReply : IReplyMessage
+{
+    /// <summary>Quads of the whole range, at most 4096.</summary>
+    public uint TotalQuads { get; set; }
+    /// <summary>The range has more than 4096 quads; only the first 4096 are reported.</summary>
+    public bool Truncated { get; set; }
+    /// <summary>Four corners a quad (top-left, top-right, bottom-left, bottom-right), 64 quads at most.</summary>
+    public float[] Xs { get; set; } = [];
+    public float[] Ys { get; set; } = [];
+
+    public MessageType MessageType => MessageType.GetTextQuads;
+
+    /// <summary>
+    /// The only decoder for this type. Reads exactly the declared fields, enforcing wire types and every limit as it goes;
+    /// there is no other decoder (see StrictReader).
+    /// </summary>
+    internal static GetTextQuadsReply Read(ref MessagePackReader reader)
+    {
+        StrictReader.ExpectArray(ref reader, 4);
+        var message = new GetTextQuadsReply();
+        message.TotalQuads = StrictReader.ReadU32(ref reader, 0u, 4096u);
+        message.Truncated = StrictReader.ReadBool(ref reader);
+        var xsCount = StrictReader.ReadArrayHeader(ref reader, 256);
+        var xs = new float[xsCount];
+        for (var i = 0; i < xs.Length; i++)
+        {
+            xs[i] = StrictReader.ReadF32(ref reader, -1000000.0f, 1000000.0f, false);
+        }
+
+        message.Xs = xs;
+        var ysCount = StrictReader.ReadArrayHeader(ref reader, 256);
+        var ys = new float[ysCount];
+        for (var i = 0; i < ys.Length; i++)
+        {
+            ys[i] = StrictReader.ReadF32(ref reader, -1000000.0f, 1000000.0f, false);
+        }
+
+        message.Ys = ys;
+        return message;
+    }
+
+    /// <summary>Writes the payload array. Does not validate; the codec validates before it writes.</summary>
+    public void Write(ref MessagePackWriter writer)
+    {
+        writer.WriteArrayHeader(4);
+        writer.Write(TotalQuads);
+        writer.Write(Truncated);
+        writer.WriteArrayHeader(Xs.Length);
+        foreach (var v in Xs)
+        {
+            writer.Write(v);
+        }
+
+        writer.WriteArrayHeader(Ys.Length);
+        foreach (var v in Ys)
+        {
+            writer.Write(v);
+        }
+
+    }
+
+    /// <summary>Checks every schema limit. Returns null when the message is valid.</summary>
+    public ProtocolFailure? Validate()
+    {
+        if (TotalQuads > 4096u) return ProtocolFailure.Invalid("GetTextQuadsReply.totalQuads violates its limit");
+        if (Xs is null || Xs.Length > 256) return ProtocolFailure.Invalid("GetTextQuadsReply.xs is null or has more than 256 elements");
+        for (var i = 0; i < Xs.Length; i++)
+        {
+            if (!float.IsFinite(Xs[i]) || Xs[i] < -1000000.0f || Xs[i] > 1000000.0f) return ProtocolFailure.Invalid("GetTextQuadsReply.xs[" + i + "] violates its limit");
+        }
+
+        if (Ys is null || Ys.Length > 256) return ProtocolFailure.Invalid("GetTextQuadsReply.ys is null or has more than 256 elements");
+        for (var i = 0; i < Ys.Length; i++)
+        {
+            if (!float.IsFinite(Ys[i]) || Ys[i] < -1000000.0f || Ys[i] > 1000000.0f) return ProtocolFailure.Invalid("GetTextQuadsReply.ys[" + i + "] violates its limit");
+        }
+
+        if (Ys.Length != Xs.Length) return ProtocolFailure.Invalid("GetTextQuadsReply.ys must have as many elements as xs");
+        return null;
+    }
+}
+
 /// <summary>The request payload of GetViewerPreferences (message type 28).</summary>
 public sealed class GetViewerPreferences : IRequestMessage
 {
@@ -1910,7 +2041,7 @@ public sealed class RenderTile : IRequestMessage
     public int TileY { get; set; }
     public uint TileWidth { get; set; }
     public uint TileHeight { get; set; }
-    /// <summary>Bit 0 annotations, bit 1 form fields, bit 2 dark pages (the tile is recoloured the way the inverted page colour does it, except for colour photographs). Bit 2 means printing mode in RenderBand: the two messages have their own flags.</summary>
+    /// <summary>Bit 0 annotations, bit 1 form fields, bit 2 dark pages (the tile is recoloured the way the inverted page colour does it, except for colour photographs), bit 3 the fillable-field highlight (schema 7; only with bit 1: PDFium's own form field highlight, drawn on the widgets of the page; never set for a print, a snapshot or a flattened copy). Bit 2 means printing mode in RenderBand: the two messages have their own flags.</summary>
     public uint Flags { get; set; }
     public uint SlotIndex { get; set; }
     public ulong Generation { get; set; }
@@ -1932,7 +2063,7 @@ public sealed class RenderTile : IRequestMessage
         message.TileY = StrictReader.ReadI32(ref reader, -16777216, 16777216);
         message.TileWidth = StrictReader.ReadU32(ref reader, 1u, 1024u);
         message.TileHeight = StrictReader.ReadU32(ref reader, 1u, 1024u);
-        message.Flags = StrictReader.ReadU32(ref reader, 0u, 7u);
+        message.Flags = StrictReader.ReadU32(ref reader, 0u, 15u);
         message.SlotIndex = StrictReader.ReadU32(ref reader, 0u, 1023u);
         message.Generation = StrictReader.ReadU64(ref reader, 0UL, ulong.MaxValue);
         return message;
@@ -1964,7 +2095,7 @@ public sealed class RenderTile : IRequestMessage
         if (TileY < -16777216 || TileY > 16777216) return ProtocolFailure.Invalid("RenderTile.tileY violates its limit");
         if (TileWidth < 1u || TileWidth > 1024u) return ProtocolFailure.Invalid("RenderTile.tileWidth violates its limit");
         if (TileHeight < 1u || TileHeight > 1024u) return ProtocolFailure.Invalid("RenderTile.tileHeight violates its limit");
-        if (Flags > 7u) return ProtocolFailure.Invalid("RenderTile.flags violates its limit");
+        if (Flags > 15u) return ProtocolFailure.Invalid("RenderTile.flags violates its limit");
         if (SlotIndex > 1023u) return ProtocolFailure.Invalid("RenderTile.slotIndex violates its limit");
         return null;
     }
@@ -2196,6 +2327,1768 @@ public sealed class RenderBandReply : IReplyMessage
         if (Width < 1u || Width > 65536u) return ProtocolFailure.Invalid("RenderBandReply.width violates its limit");
         if (Height < 1u || Height > 16384u) return ProtocolFailure.Invalid("RenderBandReply.height violates its limit");
         if (Stride < 4u || Stride > 262144u) return ProtocolFailure.Invalid("RenderBandReply.stride violates its limit");
+        return null;
+    }
+}
+
+/// <summary>The request payload of ListAnnotations (message type 40).</summary>
+public sealed class ListAnnotations : IRequestMessage
+{
+    public uint Page { get; set; }
+    public uint First { get; set; }
+    public uint Count { get; set; }
+
+    public MessageType MessageType => MessageType.ListAnnotations;
+
+    /// <summary>
+    /// The only decoder for this type. Reads exactly the declared fields, enforcing wire types and every limit as it goes;
+    /// there is no other decoder (see StrictReader).
+    /// </summary>
+    internal static ListAnnotations Read(ref MessagePackReader reader)
+    {
+        StrictReader.ExpectArray(ref reader, 3);
+        var message = new ListAnnotations();
+        message.Page = StrictReader.ReadU32(ref reader, 0u, 9999999u);
+        message.First = StrictReader.ReadU32(ref reader, 0u, 99999u);
+        message.Count = StrictReader.ReadU32(ref reader, 1u, 64u);
+        return message;
+    }
+
+    /// <summary>Writes the payload array. Does not validate; the codec validates before it writes.</summary>
+    public void Write(ref MessagePackWriter writer)
+    {
+        writer.WriteArrayHeader(3);
+        writer.Write(Page);
+        writer.Write(First);
+        writer.Write(Count);
+    }
+
+    /// <summary>Checks every schema limit. Returns null when the message is valid.</summary>
+    public ProtocolFailure? Validate()
+    {
+        if (Page > 9999999u) return ProtocolFailure.Invalid("ListAnnotations.page violates its limit");
+        if (First > 99999u) return ProtocolFailure.Invalid("ListAnnotations.first violates its limit");
+        if (Count < 1u || Count > 64u) return ProtocolFailure.Invalid("ListAnnotations.count violates its limit");
+        return null;
+    }
+}
+
+/// <summary>The reply payload of ListAnnotations (message type 40).</summary>
+public sealed class ListAnnotationsReply : IReplyMessage
+{
+    /// <summary>Entries in the page's /Annots; the engine stops counting at 100000.</summary>
+    public uint Total { get; set; }
+    public ushort[] Subtypes { get; set; } = [];
+    /// <summary>The /F flags of the file.</summary>
+    public uint[] Flags { get; set; } = [];
+    public float[] Lefts { get; set; } = [];
+    public float[] Bottoms { get; set; } = [];
+    public float[] Rights { get; set; } = [];
+    public float[] Tops { get; set; } = [];
+    /// <summary>0xAARRGGBB; 0 when the annotation has no /C or has an appearance stream.</summary>
+    public uint[] Colours { get; set; } = [];
+    /// <summary>/NM; empty when absent.</summary>
+    public string[] Nms { get; set; } = [];
+    /// <summary>/T, cut at a code point boundary.</summary>
+    public string[] Authors { get; set; } = [];
+    /// <summary>The raw /M text; the broker parses it.</summary>
+    public string[] Modified { get; set; } = [];
+    /// <summary>The start of /Contents, cut at a code point boundary.</summary>
+    public string[] Snippets { get; set; } = [];
+    /// <summary>Index of the annotation this one replies to, -1 for none.</summary>
+    public int[] Parents { get; set; } = [];
+
+    public MessageType MessageType => MessageType.ListAnnotations;
+
+    /// <summary>
+    /// The only decoder for this type. Reads exactly the declared fields, enforcing wire types and every limit as it goes;
+    /// there is no other decoder (see StrictReader).
+    /// </summary>
+    internal static ListAnnotationsReply Read(ref MessagePackReader reader)
+    {
+        StrictReader.ExpectArray(ref reader, 13);
+        var message = new ListAnnotationsReply();
+        message.Total = StrictReader.ReadU32(ref reader, 0u, 100000u);
+        var subtypesCount = StrictReader.ReadArrayHeader(ref reader, 64);
+        var subtypes = new ushort[subtypesCount];
+        for (var i = 0; i < subtypes.Length; i++)
+        {
+            subtypes[i] = StrictReader.ReadU16(ref reader, 0, 28);
+        }
+
+        message.Subtypes = subtypes;
+        var flagsCount = StrictReader.ReadArrayHeader(ref reader, 64);
+        var flags = new uint[flagsCount];
+        for (var i = 0; i < flags.Length; i++)
+        {
+            flags[i] = StrictReader.ReadU32(ref reader, 0u, uint.MaxValue);
+        }
+
+        message.Flags = flags;
+        var leftsCount = StrictReader.ReadArrayHeader(ref reader, 64);
+        var lefts = new float[leftsCount];
+        for (var i = 0; i < lefts.Length; i++)
+        {
+            lefts[i] = StrictReader.ReadF32(ref reader, -1000000.0f, 1000000.0f, false);
+        }
+
+        message.Lefts = lefts;
+        var bottomsCount = StrictReader.ReadArrayHeader(ref reader, 64);
+        var bottoms = new float[bottomsCount];
+        for (var i = 0; i < bottoms.Length; i++)
+        {
+            bottoms[i] = StrictReader.ReadF32(ref reader, -1000000.0f, 1000000.0f, false);
+        }
+
+        message.Bottoms = bottoms;
+        var rightsCount = StrictReader.ReadArrayHeader(ref reader, 64);
+        var rights = new float[rightsCount];
+        for (var i = 0; i < rights.Length; i++)
+        {
+            rights[i] = StrictReader.ReadF32(ref reader, -1000000.0f, 1000000.0f, false);
+        }
+
+        message.Rights = rights;
+        var topsCount = StrictReader.ReadArrayHeader(ref reader, 64);
+        var tops = new float[topsCount];
+        for (var i = 0; i < tops.Length; i++)
+        {
+            tops[i] = StrictReader.ReadF32(ref reader, -1000000.0f, 1000000.0f, false);
+        }
+
+        message.Tops = tops;
+        var coloursCount = StrictReader.ReadArrayHeader(ref reader, 64);
+        var colours = new uint[coloursCount];
+        for (var i = 0; i < colours.Length; i++)
+        {
+            colours[i] = StrictReader.ReadU32(ref reader, 0u, uint.MaxValue);
+        }
+
+        message.Colours = colours;
+        var nmsCount = StrictReader.ReadArrayHeader(ref reader, 64);
+        var nms = new string[nmsCount];
+        for (var i = 0; i < nms.Length; i++)
+        {
+            nms[i] = StrictReader.ReadString(ref reader, 64);
+        }
+
+        message.Nms = nms;
+        var authorsCount = StrictReader.ReadArrayHeader(ref reader, 64);
+        var authors = new string[authorsCount];
+        for (var i = 0; i < authors.Length; i++)
+        {
+            authors[i] = StrictReader.ReadString(ref reader, 128);
+        }
+
+        message.Authors = authors;
+        var modifiedCount = StrictReader.ReadArrayHeader(ref reader, 64);
+        var modified = new string[modifiedCount];
+        for (var i = 0; i < modified.Length; i++)
+        {
+            modified[i] = StrictReader.ReadString(ref reader, 32);
+        }
+
+        message.Modified = modified;
+        var snippetsCount = StrictReader.ReadArrayHeader(ref reader, 64);
+        var snippets = new string[snippetsCount];
+        for (var i = 0; i < snippets.Length; i++)
+        {
+            snippets[i] = StrictReader.ReadString(ref reader, 192);
+        }
+
+        message.Snippets = snippets;
+        var parentsCount = StrictReader.ReadArrayHeader(ref reader, 64);
+        var parents = new int[parentsCount];
+        for (var i = 0; i < parents.Length; i++)
+        {
+            parents[i] = StrictReader.ReadI32(ref reader, -1, 99999);
+        }
+
+        message.Parents = parents;
+        return message;
+    }
+
+    /// <summary>Writes the payload array. Does not validate; the codec validates before it writes.</summary>
+    public void Write(ref MessagePackWriter writer)
+    {
+        writer.WriteArrayHeader(13);
+        writer.Write(Total);
+        writer.WriteArrayHeader(Subtypes.Length);
+        foreach (var v in Subtypes)
+        {
+            writer.Write(v);
+        }
+
+        writer.WriteArrayHeader(Flags.Length);
+        foreach (var v in Flags)
+        {
+            writer.Write(v);
+        }
+
+        writer.WriteArrayHeader(Lefts.Length);
+        foreach (var v in Lefts)
+        {
+            writer.Write(v);
+        }
+
+        writer.WriteArrayHeader(Bottoms.Length);
+        foreach (var v in Bottoms)
+        {
+            writer.Write(v);
+        }
+
+        writer.WriteArrayHeader(Rights.Length);
+        foreach (var v in Rights)
+        {
+            writer.Write(v);
+        }
+
+        writer.WriteArrayHeader(Tops.Length);
+        foreach (var v in Tops)
+        {
+            writer.Write(v);
+        }
+
+        writer.WriteArrayHeader(Colours.Length);
+        foreach (var v in Colours)
+        {
+            writer.Write(v);
+        }
+
+        writer.WriteArrayHeader(Nms.Length);
+        foreach (var v in Nms)
+        {
+            writer.Write(v);
+        }
+
+        writer.WriteArrayHeader(Authors.Length);
+        foreach (var v in Authors)
+        {
+            writer.Write(v);
+        }
+
+        writer.WriteArrayHeader(Modified.Length);
+        foreach (var v in Modified)
+        {
+            writer.Write(v);
+        }
+
+        writer.WriteArrayHeader(Snippets.Length);
+        foreach (var v in Snippets)
+        {
+            writer.Write(v);
+        }
+
+        writer.WriteArrayHeader(Parents.Length);
+        foreach (var v in Parents)
+        {
+            writer.Write(v);
+        }
+
+    }
+
+    /// <summary>Checks every schema limit. Returns null when the message is valid.</summary>
+    public ProtocolFailure? Validate()
+    {
+        if (Total > 100000u) return ProtocolFailure.Invalid("ListAnnotationsReply.total violates its limit");
+        if (Subtypes is null || Subtypes.Length > 64) return ProtocolFailure.Invalid("ListAnnotationsReply.subtypes is null or has more than 64 elements");
+        for (var i = 0; i < Subtypes.Length; i++)
+        {
+            if (Subtypes[i] > 28) return ProtocolFailure.Invalid("ListAnnotationsReply.subtypes[" + i + "] violates its limit");
+        }
+
+        if (Flags is null || Flags.Length > 64) return ProtocolFailure.Invalid("ListAnnotationsReply.flags is null or has more than 64 elements");
+        if (Lefts is null || Lefts.Length > 64) return ProtocolFailure.Invalid("ListAnnotationsReply.lefts is null or has more than 64 elements");
+        for (var i = 0; i < Lefts.Length; i++)
+        {
+            if (!float.IsFinite(Lefts[i]) || Lefts[i] < -1000000.0f || Lefts[i] > 1000000.0f) return ProtocolFailure.Invalid("ListAnnotationsReply.lefts[" + i + "] violates its limit");
+        }
+
+        if (Bottoms is null || Bottoms.Length > 64) return ProtocolFailure.Invalid("ListAnnotationsReply.bottoms is null or has more than 64 elements");
+        for (var i = 0; i < Bottoms.Length; i++)
+        {
+            if (!float.IsFinite(Bottoms[i]) || Bottoms[i] < -1000000.0f || Bottoms[i] > 1000000.0f) return ProtocolFailure.Invalid("ListAnnotationsReply.bottoms[" + i + "] violates its limit");
+        }
+
+        if (Rights is null || Rights.Length > 64) return ProtocolFailure.Invalid("ListAnnotationsReply.rights is null or has more than 64 elements");
+        for (var i = 0; i < Rights.Length; i++)
+        {
+            if (!float.IsFinite(Rights[i]) || Rights[i] < -1000000.0f || Rights[i] > 1000000.0f) return ProtocolFailure.Invalid("ListAnnotationsReply.rights[" + i + "] violates its limit");
+        }
+
+        if (Tops is null || Tops.Length > 64) return ProtocolFailure.Invalid("ListAnnotationsReply.tops is null or has more than 64 elements");
+        for (var i = 0; i < Tops.Length; i++)
+        {
+            if (!float.IsFinite(Tops[i]) || Tops[i] < -1000000.0f || Tops[i] > 1000000.0f) return ProtocolFailure.Invalid("ListAnnotationsReply.tops[" + i + "] violates its limit");
+        }
+
+        if (Colours is null || Colours.Length > 64) return ProtocolFailure.Invalid("ListAnnotationsReply.colours is null or has more than 64 elements");
+        if (Nms is null || Nms.Length > 64) return ProtocolFailure.Invalid("ListAnnotationsReply.nms is null or has more than 64 elements");
+        for (var i = 0; i < Nms.Length; i++)
+        {
+            if (!ProtocolText.IsValid(Nms[i], 64)) return ProtocolFailure.Invalid("ListAnnotationsReply.nms[" + i + "] violates its limit");
+        }
+
+        if (Authors is null || Authors.Length > 64) return ProtocolFailure.Invalid("ListAnnotationsReply.authors is null or has more than 64 elements");
+        for (var i = 0; i < Authors.Length; i++)
+        {
+            if (!ProtocolText.IsValid(Authors[i], 128)) return ProtocolFailure.Invalid("ListAnnotationsReply.authors[" + i + "] violates its limit");
+        }
+
+        if (Modified is null || Modified.Length > 64) return ProtocolFailure.Invalid("ListAnnotationsReply.modified is null or has more than 64 elements");
+        for (var i = 0; i < Modified.Length; i++)
+        {
+            if (!ProtocolText.IsValid(Modified[i], 32)) return ProtocolFailure.Invalid("ListAnnotationsReply.modified[" + i + "] violates its limit");
+        }
+
+        if (Snippets is null || Snippets.Length > 64) return ProtocolFailure.Invalid("ListAnnotationsReply.snippets is null or has more than 64 elements");
+        for (var i = 0; i < Snippets.Length; i++)
+        {
+            if (!ProtocolText.IsValid(Snippets[i], 192)) return ProtocolFailure.Invalid("ListAnnotationsReply.snippets[" + i + "] violates its limit");
+        }
+
+        if (Parents is null || Parents.Length > 64) return ProtocolFailure.Invalid("ListAnnotationsReply.parents is null or has more than 64 elements");
+        for (var i = 0; i < Parents.Length; i++)
+        {
+            if (Parents[i] < -1 || Parents[i] > 99999) return ProtocolFailure.Invalid("ListAnnotationsReply.parents[" + i + "] violates its limit");
+        }
+
+        if (Flags.Length != Subtypes.Length) return ProtocolFailure.Invalid("ListAnnotationsReply.flags must have as many elements as subtypes");
+        if (Lefts.Length != Subtypes.Length) return ProtocolFailure.Invalid("ListAnnotationsReply.lefts must have as many elements as subtypes");
+        if (Bottoms.Length != Subtypes.Length) return ProtocolFailure.Invalid("ListAnnotationsReply.bottoms must have as many elements as subtypes");
+        if (Rights.Length != Subtypes.Length) return ProtocolFailure.Invalid("ListAnnotationsReply.rights must have as many elements as subtypes");
+        if (Tops.Length != Subtypes.Length) return ProtocolFailure.Invalid("ListAnnotationsReply.tops must have as many elements as subtypes");
+        if (Colours.Length != Subtypes.Length) return ProtocolFailure.Invalid("ListAnnotationsReply.colours must have as many elements as subtypes");
+        if (Nms.Length != Subtypes.Length) return ProtocolFailure.Invalid("ListAnnotationsReply.nms must have as many elements as subtypes");
+        if (Authors.Length != Subtypes.Length) return ProtocolFailure.Invalid("ListAnnotationsReply.authors must have as many elements as subtypes");
+        if (Modified.Length != Subtypes.Length) return ProtocolFailure.Invalid("ListAnnotationsReply.modified must have as many elements as subtypes");
+        if (Snippets.Length != Subtypes.Length) return ProtocolFailure.Invalid("ListAnnotationsReply.snippets must have as many elements as subtypes");
+        if (Parents.Length != Subtypes.Length) return ProtocolFailure.Invalid("ListAnnotationsReply.parents must have as many elements as subtypes");
+        return null;
+    }
+}
+
+/// <summary>The request payload of GetAnnotation (message type 41).</summary>
+public sealed class GetAnnotation : IRequestMessage
+{
+    public uint Page { get; set; }
+    public uint Index { get; set; }
+
+    public MessageType MessageType => MessageType.GetAnnotation;
+
+    /// <summary>
+    /// The only decoder for this type. Reads exactly the declared fields, enforcing wire types and every limit as it goes;
+    /// there is no other decoder (see StrictReader).
+    /// </summary>
+    internal static GetAnnotation Read(ref MessagePackReader reader)
+    {
+        StrictReader.ExpectArray(ref reader, 2);
+        var message = new GetAnnotation();
+        message.Page = StrictReader.ReadU32(ref reader, 0u, 9999999u);
+        message.Index = StrictReader.ReadU32(ref reader, 0u, 99999u);
+        return message;
+    }
+
+    /// <summary>Writes the payload array. Does not validate; the codec validates before it writes.</summary>
+    public void Write(ref MessagePackWriter writer)
+    {
+        writer.WriteArrayHeader(2);
+        writer.Write(Page);
+        writer.Write(Index);
+    }
+
+    /// <summary>Checks every schema limit. Returns null when the message is valid.</summary>
+    public ProtocolFailure? Validate()
+    {
+        if (Page > 9999999u) return ProtocolFailure.Invalid("GetAnnotation.page violates its limit");
+        if (Index > 99999u) return ProtocolFailure.Invalid("GetAnnotation.index violates its limit");
+        return null;
+    }
+}
+
+/// <summary>The reply payload of GetAnnotation (message type 41).</summary>
+public sealed class GetAnnotationReply : IReplyMessage
+{
+    public ushort Subtype { get; set; }
+    /// <summary>The /F flags of the file (see ListAnnotations).</summary>
+    public uint Flags { get; set; }
+    public float Left { get; set; }
+    public float Bottom { get; set; }
+    public float Right { get; set; }
+    public float Top { get; set; }
+    /// <summary>0xAARRGGBB from /C and /CA (for an annotation with an appearance stream: the first colour the stream paints with, with /CA as the alpha); 0 when there is none.</summary>
+    public uint Colour { get; set; }
+    /// <summary>0xAARRGGBB from /IC; 0 when absent.</summary>
+    public uint InteriorColour { get; set; }
+    /// <summary>/CA, 1 when absent.</summary>
+    public float Opacity { get; set; }
+    public float BorderWidth { get; set; }
+    /// <summary>Solid, dashed, beveled, inset, underline; the pinned PDFium cannot read it, so 0.</summary>
+    public ushort BorderStyle { get; set; }
+    public string Contents { get; set; } = "";
+    public bool ContentsTruncated { get; set; }
+    public string Author { get; set; } = "";
+    public string Subject { get; set; } = "";
+    public string Nm { get; set; } = "";
+    /// <summary>The raw /CreationDate text.</summary>
+    public string Created { get; set; } = "";
+    /// <summary>The raw /M text.</summary>
+    public string Modified { get; set; } = "";
+    /// <summary>Index of the annotation this one replies to (/IRT), -1 for none.</summary>
+    public int ParentIndex { get; set; }
+    /// <summary>/RT: 0 none, 1 reply, 2 group.</summary>
+    public ushort ReplyType { get; set; }
+    public string StateModel { get; set; } = "";
+    public string State { get; set; } = "";
+    /// <summary>Always false with the pinned PDFium.</summary>
+    public bool PopupOpen { get; set; }
+    /// <summary>/Name: the icon of a Text annotation or the name of a Stamp.</summary>
+    public string Name { get; set; } = "";
+    public float[] QuadPoints { get; set; } = [];
+    public float[] Vertices { get; set; } = [];
+    public bool VerticesTruncated { get; set; }
+    /// <summary>Always empty with the pinned PDFium.</summary>
+    public ushort[] LineEndings { get; set; } = [];
+    public uint StrokeCount { get; set; }
+    public uint PointCount { get; set; }
+    /// <summary>/DA of a FreeText annotation.</summary>
+    public string DefaultAppearance { get; set; } = "";
+    /// <summary>/Q: left, centred, right.</summary>
+    public ushort Alignment { get; set; }
+    /// <summary>The dictionary has an /AP entry.</summary>
+    public bool HasAppearance { get; set; }
+
+    public MessageType MessageType => MessageType.GetAnnotation;
+
+    /// <summary>
+    /// The only decoder for this type. Reads exactly the declared fields, enforcing wire types and every limit as it goes;
+    /// there is no other decoder (see StrictReader).
+    /// </summary>
+    internal static GetAnnotationReply Read(ref MessagePackReader reader)
+    {
+        StrictReader.ExpectArray(ref reader, 33);
+        var message = new GetAnnotationReply();
+        message.Subtype = StrictReader.ReadU16(ref reader, 0, 28);
+        message.Flags = StrictReader.ReadU32(ref reader, 0u, uint.MaxValue);
+        message.Left = StrictReader.ReadF32(ref reader, -1000000.0f, 1000000.0f, false);
+        message.Bottom = StrictReader.ReadF32(ref reader, -1000000.0f, 1000000.0f, false);
+        message.Right = StrictReader.ReadF32(ref reader, -1000000.0f, 1000000.0f, false);
+        message.Top = StrictReader.ReadF32(ref reader, -1000000.0f, 1000000.0f, false);
+        message.Colour = StrictReader.ReadU32(ref reader, 0u, uint.MaxValue);
+        message.InteriorColour = StrictReader.ReadU32(ref reader, 0u, uint.MaxValue);
+        message.Opacity = StrictReader.ReadF32(ref reader, 0.0f, 1.0f, false);
+        message.BorderWidth = StrictReader.ReadF32(ref reader, 0.0f, 1000.0f, false);
+        message.BorderStyle = StrictReader.ReadU16(ref reader, 0, 4);
+        message.Contents = StrictReader.ReadString(ref reader, 16384);
+        message.ContentsTruncated = StrictReader.ReadBool(ref reader);
+        message.Author = StrictReader.ReadString(ref reader, 256);
+        message.Subject = StrictReader.ReadString(ref reader, 256);
+        message.Nm = StrictReader.ReadString(ref reader, 64);
+        message.Created = StrictReader.ReadString(ref reader, 32);
+        message.Modified = StrictReader.ReadString(ref reader, 32);
+        message.ParentIndex = StrictReader.ReadI32(ref reader, -1, 99999);
+        message.ReplyType = StrictReader.ReadU16(ref reader, 0, 2);
+        message.StateModel = StrictReader.ReadString(ref reader, 16);
+        message.State = StrictReader.ReadString(ref reader, 16);
+        message.PopupOpen = StrictReader.ReadBool(ref reader);
+        message.Name = StrictReader.ReadString(ref reader, 64);
+        var quadPointsCount = StrictReader.ReadArrayHeader(ref reader, 512);
+        var quadPoints = new float[quadPointsCount];
+        for (var i = 0; i < quadPoints.Length; i++)
+        {
+            quadPoints[i] = StrictReader.ReadF32(ref reader, -1000000.0f, 1000000.0f, false);
+        }
+
+        message.QuadPoints = quadPoints;
+        var verticesCount = StrictReader.ReadArrayHeader(ref reader, 2048);
+        var vertices = new float[verticesCount];
+        for (var i = 0; i < vertices.Length; i++)
+        {
+            vertices[i] = StrictReader.ReadF32(ref reader, -1000000.0f, 1000000.0f, false);
+        }
+
+        message.Vertices = vertices;
+        message.VerticesTruncated = StrictReader.ReadBool(ref reader);
+        var lineEndingsCount = StrictReader.ReadArrayHeader(ref reader, 2);
+        var lineEndings = new ushort[lineEndingsCount];
+        for (var i = 0; i < lineEndings.Length; i++)
+        {
+            lineEndings[i] = StrictReader.ReadU16(ref reader, 0, 10);
+        }
+
+        message.LineEndings = lineEndings;
+        message.StrokeCount = StrictReader.ReadU32(ref reader, 0u, 100000u);
+        message.PointCount = StrictReader.ReadU32(ref reader, 0u, 10000000u);
+        message.DefaultAppearance = StrictReader.ReadString(ref reader, 256);
+        message.Alignment = StrictReader.ReadU16(ref reader, 0, 2);
+        message.HasAppearance = StrictReader.ReadBool(ref reader);
+        return message;
+    }
+
+    /// <summary>Writes the payload array. Does not validate; the codec validates before it writes.</summary>
+    public void Write(ref MessagePackWriter writer)
+    {
+        writer.WriteArrayHeader(33);
+        writer.Write(Subtype);
+        writer.Write(Flags);
+        writer.Write(Left);
+        writer.Write(Bottom);
+        writer.Write(Right);
+        writer.Write(Top);
+        writer.Write(Colour);
+        writer.Write(InteriorColour);
+        writer.Write(Opacity);
+        writer.Write(BorderWidth);
+        writer.Write(BorderStyle);
+        writer.Write(Contents);
+        writer.Write(ContentsTruncated);
+        writer.Write(Author);
+        writer.Write(Subject);
+        writer.Write(Nm);
+        writer.Write(Created);
+        writer.Write(Modified);
+        writer.Write(ParentIndex);
+        writer.Write(ReplyType);
+        writer.Write(StateModel);
+        writer.Write(State);
+        writer.Write(PopupOpen);
+        writer.Write(Name);
+        writer.WriteArrayHeader(QuadPoints.Length);
+        foreach (var v in QuadPoints)
+        {
+            writer.Write(v);
+        }
+
+        writer.WriteArrayHeader(Vertices.Length);
+        foreach (var v in Vertices)
+        {
+            writer.Write(v);
+        }
+
+        writer.Write(VerticesTruncated);
+        writer.WriteArrayHeader(LineEndings.Length);
+        foreach (var v in LineEndings)
+        {
+            writer.Write(v);
+        }
+
+        writer.Write(StrokeCount);
+        writer.Write(PointCount);
+        writer.Write(DefaultAppearance);
+        writer.Write(Alignment);
+        writer.Write(HasAppearance);
+    }
+
+    /// <summary>Checks every schema limit. Returns null when the message is valid.</summary>
+    public ProtocolFailure? Validate()
+    {
+        if (Subtype > 28) return ProtocolFailure.Invalid("GetAnnotationReply.subtype violates its limit");
+        if (!float.IsFinite(Left) || Left < -1000000.0f || Left > 1000000.0f) return ProtocolFailure.Invalid("GetAnnotationReply.left violates its limit");
+        if (!float.IsFinite(Bottom) || Bottom < -1000000.0f || Bottom > 1000000.0f) return ProtocolFailure.Invalid("GetAnnotationReply.bottom violates its limit");
+        if (!float.IsFinite(Right) || Right < -1000000.0f || Right > 1000000.0f) return ProtocolFailure.Invalid("GetAnnotationReply.right violates its limit");
+        if (!float.IsFinite(Top) || Top < -1000000.0f || Top > 1000000.0f) return ProtocolFailure.Invalid("GetAnnotationReply.top violates its limit");
+        if (!float.IsFinite(Opacity) || Opacity < 0.0f || Opacity > 1.0f) return ProtocolFailure.Invalid("GetAnnotationReply.opacity violates its limit");
+        if (!float.IsFinite(BorderWidth) || BorderWidth < 0.0f || BorderWidth > 1000.0f) return ProtocolFailure.Invalid("GetAnnotationReply.borderWidth violates its limit");
+        if (BorderStyle > 4) return ProtocolFailure.Invalid("GetAnnotationReply.borderStyle violates its limit");
+        if (!ProtocolText.IsValid(Contents, 16384)) return ProtocolFailure.Invalid("GetAnnotationReply.contents violates its limit");
+        if (!ProtocolText.IsValid(Author, 256)) return ProtocolFailure.Invalid("GetAnnotationReply.author violates its limit");
+        if (!ProtocolText.IsValid(Subject, 256)) return ProtocolFailure.Invalid("GetAnnotationReply.subject violates its limit");
+        if (!ProtocolText.IsValid(Nm, 64)) return ProtocolFailure.Invalid("GetAnnotationReply.nm violates its limit");
+        if (!ProtocolText.IsValid(Created, 32)) return ProtocolFailure.Invalid("GetAnnotationReply.created violates its limit");
+        if (!ProtocolText.IsValid(Modified, 32)) return ProtocolFailure.Invalid("GetAnnotationReply.modified violates its limit");
+        if (ParentIndex < -1 || ParentIndex > 99999) return ProtocolFailure.Invalid("GetAnnotationReply.parentIndex violates its limit");
+        if (ReplyType > 2) return ProtocolFailure.Invalid("GetAnnotationReply.replyType violates its limit");
+        if (!ProtocolText.IsValid(StateModel, 16)) return ProtocolFailure.Invalid("GetAnnotationReply.stateModel violates its limit");
+        if (!ProtocolText.IsValid(State, 16)) return ProtocolFailure.Invalid("GetAnnotationReply.state violates its limit");
+        if (!ProtocolText.IsValid(Name, 64)) return ProtocolFailure.Invalid("GetAnnotationReply.name violates its limit");
+        if (QuadPoints is null || QuadPoints.Length > 512) return ProtocolFailure.Invalid("GetAnnotationReply.quadPoints is null or has more than 512 elements");
+        for (var i = 0; i < QuadPoints.Length; i++)
+        {
+            if (!float.IsFinite(QuadPoints[i]) || QuadPoints[i] < -1000000.0f || QuadPoints[i] > 1000000.0f) return ProtocolFailure.Invalid("GetAnnotationReply.quadPoints[" + i + "] violates its limit");
+        }
+
+        if (Vertices is null || Vertices.Length > 2048) return ProtocolFailure.Invalid("GetAnnotationReply.vertices is null or has more than 2048 elements");
+        for (var i = 0; i < Vertices.Length; i++)
+        {
+            if (!float.IsFinite(Vertices[i]) || Vertices[i] < -1000000.0f || Vertices[i] > 1000000.0f) return ProtocolFailure.Invalid("GetAnnotationReply.vertices[" + i + "] violates its limit");
+        }
+
+        if (LineEndings is null || LineEndings.Length > 2) return ProtocolFailure.Invalid("GetAnnotationReply.lineEndings is null or has more than 2 elements");
+        for (var i = 0; i < LineEndings.Length; i++)
+        {
+            if (LineEndings[i] > 10) return ProtocolFailure.Invalid("GetAnnotationReply.lineEndings[" + i + "] violates its limit");
+        }
+
+        if (StrokeCount > 100000u) return ProtocolFailure.Invalid("GetAnnotationReply.strokeCount violates its limit");
+        if (PointCount > 10000000u) return ProtocolFailure.Invalid("GetAnnotationReply.pointCount violates its limit");
+        if (!ProtocolText.IsValid(DefaultAppearance, 256)) return ProtocolFailure.Invalid("GetAnnotationReply.defaultAppearance violates its limit");
+        if (Alignment > 2) return ProtocolFailure.Invalid("GetAnnotationReply.alignment violates its limit");
+        return null;
+    }
+}
+
+/// <summary>The request payload of GetInkStroke (message type 42).</summary>
+public sealed class GetInkStroke : IRequestMessage
+{
+    public uint Page { get; set; }
+    public uint Index { get; set; }
+    public uint Stroke { get; set; }
+    public uint First { get; set; }
+    public uint Count { get; set; }
+
+    public MessageType MessageType => MessageType.GetInkStroke;
+
+    /// <summary>
+    /// The only decoder for this type. Reads exactly the declared fields, enforcing wire types and every limit as it goes;
+    /// there is no other decoder (see StrictReader).
+    /// </summary>
+    internal static GetInkStroke Read(ref MessagePackReader reader)
+    {
+        StrictReader.ExpectArray(ref reader, 5);
+        var message = new GetInkStroke();
+        message.Page = StrictReader.ReadU32(ref reader, 0u, 9999999u);
+        message.Index = StrictReader.ReadU32(ref reader, 0u, 99999u);
+        message.Stroke = StrictReader.ReadU32(ref reader, 0u, 99999u);
+        message.First = StrictReader.ReadU32(ref reader, 0u, 9999999u);
+        message.Count = StrictReader.ReadU32(ref reader, 1u, 1024u);
+        return message;
+    }
+
+    /// <summary>Writes the payload array. Does not validate; the codec validates before it writes.</summary>
+    public void Write(ref MessagePackWriter writer)
+    {
+        writer.WriteArrayHeader(5);
+        writer.Write(Page);
+        writer.Write(Index);
+        writer.Write(Stroke);
+        writer.Write(First);
+        writer.Write(Count);
+    }
+
+    /// <summary>Checks every schema limit. Returns null when the message is valid.</summary>
+    public ProtocolFailure? Validate()
+    {
+        if (Page > 9999999u) return ProtocolFailure.Invalid("GetInkStroke.page violates its limit");
+        if (Index > 99999u) return ProtocolFailure.Invalid("GetInkStroke.index violates its limit");
+        if (Stroke > 99999u) return ProtocolFailure.Invalid("GetInkStroke.stroke violates its limit");
+        if (First > 9999999u) return ProtocolFailure.Invalid("GetInkStroke.first violates its limit");
+        if (Count < 1u || Count > 1024u) return ProtocolFailure.Invalid("GetInkStroke.count violates its limit");
+        return null;
+    }
+}
+
+/// <summary>The reply payload of GetInkStroke (message type 42).</summary>
+public sealed class GetInkStrokeReply : IReplyMessage
+{
+    /// <summary>Points of the whole stroke.</summary>
+    public uint PointCount { get; set; }
+    public float[] Xs { get; set; } = [];
+    public float[] Ys { get; set; } = [];
+    public bool HasWidths { get; set; }
+    /// <summary>Zeros when hasWidths is false.</summary>
+    public float[] Widths { get; set; } = [];
+
+    public MessageType MessageType => MessageType.GetInkStroke;
+
+    /// <summary>
+    /// The only decoder for this type. Reads exactly the declared fields, enforcing wire types and every limit as it goes;
+    /// there is no other decoder (see StrictReader).
+    /// </summary>
+    internal static GetInkStrokeReply Read(ref MessagePackReader reader)
+    {
+        StrictReader.ExpectArray(ref reader, 5);
+        var message = new GetInkStrokeReply();
+        message.PointCount = StrictReader.ReadU32(ref reader, 0u, 10000000u);
+        var xsCount = StrictReader.ReadArrayHeader(ref reader, 1024);
+        var xs = new float[xsCount];
+        for (var i = 0; i < xs.Length; i++)
+        {
+            xs[i] = StrictReader.ReadF32(ref reader, -1000000.0f, 1000000.0f, false);
+        }
+
+        message.Xs = xs;
+        var ysCount = StrictReader.ReadArrayHeader(ref reader, 1024);
+        var ys = new float[ysCount];
+        for (var i = 0; i < ys.Length; i++)
+        {
+            ys[i] = StrictReader.ReadF32(ref reader, -1000000.0f, 1000000.0f, false);
+        }
+
+        message.Ys = ys;
+        message.HasWidths = StrictReader.ReadBool(ref reader);
+        var widthsCount = StrictReader.ReadArrayHeader(ref reader, 1024);
+        var widths = new float[widthsCount];
+        for (var i = 0; i < widths.Length; i++)
+        {
+            widths[i] = StrictReader.ReadF32(ref reader, 0.0f, 1000.0f, false);
+        }
+
+        message.Widths = widths;
+        return message;
+    }
+
+    /// <summary>Writes the payload array. Does not validate; the codec validates before it writes.</summary>
+    public void Write(ref MessagePackWriter writer)
+    {
+        writer.WriteArrayHeader(5);
+        writer.Write(PointCount);
+        writer.WriteArrayHeader(Xs.Length);
+        foreach (var v in Xs)
+        {
+            writer.Write(v);
+        }
+
+        writer.WriteArrayHeader(Ys.Length);
+        foreach (var v in Ys)
+        {
+            writer.Write(v);
+        }
+
+        writer.Write(HasWidths);
+        writer.WriteArrayHeader(Widths.Length);
+        foreach (var v in Widths)
+        {
+            writer.Write(v);
+        }
+
+    }
+
+    /// <summary>Checks every schema limit. Returns null when the message is valid.</summary>
+    public ProtocolFailure? Validate()
+    {
+        if (PointCount > 10000000u) return ProtocolFailure.Invalid("GetInkStrokeReply.pointCount violates its limit");
+        if (Xs is null || Xs.Length > 1024) return ProtocolFailure.Invalid("GetInkStrokeReply.xs is null or has more than 1024 elements");
+        for (var i = 0; i < Xs.Length; i++)
+        {
+            if (!float.IsFinite(Xs[i]) || Xs[i] < -1000000.0f || Xs[i] > 1000000.0f) return ProtocolFailure.Invalid("GetInkStrokeReply.xs[" + i + "] violates its limit");
+        }
+
+        if (Ys is null || Ys.Length > 1024) return ProtocolFailure.Invalid("GetInkStrokeReply.ys is null or has more than 1024 elements");
+        for (var i = 0; i < Ys.Length; i++)
+        {
+            if (!float.IsFinite(Ys[i]) || Ys[i] < -1000000.0f || Ys[i] > 1000000.0f) return ProtocolFailure.Invalid("GetInkStrokeReply.ys[" + i + "] violates its limit");
+        }
+
+        if (Widths is null || Widths.Length > 1024) return ProtocolFailure.Invalid("GetInkStrokeReply.widths is null or has more than 1024 elements");
+        for (var i = 0; i < Widths.Length; i++)
+        {
+            if (!float.IsFinite(Widths[i]) || Widths[i] < 0.0f || Widths[i] > 1000.0f) return ProtocolFailure.Invalid("GetInkStrokeReply.widths[" + i + "] violates its limit");
+        }
+
+        if (Ys.Length != Xs.Length) return ProtocolFailure.Invalid("GetInkStrokeReply.ys must have as many elements as xs");
+        if (Widths.Length != Xs.Length) return ProtocolFailure.Invalid("GetInkStrokeReply.widths must have as many elements as xs");
+        return null;
+    }
+}
+
+/// <summary>The request payload of SetAnnotationHidden (message type 43).</summary>
+public sealed class SetAnnotationHidden : IRequestMessage
+{
+    public uint Page { get; set; }
+    public uint Index { get; set; }
+    public bool Hidden { get; set; }
+
+    public MessageType MessageType => MessageType.SetAnnotationHidden;
+
+    /// <summary>
+    /// The only decoder for this type. Reads exactly the declared fields, enforcing wire types and every limit as it goes;
+    /// there is no other decoder (see StrictReader).
+    /// </summary>
+    internal static SetAnnotationHidden Read(ref MessagePackReader reader)
+    {
+        StrictReader.ExpectArray(ref reader, 3);
+        var message = new SetAnnotationHidden();
+        message.Page = StrictReader.ReadU32(ref reader, 0u, 9999999u);
+        message.Index = StrictReader.ReadU32(ref reader, 0u, 99999u);
+        message.Hidden = StrictReader.ReadBool(ref reader);
+        return message;
+    }
+
+    /// <summary>Writes the payload array. Does not validate; the codec validates before it writes.</summary>
+    public void Write(ref MessagePackWriter writer)
+    {
+        writer.WriteArrayHeader(3);
+        writer.Write(Page);
+        writer.Write(Index);
+        writer.Write(Hidden);
+    }
+
+    /// <summary>Checks every schema limit. Returns null when the message is valid.</summary>
+    public ProtocolFailure? Validate()
+    {
+        if (Page > 9999999u) return ProtocolFailure.Invalid("SetAnnotationHidden.page violates its limit");
+        if (Index > 99999u) return ProtocolFailure.Invalid("SetAnnotationHidden.index violates its limit");
+        return null;
+    }
+}
+
+/// <summary>The reply payload of SetAnnotationHidden (message type 43).</summary>
+public sealed class SetAnnotationHiddenReply : IReplyMessage
+{
+    public MessageType MessageType => MessageType.SetAnnotationHidden;
+
+    /// <summary>
+    /// The only decoder for this type. Reads exactly the declared fields, enforcing wire types and every limit as it goes;
+    /// there is no other decoder (see StrictReader).
+    /// </summary>
+    internal static SetAnnotationHiddenReply Read(ref MessagePackReader reader)
+    {
+        StrictReader.ExpectArray(ref reader, 0);
+        var message = new SetAnnotationHiddenReply();
+        return message;
+    }
+
+    /// <summary>Writes the payload array. Does not validate; the codec validates before it writes.</summary>
+    public void Write(ref MessagePackWriter writer)
+    {
+        writer.WriteArrayHeader(0);
+    }
+
+    /// <summary>Checks every schema limit. Returns null when the message is valid.</summary>
+    public ProtocolFailure? Validate()
+    {
+        return null;
+    }
+}
+
+/// <summary>The request payload of CountAnnotations (message type 44).</summary>
+public sealed class CountAnnotations : IRequestMessage
+{
+    public uint FirstPage { get; set; }
+    public uint Count { get; set; }
+
+    public MessageType MessageType => MessageType.CountAnnotations;
+
+    /// <summary>
+    /// The only decoder for this type. Reads exactly the declared fields, enforcing wire types and every limit as it goes;
+    /// there is no other decoder (see StrictReader).
+    /// </summary>
+    internal static CountAnnotations Read(ref MessagePackReader reader)
+    {
+        StrictReader.ExpectArray(ref reader, 2);
+        var message = new CountAnnotations();
+        message.FirstPage = StrictReader.ReadU32(ref reader, 0u, 9999999u);
+        message.Count = StrictReader.ReadU32(ref reader, 1u, 5000u);
+        return message;
+    }
+
+    /// <summary>Writes the payload array. Does not validate; the codec validates before it writes.</summary>
+    public void Write(ref MessagePackWriter writer)
+    {
+        writer.WriteArrayHeader(2);
+        writer.Write(FirstPage);
+        writer.Write(Count);
+    }
+
+    /// <summary>Checks every schema limit. Returns null when the message is valid.</summary>
+    public ProtocolFailure? Validate()
+    {
+        if (FirstPage > 9999999u) return ProtocolFailure.Invalid("CountAnnotations.firstPage violates its limit");
+        if (Count < 1u || Count > 5000u) return ProtocolFailure.Invalid("CountAnnotations.count violates its limit");
+        return null;
+    }
+}
+
+/// <summary>The reply payload of CountAnnotations (message type 44).</summary>
+public sealed class CountAnnotationsReply : IReplyMessage
+{
+    public ushort[] Counts { get; set; } = [];
+
+    public MessageType MessageType => MessageType.CountAnnotations;
+
+    /// <summary>
+    /// The only decoder for this type. Reads exactly the declared fields, enforcing wire types and every limit as it goes;
+    /// there is no other decoder (see StrictReader).
+    /// </summary>
+    internal static CountAnnotationsReply Read(ref MessagePackReader reader)
+    {
+        StrictReader.ExpectArray(ref reader, 1);
+        var message = new CountAnnotationsReply();
+        var countsCount = StrictReader.ReadArrayHeader(ref reader, 5000);
+        var counts = new ushort[countsCount];
+        for (var i = 0; i < counts.Length; i++)
+        {
+            counts[i] = StrictReader.ReadU16(ref reader, 0, ushort.MaxValue);
+        }
+
+        message.Counts = counts;
+        return message;
+    }
+
+    /// <summary>Writes the payload array. Does not validate; the codec validates before it writes.</summary>
+    public void Write(ref MessagePackWriter writer)
+    {
+        writer.WriteArrayHeader(1);
+        writer.WriteArrayHeader(Counts.Length);
+        foreach (var v in Counts)
+        {
+            writer.Write(v);
+        }
+
+    }
+
+    /// <summary>Checks every schema limit. Returns null when the message is valid.</summary>
+    public ProtocolFailure? Validate()
+    {
+        if (Counts is null || Counts.Length > 5000) return ProtocolFailure.Invalid("CountAnnotationsReply.counts is null or has more than 5000 elements");
+        return null;
+    }
+}
+
+/// <summary>The request payload of GetFormFields (message type 45).</summary>
+public sealed class GetFormFields : IRequestMessage
+{
+    public uint First { get; set; }
+    public uint Count { get; set; }
+
+    public MessageType MessageType => MessageType.GetFormFields;
+
+    /// <summary>
+    /// The only decoder for this type. Reads exactly the declared fields, enforcing wire types and every limit as it goes;
+    /// there is no other decoder (see StrictReader).
+    /// </summary>
+    internal static GetFormFields Read(ref MessagePackReader reader)
+    {
+        StrictReader.ExpectArray(ref reader, 2);
+        var message = new GetFormFields();
+        message.First = StrictReader.ReadU32(ref reader, 0u, 99999u);
+        message.Count = StrictReader.ReadU32(ref reader, 1u, 64u);
+        return message;
+    }
+
+    /// <summary>Writes the payload array. Does not validate; the codec validates before it writes.</summary>
+    public void Write(ref MessagePackWriter writer)
+    {
+        writer.WriteArrayHeader(2);
+        writer.Write(First);
+        writer.Write(Count);
+    }
+
+    /// <summary>Checks every schema limit. Returns null when the message is valid.</summary>
+    public ProtocolFailure? Validate()
+    {
+        if (First > 99999u) return ProtocolFailure.Invalid("GetFormFields.first violates its limit");
+        if (Count < 1u || Count > 64u) return ProtocolFailure.Invalid("GetFormFields.count violates its limit");
+        return null;
+    }
+}
+
+/// <summary>The reply payload of GetFormFields (message type 45).</summary>
+public sealed class GetFormFieldsReply : IReplyMessage
+{
+    public uint Total { get; set; }
+    public uint[] FieldIds { get; set; } = [];
+    public uint[] Pages { get; set; } = [];
+    public float[] Lefts { get; set; } = [];
+    public float[] Bottoms { get; set; } = [];
+    public float[] Rights { get; set; } = [];
+    public float[] Tops { get; set; } = [];
+    public ushort[] Types { get; set; } = [];
+    /// <summary>The field's /Ff.</summary>
+    public uint[] Flags { get; set; } = [];
+    public ushort[] States { get; set; } = [];
+    /// <summary>0 = none.</summary>
+    public ushort[] MaxLens { get; set; } = [];
+    /// <summary>The fully qualified field name, cut at a code point boundary.</summary>
+    public string[] Names { get; set; } = [];
+    /// <summary>/TU.</summary>
+    public string[] AlternateNames { get; set; } = [];
+    /// <summary>The start of the value; empty for a password field.</summary>
+    public string[] Values { get; set; } = [];
+
+    public MessageType MessageType => MessageType.GetFormFields;
+
+    /// <summary>
+    /// The only decoder for this type. Reads exactly the declared fields, enforcing wire types and every limit as it goes;
+    /// there is no other decoder (see StrictReader).
+    /// </summary>
+    internal static GetFormFieldsReply Read(ref MessagePackReader reader)
+    {
+        StrictReader.ExpectArray(ref reader, 14);
+        var message = new GetFormFieldsReply();
+        message.Total = StrictReader.ReadU32(ref reader, 0u, 100000u);
+        var fieldIdsCount = StrictReader.ReadArrayHeader(ref reader, 64);
+        var fieldIds = new uint[fieldIdsCount];
+        for (var i = 0; i < fieldIds.Length; i++)
+        {
+            fieldIds[i] = StrictReader.ReadU32(ref reader, 0u, 99999u);
+        }
+
+        message.FieldIds = fieldIds;
+        var pagesCount = StrictReader.ReadArrayHeader(ref reader, 64);
+        var pages = new uint[pagesCount];
+        for (var i = 0; i < pages.Length; i++)
+        {
+            pages[i] = StrictReader.ReadU32(ref reader, 0u, 9999999u);
+        }
+
+        message.Pages = pages;
+        var leftsCount = StrictReader.ReadArrayHeader(ref reader, 64);
+        var lefts = new float[leftsCount];
+        for (var i = 0; i < lefts.Length; i++)
+        {
+            lefts[i] = StrictReader.ReadF32(ref reader, -1000000.0f, 1000000.0f, false);
+        }
+
+        message.Lefts = lefts;
+        var bottomsCount = StrictReader.ReadArrayHeader(ref reader, 64);
+        var bottoms = new float[bottomsCount];
+        for (var i = 0; i < bottoms.Length; i++)
+        {
+            bottoms[i] = StrictReader.ReadF32(ref reader, -1000000.0f, 1000000.0f, false);
+        }
+
+        message.Bottoms = bottoms;
+        var rightsCount = StrictReader.ReadArrayHeader(ref reader, 64);
+        var rights = new float[rightsCount];
+        for (var i = 0; i < rights.Length; i++)
+        {
+            rights[i] = StrictReader.ReadF32(ref reader, -1000000.0f, 1000000.0f, false);
+        }
+
+        message.Rights = rights;
+        var topsCount = StrictReader.ReadArrayHeader(ref reader, 64);
+        var tops = new float[topsCount];
+        for (var i = 0; i < tops.Length; i++)
+        {
+            tops[i] = StrictReader.ReadF32(ref reader, -1000000.0f, 1000000.0f, false);
+        }
+
+        message.Tops = tops;
+        var typesCount = StrictReader.ReadArrayHeader(ref reader, 64);
+        var types = new ushort[typesCount];
+        for (var i = 0; i < types.Length; i++)
+        {
+            types[i] = StrictReader.ReadU16(ref reader, 0, 7);
+        }
+
+        message.Types = types;
+        var flagsCount = StrictReader.ReadArrayHeader(ref reader, 64);
+        var flags = new uint[flagsCount];
+        for (var i = 0; i < flags.Length; i++)
+        {
+            flags[i] = StrictReader.ReadU32(ref reader, 0u, uint.MaxValue);
+        }
+
+        message.Flags = flags;
+        var statesCount = StrictReader.ReadArrayHeader(ref reader, 64);
+        var states = new ushort[statesCount];
+        for (var i = 0; i < states.Length; i++)
+        {
+            states[i] = StrictReader.ReadU16(ref reader, 0, 15);
+        }
+
+        message.States = states;
+        var maxLensCount = StrictReader.ReadArrayHeader(ref reader, 64);
+        var maxLens = new ushort[maxLensCount];
+        for (var i = 0; i < maxLens.Length; i++)
+        {
+            maxLens[i] = StrictReader.ReadU16(ref reader, 0, ushort.MaxValue);
+        }
+
+        message.MaxLens = maxLens;
+        var namesCount = StrictReader.ReadArrayHeader(ref reader, 64);
+        var names = new string[namesCount];
+        for (var i = 0; i < names.Length; i++)
+        {
+            names[i] = StrictReader.ReadString(ref reader, 128);
+        }
+
+        message.Names = names;
+        var alternateNamesCount = StrictReader.ReadArrayHeader(ref reader, 64);
+        var alternateNames = new string[alternateNamesCount];
+        for (var i = 0; i < alternateNames.Length; i++)
+        {
+            alternateNames[i] = StrictReader.ReadString(ref reader, 128);
+        }
+
+        message.AlternateNames = alternateNames;
+        var valuesCount = StrictReader.ReadArrayHeader(ref reader, 64);
+        var values = new string[valuesCount];
+        for (var i = 0; i < values.Length; i++)
+        {
+            values[i] = StrictReader.ReadString(ref reader, 128);
+        }
+
+        message.Values = values;
+        return message;
+    }
+
+    /// <summary>Writes the payload array. Does not validate; the codec validates before it writes.</summary>
+    public void Write(ref MessagePackWriter writer)
+    {
+        writer.WriteArrayHeader(14);
+        writer.Write(Total);
+        writer.WriteArrayHeader(FieldIds.Length);
+        foreach (var v in FieldIds)
+        {
+            writer.Write(v);
+        }
+
+        writer.WriteArrayHeader(Pages.Length);
+        foreach (var v in Pages)
+        {
+            writer.Write(v);
+        }
+
+        writer.WriteArrayHeader(Lefts.Length);
+        foreach (var v in Lefts)
+        {
+            writer.Write(v);
+        }
+
+        writer.WriteArrayHeader(Bottoms.Length);
+        foreach (var v in Bottoms)
+        {
+            writer.Write(v);
+        }
+
+        writer.WriteArrayHeader(Rights.Length);
+        foreach (var v in Rights)
+        {
+            writer.Write(v);
+        }
+
+        writer.WriteArrayHeader(Tops.Length);
+        foreach (var v in Tops)
+        {
+            writer.Write(v);
+        }
+
+        writer.WriteArrayHeader(Types.Length);
+        foreach (var v in Types)
+        {
+            writer.Write(v);
+        }
+
+        writer.WriteArrayHeader(Flags.Length);
+        foreach (var v in Flags)
+        {
+            writer.Write(v);
+        }
+
+        writer.WriteArrayHeader(States.Length);
+        foreach (var v in States)
+        {
+            writer.Write(v);
+        }
+
+        writer.WriteArrayHeader(MaxLens.Length);
+        foreach (var v in MaxLens)
+        {
+            writer.Write(v);
+        }
+
+        writer.WriteArrayHeader(Names.Length);
+        foreach (var v in Names)
+        {
+            writer.Write(v);
+        }
+
+        writer.WriteArrayHeader(AlternateNames.Length);
+        foreach (var v in AlternateNames)
+        {
+            writer.Write(v);
+        }
+
+        writer.WriteArrayHeader(Values.Length);
+        foreach (var v in Values)
+        {
+            writer.Write(v);
+        }
+
+    }
+
+    /// <summary>Checks every schema limit. Returns null when the message is valid.</summary>
+    public ProtocolFailure? Validate()
+    {
+        if (Total > 100000u) return ProtocolFailure.Invalid("GetFormFieldsReply.total violates its limit");
+        if (FieldIds is null || FieldIds.Length > 64) return ProtocolFailure.Invalid("GetFormFieldsReply.fieldIds is null or has more than 64 elements");
+        for (var i = 0; i < FieldIds.Length; i++)
+        {
+            if (FieldIds[i] > 99999u) return ProtocolFailure.Invalid("GetFormFieldsReply.fieldIds[" + i + "] violates its limit");
+        }
+
+        if (Pages is null || Pages.Length > 64) return ProtocolFailure.Invalid("GetFormFieldsReply.pages is null or has more than 64 elements");
+        for (var i = 0; i < Pages.Length; i++)
+        {
+            if (Pages[i] > 9999999u) return ProtocolFailure.Invalid("GetFormFieldsReply.pages[" + i + "] violates its limit");
+        }
+
+        if (Lefts is null || Lefts.Length > 64) return ProtocolFailure.Invalid("GetFormFieldsReply.lefts is null or has more than 64 elements");
+        for (var i = 0; i < Lefts.Length; i++)
+        {
+            if (!float.IsFinite(Lefts[i]) || Lefts[i] < -1000000.0f || Lefts[i] > 1000000.0f) return ProtocolFailure.Invalid("GetFormFieldsReply.lefts[" + i + "] violates its limit");
+        }
+
+        if (Bottoms is null || Bottoms.Length > 64) return ProtocolFailure.Invalid("GetFormFieldsReply.bottoms is null or has more than 64 elements");
+        for (var i = 0; i < Bottoms.Length; i++)
+        {
+            if (!float.IsFinite(Bottoms[i]) || Bottoms[i] < -1000000.0f || Bottoms[i] > 1000000.0f) return ProtocolFailure.Invalid("GetFormFieldsReply.bottoms[" + i + "] violates its limit");
+        }
+
+        if (Rights is null || Rights.Length > 64) return ProtocolFailure.Invalid("GetFormFieldsReply.rights is null or has more than 64 elements");
+        for (var i = 0; i < Rights.Length; i++)
+        {
+            if (!float.IsFinite(Rights[i]) || Rights[i] < -1000000.0f || Rights[i] > 1000000.0f) return ProtocolFailure.Invalid("GetFormFieldsReply.rights[" + i + "] violates its limit");
+        }
+
+        if (Tops is null || Tops.Length > 64) return ProtocolFailure.Invalid("GetFormFieldsReply.tops is null or has more than 64 elements");
+        for (var i = 0; i < Tops.Length; i++)
+        {
+            if (!float.IsFinite(Tops[i]) || Tops[i] < -1000000.0f || Tops[i] > 1000000.0f) return ProtocolFailure.Invalid("GetFormFieldsReply.tops[" + i + "] violates its limit");
+        }
+
+        if (Types is null || Types.Length > 64) return ProtocolFailure.Invalid("GetFormFieldsReply.types is null or has more than 64 elements");
+        for (var i = 0; i < Types.Length; i++)
+        {
+            if (Types[i] > 7) return ProtocolFailure.Invalid("GetFormFieldsReply.types[" + i + "] violates its limit");
+        }
+
+        if (Flags is null || Flags.Length > 64) return ProtocolFailure.Invalid("GetFormFieldsReply.flags is null or has more than 64 elements");
+        if (States is null || States.Length > 64) return ProtocolFailure.Invalid("GetFormFieldsReply.states is null or has more than 64 elements");
+        for (var i = 0; i < States.Length; i++)
+        {
+            if (States[i] > 15) return ProtocolFailure.Invalid("GetFormFieldsReply.states[" + i + "] violates its limit");
+        }
+
+        if (MaxLens is null || MaxLens.Length > 64) return ProtocolFailure.Invalid("GetFormFieldsReply.maxLens is null or has more than 64 elements");
+        if (Names is null || Names.Length > 64) return ProtocolFailure.Invalid("GetFormFieldsReply.names is null or has more than 64 elements");
+        for (var i = 0; i < Names.Length; i++)
+        {
+            if (!ProtocolText.IsValid(Names[i], 128)) return ProtocolFailure.Invalid("GetFormFieldsReply.names[" + i + "] violates its limit");
+        }
+
+        if (AlternateNames is null || AlternateNames.Length > 64) return ProtocolFailure.Invalid("GetFormFieldsReply.alternateNames is null or has more than 64 elements");
+        for (var i = 0; i < AlternateNames.Length; i++)
+        {
+            if (!ProtocolText.IsValid(AlternateNames[i], 128)) return ProtocolFailure.Invalid("GetFormFieldsReply.alternateNames[" + i + "] violates its limit");
+        }
+
+        if (Values is null || Values.Length > 64) return ProtocolFailure.Invalid("GetFormFieldsReply.values is null or has more than 64 elements");
+        for (var i = 0; i < Values.Length; i++)
+        {
+            if (!ProtocolText.IsValid(Values[i], 128)) return ProtocolFailure.Invalid("GetFormFieldsReply.values[" + i + "] violates its limit");
+        }
+
+        if (Pages.Length != FieldIds.Length) return ProtocolFailure.Invalid("GetFormFieldsReply.pages must have as many elements as fieldIds");
+        if (Lefts.Length != FieldIds.Length) return ProtocolFailure.Invalid("GetFormFieldsReply.lefts must have as many elements as fieldIds");
+        if (Bottoms.Length != FieldIds.Length) return ProtocolFailure.Invalid("GetFormFieldsReply.bottoms must have as many elements as fieldIds");
+        if (Rights.Length != FieldIds.Length) return ProtocolFailure.Invalid("GetFormFieldsReply.rights must have as many elements as fieldIds");
+        if (Tops.Length != FieldIds.Length) return ProtocolFailure.Invalid("GetFormFieldsReply.tops must have as many elements as fieldIds");
+        if (Types.Length != FieldIds.Length) return ProtocolFailure.Invalid("GetFormFieldsReply.types must have as many elements as fieldIds");
+        if (Flags.Length != FieldIds.Length) return ProtocolFailure.Invalid("GetFormFieldsReply.flags must have as many elements as fieldIds");
+        if (States.Length != FieldIds.Length) return ProtocolFailure.Invalid("GetFormFieldsReply.states must have as many elements as fieldIds");
+        if (MaxLens.Length != FieldIds.Length) return ProtocolFailure.Invalid("GetFormFieldsReply.maxLens must have as many elements as fieldIds");
+        if (Names.Length != FieldIds.Length) return ProtocolFailure.Invalid("GetFormFieldsReply.names must have as many elements as fieldIds");
+        if (AlternateNames.Length != FieldIds.Length) return ProtocolFailure.Invalid("GetFormFieldsReply.alternateNames must have as many elements as fieldIds");
+        if (Values.Length != FieldIds.Length) return ProtocolFailure.Invalid("GetFormFieldsReply.values must have as many elements as fieldIds");
+        return null;
+    }
+}
+
+/// <summary>The request payload of GetFormFieldDetail (message type 46).</summary>
+public sealed class GetFormFieldDetail : IRequestMessage
+{
+    public uint FieldId { get; set; }
+    public uint FirstOption { get; set; }
+
+    public MessageType MessageType => MessageType.GetFormFieldDetail;
+
+    /// <summary>
+    /// The only decoder for this type. Reads exactly the declared fields, enforcing wire types and every limit as it goes;
+    /// there is no other decoder (see StrictReader).
+    /// </summary>
+    internal static GetFormFieldDetail Read(ref MessagePackReader reader)
+    {
+        StrictReader.ExpectArray(ref reader, 2);
+        var message = new GetFormFieldDetail();
+        message.FieldId = StrictReader.ReadU32(ref reader, 0u, 99999u);
+        message.FirstOption = StrictReader.ReadU32(ref reader, 0u, 9999u);
+        return message;
+    }
+
+    /// <summary>Writes the payload array. Does not validate; the codec validates before it writes.</summary>
+    public void Write(ref MessagePackWriter writer)
+    {
+        writer.WriteArrayHeader(2);
+        writer.Write(FieldId);
+        writer.Write(FirstOption);
+    }
+
+    /// <summary>Checks every schema limit. Returns null when the message is valid.</summary>
+    public ProtocolFailure? Validate()
+    {
+        if (FieldId > 99999u) return ProtocolFailure.Invalid("GetFormFieldDetail.fieldId violates its limit");
+        if (FirstOption > 9999u) return ProtocolFailure.Invalid("GetFormFieldDetail.firstOption violates its limit");
+        return null;
+    }
+}
+
+/// <summary>The reply payload of GetFormFieldDetail (message type 46).</summary>
+public sealed class GetFormFieldDetailReply : IReplyMessage
+{
+    /// <summary>FPDF_FORMFIELD_* as in GetFormFieldsReply.types.</summary>
+    public ushort Type { get; set; }
+    /// <summary>The field's /Ff.</summary>
+    public uint Flags { get; set; }
+    public string Name { get; set; } = "";
+    public string AlternateName { get; set; } = "";
+    public string Value { get; set; } = "";
+    public bool ValueTruncated { get; set; }
+    public string DefaultValue { get; set; } = "";
+    /// <summary>0 = none.</summary>
+    public ushort MaxLen { get; set; }
+    public ushort Quadding { get; set; }
+    public float FontSize { get; set; }
+    public string ExportValue { get; set; } = "";
+    public bool Checked { get; set; }
+    public uint WidgetCount { get; set; }
+    public uint OptionsTotal { get; set; }
+    public string[] OptionLabels { get; set; } = [];
+    public string[] OptionValues { get; set; } = [];
+    public uint[] SelectedIndices { get; set; } = [];
+    public bool HasFormatScript { get; set; }
+    public bool HasValidateScript { get; set; }
+    public bool HasCalculateScript { get; set; }
+
+    public MessageType MessageType => MessageType.GetFormFieldDetail;
+
+    /// <summary>
+    /// The only decoder for this type. Reads exactly the declared fields, enforcing wire types and every limit as it goes;
+    /// there is no other decoder (see StrictReader).
+    /// </summary>
+    internal static GetFormFieldDetailReply Read(ref MessagePackReader reader)
+    {
+        StrictReader.ExpectArray(ref reader, 20);
+        var message = new GetFormFieldDetailReply();
+        message.Type = StrictReader.ReadU16(ref reader, 0, 7);
+        message.Flags = StrictReader.ReadU32(ref reader, 0u, uint.MaxValue);
+        message.Name = StrictReader.ReadString(ref reader, 512);
+        message.AlternateName = StrictReader.ReadString(ref reader, 256);
+        message.Value = StrictReader.ReadString(ref reader, 8192);
+        message.ValueTruncated = StrictReader.ReadBool(ref reader);
+        message.DefaultValue = StrictReader.ReadString(ref reader, 8192);
+        message.MaxLen = StrictReader.ReadU16(ref reader, 0, ushort.MaxValue);
+        message.Quadding = StrictReader.ReadU16(ref reader, 0, 2);
+        message.FontSize = StrictReader.ReadF32(ref reader, 0.0f, 1000.0f, false);
+        message.ExportValue = StrictReader.ReadString(ref reader, 64);
+        message.Checked = StrictReader.ReadBool(ref reader);
+        message.WidgetCount = StrictReader.ReadU32(ref reader, 1u, 100000u);
+        message.OptionsTotal = StrictReader.ReadU32(ref reader, 0u, 10000u);
+        var optionLabelsCount = StrictReader.ReadArrayHeader(ref reader, 64);
+        var optionLabels = new string[optionLabelsCount];
+        for (var i = 0; i < optionLabels.Length; i++)
+        {
+            optionLabels[i] = StrictReader.ReadString(ref reader, 128);
+        }
+
+        message.OptionLabels = optionLabels;
+        var optionValuesCount = StrictReader.ReadArrayHeader(ref reader, 64);
+        var optionValues = new string[optionValuesCount];
+        for (var i = 0; i < optionValues.Length; i++)
+        {
+            optionValues[i] = StrictReader.ReadString(ref reader, 128);
+        }
+
+        message.OptionValues = optionValues;
+        var selectedIndicesCount = StrictReader.ReadArrayHeader(ref reader, 64);
+        var selectedIndices = new uint[selectedIndicesCount];
+        for (var i = 0; i < selectedIndices.Length; i++)
+        {
+            selectedIndices[i] = StrictReader.ReadU32(ref reader, 0u, 9999u);
+        }
+
+        message.SelectedIndices = selectedIndices;
+        message.HasFormatScript = StrictReader.ReadBool(ref reader);
+        message.HasValidateScript = StrictReader.ReadBool(ref reader);
+        message.HasCalculateScript = StrictReader.ReadBool(ref reader);
+        return message;
+    }
+
+    /// <summary>Writes the payload array. Does not validate; the codec validates before it writes.</summary>
+    public void Write(ref MessagePackWriter writer)
+    {
+        writer.WriteArrayHeader(20);
+        writer.Write(Type);
+        writer.Write(Flags);
+        writer.Write(Name);
+        writer.Write(AlternateName);
+        writer.Write(Value);
+        writer.Write(ValueTruncated);
+        writer.Write(DefaultValue);
+        writer.Write(MaxLen);
+        writer.Write(Quadding);
+        writer.Write(FontSize);
+        writer.Write(ExportValue);
+        writer.Write(Checked);
+        writer.Write(WidgetCount);
+        writer.Write(OptionsTotal);
+        writer.WriteArrayHeader(OptionLabels.Length);
+        foreach (var v in OptionLabels)
+        {
+            writer.Write(v);
+        }
+
+        writer.WriteArrayHeader(OptionValues.Length);
+        foreach (var v in OptionValues)
+        {
+            writer.Write(v);
+        }
+
+        writer.WriteArrayHeader(SelectedIndices.Length);
+        foreach (var v in SelectedIndices)
+        {
+            writer.Write(v);
+        }
+
+        writer.Write(HasFormatScript);
+        writer.Write(HasValidateScript);
+        writer.Write(HasCalculateScript);
+    }
+
+    /// <summary>Checks every schema limit. Returns null when the message is valid.</summary>
+    public ProtocolFailure? Validate()
+    {
+        if (Type > 7) return ProtocolFailure.Invalid("GetFormFieldDetailReply.type violates its limit");
+        if (!ProtocolText.IsValid(Name, 512)) return ProtocolFailure.Invalid("GetFormFieldDetailReply.name violates its limit");
+        if (!ProtocolText.IsValid(AlternateName, 256)) return ProtocolFailure.Invalid("GetFormFieldDetailReply.alternateName violates its limit");
+        if (!ProtocolText.IsValid(Value, 8192)) return ProtocolFailure.Invalid("GetFormFieldDetailReply.value violates its limit");
+        if (!ProtocolText.IsValid(DefaultValue, 8192)) return ProtocolFailure.Invalid("GetFormFieldDetailReply.defaultValue violates its limit");
+        if (Quadding > 2) return ProtocolFailure.Invalid("GetFormFieldDetailReply.quadding violates its limit");
+        if (!float.IsFinite(FontSize) || FontSize < 0.0f || FontSize > 1000.0f) return ProtocolFailure.Invalid("GetFormFieldDetailReply.fontSize violates its limit");
+        if (!ProtocolText.IsValid(ExportValue, 64)) return ProtocolFailure.Invalid("GetFormFieldDetailReply.exportValue violates its limit");
+        if (WidgetCount < 1u || WidgetCount > 100000u) return ProtocolFailure.Invalid("GetFormFieldDetailReply.widgetCount violates its limit");
+        if (OptionsTotal > 10000u) return ProtocolFailure.Invalid("GetFormFieldDetailReply.optionsTotal violates its limit");
+        if (OptionLabels is null || OptionLabels.Length > 64) return ProtocolFailure.Invalid("GetFormFieldDetailReply.optionLabels is null or has more than 64 elements");
+        for (var i = 0; i < OptionLabels.Length; i++)
+        {
+            if (!ProtocolText.IsValid(OptionLabels[i], 128)) return ProtocolFailure.Invalid("GetFormFieldDetailReply.optionLabels[" + i + "] violates its limit");
+        }
+
+        if (OptionValues is null || OptionValues.Length > 64) return ProtocolFailure.Invalid("GetFormFieldDetailReply.optionValues is null or has more than 64 elements");
+        for (var i = 0; i < OptionValues.Length; i++)
+        {
+            if (!ProtocolText.IsValid(OptionValues[i], 128)) return ProtocolFailure.Invalid("GetFormFieldDetailReply.optionValues[" + i + "] violates its limit");
+        }
+
+        if (SelectedIndices is null || SelectedIndices.Length > 64) return ProtocolFailure.Invalid("GetFormFieldDetailReply.selectedIndices is null or has more than 64 elements");
+        for (var i = 0; i < SelectedIndices.Length; i++)
+        {
+            if (SelectedIndices[i] > 9999u) return ProtocolFailure.Invalid("GetFormFieldDetailReply.selectedIndices[" + i + "] violates its limit");
+        }
+
+        if (OptionValues.Length != OptionLabels.Length) return ProtocolFailure.Invalid("GetFormFieldDetailReply.optionValues must have as many elements as optionLabels");
+        return null;
+    }
+}
+
+/// <summary>The request payload of SetFormFieldValue (message type 47).</summary>
+public sealed class SetFormFieldValue : IRequestMessage
+{
+    public uint FieldId { get; set; }
+    /// <summary>0 text, 1 toggle state, 2 choice.</summary>
+    public ushort Kind { get; set; }
+    public string Text { get; set; } = "";
+    public bool Checked { get; set; }
+    public uint[] Selected { get; set; } = [];
+
+    public MessageType MessageType => MessageType.SetFormFieldValue;
+
+    /// <summary>
+    /// The only decoder for this type. Reads exactly the declared fields, enforcing wire types and every limit as it goes;
+    /// there is no other decoder (see StrictReader).
+    /// </summary>
+    internal static SetFormFieldValue Read(ref MessagePackReader reader)
+    {
+        StrictReader.ExpectArray(ref reader, 5);
+        var message = new SetFormFieldValue();
+        message.FieldId = StrictReader.ReadU32(ref reader, 0u, 99999u);
+        message.Kind = StrictReader.ReadU16(ref reader, 0, 2);
+        message.Text = StrictReader.ReadString(ref reader, 8192);
+        message.Checked = StrictReader.ReadBool(ref reader);
+        var selectedCount = StrictReader.ReadArrayHeader(ref reader, 64);
+        var selected = new uint[selectedCount];
+        for (var i = 0; i < selected.Length; i++)
+        {
+            selected[i] = StrictReader.ReadU32(ref reader, 0u, 9999u);
+        }
+
+        message.Selected = selected;
+        return message;
+    }
+
+    /// <summary>Writes the payload array. Does not validate; the codec validates before it writes.</summary>
+    public void Write(ref MessagePackWriter writer)
+    {
+        writer.WriteArrayHeader(5);
+        writer.Write(FieldId);
+        writer.Write(Kind);
+        writer.Write(Text);
+        writer.Write(Checked);
+        writer.WriteArrayHeader(Selected.Length);
+        foreach (var v in Selected)
+        {
+            writer.Write(v);
+        }
+
+    }
+
+    /// <summary>Checks every schema limit. Returns null when the message is valid.</summary>
+    public ProtocolFailure? Validate()
+    {
+        if (FieldId > 99999u) return ProtocolFailure.Invalid("SetFormFieldValue.fieldId violates its limit");
+        if (Kind > 2) return ProtocolFailure.Invalid("SetFormFieldValue.kind violates its limit");
+        if (!ProtocolText.IsValid(Text, 8192)) return ProtocolFailure.Invalid("SetFormFieldValue.text violates its limit");
+        if (Selected is null || Selected.Length > 64) return ProtocolFailure.Invalid("SetFormFieldValue.selected is null or has more than 64 elements");
+        for (var i = 0; i < Selected.Length; i++)
+        {
+            if (Selected[i] > 9999u) return ProtocolFailure.Invalid("SetFormFieldValue.selected[" + i + "] violates its limit");
+        }
+
+        return null;
+    }
+}
+
+/// <summary>The reply payload of SetFormFieldValue (message type 47).</summary>
+public sealed class SetFormFieldValueReply : IReplyMessage
+{
+    public bool Accepted { get; set; }
+    public string Value { get; set; } = "";
+    public uint[] AffectedPages { get; set; } = [];
+    /// <summary>More than 256 pages are affected; treat every page as changed.</summary>
+    public bool Truncated { get; set; }
+
+    public MessageType MessageType => MessageType.SetFormFieldValue;
+
+    /// <summary>
+    /// The only decoder for this type. Reads exactly the declared fields, enforcing wire types and every limit as it goes;
+    /// there is no other decoder (see StrictReader).
+    /// </summary>
+    internal static SetFormFieldValueReply Read(ref MessagePackReader reader)
+    {
+        StrictReader.ExpectArray(ref reader, 4);
+        var message = new SetFormFieldValueReply();
+        message.Accepted = StrictReader.ReadBool(ref reader);
+        message.Value = StrictReader.ReadString(ref reader, 8192);
+        var affectedPagesCount = StrictReader.ReadArrayHeader(ref reader, 256);
+        var affectedPages = new uint[affectedPagesCount];
+        for (var i = 0; i < affectedPages.Length; i++)
+        {
+            affectedPages[i] = StrictReader.ReadU32(ref reader, 0u, 9999999u);
+        }
+
+        message.AffectedPages = affectedPages;
+        message.Truncated = StrictReader.ReadBool(ref reader);
+        return message;
+    }
+
+    /// <summary>Writes the payload array. Does not validate; the codec validates before it writes.</summary>
+    public void Write(ref MessagePackWriter writer)
+    {
+        writer.WriteArrayHeader(4);
+        writer.Write(Accepted);
+        writer.Write(Value);
+        writer.WriteArrayHeader(AffectedPages.Length);
+        foreach (var v in AffectedPages)
+        {
+            writer.Write(v);
+        }
+
+        writer.Write(Truncated);
+    }
+
+    /// <summary>Checks every schema limit. Returns null when the message is valid.</summary>
+    public ProtocolFailure? Validate()
+    {
+        if (!ProtocolText.IsValid(Value, 8192)) return ProtocolFailure.Invalid("SetFormFieldValueReply.value violates its limit");
+        if (AffectedPages is null || AffectedPages.Length > 256) return ProtocolFailure.Invalid("SetFormFieldValueReply.affectedPages is null or has more than 256 elements");
+        for (var i = 0; i < AffectedPages.Length; i++)
+        {
+            if (AffectedPages[i] > 9999999u) return ProtocolFailure.Invalid("SetFormFieldValueReply.affectedPages[" + i + "] violates its limit");
+        }
+
+        return null;
+    }
+}
+
+/// <summary>The request payload of FormAction (message type 48).</summary>
+public sealed class FormAction : IRequestMessage
+{
+    public uint FieldId { get; set; }
+    /// <summary>0 reset field, 1 reset all, 2 activate button.</summary>
+    public ushort Action { get; set; }
+
+    public MessageType MessageType => MessageType.FormAction;
+
+    /// <summary>
+    /// The only decoder for this type. Reads exactly the declared fields, enforcing wire types and every limit as it goes;
+    /// there is no other decoder (see StrictReader).
+    /// </summary>
+    internal static FormAction Read(ref MessagePackReader reader)
+    {
+        StrictReader.ExpectArray(ref reader, 2);
+        var message = new FormAction();
+        message.FieldId = StrictReader.ReadU32(ref reader, 0u, 99999u);
+        message.Action = StrictReader.ReadU16(ref reader, 0, 2);
+        return message;
+    }
+
+    /// <summary>Writes the payload array. Does not validate; the codec validates before it writes.</summary>
+    public void Write(ref MessagePackWriter writer)
+    {
+        writer.WriteArrayHeader(2);
+        writer.Write(FieldId);
+        writer.Write(Action);
+    }
+
+    /// <summary>Checks every schema limit. Returns null when the message is valid.</summary>
+    public ProtocolFailure? Validate()
+    {
+        if (FieldId > 99999u) return ProtocolFailure.Invalid("FormAction.fieldId violates its limit");
+        if (Action > 2) return ProtocolFailure.Invalid("FormAction.action violates its limit");
+        return null;
+    }
+}
+
+/// <summary>The reply payload of FormAction (message type 48).</summary>
+public sealed class FormActionReply : IReplyMessage
+{
+    public uint[] AffectedPages { get; set; } = [];
+    public ushort Performed { get; set; }
+    /// <summary>More than 256 pages are affected; treat every page as changed.</summary>
+    public bool Truncated { get; set; }
+
+    public MessageType MessageType => MessageType.FormAction;
+
+    /// <summary>
+    /// The only decoder for this type. Reads exactly the declared fields, enforcing wire types and every limit as it goes;
+    /// there is no other decoder (see StrictReader).
+    /// </summary>
+    internal static FormActionReply Read(ref MessagePackReader reader)
+    {
+        StrictReader.ExpectArray(ref reader, 3);
+        var message = new FormActionReply();
+        var affectedPagesCount = StrictReader.ReadArrayHeader(ref reader, 256);
+        var affectedPages = new uint[affectedPagesCount];
+        for (var i = 0; i < affectedPages.Length; i++)
+        {
+            affectedPages[i] = StrictReader.ReadU32(ref reader, 0u, 9999999u);
+        }
+
+        message.AffectedPages = affectedPages;
+        message.Performed = StrictReader.ReadU16(ref reader, 0, 3);
+        message.Truncated = StrictReader.ReadBool(ref reader);
+        return message;
+    }
+
+    /// <summary>Writes the payload array. Does not validate; the codec validates before it writes.</summary>
+    public void Write(ref MessagePackWriter writer)
+    {
+        writer.WriteArrayHeader(3);
+        writer.WriteArrayHeader(AffectedPages.Length);
+        foreach (var v in AffectedPages)
+        {
+            writer.Write(v);
+        }
+
+        writer.Write(Performed);
+        writer.Write(Truncated);
+    }
+
+    /// <summary>Checks every schema limit. Returns null when the message is valid.</summary>
+    public ProtocolFailure? Validate()
+    {
+        if (AffectedPages is null || AffectedPages.Length > 256) return ProtocolFailure.Invalid("FormActionReply.affectedPages is null or has more than 256 elements");
+        for (var i = 0; i < AffectedPages.Length; i++)
+        {
+            if (AffectedPages[i] > 9999999u) return ProtocolFailure.Invalid("FormActionReply.affectedPages[" + i + "] violates its limit");
+        }
+
+        if (Performed > 3) return ProtocolFailure.Invalid("FormActionReply.performed violates its limit");
+        return null;
+    }
+}
+
+/// <summary>The request payload of SaveDocument (message type 62).</summary>
+public sealed class SaveDocument : IRequestMessage
+{
+    /// <summary>0 incremental, 1 full rewrite, 2 flattened (reserved, Unsupported).</summary>
+    public ushort Mode { get; set; }
+    /// <summary>Bit 0 flatten form fields, bit 1 flatten comments and markup; only with mode 2.</summary>
+    public uint Flags { get; set; }
+    /// <summary>A write handle valid in the engine, to an empty file.</summary>
+    public ulong OutputHandle { get; set; }
+
+    public MessageType MessageType => MessageType.SaveDocument;
+
+    /// <summary>
+    /// The only decoder for this type. Reads exactly the declared fields, enforcing wire types and every limit as it goes;
+    /// there is no other decoder (see StrictReader).
+    /// </summary>
+    internal static SaveDocument Read(ref MessagePackReader reader)
+    {
+        StrictReader.ExpectArray(ref reader, 3);
+        var message = new SaveDocument();
+        message.Mode = StrictReader.ReadU16(ref reader, 0, 2);
+        message.Flags = StrictReader.ReadU32(ref reader, 0u, 3u);
+        message.OutputHandle = StrictReader.ReadU64(ref reader, 1UL, ulong.MaxValue);
+        return message;
+    }
+
+    /// <summary>Writes the payload array. Does not validate; the codec validates before it writes.</summary>
+    public void Write(ref MessagePackWriter writer)
+    {
+        writer.WriteArrayHeader(3);
+        writer.Write(Mode);
+        writer.Write(Flags);
+        writer.Write(OutputHandle);
+    }
+
+    /// <summary>Checks every schema limit. Returns null when the message is valid.</summary>
+    public ProtocolFailure? Validate()
+    {
+        if (Mode > 2) return ProtocolFailure.Invalid("SaveDocument.mode violates its limit");
+        if (Flags > 3u) return ProtocolFailure.Invalid("SaveDocument.flags violates its limit");
+        if (OutputHandle < 1UL) return ProtocolFailure.Invalid("SaveDocument.outputHandle violates its limit");
+        return null;
+    }
+}
+
+/// <summary>The reply payload of SaveDocument (message type 62).</summary>
+public sealed class SaveDocumentReply : IReplyMessage
+{
+    public ulong BytesWritten { get; set; }
+    public uint PageCount { get; set; }
+
+    public MessageType MessageType => MessageType.SaveDocument;
+
+    /// <summary>
+    /// The only decoder for this type. Reads exactly the declared fields, enforcing wire types and every limit as it goes;
+    /// there is no other decoder (see StrictReader).
+    /// </summary>
+    internal static SaveDocumentReply Read(ref MessagePackReader reader)
+    {
+        StrictReader.ExpectArray(ref reader, 2);
+        var message = new SaveDocumentReply();
+        message.BytesWritten = StrictReader.ReadU64(ref reader, 0UL, 1099511627776UL);
+        message.PageCount = StrictReader.ReadU32(ref reader, 0u, 10000000u);
+        return message;
+    }
+
+    /// <summary>Writes the payload array. Does not validate; the codec validates before it writes.</summary>
+    public void Write(ref MessagePackWriter writer)
+    {
+        writer.WriteArrayHeader(2);
+        writer.Write(BytesWritten);
+        writer.Write(PageCount);
+    }
+
+    /// <summary>Checks every schema limit. Returns null when the message is valid.</summary>
+    public ProtocolFailure? Validate()
+    {
+        if (BytesWritten > 1099511627776UL) return ProtocolFailure.Invalid("SaveDocumentReply.bytesWritten violates its limit");
+        if (PageCount > 10000000u) return ProtocolFailure.Invalid("SaveDocumentReply.pageCount violates its limit");
         return null;
     }
 }
@@ -2457,6 +4350,137 @@ public sealed class AppendAnnotationsReply : IReplyMessage
         }
 
         if (IssueMessages.Length != IssueCodes.Length) return ProtocolFailure.Invalid("AppendAnnotationsReply.issueMessages must have as many elements as issueCodes");
+        return null;
+    }
+}
+
+/// <summary>The request payload of NormalizeTail (message type 1026).</summary>
+public sealed class NormalizeTail : IRequestMessage
+{
+    public ulong OriginalHandle { get; set; }
+    public ulong PdfiumHandle { get; set; }
+    public ulong OutputHandle { get; set; }
+    /// <summary>Bit 0 restore author check box and radio state streams, bit 1 strip PDFium private keys.</summary>
+    public uint Flags { get; set; }
+
+    public MessageType MessageType => MessageType.NormalizeTail;
+
+    /// <summary>
+    /// The only decoder for this type. Reads exactly the declared fields, enforcing wire types and every limit as it goes;
+    /// there is no other decoder (see StrictReader).
+    /// </summary>
+    internal static NormalizeTail Read(ref MessagePackReader reader)
+    {
+        StrictReader.ExpectArray(ref reader, 4);
+        var message = new NormalizeTail();
+        message.OriginalHandle = StrictReader.ReadU64(ref reader, 1UL, ulong.MaxValue);
+        message.PdfiumHandle = StrictReader.ReadU64(ref reader, 1UL, ulong.MaxValue);
+        message.OutputHandle = StrictReader.ReadU64(ref reader, 1UL, ulong.MaxValue);
+        message.Flags = StrictReader.ReadU32(ref reader, 0u, 3u);
+        return message;
+    }
+
+    /// <summary>Writes the payload array. Does not validate; the codec validates before it writes.</summary>
+    public void Write(ref MessagePackWriter writer)
+    {
+        writer.WriteArrayHeader(4);
+        writer.Write(OriginalHandle);
+        writer.Write(PdfiumHandle);
+        writer.Write(OutputHandle);
+        writer.Write(Flags);
+    }
+
+    /// <summary>Checks every schema limit. Returns null when the message is valid.</summary>
+    public ProtocolFailure? Validate()
+    {
+        if (OriginalHandle < 1UL) return ProtocolFailure.Invalid("NormalizeTail.originalHandle violates its limit");
+        if (PdfiumHandle < 1UL) return ProtocolFailure.Invalid("NormalizeTail.pdfiumHandle violates its limit");
+        if (OutputHandle < 1UL) return ProtocolFailure.Invalid("NormalizeTail.outputHandle violates its limit");
+        if (Flags > 3u) return ProtocolFailure.Invalid("NormalizeTail.flags violates its limit");
+        return null;
+    }
+}
+
+/// <summary>The reply payload of NormalizeTail (message type 1026).</summary>
+public sealed class NormalizeTailReply : IReplyMessage
+{
+    public bool Ok { get; set; }
+    public ulong BytesWritten { get; set; }
+    /// <summary>More issues were found than fit.</summary>
+    public bool Truncated { get; set; }
+    public uint[] IssueCodes { get; set; } = [];
+    public string[] IssueMessages { get; set; } = [];
+
+    public MessageType MessageType => MessageType.NormalizeTail;
+
+    /// <summary>
+    /// The only decoder for this type. Reads exactly the declared fields, enforcing wire types and every limit as it goes;
+    /// there is no other decoder (see StrictReader).
+    /// </summary>
+    internal static NormalizeTailReply Read(ref MessagePackReader reader)
+    {
+        StrictReader.ExpectArray(ref reader, 5);
+        var message = new NormalizeTailReply();
+        message.Ok = StrictReader.ReadBool(ref reader);
+        message.BytesWritten = StrictReader.ReadU64(ref reader, 0UL, 2147483647UL);
+        message.Truncated = StrictReader.ReadBool(ref reader);
+        var issueCodesCount = StrictReader.ReadArrayHeader(ref reader, 256);
+        var issueCodes = new uint[issueCodesCount];
+        for (var i = 0; i < issueCodes.Length; i++)
+        {
+            issueCodes[i] = StrictReader.ReadU32(ref reader, 0u, 65535u);
+        }
+
+        message.IssueCodes = issueCodes;
+        var issueMessagesCount = StrictReader.ReadArrayHeader(ref reader, 256);
+        var issueMessages = new string[issueMessagesCount];
+        for (var i = 0; i < issueMessages.Length; i++)
+        {
+            issueMessages[i] = StrictReader.ReadString(ref reader, 192);
+        }
+
+        message.IssueMessages = issueMessages;
+        return message;
+    }
+
+    /// <summary>Writes the payload array. Does not validate; the codec validates before it writes.</summary>
+    public void Write(ref MessagePackWriter writer)
+    {
+        writer.WriteArrayHeader(5);
+        writer.Write(Ok);
+        writer.Write(BytesWritten);
+        writer.Write(Truncated);
+        writer.WriteArrayHeader(IssueCodes.Length);
+        foreach (var v in IssueCodes)
+        {
+            writer.Write(v);
+        }
+
+        writer.WriteArrayHeader(IssueMessages.Length);
+        foreach (var v in IssueMessages)
+        {
+            writer.Write(v);
+        }
+
+    }
+
+    /// <summary>Checks every schema limit. Returns null when the message is valid.</summary>
+    public ProtocolFailure? Validate()
+    {
+        if (BytesWritten > 2147483647UL) return ProtocolFailure.Invalid("NormalizeTailReply.bytesWritten violates its limit");
+        if (IssueCodes is null || IssueCodes.Length > 256) return ProtocolFailure.Invalid("NormalizeTailReply.issueCodes is null or has more than 256 elements");
+        for (var i = 0; i < IssueCodes.Length; i++)
+        {
+            if (IssueCodes[i] > 65535u) return ProtocolFailure.Invalid("NormalizeTailReply.issueCodes[" + i + "] violates its limit");
+        }
+
+        if (IssueMessages is null || IssueMessages.Length > 256) return ProtocolFailure.Invalid("NormalizeTailReply.issueMessages is null or has more than 256 elements");
+        for (var i = 0; i < IssueMessages.Length; i++)
+        {
+            if (!ProtocolText.IsValid(IssueMessages[i], 192)) return ProtocolFailure.Invalid("NormalizeTailReply.issueMessages[" + i + "] violates its limit");
+        }
+
+        if (IssueMessages.Length != IssueCodes.Length) return ProtocolFailure.Invalid("NormalizeTailReply.issueMessages must have as many elements as issueCodes");
         return null;
     }
 }

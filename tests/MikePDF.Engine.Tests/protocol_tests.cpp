@@ -359,6 +359,126 @@ std::vector<RequestSample> request_samples() {
         m.page_count = 1;
         v.push_back({"req_verify_annotations_no_pages", 45, 0, 90000, m});
     }
+
+    // Schema 7: the annotation read side, text quads, forms, SaveDocument and NormalizeTail.
+    {
+        GetTextQuads m;
+        m.page = 41;
+        m.start = 199'999;
+        m.count = 200'000;
+        m.first_quad = 4095;
+        v.push_back({"req_get_text_quads", 50, 7, 1000, m});
+        m.page = 0;
+        m.start = 0;
+        m.count = 1;
+        m.first_quad = 0;
+        v.push_back({"req_get_text_quads_first_word", 51, 7, 1000, m});
+    }
+    {
+        ListAnnotations m;
+        m.page = 9'999'999;
+        m.first = 99'999;
+        m.count = 64;
+        v.push_back({"req_list_annotations", 52, 7, 1000, m});
+        m.page = 0;
+        m.first = 0;
+        m.count = 1;
+        v.push_back({"req_list_annotations_first_window", 53, 7, 1000, m});
+    }
+    {
+        GetAnnotation m;
+        m.page = 3;
+        m.index = 99'999;
+        v.push_back({"req_get_annotation", 54, 7, 1000, m});
+    }
+    {
+        GetInkStroke m;
+        m.page = 3;
+        m.index = 12;
+        m.stroke = 99'999;
+        m.first = 9'999'999;
+        m.count = 1024;
+        v.push_back({"req_get_ink_stroke", 55, 7, 1000, m});
+    }
+    {
+        SetAnnotationHidden m;
+        m.page = 3;
+        m.index = 12;
+        m.hidden = true;
+        v.push_back({"req_set_annotation_hidden", 56, 7, 1000, m});
+        m.hidden = false;
+        v.push_back({"req_set_annotation_shown", 57, 7, 1000, m});
+    }
+    {
+        CountAnnotations m;
+        m.first_page = 9'999'999;
+        m.count = 5000;
+        v.push_back({"req_count_annotations", 58, 7, 5000, m});
+    }
+    {
+        GetFormFields m;
+        m.first = 99'999;
+        m.count = 64;
+        v.push_back({"req_get_form_fields", 59, 7, 1000, m});
+    }
+    {
+        GetFormFieldDetail m;
+        m.field_id = 99'999;
+        m.first_option = 9999;
+        v.push_back({"req_get_form_field_detail", 60, 7, 1000, m});
+    }
+    {
+        SetFormFieldValue m;
+        m.field_id = 6;
+        m.kind = 2;
+        m.text = "";
+        m.checked = false;
+        m.selected = {0, 9999};
+        v.push_back({"req_set_form_field_value_choice", 63, 7, 1000, m});
+        m.field_id = 4;
+        m.kind = 0;
+        m.text = "\xC3\x9C" "n" "\xC3\xAF" "code \xE2\x9C\x93 text";
+        m.selected = {};
+        v.push_back({"req_set_form_field_value_text", 61, 7, 1000, m});
+        m.field_id = 5;
+        m.kind = 1;
+        m.text = "";
+        m.checked = true;
+        v.push_back({"req_set_form_field_value_toggle", 62, 7, 1000, m});
+    }
+    {
+        FormAction m;
+        m.field_id = 99'999;
+        m.action = 0;
+        v.push_back({"req_form_action_reset", 64, 7, 1000, m});
+        m.field_id = 2;
+        m.action = 2;
+        v.push_back({"req_form_action_activate", 65, 7, 1000, m});
+    }
+    {
+        SaveDocument m;
+        m.mode = 0;
+        m.flags = 0;
+        m.output_handle = 0x2A4;
+        v.push_back({"req_save_document", 66, 7, 90000, m});
+        m.mode = 2;
+        m.flags = 3;
+        m.output_handle = 0xFFFFFFFFFFFFFFFFull;
+        v.push_back({"req_save_document_full", 67, 7, 90000, m});
+    }
+    {
+        NormalizeTail m;
+        m.original_handle = 0x1F4;
+        m.pdfium_handle = 0x1F8;
+        m.output_handle = 0x1FC;
+        m.flags = 3;
+        v.push_back({"req_normalize_tail", 68, 0, 90000, m});
+        m.original_handle = 1;
+        m.pdfium_handle = 1;
+        m.output_handle = 1;
+        m.flags = 0;
+        v.push_back({"req_normalize_tail_smallest", 69, 0, 1, m});
+    }
     return v;
 }
 
@@ -621,6 +741,238 @@ std::vector<ResponseSample> response_samples() {
         m.mismatches = {};
         v.push_back({"rsp_verify_annotations_clean", 45, Status::Ok, MessageType::VerifyAnnotations, m});
     }
+
+    // Schema 7.
+    {
+        GetTextQuadsReply m;
+        m.total_quads = 2;
+        m.truncated = false;
+        m.xs = {72.f, 144.f, 72.f, 144.f, 72.f, 130.5f, 72.f, 130.5f};
+        m.ys = {712.f, 712.f, 700.f, 700.f, 698.f, 698.f, 686.f, 686.f};
+        v.push_back({"rsp_get_text_quads", 50, Status::Ok, MessageType::GetTextQuads, m});
+    }
+    {
+        GetTextQuadsReply m;
+        m.total_quads = 4096;
+        m.truncated = true;
+        v.push_back({"rsp_get_text_quads_none", 51, Status::Ok, MessageType::GetTextQuads, m});
+    }
+    {
+        ListAnnotationsReply m;
+        m.total = 100'000;
+        m.subtypes = {9, 1, 20, 28};
+        m.flags = {4, 28, 0, 0xFFFFFFFFu};
+        m.lefts = {72.f, 20.f, -1'000'000.f, 0.f};
+        m.bottoms = {700.f, 20.f, 0.f, 0.f};
+        m.rights = {144.f, 44.f, 1'000'000.f, 0.f};
+        m.tops = {712.f, 44.f, 10.f, 0.f};
+        m.colours = {0xFFFFEB00u, 0xFF000000u, 0u, 1u};
+        m.nms = {"MikePDF:0123456789abcdef0123456789abcdef", "", std::string(64, 'n'), "\xC3\xA9"};
+        m.authors = {"A. Reviewer", "", std::string(128, 'a'), "\xC3\xBC"};
+        m.modified = {"D:20241103123456+10'00'", "", std::string(32, 'm'), ""};
+        m.snippets = {"The marked text \xE2\x9C\x93", "", std::string(192, 's'), ""};
+        m.parents = {-1, 0, 99'999, -1};
+        v.push_back({"rsp_list_annotations", 52, Status::Ok, MessageType::ListAnnotations, m});
+    }
+    {
+        ListAnnotationsReply m;
+        v.push_back({"rsp_list_annotations_empty", 53, Status::Ok, MessageType::ListAnnotations, m});
+    }
+    {
+        GetAnnotationReply m;
+        m.subtype = 15;
+        m.flags = 0xFFFFFFFFu;
+        m.left = -1'000'000.f;
+        m.bottom = -1'000'000.f;
+        m.right = 1'000'000.f;
+        m.top = 1'000'000.f;
+        m.colour = 0xFF0000FFu;
+        m.interior_colour = 0xFF00FF00u;
+        m.opacity = 1.f;
+        m.border_width = 1000.f;
+        m.border_style = 4;
+        m.contents = std::string(16384, 'c');
+        m.contents_truncated = true;
+        m.author = std::string(256, 'a');
+        m.subject = std::string(256, 's');
+        m.nm = std::string(64, 'n');
+        m.created = std::string(32, 'd');
+        m.modified = std::string(32, 'm');
+        m.parent_index = 99'999;
+        m.reply_type = 2;
+        m.state_model = "Review";
+        m.state = "Accepted";
+        m.popup_open = true;
+        m.name = std::string(64, 'i');
+        m.quad_points.assign(512, 0.f);
+        m.vertices.assign(2048, 0.f);
+        m.vertices_truncated = true;
+        m.line_endings = {10, 0};
+        m.stroke_count = 100'000;
+        m.point_count = 10'000'000;
+        m.default_appearance = std::string(256, 'f');
+        m.alignment = 2;
+        m.has_appearance = false;
+        v.push_back({"rsp_get_annotation_ink", 55, Status::Ok, MessageType::GetAnnotation, m});
+    }
+    {
+        GetAnnotationReply m;
+        m.subtype = 9;
+        m.flags = 4;
+        m.left = 72.f;
+        m.bottom = 700.f;
+        m.right = 144.f;
+        m.top = 712.f;
+        m.colour = 0xFFFFEB00u;
+        m.interior_colour = 0;
+        m.opacity = 0.5f;
+        m.border_width = 1.f;
+        m.border_style = 0;
+        m.contents = "A comment \xE2\x9C\x93";
+        m.contents_truncated = false;
+        m.author = "A. Reviewer";
+        m.subject = "Highlight";
+        m.nm = "MikePDF:0123456789abcdef0123456789abcdef";
+        m.created = "D:20241103123456+10'00'";
+        m.modified = "D:20241103123456+10'00'";
+        m.parent_index = -1;
+        m.reply_type = 0;
+        m.popup_open = false;
+        m.quad_points = {72.f, 712.f, 144.f, 712.f, 72.f, 700.f, 144.f, 700.f};
+        m.has_appearance = true;
+        v.push_back({"rsp_get_annotation", 54, Status::Ok, MessageType::GetAnnotation, m});
+    }
+    {
+        GetInkStrokeReply m;
+        m.point_count = 3;
+        m.xs = {10.f, 11.5f, 13.f};
+        m.ys = {20.f, 22.f, 21.f};
+        m.has_widths = false;
+        m.widths = {0.f, 0.f, 0.f};
+        v.push_back({"rsp_get_ink_stroke", 56, Status::Ok, MessageType::GetInkStroke, m});
+        m.point_count = 10'000'000;
+        m.xs = {1.f};
+        m.ys = {2.f};
+        m.has_widths = true;
+        m.widths = {1000.f};
+        v.push_back({"rsp_get_ink_stroke_widths", 57, Status::Ok, MessageType::GetInkStroke, m});
+    }
+    v.push_back({"rsp_set_annotation_hidden", 58, Status::Ok, MessageType::SetAnnotationHidden, SetAnnotationHiddenReply{}});
+    {
+        CountAnnotationsReply m;
+        m.counts = {0, 3, 65535, 12};
+        v.push_back({"rsp_count_annotations", 59, Status::Ok, MessageType::CountAnnotations, m});
+    }
+    {
+        GetFormFieldsReply m;
+        m.total = 100'000;
+        m.field_ids = {0, 99'999, 7};
+        m.pages = {0, 9'999'999, 3};
+        m.lefts = {72.f, 100.f, 50.f};
+        m.bottoms = {700.f, 100.f, 40.f};
+        m.rights = {300.f, 120.f, 90.f};
+        m.tops = {720.f, 120.f, 60.f};
+        m.types = {6, 2, 4};
+        m.flags = {0, 1, 0x00262000u};
+        m.states = {0, 1, 15};
+        m.max_lens = {0, 10, 65535};
+        m.names = {"name", "agree", std::string(128, 'f')};
+        m.alternate_names = {"Full name", "", "\xC3\x89"};
+        m.values = {"Alice \xE2\x9C\x93", "", std::string(128, 'v')};
+        v.push_back({"rsp_get_form_fields", 60, Status::Ok, MessageType::GetFormFields, m});
+    }
+    {
+        GetFormFieldsReply m;
+        v.push_back({"rsp_get_form_fields_none", 61, Status::Ok, MessageType::GetFormFields, m});
+    }
+    {
+        GetFormFieldDetailReply m;
+        m.type = 4;
+        m.flags = 0x00060000u;
+        m.name = "country";
+        m.alternate_name = "Country of residence";
+        m.value = "France";
+        m.default_value = "France";
+        m.quadding = 1;
+        m.font_size = 12.f;
+        m.widget_count = 1;
+        m.options_total = 10'000;
+        m.option_labels = {"France", "Germany"};
+        m.option_values = {"France", "Germany"};
+        m.selected_indices = {0};
+        m.has_validate_script = true;
+        v.push_back({"rsp_get_form_field_detail", 62, Status::Ok, MessageType::GetFormFieldDetail, m});
+    }
+    {
+        GetFormFieldDetailReply m;
+        m.type = 7;
+        m.flags = 0xFFFFFFFFu;
+        m.name = std::string(512, 'n');
+        m.alternate_name = std::string(256, 'a');
+        m.value = std::string(8192, 'v');
+        m.value_truncated = true;
+        m.default_value = std::string(8192, 'd');
+        m.max_len = 65535;
+        m.quadding = 2;
+        m.font_size = 1000.f;
+        m.export_value = std::string(64, 'e');
+        m.checked = true;
+        m.widget_count = 100'000;
+        m.options_total = 10'000;
+        m.option_labels.assign(64, std::string(128, 'l'));
+        m.option_values.assign(64, std::string(128, 'o'));
+        m.selected_indices.assign(64, 9999u);
+        m.has_format_script = true;
+        m.has_validate_script = true;
+        m.has_calculate_script = true;
+        v.push_back({"rsp_get_form_field_detail_maximal", 63, Status::Ok, MessageType::GetFormFieldDetail, m});
+    }
+    {
+        SetFormFieldValueReply m;
+        m.accepted = true;
+        m.value = "Alice \xE2\x9C\x93";
+        m.affected_pages = {3, 4, 9'999'999};
+        v.push_back({"rsp_set_form_field_value", 64, Status::Ok, MessageType::SetFormFieldValue, m});
+        m.accepted = false;
+        m.value = std::string(8192, 'v');
+        m.affected_pages.assign(256, 1u);
+        m.truncated = true;
+        v.push_back({"rsp_set_form_field_value_refused", 65, Status::Ok, MessageType::SetFormFieldValue, m});
+    }
+    {
+        FormActionReply m;
+        m.affected_pages = {0, 1, 2};
+        m.performed = 1;
+        v.push_back({"rsp_form_action", 66, Status::Ok, MessageType::FormAction, m});
+        m.affected_pages = {};
+        m.performed = 3;
+        m.truncated = true;
+        v.push_back({"rsp_form_action_refused", 67, Status::Ok, MessageType::FormAction, m});
+    }
+    {
+        SaveDocumentReply m;
+        m.bytes_written = 1'099'511'627'776ull;
+        m.page_count = 10'000'000;
+        v.push_back({"rsp_save_document", 68, Status::Ok, MessageType::SaveDocument, m});
+        m.bytes_written = 1'234;
+        m.page_count = 1;
+        v.push_back({"rsp_save_document_small", 69, Status::Ok, MessageType::SaveDocument, m});
+    }
+    {
+        NormalizeTailReply m;
+        m.ok = false;
+        m.truncated = true;
+        m.issue_codes = {30, 65535};
+        m.issue_messages = {"error: the PDFium file does not begin with the original", "caf" "\xC3\xA9"};
+        v.push_back({"rsp_normalize_tail_refused", 70, Status::Ok, MessageType::NormalizeTail, m});
+    }
+    {
+        NormalizeTailReply m;
+        m.ok = true;
+        m.bytes_written = 2'147'483'647;
+        v.push_back({"rsp_normalize_tail", 71, Status::Ok, MessageType::NormalizeTail, m});
+    }
+    v.push_back({"rsp_save_document_permission_denied", 72, Status::PermissionDenied, MessageType::SaveDocument, std::nullopt});
     v.push_back({"rsp_error_password_required", 4, Status::PasswordRequired, MessageType::OpenDocument, std::nullopt});
     v.push_back({"rsp_error_timeout", 9, Status::Timeout, MessageType::RenderTile, std::nullopt});
     return v;
@@ -1018,7 +1370,7 @@ TEST(ProtocolRoundTrip, EveryStatusIsCarriedAsItsOwnValue) {
 
 TEST(ProtocolRoundTrip, TheSchemaConstantsAreWhatTheDocsSay) {
     EXPECT_EQ(kMaxFrameBytes, 65536u);
-    EXPECT_EQ(kSchemaVersion, 6u);
+    EXPECT_EQ(kSchemaVersion, 7u);
     EXPECT_EQ(kMaxDeadlineMs, 86400000u);
 }
 
@@ -1149,7 +1501,7 @@ TEST(ProtocolFraming, MapsExtensionsAndBinaryAreRejected) {
 TEST(ProtocolEnvelope, HeaderRules) {
     EXPECT_EQ(request_status(request_frame(Raw().arr(1).u(1), MessageType::Ping)), Status::Ok);
     EXPECT_EQ(request_status(request_frame(Raw().arr(1).u(1), static_cast<MessageType>(0))), Status::ProtocolError);
-    for (const int type : {4, 15, 27, 1023, 1025, 65535}) {
+    for (const int type : {5, 15, 29, 1023, 1027, 65535}) {
         EXPECT_EQ(request_status(request_frame(Raw().arr(0), static_cast<MessageType>(type))), Status::ProtocolError) << type;
     }
     // Four elements instead of five.
@@ -1219,7 +1571,9 @@ TEST(ProtocolLimits, RenderTile) {
     EXPECT_EQ(status(tile(0, 1.f, 0, 0, 0, 1, 1, 3, 0, 0)), Status::Ok);
     EXPECT_EQ(status(tile(0, 1.f, 0, 0, 0, 1, 1, 4, 0, 0)), Status::Ok);  // dark pages
     EXPECT_EQ(status(tile(0, 1.f, 0, 0, 0, 1, 1, 7, 0, 0)), Status::Ok);
-    EXPECT_EQ(status(tile(0, 1.f, 0, 0, 0, 1, 1, 8, 0, 0)), Status::InvalidArgument);
+    EXPECT_EQ(status(tile(0, 1.f, 0, 0, 0, 1, 1, 8, 0, 0)), Status::Ok);  // schema 7: the field highlight
+    EXPECT_EQ(status(tile(0, 1.f, 0, 0, 0, 1, 1, 15, 0, 0)), Status::Ok);
+    EXPECT_EQ(status(tile(0, 1.f, 0, 0, 0, 1, 1, 16, 0, 0)), Status::InvalidArgument);
     EXPECT_EQ(status(tile(0, 1.f, 0, 0, 0, 1, 1, 0, 1023, 0)), Status::Ok);
     EXPECT_EQ(status(tile(0, 1.f, 0, 0, 0, 1, 1, 0, 1024, 0)), Status::InvalidArgument);
     EXPECT_EQ(status(tile(0, 1.f, 0, 0, 0, 1, 1, 0, 0, ~0ull)), Status::Ok);
@@ -1451,6 +1805,274 @@ TEST(ProtocolLimits, RenderBandReplyAndViewerPreferencesReply) {
     EXPECT_EQ(prefs(0, 0, 0, 0, 65, 65), Status::InvalidArgument);
     EXPECT_EQ(prefs(0, 0, 0, 0, 2, 1), Status::InvalidArgument);          // the two arrays differ in length
     EXPECT_EQ(prefs(0, 0, 0, 0, 1, 1, 10000000), Status::InvalidArgument);  // a page past the schema's last
+}
+
+// ---- schema 7 ------------------------------------------------------------------------------------
+
+namespace {
+Status request7(const Raw& payload, MessageType type, std::uint32_t document = 7) { return request_status(request_frame(payload, type, 50, document, 1000)); }
+Status reply7(const Raw& payload, MessageType type) { return response_status(response_frame(&payload, type)); }
+// An array of n copies of one float, as the reply arrays of text quads and annotations are.
+Raw& floats(Raw& r, std::size_t n, float value) {
+    r.arr(n);
+    for (std::size_t i = 0; i < n; ++i) r.f(value);
+    return r;
+}
+Raw& uints(Raw& r, std::size_t n, std::uint64_t value) {
+    r.arr(n);
+    for (std::size_t i = 0; i < n; ++i) r.u(value);
+    return r;
+}
+}  // namespace
+
+TEST(ProtocolLimits, Schema7AnnotationAndTextRequests) {
+    // GetTextQuads: page, start, count, firstQuad
+    EXPECT_EQ(request7(Raw().arr(4).u(9999999).u(199999).u(200000).u(4095), MessageType::GetTextQuads), Status::Ok);
+    EXPECT_EQ(request7(Raw().arr(4).u(10000000).u(0).u(1).u(0), MessageType::GetTextQuads), Status::InvalidArgument);
+    EXPECT_EQ(request7(Raw().arr(4).u(0).u(200000).u(1).u(0), MessageType::GetTextQuads), Status::InvalidArgument);
+    EXPECT_EQ(request7(Raw().arr(4).u(0).u(0).u(0).u(0), MessageType::GetTextQuads), Status::InvalidArgument);
+    EXPECT_EQ(request7(Raw().arr(4).u(0).u(0).u(200001).u(0), MessageType::GetTextQuads), Status::InvalidArgument);
+    EXPECT_EQ(request7(Raw().arr(4).u(0).u(0).u(1).u(4096), MessageType::GetTextQuads), Status::InvalidArgument);
+    EXPECT_EQ(request7(Raw().arr(4).u(0).u(0).u(1).u(0), MessageType::GetTextQuads, 0), Status::InvalidArgument);  // a document is required
+    EXPECT_EQ(request7(Raw().arr(3).u(0).u(0).u(1), MessageType::GetTextQuads), Status::ProtocolError);
+    // ListAnnotations: page, first, count
+    EXPECT_EQ(request7(Raw().arr(3).u(9999999).u(99999).u(64), MessageType::ListAnnotations), Status::Ok);
+    EXPECT_EQ(request7(Raw().arr(3).u(0).u(100000).u(1), MessageType::ListAnnotations), Status::InvalidArgument);
+    EXPECT_EQ(request7(Raw().arr(3).u(0).u(0).u(0), MessageType::ListAnnotations), Status::InvalidArgument);
+    EXPECT_EQ(request7(Raw().arr(3).u(0).u(0).u(65), MessageType::ListAnnotations), Status::InvalidArgument);
+    // GetAnnotation: page, index
+    EXPECT_EQ(request7(Raw().arr(2).u(0).u(99999), MessageType::GetAnnotation), Status::Ok);
+    EXPECT_EQ(request7(Raw().arr(2).u(0).u(100000), MessageType::GetAnnotation), Status::InvalidArgument);
+    // GetInkStroke: page, index, stroke, first, count
+    EXPECT_EQ(request7(Raw().arr(5).u(0).u(0).u(99999).u(9999999).u(1024), MessageType::GetInkStroke), Status::Ok);
+    EXPECT_EQ(request7(Raw().arr(5).u(0).u(0).u(100000).u(0).u(1), MessageType::GetInkStroke), Status::InvalidArgument);
+    EXPECT_EQ(request7(Raw().arr(5).u(0).u(0).u(0).u(10000000).u(1), MessageType::GetInkStroke), Status::InvalidArgument);
+    EXPECT_EQ(request7(Raw().arr(5).u(0).u(0).u(0).u(0).u(0), MessageType::GetInkStroke), Status::InvalidArgument);
+    EXPECT_EQ(request7(Raw().arr(5).u(0).u(0).u(0).u(0).u(1025), MessageType::GetInkStroke), Status::InvalidArgument);
+    // SetAnnotationHidden: page, index, hidden (a boolean, not an integer)
+    EXPECT_EQ(request7(Raw().arr(3).u(0).u(0).b(true), MessageType::SetAnnotationHidden), Status::Ok);
+    EXPECT_EQ(request7(Raw().arr(3).u(0).u(100000).b(true), MessageType::SetAnnotationHidden), Status::InvalidArgument);
+    EXPECT_EQ(request7(Raw().arr(3).u(0).u(0).u(1), MessageType::SetAnnotationHidden), Status::ProtocolError);
+    // CountAnnotations: firstPage, count
+    EXPECT_EQ(request7(Raw().arr(2).u(9999999).u(5000), MessageType::CountAnnotations), Status::Ok);
+    EXPECT_EQ(request7(Raw().arr(2).u(0).u(0), MessageType::CountAnnotations), Status::InvalidArgument);
+    EXPECT_EQ(request7(Raw().arr(2).u(0).u(5001), MessageType::CountAnnotations), Status::InvalidArgument);
+}
+
+TEST(ProtocolLimits, Schema7FormSaveAndNormalizeRequests) {
+    EXPECT_EQ(request7(Raw().arr(2).u(99999).u(64), MessageType::GetFormFields), Status::Ok);
+    EXPECT_EQ(request7(Raw().arr(2).u(100000).u(1), MessageType::GetFormFields), Status::InvalidArgument);
+    EXPECT_EQ(request7(Raw().arr(2).u(0).u(65), MessageType::GetFormFields), Status::InvalidArgument);
+    EXPECT_EQ(request7(Raw().arr(2).u(99999).u(9999), MessageType::GetFormFieldDetail), Status::Ok);
+    EXPECT_EQ(request7(Raw().arr(2).u(100000).u(0), MessageType::GetFormFieldDetail), Status::InvalidArgument);
+    EXPECT_EQ(request7(Raw().arr(2).u(0).u(10000), MessageType::GetFormFieldDetail), Status::InvalidArgument);
+    // SetFormFieldValue: fieldId, kind, text, checked, selected
+    const auto set = [](std::uint64_t id, std::uint64_t kind, const std::string& text, std::size_t selected, std::uint64_t option = 0) {
+        Raw r;
+        r.arr(5).u(id).u(kind).str(text).b(false);
+        uints(r, selected, option);
+        return request7(r, MessageType::SetFormFieldValue);
+    };
+    EXPECT_EQ(set(99999, 2, std::string(8192, 't'), 64, 9999), Status::Ok);
+    EXPECT_EQ(set(100000, 0, "", 0), Status::InvalidArgument);
+    EXPECT_EQ(set(0, 3, "", 0), Status::InvalidArgument);
+    EXPECT_EQ(set(0, 0, std::string(8193, 't'), 0), Status::InvalidArgument);
+    EXPECT_EQ(set(0, 2, "", 65), Status::InvalidArgument);
+    EXPECT_EQ(set(0, 2, "", 1, 10000), Status::InvalidArgument);
+    EXPECT_EQ(request7(Raw().arr(5).u(0).u(0).raw({0xC0}).b(false).arr(0), MessageType::SetFormFieldValue), Status::ProtocolError);  // text is not optional
+    EXPECT_EQ(request7(Raw().arr(5).u(0).u(0).str_bytes({0xED, 0xA0, 0x80}).b(false).arr(0), MessageType::SetFormFieldValue), Status::ProtocolError);  // not UTF-8
+    // FormAction: fieldId, action
+    EXPECT_EQ(request7(Raw().arr(2).u(99999).u(2), MessageType::FormAction), Status::Ok);
+    EXPECT_EQ(request7(Raw().arr(2).u(0).u(3), MessageType::FormAction), Status::InvalidArgument);
+    EXPECT_EQ(request7(Raw().arr(2).u(100000).u(0), MessageType::FormAction), Status::InvalidArgument);
+    // SaveDocument: mode, flags, outputHandle
+    EXPECT_EQ(request7(Raw().arr(3).u(2).u(3).u(~0ull), MessageType::SaveDocument), Status::Ok);
+    EXPECT_EQ(request7(Raw().arr(3).u(3).u(0).u(1), MessageType::SaveDocument), Status::InvalidArgument);
+    EXPECT_EQ(request7(Raw().arr(3).u(0).u(4).u(1), MessageType::SaveDocument), Status::InvalidArgument);
+    EXPECT_EQ(request7(Raw().arr(3).u(0).u(0).u(0), MessageType::SaveDocument), Status::InvalidArgument);  // no handle
+    EXPECT_EQ(request7(Raw().arr(4).u(0).u(0).u(1).str("C:\\a.pdf"), MessageType::SaveDocument), Status::ProtocolError);  // a handle, never a path
+    // NormalizeTail: three handles and flags, no document
+    EXPECT_EQ(request7(Raw().arr(4).u(1).u(1).u(1).u(3), MessageType::NormalizeTail, 0), Status::Ok);
+    EXPECT_EQ(request7(Raw().arr(4).u(0).u(1).u(1).u(0), MessageType::NormalizeTail, 0), Status::InvalidArgument);
+    EXPECT_EQ(request7(Raw().arr(4).u(1).u(0).u(1).u(0), MessageType::NormalizeTail, 0), Status::InvalidArgument);
+    EXPECT_EQ(request7(Raw().arr(4).u(1).u(1).u(0).u(0), MessageType::NormalizeTail, 0), Status::InvalidArgument);
+    EXPECT_EQ(request7(Raw().arr(4).u(1).u(1).u(1).u(4), MessageType::NormalizeTail, 0), Status::InvalidArgument);
+    EXPECT_EQ(request7(Raw().arr(4).u(1).u(1).u(1).u(0), MessageType::NormalizeTail, 7), Status::InvalidArgument);  // takes no document
+}
+
+TEST(ProtocolLimits, Schema7Replies) {
+    // GetTextQuadsReply: totalQuads, truncated, xs, ys
+    {
+        Raw ok;
+        ok.arr(4).u(4096).b(true);
+        floats(ok, 256, 1000000.f);
+        floats(ok, 256, -1000000.f);
+        EXPECT_EQ(reply7(ok, MessageType::GetTextQuads), Status::Ok);
+        Raw too_many;
+        too_many.arr(4).u(4097).b(false);
+        floats(too_many, 0, 0.f);
+        floats(too_many, 0, 0.f);
+        EXPECT_EQ(reply7(too_many, MessageType::GetTextQuads), Status::InvalidArgument);
+        Raw corners;
+        corners.arr(4).u(1).b(false);
+        floats(corners, 257, 0.f);
+        floats(corners, 257, 0.f);
+        EXPECT_EQ(reply7(corners, MessageType::GetTextQuads), Status::InvalidArgument);
+        Raw unequal;
+        unequal.arr(4).u(1).b(false);
+        floats(unequal, 4, 0.f);
+        floats(unequal, 3, 0.f);
+        EXPECT_EQ(reply7(unequal, MessageType::GetTextQuads), Status::InvalidArgument);
+        Raw not_a_number;
+        not_a_number.arr(4).u(1).b(false).arr(1).f(kNan);
+        floats(not_a_number, 1, 0.f);
+        EXPECT_EQ(reply7(not_a_number, MessageType::GetTextQuads), Status::InvalidArgument);
+    }
+    // ListAnnotationsReply: one entry; the parent is an integer from -1, the subtype at most 28
+    const auto annots = [](std::uint64_t subtype, std::int64_t parent, std::uint64_t total = 1, float left = 1.f) {
+        Raw r;
+        r.arr(13).u(total);
+        r.arr(1).u(subtype);
+        r.arr(1).u(4);
+        r.arr(1).f(left);
+        r.arr(1).f(1.f);
+        r.arr(1).f(2.f);
+        r.arr(1).f(2.f);
+        r.arr(1).u(0);
+        for (int i = 0; i < 4; ++i) r.arr(1).str("");
+        r.arr(1).i(parent);
+        return reply7(r, MessageType::ListAnnotations);
+    };
+    EXPECT_EQ(annots(28, 99999, 100000), Status::Ok);
+    EXPECT_EQ(annots(0, -1), Status::Ok);
+    EXPECT_EQ(annots(29, -1), Status::InvalidArgument);
+    EXPECT_EQ(annots(1, -2), Status::InvalidArgument);
+    EXPECT_EQ(annots(1, 100000), Status::InvalidArgument);
+    EXPECT_EQ(annots(1, -1, 100001), Status::InvalidArgument);
+    EXPECT_EQ(annots(1, -1, 1, kNan), Status::InvalidArgument);
+    EXPECT_EQ(annots(1, -1, 1, 1000001.f), Status::InvalidArgument);
+    // CountAnnotationsReply: counts are u16
+    {
+        Raw ok;
+        ok.arr(1);
+        uints(ok, 5000, 65535);
+        EXPECT_EQ(reply7(ok, MessageType::CountAnnotations), Status::Ok);
+        Raw too_many;
+        too_many.arr(1);
+        uints(too_many, 5001, 0);
+        EXPECT_EQ(reply7(too_many, MessageType::CountAnnotations), Status::InvalidArgument);
+        Raw wide;
+        wide.arr(1);
+        uints(wide, 1, 65536);
+        EXPECT_EQ(reply7(wide, MessageType::CountAnnotations), Status::ProtocolError);
+    }
+    // SaveDocumentReply: bytesWritten up to 2^40, pageCount up to 10 million
+    EXPECT_EQ(reply7(Raw().arr(2).u(1ull << 40).u(10000000), MessageType::SaveDocument), Status::Ok);
+    EXPECT_EQ(reply7(Raw().arr(2).u((1ull << 40) + 1).u(1), MessageType::SaveDocument), Status::InvalidArgument);
+    EXPECT_EQ(reply7(Raw().arr(2).u(1).u(10000001), MessageType::SaveDocument), Status::InvalidArgument);
+    EXPECT_EQ(reply7(Raw().arr(3).u(1).u(1).u(0), MessageType::SaveDocument), Status::ProtocolError);
+    // NormalizeTailReply: ok, bytesWritten (up to 2 GiB - 1), truncated, issue codes and messages
+    EXPECT_EQ(reply7(Raw().arr(5).b(true).u(2147483647).b(false).arr(0).arr(0), MessageType::NormalizeTail), Status::Ok);
+    EXPECT_EQ(reply7(Raw().arr(5).b(true).u(2147483648ull).b(false).arr(0).arr(0), MessageType::NormalizeTail), Status::InvalidArgument);
+    EXPECT_EQ(reply7(Raw().arr(5).b(false).u(0).b(false).arr(2).u(1).u(2).arr(1).str("one"), MessageType::NormalizeTail), Status::InvalidArgument);
+    EXPECT_EQ(reply7(Raw().arr(5).b(false).u(0).b(false).arr(1).u(65536).arr(1).str("x"), MessageType::NormalizeTail), Status::InvalidArgument);
+    EXPECT_EQ(reply7(Raw().arr(5).b(false).u(0).b(false).arr(1).u(1).arr(1).str(std::string(193, 'm')), MessageType::NormalizeTail), Status::InvalidArgument);
+}
+
+TEST(ProtocolEncode, TheWorstCaseSchema7RepliesFitInOneFrame) {
+    ReplyPayload payload;
+
+    GetAnnotationReply annotation;
+    annotation.contents = std::string(16384, 'c');
+    annotation.author = std::string(256, 'a');
+    annotation.subject = std::string(256, 's');
+    annotation.quad_points.assign(512, -1000000.f);
+    annotation.vertices.assign(2048, -1000000.f);
+    annotation.default_appearance = std::string(256, 'f');
+    annotation.name = std::string(64, 'n');
+    payload = annotation;
+    auto frame = encode_response_frame(~0ull, Status::Ok, MessageType::GetAnnotation, &payload);
+    ASSERT_TRUE(frame.ok());
+    EXPECT_LE(frame.value.size(), kMaxFrameBytes + kFrameHeaderBytes);
+    EXPECT_TRUE(decode_response_frame(frame.value).ok());
+
+    ListAnnotationsReply list;
+    list.total = 100000;
+    list.subtypes.assign(64, 28);
+    list.flags.assign(64, 0xFFFFFFFFu);
+    list.lefts.assign(64, -1000000.f);
+    list.bottoms.assign(64, -1000000.f);
+    list.rights.assign(64, -1000000.f);
+    list.tops.assign(64, -1000000.f);
+    list.colours.assign(64, 0xFFFFFFFFu);
+    list.nms.assign(64, std::string(64, 'n'));
+    list.authors.assign(64, std::string(128, 'a'));
+    list.modified.assign(64, std::string(32, 'm'));
+    list.snippets.assign(64, std::string(192, 's'));
+    list.parents.assign(64, 99999);
+    payload = list;
+    frame = encode_response_frame(~0ull, Status::Ok, MessageType::ListAnnotations, &payload);
+    ASSERT_TRUE(frame.ok());
+    EXPECT_LE(frame.value.size(), kMaxFrameBytes + kFrameHeaderBytes);
+
+    GetFormFieldDetailReply detail;
+    detail.name = std::string(512, 'n');
+    detail.alternate_name = std::string(256, 'a');
+    detail.value = std::string(8192, 'v');
+    detail.default_value = std::string(8192, 'd');
+    detail.option_labels.assign(64, std::string(128, 'l'));
+    detail.option_values.assign(64, std::string(128, 'o'));
+    detail.selected_indices.assign(64, 9999);
+    detail.widget_count = 1;
+    payload = detail;
+    frame = encode_response_frame(~0ull, Status::Ok, MessageType::GetFormFieldDetail, &payload);
+    ASSERT_TRUE(frame.ok());
+    EXPECT_LE(frame.value.size(), kMaxFrameBytes + kFrameHeaderBytes);
+
+    GetFormFieldsReply fields;
+    fields.total = 100000;
+    fields.field_ids.assign(64, 99999);
+    fields.pages.assign(64, 9999999);
+    fields.lefts.assign(64, -1000000.f);
+    fields.bottoms.assign(64, -1000000.f);
+    fields.rights.assign(64, -1000000.f);
+    fields.tops.assign(64, -1000000.f);
+    fields.types.assign(64, 7);
+    fields.flags.assign(64, 0xFFFFFFFFu);
+    fields.states.assign(64, 15);
+    fields.max_lens.assign(64, 65535);
+    fields.names.assign(64, std::string(128, 'n'));
+    fields.alternate_names.assign(64, std::string(128, 'a'));
+    fields.values.assign(64, std::string(128, 'v'));
+    payload = fields;
+    frame = encode_response_frame(~0ull, Status::Ok, MessageType::GetFormFields, &payload);
+    ASSERT_TRUE(frame.ok());
+    EXPECT_LE(frame.value.size(), kMaxFrameBytes + kFrameHeaderBytes);
+
+    CountAnnotationsReply counts;
+    counts.counts.assign(5000, 65535);
+    payload = counts;
+    frame = encode_response_frame(~0ull, Status::Ok, MessageType::CountAnnotations, &payload);
+    ASSERT_TRUE(frame.ok());
+    EXPECT_LE(frame.value.size(), kMaxFrameBytes + kFrameHeaderBytes);
+
+    GetInkStrokeReply ink;
+    ink.xs.assign(1024, -1000000.f);
+    ink.ys.assign(1024, -1000000.f);
+    ink.widths.assign(1024, 1000.f);
+    payload = ink;
+    frame = encode_response_frame(~0ull, Status::Ok, MessageType::GetInkStroke, &payload);
+    ASSERT_TRUE(frame.ok());
+    EXPECT_LE(frame.value.size(), kMaxFrameBytes + kFrameHeaderBytes);
+
+    NormalizeTailReply issues;
+    issues.truncated = true;
+    issues.issue_codes.assign(256, 65535);
+    issues.issue_messages.assign(256, std::string(192, 'm'));
+    payload = issues;
+    frame = encode_response_frame(~0ull, Status::Ok, MessageType::NormalizeTail, &payload);
+    ASSERT_TRUE(frame.ok());
+    EXPECT_LE(frame.value.size(), kMaxFrameBytes + kFrameHeaderBytes);
 }
 
 TEST(ProtocolClient, AShellHandlerSpeaksTheShellMessagesWithTheClientHalfOfTheCodec) {

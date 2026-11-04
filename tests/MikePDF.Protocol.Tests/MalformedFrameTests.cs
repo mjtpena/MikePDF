@@ -228,7 +228,7 @@ public sealed class MalformedFrameTests
     {
         foreach (var status in new ushort[] { 13, 255, 65535 })
             Assert.Equal(Status.ProtocolError, ProtocolCodec.DecodeResponseFrame(RawFrame.Response(null, MessageType.Ping, (Status)status)).Status);
-        foreach (var type in new ushort[] { 0, 4, 15, 27, 1023, 1025, 65535 })
+        foreach (var type in new ushort[] { 0, 5, 15, 29, 1023, 1027, 65535 })
             Assert.Equal(Status.ProtocolError, ProtocolCodec.DecodeRequestFrame(RawFrame.Request((ref MessagePackWriter w) => w.WriteArrayHeader(0), (MessageType)type)).Status);
     }
 

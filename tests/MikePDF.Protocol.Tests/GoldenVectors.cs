@@ -139,7 +139,7 @@ public static class GoldenVectors
         Req("tile_width_zero", TileWith(5, 0u), Invalid);
         Req("tile_width_1025", TileWith(5, 1025u), Invalid);
         Req("tile_x_out_of_range", TileWith(3, 16777217), Invalid);
-        Req("flags_unknown_bit", TileWith(7, 8u), Invalid);
+        Req("flags_unknown_bit", TileWith(7, 16u), Invalid); // schema 7: bit 3 is the field highlight, bit 4 is the first unknown bit
         Req("handle_zero", RawFrame.Request(Items(0UL, null!), MessageType.OpenDocument), Invalid);
         Req("attach_slot_ring_handle_zero", RawFrame.Request(Items(0UL, 8u, 4096u), MessageType.AttachSlotRing), Invalid);
         Req("attach_slot_ring_no_slots", RawFrame.Request(Items(1UL, 0u, 4096u), MessageType.AttachSlotRing), Invalid);
@@ -508,6 +508,224 @@ public static class GoldenVectors
         Rsp("verify_annotations_reply_2049_mismatches", Reply(new VerifyAnnotationsReply { Ok = false, Mismatches = new uint[2049] }, MessageType.VerifyAnnotations), Invalid);
         Rsp("verify_annotations_reply_mismatch_page_10000000", Reply(new VerifyAnnotationsReply { Ok = false, Mismatches = [10_000_000] }, MessageType.VerifyAnnotations), Invalid);
         Rsp("verify_annotations_reply_extra_field", RawFrame.Response(Items(true, 0u, 5u), MessageType.VerifyAnnotations), Protocol);
+
+        // Schema 7: the annotation read side, text quads, forms, SaveDocument and NormalizeTail.
+        static GetTextQuads Quads(Action<GetTextQuads> edit)
+        {
+            var m = new GetTextQuads { Page = 0, Start = 0, Count = 10, FirstQuad = 0 };
+            edit(m);
+            return m;
+        }
+
+        static ListAnnotationsReply Annots(Action<ListAnnotationsReply> edit)
+        {
+            var m = new ListAnnotationsReply
+            {
+                Total = 2, Subtypes = [9, 1], Flags = [4, 4], Lefts = [1f, 1f], Bottoms = [1f, 1f], Rights = [2f, 2f], Tops = [2f, 2f], Colours = [0, 0], Nms = ["", ""], Authors = ["", ""],
+                Modified = ["", ""], Snippets = ["", ""], Parents = [-1, -1],
+            };
+            edit(m);
+            return m;
+        }
+
+        static GetAnnotationReply Annot(Action<GetAnnotationReply> edit)
+        {
+            var m = new GetAnnotationReply
+            {
+                Subtype = 9, Flags = 4, Left = 1f, Bottom = 1f, Right = 2f, Top = 2f, Colour = 0, InteriorColour = 0, Opacity = 1f, BorderWidth = 0f, BorderStyle = 0, Contents = "", ContentsTruncated = false,
+                Author = "", Subject = "", Nm = "", Created = "", Modified = "", ParentIndex = -1, ReplyType = 0, StateModel = "", State = "", PopupOpen = false, Name = "", QuadPoints = [], Vertices = [],
+                VerticesTruncated = false, LineEndings = [], StrokeCount = 0, PointCount = 0, DefaultAppearance = "", Alignment = 0, HasAppearance = false,
+            };
+            edit(m);
+            return m;
+        }
+
+        static GetFormFieldsReply Fields(Action<GetFormFieldsReply> edit)
+        {
+            var m = new GetFormFieldsReply
+            {
+                Total = 2, FieldIds = [0, 1], Pages = [0, 0], Lefts = [1f, 1f], Bottoms = [1f, 1f], Rights = [2f, 2f], Tops = [2f, 2f], Types = [6, 2], Flags = [0, 0], States = [0, 0], MaxLens = [0, 0],
+                Names = ["a", "b"], AlternateNames = ["", ""], Values = ["", ""],
+            };
+            edit(m);
+            return m;
+        }
+
+        static GetFormFieldDetailReply Detail(Action<GetFormFieldDetailReply> edit)
+        {
+            var m = new GetFormFieldDetailReply
+            {
+                Type = 4, Flags = 0, Name = "n", AlternateName = "", Value = "", ValueTruncated = false, DefaultValue = "", MaxLen = 0, Quadding = 0, FontSize = 0f, ExportValue = "", Checked = false,
+                WidgetCount = 1, OptionsTotal = 2, OptionLabels = ["a", "b"], OptionValues = ["a", "b"], SelectedIndices = [0], HasFormatScript = false, HasValidateScript = false, HasCalculateScript = false,
+            };
+            edit(m);
+            return m;
+        }
+
+        static byte[] RawArrayOf(byte[] element) => [0x91, .. element];
+
+        Req("get_text_quads_without_a_document", RawFrame.Request(RawFrame.Serialized(Quads(_ => { })), MessageType.GetTextQuads, 50, 0), Invalid);
+        Req("get_text_quads_start_200000", Doc(Quads(m => m.Start = 200_000), MessageType.GetTextQuads), Invalid);
+        Req("get_text_quads_count_zero", Doc(Quads(m => m.Count = 0), MessageType.GetTextQuads), Invalid);
+        Req("get_text_quads_count_200001", Doc(Quads(m => m.Count = 200_001), MessageType.GetTextQuads), Invalid);
+        Req("get_text_quads_first_quad_4096", Doc(Quads(m => m.FirstQuad = 4096), MessageType.GetTextQuads), Invalid);
+        Req("get_text_quads_page_10000000", Doc(Quads(m => m.Page = 10_000_000), MessageType.GetTextQuads), Invalid);
+        Req("get_text_quads_missing_field", RawFrame.Request(Items(0u, 0u, 1u), MessageType.GetTextQuads, 50, 7), Protocol);
+        Req("get_text_quads_page_is_a_string", RawFrame.Request(Items("0", 0u, 1u, 0u), MessageType.GetTextQuads, 50, 7), Protocol);
+        Req("list_annotations_count_zero", Doc(new ListAnnotations { Page = 0, First = 0, Count = 0 }, MessageType.ListAnnotations), Invalid);
+        Req("list_annotations_count_65", Doc(new ListAnnotations { Page = 0, First = 0, Count = 65 }, MessageType.ListAnnotations), Invalid);
+        Req("list_annotations_first_100000", Doc(new ListAnnotations { Page = 0, First = 100_000, Count = 1 }, MessageType.ListAnnotations), Invalid);
+        Req("list_annotations_without_a_document", RawFrame.Request(RawFrame.Serialized(new ListAnnotations { Page = 0, First = 0, Count = 1 }), MessageType.ListAnnotations, 52, 0), Invalid);
+        Req("get_annotation_index_100000", Doc(new GetAnnotation { Page = 0, Index = 100_000 }, MessageType.GetAnnotation), Invalid);
+        Req("get_annotation_index_is_negative", RawFrame.Request(Items(0u, -1), MessageType.GetAnnotation, 54, 7), Protocol);
+        Req("get_ink_stroke_stroke_100000", Doc(new GetInkStroke { Page = 0, Index = 0, Stroke = 100_000, First = 0, Count = 1 }, MessageType.GetInkStroke), Invalid);
+        Req("get_ink_stroke_first_10000000", Doc(new GetInkStroke { Page = 0, Index = 0, Stroke = 0, First = 10_000_000, Count = 1 }, MessageType.GetInkStroke), Invalid);
+        Req("get_ink_stroke_count_zero", Doc(new GetInkStroke { Page = 0, Index = 0, Stroke = 0, First = 0, Count = 0 }, MessageType.GetInkStroke), Invalid);
+        Req("get_ink_stroke_count_1025", Doc(new GetInkStroke { Page = 0, Index = 0, Stroke = 0, First = 0, Count = 1025 }, MessageType.GetInkStroke), Invalid);
+        Req("set_annotation_hidden_index_100000", Doc(new SetAnnotationHidden { Page = 0, Index = 100_000, Hidden = true }, MessageType.SetAnnotationHidden), Invalid);
+        Req("set_annotation_hidden_is_an_integer", RawFrame.Request(Items(0u, 0u, 1u), MessageType.SetAnnotationHidden, 56, 7), Protocol);
+        Req("count_annotations_count_zero", Doc(new CountAnnotations { FirstPage = 0, Count = 0 }, MessageType.CountAnnotations), Invalid);
+        Req("count_annotations_count_5001", Doc(new CountAnnotations { FirstPage = 0, Count = 5001 }, MessageType.CountAnnotations), Invalid);
+        Req("count_annotations_first_page_10000000", Doc(new CountAnnotations { FirstPage = 10_000_000, Count = 1 }, MessageType.CountAnnotations), Invalid);
+        Req("get_form_fields_count_zero", Doc(new GetFormFields { First = 0, Count = 0 }, MessageType.GetFormFields), Invalid);
+        Req("get_form_fields_count_65", Doc(new GetFormFields { First = 0, Count = 65 }, MessageType.GetFormFields), Invalid);
+        Req("get_form_fields_first_100000", Doc(new GetFormFields { First = 100_000, Count = 1 }, MessageType.GetFormFields), Invalid);
+        Req("get_form_field_detail_field_100000", Doc(new GetFormFieldDetail { FieldId = 100_000, FirstOption = 0 }, MessageType.GetFormFieldDetail), Invalid);
+        Req("get_form_field_detail_option_10000", Doc(new GetFormFieldDetail { FieldId = 0, FirstOption = 10_000 }, MessageType.GetFormFieldDetail), Invalid);
+        Req("set_form_field_value_kind_3", Doc(new SetFormFieldValue { FieldId = 0, Kind = 3, Text = "", Checked = false, Selected = [] }, MessageType.SetFormFieldValue), Invalid);
+        Req("set_form_field_value_text_8193_bytes", Doc(new SetFormFieldValue { FieldId = 0, Kind = 0, Text = new string('t', 8193), Checked = false, Selected = [] }, MessageType.SetFormFieldValue), Invalid);
+        Req("set_form_field_value_65_options", Doc(new SetFormFieldValue { FieldId = 0, Kind = 2, Text = "", Checked = false, Selected = new uint[65] }, MessageType.SetFormFieldValue), Invalid);
+        Req("set_form_field_value_option_10000", Doc(new SetFormFieldValue { FieldId = 0, Kind = 2, Text = "", Checked = false, Selected = [10_000] }, MessageType.SetFormFieldValue), Invalid);
+        Req("set_form_field_value_field_100000", Doc(new SetFormFieldValue { FieldId = 100_000, Kind = 0, Text = "", Checked = false, Selected = [] }, MessageType.SetFormFieldValue), Invalid);
+        Req("set_form_field_value_text_is_nil", RawFrame.Request(Items(0u, (ushort)0, null!, false, new byte[] { 0x90 }), MessageType.SetFormFieldValue, 61, 7), Protocol);
+        Req("set_form_field_value_text_invalid_utf8", RawFrame.Request(Items(0u, (ushort)0, RawString(0xED, 0xA0, 0x80), false, new byte[] { 0x90 }), MessageType.SetFormFieldValue, 61, 7), Protocol);
+        Req("form_action_action_3", Doc(new FormAction { FieldId = 0, Action = 3 }, MessageType.FormAction), Invalid);
+        Req("form_action_field_100000", Doc(new FormAction { FieldId = 100_000, Action = 0 }, MessageType.FormAction), Invalid);
+        Req("save_document_mode_3", Doc(new SaveDocument { Mode = 3, Flags = 0, OutputHandle = 1 }, MessageType.SaveDocument), Invalid);
+        Req("save_document_flags_4", Doc(new SaveDocument { Mode = 2, Flags = 4, OutputHandle = 1 }, MessageType.SaveDocument), Invalid);
+        Req("save_document_handle_zero", Doc(new SaveDocument { Mode = 0, Flags = 0, OutputHandle = 0 }, MessageType.SaveDocument), Invalid);
+        Req("save_document_without_a_document", RawFrame.Request(RawFrame.Serialized(new SaveDocument { Mode = 0, Flags = 0, OutputHandle = 1 }), MessageType.SaveDocument, 66, 0), Invalid);
+        Req("save_document_with_a_path", RawFrame.Request(Items((ushort)0, 0u, 1UL, "C:\\a.pdf"), MessageType.SaveDocument, 66, 7), Protocol); // a handle only, never a path
+        Req("normalize_tail_original_handle_zero", NoDoc(new NormalizeTail { OriginalHandle = 0, PdfiumHandle = 1, OutputHandle = 1, Flags = 0 }, MessageType.NormalizeTail), Invalid);
+        Req("normalize_tail_pdfium_handle_zero", NoDoc(new NormalizeTail { OriginalHandle = 1, PdfiumHandle = 0, OutputHandle = 1, Flags = 0 }, MessageType.NormalizeTail), Invalid);
+        Req("normalize_tail_output_handle_zero", NoDoc(new NormalizeTail { OriginalHandle = 1, PdfiumHandle = 1, OutputHandle = 0, Flags = 0 }, MessageType.NormalizeTail), Invalid);
+        Req("normalize_tail_flags_reserved_bit", NoDoc(new NormalizeTail { OriginalHandle = 1, PdfiumHandle = 1, OutputHandle = 1, Flags = 4 }, MessageType.NormalizeTail), Invalid);
+        Req("normalize_tail_with_a_document", RawFrame.Request(RawFrame.Serialized(new NormalizeTail { OriginalHandle = 1, PdfiumHandle = 1, OutputHandle = 1, Flags = 0 }), MessageType.NormalizeTail, 68, 7), Invalid);
+        Req("normalize_tail_with_a_path", RawFrame.Request(Items(1UL, 1UL, 1UL, 0u, "C:\\a.pdf"), MessageType.NormalizeTail, 68, 0), Protocol);
+
+        Rsp("get_text_quads_reply_4097_quads", Reply(new GetTextQuadsReply { TotalQuads = 4097, Xs = [], Ys = [] }, MessageType.GetTextQuads), Invalid);
+        Rsp("get_text_quads_reply_257_corners", Reply(new GetTextQuadsReply { TotalQuads = 65, Xs = new float[257], Ys = new float[257] }, MessageType.GetTextQuads), Invalid);
+        Rsp("get_text_quads_reply_xs_ys_differ_in_length", Reply(new GetTextQuadsReply { TotalQuads = 1, Xs = new float[4], Ys = new float[3] }, MessageType.GetTextQuads), Invalid);
+        Rsp("get_text_quads_reply_x_nan", RawFrame.Response(Items(1u, false, RawArrayOf(RawNan), RawArrayOf(RawNan)), MessageType.GetTextQuads), Invalid);
+        Rsp("get_text_quads_reply_x_too_large", Reply(new GetTextQuadsReply { TotalQuads = 1, Xs = [1_000_000.5f, 0f, 0f, 0f], Ys = [0f, 0f, 0f, 0f] }, MessageType.GetTextQuads), Invalid);
+        Rsp("list_annotations_reply_subtype_29", Reply(Annots(m => m.Subtypes[0] = 29), MessageType.ListAnnotations), Invalid);
+        Rsp("list_annotations_reply_65_entries", Reply(Annots(m =>
+        {
+            m.Subtypes = new ushort[65]; m.Flags = new uint[65]; m.Lefts = new float[65]; m.Bottoms = new float[65]; m.Rights = new float[65]; m.Tops = new float[65]; m.Colours = new uint[65];
+            m.Nms = Enumerable.Repeat("", 65).ToArray(); m.Authors = m.Nms; m.Modified = m.Nms; m.Snippets = m.Nms; m.Parents = new int[65];
+        }), MessageType.ListAnnotations), Invalid);
+        Rsp("list_annotations_reply_flags_differ_in_length", Reply(Annots(m => m.Flags = [4]), MessageType.ListAnnotations), Invalid);
+        Rsp("list_annotations_reply_parent_minus_2", Reply(Annots(m => m.Parents[1] = -2), MessageType.ListAnnotations), Invalid);
+        Rsp("list_annotations_reply_parent_100000", Reply(Annots(m => m.Parents[1] = 100_000), MessageType.ListAnnotations), Invalid);
+        Rsp("list_annotations_reply_nm_65_bytes", Reply(Annots(m => m.Nms[0] = new string('n', 65)), MessageType.ListAnnotations), Invalid);
+        Rsp("list_annotations_reply_snippet_193_bytes", Reply(Annots(m => m.Snippets[0] = new string('s', 193)), MessageType.ListAnnotations), Invalid);
+        Rsp("list_annotations_reply_total_100001", Reply(Annots(m => m.Total = 100_001), MessageType.ListAnnotations), Invalid);
+        Rsp("list_annotations_reply_left_nan", RawFrame.Response(
+            (ref MessagePackWriter w) =>
+            {
+                w.WriteArrayHeader(13); w.Write(1u);
+                w.WriteArrayHeader(1); w.Write((ushort)9);
+                w.WriteArrayHeader(1); w.Write(4u);
+                w.WriteArrayHeader(1); w.WriteRaw(RawNan);
+                w.WriteArrayHeader(1); w.Write(1f);
+                w.WriteArrayHeader(1); w.Write(2f);
+                w.WriteArrayHeader(1); w.Write(2f);
+                w.WriteArrayHeader(1); w.Write(0u);
+                for (var i = 0; i < 4; i++) { w.WriteArrayHeader(1); w.Write(""); }
+                w.WriteArrayHeader(1); w.Write(-1);
+            },
+            MessageType.ListAnnotations), Invalid);
+        Rsp("get_annotation_reply_subtype_29", Reply(Annot(m => m.Subtype = 29), MessageType.GetAnnotation), Invalid);
+        Rsp("get_annotation_reply_opacity_above_1", Reply(Annot(m => m.Opacity = 1.01f), MessageType.GetAnnotation), Invalid);
+        Rsp("get_annotation_reply_border_style_5", Reply(Annot(m => m.BorderStyle = 5), MessageType.GetAnnotation), Invalid);
+        Rsp("get_annotation_reply_contents_16385_bytes", Reply(Annot(m => m.Contents = new string('c', 16385)), MessageType.GetAnnotation), Invalid);
+        Rsp("get_annotation_reply_parent_minus_2", Reply(Annot(m => m.ParentIndex = -2), MessageType.GetAnnotation), Invalid);
+        Rsp("get_annotation_reply_reply_type_3", Reply(Annot(m => m.ReplyType = 3), MessageType.GetAnnotation), Invalid);
+        Rsp("get_annotation_reply_513_quad_numbers", Reply(Annot(m => m.QuadPoints = new float[513]), MessageType.GetAnnotation), Invalid);
+        Rsp("get_annotation_reply_2049_vertex_numbers", Reply(Annot(m => m.Vertices = new float[2049]), MessageType.GetAnnotation), Invalid);
+        Rsp("get_annotation_reply_3_line_endings", Reply(Annot(m => m.LineEndings = [0, 0, 0]), MessageType.GetAnnotation), Invalid);
+        Rsp("get_annotation_reply_line_ending_11", Reply(Annot(m => m.LineEndings = [11]), MessageType.GetAnnotation), Invalid);
+        Rsp("get_annotation_reply_stroke_count_100001", Reply(Annot(m => m.StrokeCount = 100_001), MessageType.GetAnnotation), Invalid);
+        Rsp("get_annotation_reply_point_count_10000001", Reply(Annot(m => m.PointCount = 10_000_001), MessageType.GetAnnotation), Invalid);
+        Rsp("get_annotation_reply_alignment_3", Reply(Annot(m => m.Alignment = 3), MessageType.GetAnnotation), Invalid);
+        Rsp("get_annotation_reply_state_17_bytes", Reply(Annot(m => m.State = new string('s', 17)), MessageType.GetAnnotation), Invalid);
+        Rsp("get_ink_stroke_reply_1025_points", Reply(new GetInkStrokeReply { PointCount = 2000, Xs = new float[1025], Ys = new float[1025], HasWidths = false, Widths = new float[1025] }, MessageType.GetInkStroke), Invalid);
+        Rsp("get_ink_stroke_reply_ys_differ_in_length", Reply(new GetInkStrokeReply { PointCount = 2, Xs = new float[2], Ys = new float[1], HasWidths = false, Widths = new float[2] }, MessageType.GetInkStroke), Invalid);
+        Rsp("get_ink_stroke_reply_widths_differ_in_length", Reply(new GetInkStrokeReply { PointCount = 2, Xs = new float[2], Ys = new float[2], HasWidths = true, Widths = new float[1] }, MessageType.GetInkStroke), Invalid);
+        Rsp("get_ink_stroke_reply_negative_width", Reply(new GetInkStrokeReply { PointCount = 1, Xs = [0f], Ys = [0f], HasWidths = true, Widths = [-0.5f] }, MessageType.GetInkStroke), Invalid);
+        Rsp("get_ink_stroke_reply_width_1001", Reply(new GetInkStrokeReply { PointCount = 1, Xs = [0f], Ys = [0f], HasWidths = true, Widths = [1001f] }, MessageType.GetInkStroke), Invalid);
+        Rsp("get_ink_stroke_reply_point_count_10000001", Reply(new GetInkStrokeReply { PointCount = 10_000_001, Xs = [], Ys = [], HasWidths = false, Widths = [] }, MessageType.GetInkStroke), Invalid);
+        Rsp("set_annotation_hidden_reply_with_a_field", RawFrame.Response(Items(1u), MessageType.SetAnnotationHidden), Protocol);
+        Rsp("count_annotations_reply_5001_counts", Reply(new CountAnnotationsReply { Counts = new ushort[5001] }, MessageType.CountAnnotations), Invalid);
+        Rsp("count_annotations_reply_count_is_70000", RawFrame.Response(
+            (ref MessagePackWriter w) => { w.WriteArrayHeader(1); w.WriteArrayHeader(1); w.Write(70_000u); },
+            MessageType.CountAnnotations), Protocol);
+        Rsp("get_form_fields_reply_total_100001", Reply(Fields(m => m.Total = 100_001), MessageType.GetFormFields), Invalid);
+        Rsp("get_form_fields_reply_field_id_100000", Reply(Fields(m => m.FieldIds[0] = 100_000), MessageType.GetFormFields), Invalid);
+        Rsp("get_form_fields_reply_type_8", Reply(Fields(m => m.Types[0] = 8), MessageType.GetFormFields), Invalid);
+        Rsp("get_form_fields_reply_state_16", Reply(Fields(m => m.States[0] = 16), MessageType.GetFormFields), Invalid);
+        Rsp("get_form_fields_reply_page_10000000", Reply(Fields(m => m.Pages[0] = 10_000_000), MessageType.GetFormFields), Invalid);
+        Rsp("get_form_fields_reply_name_129_bytes", Reply(Fields(m => m.Names[0] = new string('n', 129)), MessageType.GetFormFields), Invalid);
+        Rsp("get_form_fields_reply_value_129_bytes", Reply(Fields(m => m.Values[0] = new string('v', 129)), MessageType.GetFormFields), Invalid);
+        Rsp("get_form_fields_reply_max_len_65536", RawFrame.Response(
+            (ref MessagePackWriter w) =>
+            {
+                w.WriteArrayHeader(14); w.Write(1u);
+                w.WriteArrayHeader(1); w.Write(0u);
+                w.WriteArrayHeader(1); w.Write(0u);
+                for (var i = 0; i < 4; i++) { w.WriteArrayHeader(1); w.Write(1f); }
+                w.WriteArrayHeader(1); w.Write((ushort)6);
+                w.WriteArrayHeader(1); w.Write(0u);
+                w.WriteArrayHeader(1); w.Write((ushort)0);
+                w.WriteArrayHeader(1); w.Write(65_536u);
+                for (var i = 0; i < 3; i++) { w.WriteArrayHeader(1); w.Write(""); }
+            },
+            MessageType.GetFormFields), Protocol);
+        Rsp("get_form_fields_reply_names_differ_in_length", Reply(Fields(m => m.Names = ["a"]), MessageType.GetFormFields), Invalid);
+        Rsp("get_form_field_detail_reply_type_8", Reply(Detail(m => m.Type = 8), MessageType.GetFormFieldDetail), Invalid);
+        Rsp("get_form_field_detail_reply_quadding_3", Reply(Detail(m => m.Quadding = 3), MessageType.GetFormFieldDetail), Invalid);
+        Rsp("get_form_field_detail_reply_value_8193_bytes", Reply(Detail(m => m.Value = new string('v', 8193)), MessageType.GetFormFieldDetail), Invalid);
+        Rsp("get_form_field_detail_reply_default_value_8193_bytes", Reply(Detail(m => m.DefaultValue = new string('v', 8193)), MessageType.GetFormFieldDetail), Invalid);
+        Rsp("get_form_field_detail_reply_name_513_bytes", Reply(Detail(m => m.Name = new string('n', 513)), MessageType.GetFormFieldDetail), Invalid);
+        Rsp("get_form_field_detail_reply_font_size_1001", Reply(Detail(m => m.FontSize = 1001f), MessageType.GetFormFieldDetail), Invalid);
+        Rsp("get_form_field_detail_reply_negative_font_size", Reply(Detail(m => m.FontSize = -1f), MessageType.GetFormFieldDetail), Invalid);
+        Rsp("get_form_field_detail_reply_widget_count_zero", Reply(Detail(m => m.WidgetCount = 0), MessageType.GetFormFieldDetail), Invalid);
+        Rsp("get_form_field_detail_reply_options_10001", Reply(Detail(m => m.OptionsTotal = 10_001), MessageType.GetFormFieldDetail), Invalid);
+        Rsp("get_form_field_detail_reply_65_labels", Reply(Detail(m => { m.OptionLabels = Enumerable.Repeat("l", 65).ToArray(); m.OptionValues = Enumerable.Repeat("l", 65).ToArray(); }), MessageType.GetFormFieldDetail), Invalid);
+        Rsp("get_form_field_detail_reply_values_differ_in_length", Reply(Detail(m => m.OptionValues = ["a"]), MessageType.GetFormFieldDetail), Invalid);
+        Rsp("get_form_field_detail_reply_selected_10000", Reply(Detail(m => m.SelectedIndices = [10_000]), MessageType.GetFormFieldDetail), Invalid);
+        Rsp("get_form_field_detail_reply_65_selected", Reply(Detail(m => m.SelectedIndices = new uint[65]), MessageType.GetFormFieldDetail), Invalid);
+        Rsp("set_form_field_value_reply_257_pages", Reply(new SetFormFieldValueReply { Accepted = true, Value = "", AffectedPages = new uint[257], Truncated = false }, MessageType.SetFormFieldValue), Invalid);
+        Rsp("set_form_field_value_reply_page_10000000", Reply(new SetFormFieldValueReply { Accepted = true, Value = "", AffectedPages = [10_000_000], Truncated = false }, MessageType.SetFormFieldValue), Invalid);
+        Rsp("set_form_field_value_reply_value_8193_bytes", Reply(new SetFormFieldValueReply { Accepted = true, Value = new string('v', 8193), AffectedPages = [], Truncated = false }, MessageType.SetFormFieldValue), Invalid);
+        Rsp("form_action_reply_257_pages", Reply(new FormActionReply { AffectedPages = new uint[257], Performed = 1, Truncated = false }, MessageType.FormAction), Invalid);
+        Rsp("form_action_reply_performed_4", Reply(new FormActionReply { AffectedPages = [], Performed = 4, Truncated = false }, MessageType.FormAction), Invalid);
+        Rsp("save_document_reply_bytes_above_1_tib", Reply(new SaveDocumentReply { BytesWritten = 1_099_511_627_777UL, PageCount = 1 }, MessageType.SaveDocument), Invalid);
+        Rsp("save_document_reply_pages_10000001", Reply(new SaveDocumentReply { BytesWritten = 1, PageCount = 10_000_001 }, MessageType.SaveDocument), Invalid);
+        Rsp("save_document_reply_extra_field", RawFrame.Response(Items(1UL, 1u, 0u), MessageType.SaveDocument), Protocol);
+        Rsp("normalize_tail_reply_257_issues", RawFrame.Response(
+            (ref MessagePackWriter w) =>
+            {
+                w.WriteArrayHeader(5); w.Write(false); w.Write(0UL); w.Write(false);
+                w.WriteArrayHeader(257);
+                for (var i = 0; i < 257; i++) w.Write((uint)i);
+                w.WriteArrayHeader(0);
+            },
+            MessageType.NormalizeTail), Invalid);
+        Rsp("normalize_tail_reply_bytes_above_2_gib", Reply(new NormalizeTailReply { Ok = true, BytesWritten = 2_147_483_648UL, IssueCodes = [], IssueMessages = [] }, MessageType.NormalizeTail), Invalid);
+        Rsp("normalize_tail_reply_issue_codes_differ_in_length", Reply(new NormalizeTailReply { Ok = false, IssueCodes = [1, 2], IssueMessages = ["one"] }, MessageType.NormalizeTail), Invalid);
+        Rsp("normalize_tail_reply_message_193_bytes", Reply(new NormalizeTailReply { Ok = false, IssueCodes = [1], IssueMessages = [new string('m', 193)] }, MessageType.NormalizeTail), Invalid);
+        Rsp("normalize_tail_reply_issue_code_65536", Reply(new NormalizeTailReply { Ok = false, IssueCodes = [65_536], IssueMessages = ["x"] }, MessageType.NormalizeTail), Invalid);
 
         return v;
     }

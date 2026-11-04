@@ -9,7 +9,7 @@
     "Messages have no nesting: variable-size collections are parallel arrays tied together with sameLengthAs.",
     "Every variable-size field has a limit and the generator rejects a schema in which any legal message cannot fit in one frame."
   ],
-  "schemaVersion": 6,
+  "schemaVersion": 7,
   "envelope": { "maxFrameBytes": 65536, "maxDeadlineMs": 86400000 },
 
   "enums": [
@@ -302,6 +302,28 @@
       }
     },
     {
+      "id": 27, "name": "GetTextQuads", "documentId": "required",
+      "$comment": "The quadrilaterals that mark a run of characters of one page, one per line of text, in PDF user space and in the order top-left, top-right, bottom-left, bottom-right of the text's own frame (the order Acrobat Reader and Edge expect, docs/features/text-markup.md 2.3; schema 7). start and count are in the character numbering of GetPageText; the range is cut at the end of the page's text. The engine groups characters into lines by baseline and direction, trims the whitespace at both ends of a line (a space or line break PDFium made up is never the first or last character of a quad), keeps a line-end hyphen, and reports at most 4096 quads for a range (truncated says there were more). A reply holds 64 quads (256 corners) from firstQuad on; the caller asks again with firstQuad moved on. totalQuads is the number of quads of the whole range (at most 4096). InvalidArgument: a page out of range, a start at or past the end of the page's text, or a firstQuad past the end of the quads; Damaged: the page or its text cannot be loaded.",
+      "request": {
+        "type": "GetTextQuads",
+        "fields": [
+          { "key": 0, "name": "page", "type": "u32", "max": 9999999 },
+          { "key": 1, "name": "start", "type": "u32", "max": 199999, "doc": "First character, in the numbering of GetPageText." },
+          { "key": 2, "name": "count", "type": "u32", "min": 1, "max": 200000, "doc": "Characters; the range is cut at the end of the page's text." },
+          { "key": 3, "name": "firstQuad", "type": "u32", "max": 4095 }
+        ]
+      },
+      "reply": {
+        "type": "GetTextQuadsReply",
+        "fields": [
+          { "key": 0, "name": "totalQuads", "type": "u32", "max": 4096, "doc": "Quads of the whole range, at most 4096." },
+          { "key": 1, "name": "truncated", "type": "bool", "doc": "The range has more than 4096 quads; only the first 4096 are reported." },
+          { "key": 2, "name": "xs", "type": "array", "of": "f32", "maxCount": 256, "min": -1000000, "max": 1000000, "doc": "Four corners a quad (top-left, top-right, bottom-left, bottom-right), 64 quads at most." },
+          { "key": 3, "name": "ys", "type": "array", "of": "f32", "maxCount": 256, "min": -1000000, "max": 1000000, "sameLengthAs": "xs" }
+        ]
+      }
+    },
+    {
       "id": 28, "name": "GetViewerPreferences", "documentId": "required",
       "$comment": "The /ViewerPreferences the reader and the print dialog use (schema 5). docs/features/print.md calls it id 26, which GetDocumentDetails took in schema 4. Every value is a clamped, bounded reading of what the file says, never the raw entry: a hostile or ill-typed entry reads as absent. direction: the reading direction (/Direction), 0 left to right, 1 right to left, 2 absent. printScaling: 0 absent, 1 none (/PrintScaling /None), 2 the application default (/AppDefault). numCopies: /NumCopies from 1 to 99, 0 when absent or outside that. duplex: 0 absent, 1 simplex, 2 flip short edge, 3 flip long edge. The print page ranges are zero-based inclusive pairs (/PrintPageRange is 1-based in the file) in file order, at most 64, each first <= last and inside the document.",
       "request": { "type": "GetViewerPreferences", "fields": [] },
@@ -329,7 +351,7 @@
           { "key": 4, "name": "tileY", "type": "i32", "min": -16777216, "max": 16777216 },
           { "key": 5, "name": "tileWidth", "type": "u32", "min": 1, "max": 1024 },
           { "key": 6, "name": "tileHeight", "type": "u32", "min": 1, "max": 1024 },
-          { "key": 7, "name": "flags", "type": "u32", "max": 7, "doc": "Bit 0 annotations, bit 1 form fields, bit 2 dark pages (the tile is recoloured the way the inverted page colour does it, except for colour photographs). Bit 2 means printing mode in RenderBand: the two messages have their own flags." },
+          { "key": 7, "name": "flags", "type": "u32", "max": 15, "doc": "Bit 0 annotations, bit 1 form fields, bit 2 dark pages (the tile is recoloured the way the inverted page colour does it, except for colour photographs), bit 3 the fillable-field highlight (schema 7; only with bit 1: PDFium's own form field highlight, drawn on the widgets of the page; never set for a print, a snapshot or a flattened copy). Bit 2 means printing mode in RenderBand: the two messages have their own flags." },
           { "key": 8, "name": "slotIndex", "type": "u32", "max": 1023 },
           { "key": 9, "name": "generation", "type": "u64" }
         ]
@@ -380,6 +402,264 @@
       }
     },
     {
+      "id": 40, "name": "ListAnnotations", "documentId": "required",
+      "$comment": "The annotations of one page in the order of the page's /Annots array, a window of 64 at a time (schema 7, docs/features/annotation-core.md 11). The index of an entry is its position in /Annots, so a (page, index) pair names an annotation for GetAnnotation, GetInkStroke and SetAnnotationHidden. total counts every entry of /Annots, links and widgets included; the engine stops counting at 100000. An entry that is not a dictionary is reported with subtype 0 and an empty rectangle. subtypes are PDFium's FPDF_ANNOT_* values (0 unknown to 28 redact). flags are the file's /F: the engine reports the original value even for an annotation whose Hidden flag SetAnnotationHidden has set for display. Rectangles are normalised (left <= right, bottom <= top) and clamped to the schema range. colours are 0xAARRGGBB from /C with /CA as the alpha, 0 when /C is absent or when the annotation has an appearance stream (the pinned PDFium reads /C only from one that has none; GetAnnotation falls back to the first colour the stream paints with). nms is /NM, empty when absent or longer than 64 bytes. modified is the raw /M text. snippets are the start of /Contents, cut at a code point boundary. parents is the index of the annotation this one replies to (/IRT), -1 for none; it is always below total and never the entry's own index.",
+      "request": {
+        "type": "ListAnnotations",
+        "fields": [
+          { "key": 0, "name": "page", "type": "u32", "max": 9999999 },
+          { "key": 1, "name": "first", "type": "u32", "max": 99999 },
+          { "key": 2, "name": "count", "type": "u32", "min": 1, "max": 64 }
+        ]
+      },
+      "reply": {
+        "type": "ListAnnotationsReply",
+        "fields": [
+          { "key": 0, "name": "total", "type": "u32", "max": 100000, "doc": "Entries in the page's /Annots; the engine stops counting at 100000." },
+          { "key": 1, "name": "subtypes", "type": "array", "of": "u16", "maxCount": 64, "max": 28 },
+          { "key": 2, "name": "flags", "type": "array", "of": "u32", "maxCount": 64, "sameLengthAs": "subtypes", "doc": "The /F flags of the file." },
+          { "key": 3, "name": "lefts", "type": "array", "of": "f32", "maxCount": 64, "min": -1000000, "max": 1000000, "sameLengthAs": "subtypes" },
+          { "key": 4, "name": "bottoms", "type": "array", "of": "f32", "maxCount": 64, "min": -1000000, "max": 1000000, "sameLengthAs": "subtypes" },
+          { "key": 5, "name": "rights", "type": "array", "of": "f32", "maxCount": 64, "min": -1000000, "max": 1000000, "sameLengthAs": "subtypes" },
+          { "key": 6, "name": "tops", "type": "array", "of": "f32", "maxCount": 64, "min": -1000000, "max": 1000000, "sameLengthAs": "subtypes" },
+          { "key": 7, "name": "colours", "type": "array", "of": "u32", "maxCount": 64, "sameLengthAs": "subtypes", "doc": "0xAARRGGBB; 0 when the annotation has no /C or has an appearance stream." },
+          { "key": 8, "name": "nms", "type": "array", "of": "string", "maxCount": 64, "maxBytes": 64, "sameLengthAs": "subtypes", "doc": "/NM; empty when absent." },
+          { "key": 9, "name": "authors", "type": "array", "of": "string", "maxCount": 64, "maxBytes": 128, "sameLengthAs": "subtypes", "doc": "/T, cut at a code point boundary." },
+          { "key": 10, "name": "modified", "type": "array", "of": "string", "maxCount": 64, "maxBytes": 32, "sameLengthAs": "subtypes", "doc": "The raw /M text; the broker parses it." },
+          { "key": 11, "name": "snippets", "type": "array", "of": "string", "maxCount": 64, "maxBytes": 192, "sameLengthAs": "subtypes", "doc": "The start of /Contents, cut at a code point boundary." },
+          { "key": 12, "name": "parents", "type": "array", "of": "i32", "maxCount": 64, "min": -1, "max": 99999, "sameLengthAs": "subtypes", "doc": "Index of the annotation this one replies to, -1 for none." }
+        ]
+      }
+    },
+    {
+      "id": 41, "name": "GetAnnotation", "documentId": "required",
+      "$comment": "Everything the engine can read of one annotation (schema 7, annotation-core 11). index is the position in the page's /Annots as ListAnnotations reports it; an index with no dictionary there is InvalidArgument. What the pinned PDFium headers cannot read is reported as absent, not guessed: borderStyle is 0 and borderWidth is /Border's third number or 0 (the /BS dictionary is not reachable), lineEndings is empty (/LE is an array of names) and popupOpen is false (a boolean). Text values are PDF text strings decoded to UTF-8 and cut at a code point boundary at the field's limit; contentsTruncated says /Contents was cut at 16384 bytes (or was too large to read at all, and is then empty). quadPoints holds at most 64 quadrilaterals (8 numbers each) of a text markup annotation, vertices at most 1024 points (x, y pairs) of a polygon or polyline, or the two end points of a line; verticesTruncated says there were more. strokeCount and pointCount describe an ink list (strokes, and the points of all of them added up), 0 for any other subtype.",
+      "request": {
+        "type": "GetAnnotation",
+        "fields": [
+          { "key": 0, "name": "page", "type": "u32", "max": 9999999 },
+          { "key": 1, "name": "index", "type": "u32", "max": 99999 }
+        ]
+      },
+      "reply": {
+        "type": "GetAnnotationReply",
+        "fields": [
+          { "key": 0, "name": "subtype", "type": "u16", "max": 28 },
+          { "key": 1, "name": "flags", "type": "u32", "doc": "The /F flags of the file (see ListAnnotations)." },
+          { "key": 2, "name": "left", "type": "f32", "min": -1000000, "max": 1000000 },
+          { "key": 3, "name": "bottom", "type": "f32", "min": -1000000, "max": 1000000 },
+          { "key": 4, "name": "right", "type": "f32", "min": -1000000, "max": 1000000 },
+          { "key": 5, "name": "top", "type": "f32", "min": -1000000, "max": 1000000 },
+          { "key": 6, "name": "colour", "type": "u32", "doc": "0xAARRGGBB from /C and /CA (for an annotation with an appearance stream: the first colour the stream paints with, with /CA as the alpha); 0 when there is none." },
+          { "key": 7, "name": "interiorColour", "type": "u32", "doc": "0xAARRGGBB from /IC; 0 when absent." },
+          { "key": 8, "name": "opacity", "type": "f32", "min": 0, "max": 1, "doc": "/CA, 1 when absent." },
+          { "key": 9, "name": "borderWidth", "type": "f32", "min": 0, "max": 1000 },
+          { "key": 10, "name": "borderStyle", "type": "u16", "max": 4, "doc": "Solid, dashed, beveled, inset, underline; the pinned PDFium cannot read it, so 0." },
+          { "key": 11, "name": "contents", "type": "string", "maxBytes": 16384 },
+          { "key": 12, "name": "contentsTruncated", "type": "bool" },
+          { "key": 13, "name": "author", "type": "string", "maxBytes": 256 },
+          { "key": 14, "name": "subject", "type": "string", "maxBytes": 256 },
+          { "key": 15, "name": "nm", "type": "string", "maxBytes": 64 },
+          { "key": 16, "name": "created", "type": "string", "maxBytes": 32, "doc": "The raw /CreationDate text." },
+          { "key": 17, "name": "modified", "type": "string", "maxBytes": 32, "doc": "The raw /M text." },
+          { "key": 18, "name": "parentIndex", "type": "i32", "min": -1, "max": 99999, "doc": "Index of the annotation this one replies to (/IRT), -1 for none." },
+          { "key": 19, "name": "replyType", "type": "u16", "max": 2, "doc": "/RT: 0 none, 1 reply, 2 group." },
+          { "key": 20, "name": "stateModel", "type": "string", "maxBytes": 16 },
+          { "key": 21, "name": "state", "type": "string", "maxBytes": 16 },
+          { "key": 22, "name": "popupOpen", "type": "bool", "doc": "Always false with the pinned PDFium." },
+          { "key": 23, "name": "name", "type": "string", "maxBytes": 64, "doc": "/Name: the icon of a Text annotation or the name of a Stamp." },
+          { "key": 24, "name": "quadPoints", "type": "array", "of": "f32", "maxCount": 512, "min": -1000000, "max": 1000000 },
+          { "key": 25, "name": "vertices", "type": "array", "of": "f32", "maxCount": 2048, "min": -1000000, "max": 1000000 },
+          { "key": 26, "name": "verticesTruncated", "type": "bool" },
+          { "key": 27, "name": "lineEndings", "type": "array", "of": "u16", "maxCount": 2, "max": 10, "doc": "Always empty with the pinned PDFium." },
+          { "key": 28, "name": "strokeCount", "type": "u32", "max": 100000 },
+          { "key": 29, "name": "pointCount", "type": "u32", "max": 10000000 },
+          { "key": 30, "name": "defaultAppearance", "type": "string", "maxBytes": 256, "doc": "/DA of a FreeText annotation." },
+          { "key": 31, "name": "alignment", "type": "u16", "max": 2, "doc": "/Q: left, centred, right." },
+          { "key": 32, "name": "hasAppearance", "type": "bool", "doc": "The dictionary has an /AP entry." }
+        ]
+      }
+    },
+    {
+      "id": 42, "name": "GetInkStroke", "documentId": "required",
+      "$comment": "A window of the points of one stroke of an ink annotation (schema 7, annotation-core 11). stroke is the position in /InkList; first and count window its points. pointCount is the stroke's length. InvalidArgument: the annotation is not an ink annotation or has no such stroke; Unsupported: the stroke has more than 1000000 points, which the engine does not copy out of PDFium. The PDF format holds no per-point width, so hasWidths is false and widths are zeros; a later schema may carry MikePDF's private width samples (ink-pen OQ-INK-3).",
+      "request": {
+        "type": "GetInkStroke",
+        "fields": [
+          { "key": 0, "name": "page", "type": "u32", "max": 9999999 },
+          { "key": 1, "name": "index", "type": "u32", "max": 99999 },
+          { "key": 2, "name": "stroke", "type": "u32", "max": 99999 },
+          { "key": 3, "name": "first", "type": "u32", "max": 9999999 },
+          { "key": 4, "name": "count", "type": "u32", "min": 1, "max": 1024 }
+        ]
+      },
+      "reply": {
+        "type": "GetInkStrokeReply",
+        "fields": [
+          { "key": 0, "name": "pointCount", "type": "u32", "max": 10000000, "doc": "Points of the whole stroke." },
+          { "key": 1, "name": "xs", "type": "array", "of": "f32", "maxCount": 1024, "min": -1000000, "max": 1000000 },
+          { "key": 2, "name": "ys", "type": "array", "of": "f32", "maxCount": 1024, "min": -1000000, "max": 1000000, "sameLengthAs": "xs" },
+          { "key": 3, "name": "hasWidths", "type": "bool" },
+          { "key": 4, "name": "widths", "type": "array", "of": "f32", "maxCount": 1024, "min": 0, "max": 1000, "sameLengthAs": "xs", "doc": "Zeros when hasWidths is false." }
+        ]
+      }
+    },
+    {
+      "id": 43, "name": "SetAnnotationHidden", "documentId": "required",
+      "$comment": "The display mirror of the hybrid display strategy (annotation-core 3.3, schema 7): sets or clears the Hidden flag of one annotation in the engine's in-memory document, so that tiles no longer draw an original the user has deleted or moved. The engine records the file's own flags the first time it changes an annotation and gives that value back to ListAnnotations and GetAnnotation; SaveDocument restores every flag it changed before it saves, so a mirror flag never reaches a saved file (invariant 4a). hidden false puts the file's flag back. InvalidArgument: no annotation dictionary at that position.",
+      "request": {
+        "type": "SetAnnotationHidden",
+        "fields": [
+          { "key": 0, "name": "page", "type": "u32", "max": 9999999 },
+          { "key": 1, "name": "index", "type": "u32", "max": 99999 },
+          { "key": 2, "name": "hidden", "type": "bool" }
+        ]
+      },
+      "reply": { "type": "SetAnnotationHiddenReply", "fields": [] }
+    },
+    {
+      "id": 44, "name": "CountAnnotations", "documentId": "required",
+      "$comment": "How many user-visible annotations each of a run of pages has (schema 7, annotation-core 11), for the annotation panel's scan: every annotation except links, popups and widgets, saturating at 65535, and counting at most 100000 entries of a page's /Annots. A scan that does not finish by the deadline is Timeout with no partial result; the caller asks for fewer pages.",
+      "request": {
+        "type": "CountAnnotations",
+        "fields": [
+          { "key": 0, "name": "firstPage", "type": "u32", "max": 9999999 },
+          { "key": 1, "name": "count", "type": "u32", "min": 1, "max": 5000 }
+        ]
+      },
+      "reply": {
+        "type": "CountAnnotationsReply",
+        "fields": [ { "key": 0, "name": "counts", "type": "array", "of": "u16", "maxCount": 5000 } ]
+      }
+    },
+    {
+      "id": 45, "name": "GetFormFields", "documentId": "required",
+      "$comment": "The form widgets of the document in tab order, a window of 64 at a time (schema 7, docs/features/forms.md 10.3). total counts every widget of the document (at most 100000). Order is the pages in ascending order and, within a page, the order of /Annots: the pinned PDFium has no call that reads a page's /Tabs entry, so the row, column and structure orders cannot be told apart and every page is read in document order (forms OQ-FM-1). fieldId names a widget for GetFormFieldDetail, SetFormFieldValue and FormAction; it is the widget's position in this list and stays valid until the document is closed. types are PDFium's FPDF_FORMFIELD_* values (0 unknown, 1 push button, 2 check box, 3 radio button, 4 combo box, 5 list box, 6 text field, 7 signature). flags are the field's /Ff. states: bit 0 checked (check box, radio button) or has a selection (choice field), bit 1 has a format, keystroke, validate or calculate script (never run), bit 2 hidden (Hidden or NoView), bit 3 skipped by Tab (hidden, read-only, or entirely outside the visible box). maxLens is /MaxLen of the widget's own dictionary (0 = none or inherited from a parent field). values are the start of the field's value, empty for a password field.",
+      "request": {
+        "type": "GetFormFields",
+        "fields": [
+          { "key": 0, "name": "first", "type": "u32", "max": 99999 },
+          { "key": 1, "name": "count", "type": "u32", "min": 1, "max": 64 }
+        ]
+      },
+      "reply": {
+        "type": "GetFormFieldsReply",
+        "fields": [
+          { "key": 0, "name": "total", "type": "u32", "max": 100000 },
+          { "key": 1, "name": "fieldIds", "type": "array", "of": "u32", "maxCount": 64, "max": 99999 },
+          { "key": 2, "name": "pages", "type": "array", "of": "u32", "maxCount": 64, "max": 9999999, "sameLengthAs": "fieldIds" },
+          { "key": 3, "name": "lefts", "type": "array", "of": "f32", "maxCount": 64, "min": -1000000, "max": 1000000, "sameLengthAs": "fieldIds" },
+          { "key": 4, "name": "bottoms", "type": "array", "of": "f32", "maxCount": 64, "min": -1000000, "max": 1000000, "sameLengthAs": "fieldIds" },
+          { "key": 5, "name": "rights", "type": "array", "of": "f32", "maxCount": 64, "min": -1000000, "max": 1000000, "sameLengthAs": "fieldIds" },
+          { "key": 6, "name": "tops", "type": "array", "of": "f32", "maxCount": 64, "min": -1000000, "max": 1000000, "sameLengthAs": "fieldIds" },
+          { "key": 7, "name": "types", "type": "array", "of": "u16", "maxCount": 64, "max": 7, "sameLengthAs": "fieldIds" },
+          { "key": 8, "name": "flags", "type": "array", "of": "u32", "maxCount": 64, "sameLengthAs": "fieldIds", "doc": "The field's /Ff." },
+          { "key": 9, "name": "states", "type": "array", "of": "u16", "maxCount": 64, "max": 15, "sameLengthAs": "fieldIds" },
+          { "key": 10, "name": "maxLens", "type": "array", "of": "u16", "maxCount": 64, "sameLengthAs": "fieldIds", "doc": "0 = none." },
+          { "key": 11, "name": "names", "type": "array", "of": "string", "maxCount": 64, "maxBytes": 128, "sameLengthAs": "fieldIds", "doc": "The fully qualified field name, cut at a code point boundary." },
+          { "key": 12, "name": "alternateNames", "type": "array", "of": "string", "maxCount": 64, "maxBytes": 128, "sameLengthAs": "fieldIds", "doc": "/TU." },
+          { "key": 13, "name": "values", "type": "array", "of": "string", "maxCount": 64, "maxBytes": 128, "sameLengthAs": "fieldIds", "doc": "The start of the value; empty for a password field." }
+        ]
+      }
+    },
+    {
+      "id": 46, "name": "GetFormFieldDetail", "documentId": "required",
+      "$comment": "One widget's field in full (schema 7, forms 10.3). fieldId is a position from GetFormFields. Strings are cut at a code point boundary at their limit; valueTruncated says the value was longer than 8192 bytes. defaultValue is /DV of the widget's own dictionary (a value kept on a parent field is not reachable with the pinned PDFium). maxLen is the widget's own /MaxLen, 0 when none. quadding is /Q. fontSize is the field's font size, 0 for auto. exportValue is the on-state of a check box or radio button. widgetCount is the size of the control group of a check box or radio button and 1 for every other field. optionsTotal counts the options of a choice field (at most 10000); optionLabels is a window of 64 from firstOption. The pinned PDFium reads an option's label only, so optionValues repeats the labels. selectedIndices are the selected options in ascending order (at most 64). The three has-script flags say that the widget has a format, validate or calculate action; no script is ever run. InvalidArgument: no such fieldId.",
+      "request": {
+        "type": "GetFormFieldDetail",
+        "fields": [
+          { "key": 0, "name": "fieldId", "type": "u32", "max": 99999 },
+          { "key": 1, "name": "firstOption", "type": "u32", "max": 9999 }
+        ]
+      },
+      "reply": {
+        "type": "GetFormFieldDetailReply",
+        "fields": [
+          { "key": 0, "name": "type", "type": "u16", "max": 7, "doc": "FPDF_FORMFIELD_* as in GetFormFieldsReply.types." },
+          { "key": 1, "name": "flags", "type": "u32", "doc": "The field's /Ff." },
+          { "key": 2, "name": "name", "type": "string", "maxBytes": 512 },
+          { "key": 3, "name": "alternateName", "type": "string", "maxBytes": 256 },
+          { "key": 4, "name": "value", "type": "string", "maxBytes": 8192 },
+          { "key": 5, "name": "valueTruncated", "type": "bool" },
+          { "key": 6, "name": "defaultValue", "type": "string", "maxBytes": 8192 },
+          { "key": 7, "name": "maxLen", "type": "u16", "doc": "0 = none." },
+          { "key": 8, "name": "quadding", "type": "u16", "max": 2 },
+          { "key": 9, "name": "fontSize", "type": "f32", "min": 0, "max": 1000 },
+          { "key": 10, "name": "exportValue", "type": "string", "maxBytes": 64 },
+          { "key": 11, "name": "checked", "type": "bool" },
+          { "key": 12, "name": "widgetCount", "type": "u32", "min": 1, "max": 100000 },
+          { "key": 13, "name": "optionsTotal", "type": "u32", "max": 10000 },
+          { "key": 14, "name": "optionLabels", "type": "array", "of": "string", "maxCount": 64, "maxBytes": 128 },
+          { "key": 15, "name": "optionValues", "type": "array", "of": "string", "maxCount": 64, "maxBytes": 128, "sameLengthAs": "optionLabels" },
+          { "key": 16, "name": "selectedIndices", "type": "array", "of": "u32", "maxCount": 64, "max": 9999 },
+          { "key": 17, "name": "hasFormatScript", "type": "bool" },
+          { "key": 18, "name": "hasValidateScript", "type": "bool" },
+          { "key": 19, "name": "hasCalculateScript", "type": "bool" }
+        ]
+      }
+    },
+    {
+      "id": 47, "name": "SetFormFieldValue", "documentId": "required",
+      "$comment": "Changes one field's value the only way PDFium allows: through its form-fill events (focus the widget, select all, replace the selection, kill focus; a click for a check box or radio button; set-index-selected for a choice field), so the field's appearance is regenerated and its limits (/MaxLen, the choice list) are enforced by PDFium (schema 7, forms 10.3). kind 0 is text (a text field or an editable combo box; text is the new value), kind 1 is a toggle (a check box or radio button; checked is the wanted state), kind 2 is a choice (a combo or list box; selected are the wanted option positions, in ascending order, one for a combo box or a list box without the multiple-selection flag). Fields that share a name share a value, so affectedPages lists every page with a widget of the field (the widget's own first, then ascending; at most 256, with truncated set when there were more: treat every page as changed). accepted says the field now holds what was asked for; value is what it holds (the text the engine accepted, which can be shorter than asked for). PermissionDenied: the field is read-only or the document permissions (bit 9 or bit 6) forbid filling in; InvalidArgument: no such fieldId, a kind the field is not, an option out of range; Unsupported: PDFium has no form-fill environment, or the field type cannot be edited (signature, push button).",
+      "request": {
+        "type": "SetFormFieldValue",
+        "fields": [
+          { "key": 0, "name": "fieldId", "type": "u32", "max": 99999 },
+          { "key": 1, "name": "kind", "type": "u16", "max": 2, "doc": "0 text, 1 toggle state, 2 choice." },
+          { "key": 2, "name": "text", "type": "string", "maxBytes": 8192 },
+          { "key": 3, "name": "checked", "type": "bool" },
+          { "key": 4, "name": "selected", "type": "array", "of": "u32", "maxCount": 64, "max": 9999 }
+        ]
+      },
+      "reply": {
+        "type": "SetFormFieldValueReply",
+        "fields": [
+          { "key": 0, "name": "accepted", "type": "bool" },
+          { "key": 1, "name": "value", "type": "string", "maxBytes": 8192 },
+          { "key": 2, "name": "affectedPages", "type": "array", "of": "u32", "maxCount": 256, "max": 9999999 },
+          { "key": 3, "name": "truncated", "type": "bool", "doc": "More than 256 pages are affected; treat every page as changed." }
+        ]
+      }
+    },
+    {
+      "id": 48, "name": "FormAction", "documentId": "required",
+      "$comment": "A form action the engine performs itself (schema 7, forms 3.7 and 3.8): action 0 resets one field to its default value (fieldId names a widget), action 1 resets every fillable field of the document (fieldId is ignored, send 0), action 2 activates the push button fieldId names. Only a reset is ever performed. performed: 0 nothing happened, 1 a reset was performed, 2 the button's action was refused as unsupported, 3 refused because it would send data. The pinned PDFium has no call that tells a button's action type, so the engine presses the button in a form-fill environment that has no scripting, no network and no callbacks, and reports 1 when that changed a field value and 2 otherwise; it never reports 3. affectedPages is as for SetFormFieldValue, with truncated. A reset sets a field to the /DV of its own widget dictionary or, when it has none, to empty (text and choice fields) or unchecked (check boxes and radio buttons). PermissionDenied: the document permissions forbid filling in; InvalidArgument: no such fieldId, or action 0 on a field that cannot be reset (push button, signature); Unsupported: PDFium has no form-fill environment.",
+      "request": {
+        "type": "FormAction",
+        "fields": [
+          { "key": 0, "name": "fieldId", "type": "u32", "max": 99999 },
+          { "key": 1, "name": "action", "type": "u16", "max": 2, "doc": "0 reset field, 1 reset all, 2 activate button." }
+        ]
+      },
+      "reply": {
+        "type": "FormActionReply",
+        "fields": [
+          { "key": 0, "name": "affectedPages", "type": "array", "of": "u32", "maxCount": 256, "max": 9999999 },
+          { "key": 1, "name": "performed", "type": "u16", "max": 3 },
+          { "key": 2, "name": "truncated", "type": "bool", "doc": "More than 256 pages are affected; treat every page as changed." }
+        ]
+      }
+    },
+    {
+      "id": 62, "name": "SaveDocument", "documentId": "required",
+      "$comment": "PDFium's own save of the engine's in-memory document into a file handle the broker duplicated into the engine, for form values and, later, page changes (schema 7, save-pipeline 3.3 stage 2 and 11.1). The engine first ends any edit in progress (kills the form focus so a typed value is committed), then restores every Hidden flag SetAnnotationHidden changed (invariant 4a), saves, and puts the display flags back so the screen does not change. mode 0 is an incremental save (FPDF_INCREMENTAL: the file's bytes are a prefix of the output, which stage 3 NormalizeTail then repairs), mode 1 a full rewrite (FPDF_NO_INCREMENTAL), mode 2 is reserved for a flattened copy and is Unsupported: ADR-0008 amendment A2 does that in the writer host (RewriteDocument). flags are the flatten options of mode 2 and must be 0 in the other modes. outputHandle is a handle value valid in the engine, with write access, to an empty file; it is closed on every path. bytesWritten is what PDFium wrote. InvalidArgument: a handle that is not a file, flags set outside mode 2; PermissionDenied: the handle cannot be written; Damaged: PDFium could not save; Timeout: the deadline had passed before the save began (a save cannot be interrupted).",
+      "request": {
+        "type": "SaveDocument",
+        "fields": [
+          { "key": 0, "name": "mode", "type": "u16", "max": 2, "doc": "0 incremental, 1 full rewrite, 2 flattened (reserved, Unsupported)." },
+          { "key": 1, "name": "flags", "type": "u32", "max": 3, "doc": "Bit 0 flatten form fields, bit 1 flatten comments and markup; only with mode 2." },
+          { "key": 2, "name": "outputHandle", "type": "u64", "min": 1, "doc": "A write handle valid in the engine, to an empty file." }
+        ]
+      },
+      "reply": {
+        "type": "SaveDocumentReply",
+        "fields": [
+          { "key": 0, "name": "bytesWritten", "type": "u64", "max": 1099511627776 },
+          { "key": 1, "name": "pageCount", "type": "u32", "max": 10000000 }
+        ]
+      }
+    },
+    {
       "id": 1024, "name": "ValidateStructure", "documentId": "none",
       "$comment": "MikePDF.WriterHost only. 256 issues of at most 192 message bytes fit one frame (512-byte messages would not).",
       "request": {
@@ -420,6 +700,29 @@
           { "key": 5, "name": "truncated", "type": "bool", "doc": "More issues were found than fit." },
           { "key": 6, "name": "issueCodes", "type": "array", "of": "u32", "maxCount": 256, "max": 65535 },
           { "key": 7, "name": "issueMessages", "type": "array", "of": "string", "maxCount": 256, "maxBytes": 192, "sameLengthAs": "issueCodes" }
+        ]
+      }
+    },
+    {
+      "id": 1026, "name": "NormalizeTail", "documentId": "none",
+      "$comment": "MikePDF.WriterHost only (schema 7, save-pipeline 3.3 stage 3, ADR-0008 decision 3 step 3, S11 report). Repairs the tail PDFium appended to a file in its incremental save. originalHandle is the file as it was opened, pdfiumHandle the engine's SaveDocument output (mode 0: the original's bytes, then PDFium's update), outputHandle an empty file; all three are file handles duplicated into the host, the first two read-only. The host parses the original strictly, checks that the PDFium file starts with the original's exact bytes, reads the objects PDFium appended and writes the original's bytes followed by those objects and a new cross-reference section in the same form as the original's newest section (a table after a table, a stream after a stream with its own entry), with /Prev, /Size, /Root, /Info and a trailer /ID that keeps the first element. flags: bit 0 restore the original check box and radio button state streams for widgets whose state names are unchanged (forms 10.2, keeping PDFium's /AS and /V), bit 1 remove PDFium's private keys (/PDFIUM_HasGeneratedAP). A refusal with a reason is an Ok reply with ok false and issues in the shape of ValidateStructureReply, as for AppendAnnotations: the strict parser refuses the original, the PDFium file does not begin with the original, the appended part is ambiguous (a duplicate key, an object it cannot read). InvalidArgument: a handle that is not a file; Timeout and PermissionDenied as for ValidateStructure.",
+      "request": {
+        "type": "NormalizeTail",
+        "fields": [
+          { "key": 0, "name": "originalHandle", "type": "u64", "min": 1 },
+          { "key": 1, "name": "pdfiumHandle", "type": "u64", "min": 1 },
+          { "key": 2, "name": "outputHandle", "type": "u64", "min": 1 },
+          { "key": 3, "name": "flags", "type": "u32", "max": 3, "doc": "Bit 0 restore author check box and radio state streams, bit 1 strip PDFium private keys." }
+        ]
+      },
+      "reply": {
+        "type": "NormalizeTailReply",
+        "fields": [
+          { "key": 0, "name": "ok", "type": "bool" },
+          { "key": 1, "name": "bytesWritten", "type": "u64", "max": 2147483647 },
+          { "key": 2, "name": "truncated", "type": "bool", "doc": "More issues were found than fit." },
+          { "key": 3, "name": "issueCodes", "type": "array", "of": "u32", "maxCount": 256, "max": 65535 },
+          { "key": 4, "name": "issueMessages", "type": "array", "of": "string", "maxCount": 256, "maxBytes": 192, "sameLengthAs": "issueCodes" }
         ]
       }
     },

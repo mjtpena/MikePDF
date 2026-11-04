@@ -27,12 +27,24 @@ internal static class ProtocolDispatch
         MessageType.GetPageText => GetPageText.Read(ref reader),
         MessageType.SearchPage => SearchPage.Read(ref reader),
         MessageType.GetDocumentDetails => GetDocumentDetails.Read(ref reader),
+        MessageType.GetTextQuads => GetTextQuads.Read(ref reader),
         MessageType.GetViewerPreferences => GetViewerPreferences.Read(ref reader),
         MessageType.RenderTile => RenderTile.Read(ref reader),
         MessageType.CancelBefore => CancelBefore.Read(ref reader),
         MessageType.RenderBand => RenderBand.Read(ref reader),
+        MessageType.ListAnnotations => ListAnnotations.Read(ref reader),
+        MessageType.GetAnnotation => GetAnnotation.Read(ref reader),
+        MessageType.GetInkStroke => GetInkStroke.Read(ref reader),
+        MessageType.SetAnnotationHidden => SetAnnotationHidden.Read(ref reader),
+        MessageType.CountAnnotations => CountAnnotations.Read(ref reader),
+        MessageType.GetFormFields => GetFormFields.Read(ref reader),
+        MessageType.GetFormFieldDetail => GetFormFieldDetail.Read(ref reader),
+        MessageType.SetFormFieldValue => SetFormFieldValue.Read(ref reader),
+        MessageType.FormAction => FormAction.Read(ref reader),
+        MessageType.SaveDocument => SaveDocument.Read(ref reader),
         MessageType.ValidateStructure => ValidateStructure.Read(ref reader),
         MessageType.AppendAnnotations => AppendAnnotations.Read(ref reader),
+        MessageType.NormalizeTail => NormalizeTail.Read(ref reader),
         MessageType.RewriteDocument => RewriteDocument.Read(ref reader),
         MessageType.VerifyAnnotations => VerifyAnnotations.Read(ref reader),
         MessageType.ShellOpen => ShellOpen.Read(ref reader),
@@ -90,6 +102,9 @@ internal static class ProtocolDispatch
             case GetDocumentDetails m:
                 m.Write(ref writer);
                 break;
+            case GetTextQuads m:
+                m.Write(ref writer);
+                break;
             case GetViewerPreferences m:
                 m.Write(ref writer);
                 break;
@@ -102,10 +117,43 @@ internal static class ProtocolDispatch
             case RenderBand m:
                 m.Write(ref writer);
                 break;
+            case ListAnnotations m:
+                m.Write(ref writer);
+                break;
+            case GetAnnotation m:
+                m.Write(ref writer);
+                break;
+            case GetInkStroke m:
+                m.Write(ref writer);
+                break;
+            case SetAnnotationHidden m:
+                m.Write(ref writer);
+                break;
+            case CountAnnotations m:
+                m.Write(ref writer);
+                break;
+            case GetFormFields m:
+                m.Write(ref writer);
+                break;
+            case GetFormFieldDetail m:
+                m.Write(ref writer);
+                break;
+            case SetFormFieldValue m:
+                m.Write(ref writer);
+                break;
+            case FormAction m:
+                m.Write(ref writer);
+                break;
+            case SaveDocument m:
+                m.Write(ref writer);
+                break;
             case ValidateStructure m:
                 m.Write(ref writer);
                 break;
             case AppendAnnotations m:
+                m.Write(ref writer);
+                break;
+            case NormalizeTail m:
                 m.Write(ref writer);
                 break;
             case RewriteDocument m:
@@ -145,12 +193,24 @@ internal static class ProtocolDispatch
         MessageType.GetPageText => GetPageTextReply.Read(ref reader),
         MessageType.SearchPage => SearchPageReply.Read(ref reader),
         MessageType.GetDocumentDetails => GetDocumentDetailsReply.Read(ref reader),
+        MessageType.GetTextQuads => GetTextQuadsReply.Read(ref reader),
         MessageType.GetViewerPreferences => GetViewerPreferencesReply.Read(ref reader),
         MessageType.RenderTile => RenderTileReply.Read(ref reader),
         MessageType.CancelBefore => CancelBeforeReply.Read(ref reader),
         MessageType.RenderBand => RenderBandReply.Read(ref reader),
+        MessageType.ListAnnotations => ListAnnotationsReply.Read(ref reader),
+        MessageType.GetAnnotation => GetAnnotationReply.Read(ref reader),
+        MessageType.GetInkStroke => GetInkStrokeReply.Read(ref reader),
+        MessageType.SetAnnotationHidden => SetAnnotationHiddenReply.Read(ref reader),
+        MessageType.CountAnnotations => CountAnnotationsReply.Read(ref reader),
+        MessageType.GetFormFields => GetFormFieldsReply.Read(ref reader),
+        MessageType.GetFormFieldDetail => GetFormFieldDetailReply.Read(ref reader),
+        MessageType.SetFormFieldValue => SetFormFieldValueReply.Read(ref reader),
+        MessageType.FormAction => FormActionReply.Read(ref reader),
+        MessageType.SaveDocument => SaveDocumentReply.Read(ref reader),
         MessageType.ValidateStructure => ValidateStructureReply.Read(ref reader),
         MessageType.AppendAnnotations => AppendAnnotationsReply.Read(ref reader),
+        MessageType.NormalizeTail => NormalizeTailReply.Read(ref reader),
         MessageType.RewriteDocument => RewriteDocumentReply.Read(ref reader),
         MessageType.VerifyAnnotations => VerifyAnnotationsReply.Read(ref reader),
         MessageType.ShellOpen => ShellOpenReply.Read(ref reader),
@@ -208,6 +268,9 @@ internal static class ProtocolDispatch
             case GetDocumentDetailsReply m:
                 m.Write(ref writer);
                 break;
+            case GetTextQuadsReply m:
+                m.Write(ref writer);
+                break;
             case GetViewerPreferencesReply m:
                 m.Write(ref writer);
                 break;
@@ -220,10 +283,43 @@ internal static class ProtocolDispatch
             case RenderBandReply m:
                 m.Write(ref writer);
                 break;
+            case ListAnnotationsReply m:
+                m.Write(ref writer);
+                break;
+            case GetAnnotationReply m:
+                m.Write(ref writer);
+                break;
+            case GetInkStrokeReply m:
+                m.Write(ref writer);
+                break;
+            case SetAnnotationHiddenReply m:
+                m.Write(ref writer);
+                break;
+            case CountAnnotationsReply m:
+                m.Write(ref writer);
+                break;
+            case GetFormFieldsReply m:
+                m.Write(ref writer);
+                break;
+            case GetFormFieldDetailReply m:
+                m.Write(ref writer);
+                break;
+            case SetFormFieldValueReply m:
+                m.Write(ref writer);
+                break;
+            case FormActionReply m:
+                m.Write(ref writer);
+                break;
+            case SaveDocumentReply m:
+                m.Write(ref writer);
+                break;
             case ValidateStructureReply m:
                 m.Write(ref writer);
                 break;
             case AppendAnnotationsReply m:
+                m.Write(ref writer);
+                break;
+            case NormalizeTailReply m:
                 m.Write(ref writer);
                 break;
             case RewriteDocumentReply m:
