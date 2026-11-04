@@ -23,6 +23,9 @@
     <MikePDFRuntimeIdentifier>win-$(MikePDFArch)</MikePDFRuntimeIdentifier>
     <!-- Both RIDs in every lock file, so locked-mode restore works on either CI architecture. -->
     <RuntimeIdentifiers>win-x64;win-arm64</RuntimeIdentifiers>
+    <!-- The projects that trim or run the trim analysers name Microsoft.NET.ILLink.Tasks themselves, at a fixed version, so that an SDK patch update does not rewrite their
+         lock files (docs/perf/install-size.md). The SDK's own advice to delete that reference is for projects that do not lock. -->
+    <SuppressILLinkExplicitPackageReferenceWarning>true</SuppressILLinkExplicitPackageReferenceWarning>
   </PropertyGroup>
 
   <PropertyGroup Condition="$(MSBuildProjectName.EndsWith('.Tests'))">

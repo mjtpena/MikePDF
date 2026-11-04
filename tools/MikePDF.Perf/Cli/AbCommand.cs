@@ -43,8 +43,8 @@ internal static class AbCommand
         var headLabel = args.Get("head-label") ?? "head";
         var work = args.Get("work-dir") ?? Path.Combine(Path.GetTempPath(), "MikePDF.Perf.ab");
         var container = args.Get("appcontainer-prefix") ?? "MikePDF.Perf";
-        var baseSide = new ProcessSide("base", ExistingFile(args.Require("base-exe")), ExistingDirectory(args.Require("base-engine")), Path.Combine(work, "base"), runnerId, profileName, container);
-        var headSide = new ProcessSide("head", ExistingFile(args.Require("head-exe")), ExistingDirectory(args.Require("head-engine")), Path.Combine(work, "head"), runnerId, profileName, container, planted);
+        var baseSide = new ProcessSide("base", ExistingFile(args.Require("base-exe")), ExistingDirectory(args.Require("base-engine")), Path.Combine(work, "base"), runnerId, profileName, container, 0, args.Get("base-package") is { } basePackage ? ExistingFile(basePackage) : null);
+        var headSide = new ProcessSide("head", ExistingFile(args.Require("head-exe")), ExistingDirectory(args.Require("head-engine")), Path.Combine(work, "head"), runnerId, profileName, container, planted, args.Get("head-package") is { } headPackage ? ExistingFile(headPackage) : null);
         args.RejectUnused();
         if (rounds < 1 || confirmRounds < 0 || planted < 0 || planted > 2)
         {

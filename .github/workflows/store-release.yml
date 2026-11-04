@@ -18,14 +18,16 @@ on:
   pull_request:
     paths: &packaging
       - 'build/package.ps1'
+      - 'build/trim-probe.ps1'
       - 'build/generate-notices.ps1'
       - 'build/store/**'
-      - 'src/MikePDF.App/**'
-      - 'src/MikePDF.Engine/**'
-      - 'src/MikePDF.Broker/**'
-      - 'src/MikePDF.ShellExt/**'
-      - 'src/MikePDF.ShellHost/**'
+      # Everything that ends up in the package, so that the install size (master prompt 11: 60 MB per architecture) is measured on every change that can move it.
+      - 'src/**'
+      - 'tools/MikePDF.TrimProbe/**'
       - 'Directory.Packages.props'
+      - 'Directory.Build.props'
+      - 'global.json'
+      - 'docs/perf/budgets.json'
       - '.github/workflows/store-release.yml'
   push:
     branches: ['m[0-9]*/**']
@@ -64,6 +66,17 @@ jobs:
       - name: Build the release package
         shell: pwsh
         run: ./build/package.ps1 -Arch ${{ matrix.arch }} -Version $env:VERSION
+      # Master prompt 11: the unpacked size of the single-architecture package is at most 60 MB (docs/perf/budgets.json install.size; the limit is read from there).
+      # The breakdown by component and the largest files go to the job summary. Fails the job above the limit.
+      - name: Install size (60 MB budget)
+        shell: pwsh
+        run: ./build/store/check-package-size.ps1 -Msix "build/out/package/MikePDF_$($env:VERSION)_${{ matrix.arch }}.msix"
+      # The package is trimmed (docs/perf/install-size.md). The probe runs the non-UI half of the app in that form: settings and store JSON, the session file, edit
+      # commands, and a sandboxed engine session through the Broker and the protocol. The window, XAML and WinUI parts are covered by the UI journeys.
+      - name: Trimmed-build probe
+        if: success() || failure()
+        shell: pwsh
+        run: ./build/trim-probe.ps1 -Arch ${{ matrix.arch }}
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: package-${{ matrix.arch }}
