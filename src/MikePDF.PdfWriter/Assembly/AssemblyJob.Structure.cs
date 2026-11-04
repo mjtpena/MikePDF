@@ -282,7 +282,8 @@ internal sealed partial class AssemblyJob
         foreach (var state in _contributing)
         {
             var document = state.Document;
-            if (!document.HasNamedDestinations)
+            // A catalog that cannot be read is assumed to have names: reading them says so with a warning instead of refusing the assembly.
+            if (SourceDocument.TryRead(() => document.HasNamedDestinations, out var hasNames) && !hasNames)
                 continue;
             if (!SourceDocument.TryRead(() => document.NamedDestinations, out var names))
             {
@@ -347,7 +348,7 @@ internal sealed partial class AssemblyJob
         foreach (var state in _contributing)
         {
             var document = state.Document;
-            if (!document.HasPageLabels)
+            if (SourceDocument.TryRead(() => document.HasPageLabels, out var hasLabels) && !hasLabels)
                 continue;
             if (!SourceDocument.TryRead(() => document.Labels, out var ranges))
                 AddWarning(AssemblyWarningCode.PageLabelsUnreadable, state.Index, 1, "the page labels could not be read and were left out");
@@ -400,7 +401,7 @@ internal sealed partial class AssemblyJob
         {
             var document = state.Document;
             var kept = new List<OutlineNode>();
-            if (document.HasOutline && !SourceDocument.TryRead(() => ReadOutline(state), out kept!))
+            if ((!SourceDocument.TryRead(() => document.HasOutline, out var hasOutline) || hasOutline) && !SourceDocument.TryRead(() => ReadOutline(state), out kept!))
             {
                 kept = [];
                 AddWarning(AssemblyWarningCode.OutlineUnreadable, state.Index, 1, "the outline could not be read and was left out");

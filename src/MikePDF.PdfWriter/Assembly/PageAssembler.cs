@@ -80,25 +80,30 @@ public sealed class AssemblySourceSet
         for (var i = 0; i < sources.Count; i++)
         {
             var source = sources[i];
+            SourceDocument document;
+            AssemblerSourceInfo info;
             try
             {
-                var document = SourceDocument.Open(i, source, parserLimits, limits);
-                var info = Describe(document);
-                documents[i] = document;
-                statuses.Add(new AssemblerSourceStatus(i, source.Name, info, null));
-                if (info.IsTagged)
-                    warnings.Add(new AssemblyWarning(AssemblyWarningCode.TagsDropped, i, 1, "the structure tree (accessibility tags) is not carried to the new file"));
-                if (info.HasSignatures)
-                    warnings.Add(new AssemblyWarning(AssemblyWarningCode.SignaturesNotKept, i, 0, "digital signatures are not kept in the new file"));
-                if (info.HasEmbeddedFiles)
-                    warnings.Add(new AssemblyWarning(AssemblyWarningCode.AttachmentsDropped, i, 1, "the embedded files of the document are not carried to the new file"));
-                if (info.HasDocumentScripts)
-                    warnings.Add(new AssemblyWarning(AssemblyWarningCode.ScriptsDropped, i, Math.Max(1, document.DocumentScriptKinds), "document scripts and the open action are not carried to the new file"));
+                document = SourceDocument.Open(i, source, parserLimits, limits);
+                info = Describe(document);
             }
             catch (AssemblyAbort abort)
             {
                 statuses.Add(new AssemblerSourceStatus(i, source.Name, null, abort.Refusal with { SourceIndex = i, SourceName = source.Name }));
+                continue;
             }
+
+            // Nothing that can throw is left: one source, one status.
+            documents[i] = document;
+            statuses.Add(new AssemblerSourceStatus(i, source.Name, info, null));
+            if (info.IsTagged)
+                warnings.Add(new AssemblyWarning(AssemblyWarningCode.TagsDropped, i, 1, "the structure tree (accessibility tags) is not carried to the new file"));
+            if (info.HasSignatures)
+                warnings.Add(new AssemblyWarning(AssemblyWarningCode.SignaturesNotKept, i, 0, "digital signatures are not kept in the new file"));
+            if (info.HasEmbeddedFiles)
+                warnings.Add(new AssemblyWarning(AssemblyWarningCode.AttachmentsDropped, i, 1, "the embedded files of the document are not carried to the new file"));
+            if (info.HasDocumentScripts)
+                warnings.Add(new AssemblyWarning(AssemblyWarningCode.ScriptsDropped, i, Math.Max(1, info.DocumentScriptKinds), "document scripts and the open action are not carried to the new file"));
         }
 
         return new AssemblySourceSet(documents, statuses, warnings, null, options);
@@ -117,7 +122,7 @@ public sealed class AssemblySourceSet
             Read(() => document.HasNamedDestinations),
             SourceDocument.TryRead(() => document.Title, out var title) ? title : null,
             ReadAssumingYes(() => document.HasEmbeddedFiles),
-            ReadAssumingYes(() => document.HasDocumentScripts));
+            SourceDocument.TryRead(() => document.DocumentScriptKinds, out var kinds) ? kinds : 1);
 
         // What is dropped must be reported: a catalog part that cannot be read is assumed to be there.
         static bool ReadAssumingYes(Func<bool> read) => !SourceDocument.TryRead(read, out var value) || value;

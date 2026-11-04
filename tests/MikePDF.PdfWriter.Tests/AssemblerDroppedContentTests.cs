@@ -136,6 +136,32 @@ public sealed class AssemblerDroppedContentTests
     }
 
     [Fact]
+    [Trait("Spec", "PO-27")]
+    public void ACatalogNamesDictionaryThatCannotBeReadGivesOneStatusAndIsAssumedToHoldWhatIsDropped()
+    {
+        // Found by the pdfwriter-assemble fuzz target: reading the catalog for the script warning threw after the source's status was added, so the same
+        // source got a second one (a refusal). Here /Names points at an object whose header names another object, which the strict parser refuses to load.
+        var document = new TinyDoc(8);
+        var names = document.Pdf.Add("<< /Dests << /Names [] >> >>");
+        Assert.Equal(12, names);
+        var bytes = PdfBuilder.Patch(document.Build($"/Names {names} 0 R"), "\n12 0 obj", "\n13 0 obj");
+
+        var set = PageAssembler.Open([Source("damaged", bytes)], AssemblyFixtures.Fixed);
+        Assert.Single(set.Sources);
+        Assert.True(set.Sources[0].IsUsable, set.Sources[0].Refusal?.ToString());
+        // What cannot be read is assumed to be there, so it is reported.
+        Assert.Single(Of(set.Warnings, AssemblyWarningCode.AttachmentsDropped));
+        Assert.Single(Of(set.Warnings, AssemblyWarningCode.ScriptsDropped));
+
+        // The pages still assemble; the names are left out with a warning of their own instead of the assembly being refused.
+        var result = set.Assemble(AssemblyPlan.Range(0, 0, 3), TestContext.Current.CancellationToken);
+        Assert.True(result.IsSuccess, result.IsSuccess ? "" : result.Refusal.ToString());
+        Assert.Single(Of(result.Output.Warnings, AssemblyWarningCode.DestinationsUnreadable));
+        Assert.Single(Of(result.Output.Warnings, AssemblyWarningCode.ScriptsDropped));
+        AssemblyFixtures.CheckStructure(result.Output);
+    }
+
+    [Fact]
     [Trait("Spec", "OQ-PO-9")]
     public void TheSameReportsComeFromAnXrefStreamSource()
     {

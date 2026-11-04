@@ -350,7 +350,11 @@ public sealed record AssemblerSourceInfo(
     bool HasNamedDestinations,
     string? Title,
     bool HasEmbeddedFiles = false,
-    bool HasDocumentScripts = false);
+    int DocumentScriptKinds = 0)
+{
+    /// <summary>The source has document JavaScript, an open action or document additional actions (<see cref="DocumentScriptKinds"/> of the three).</summary>
+    public bool HasDocumentScripts => DocumentScriptKinds > 0;
+}
 
 /// <summary>One source after opening: its info, or why it was refused. Every source is reported, so a dialog can list all the files that cannot be used at once.</summary>
 public sealed record AssemblerSourceStatus(int Index, string Name, AssemblerSourceInfo? Info, AssemblyRefusal? Refusal)

@@ -724,7 +724,7 @@ internal sealed partial class AssemblyJob
             if (embedded || leftOut > 0 || cannotTell)
                 AddWarning(AssemblyWarningCode.AttachmentsDropped, index, Math.Max(1, leftOut + (embedded ? 1 : 0)), "embedded files and attachments on pages that are left out are not carried to the new file");
             if (info is { HasDocumentScripts: true })
-                AddWarning(AssemblyWarningCode.ScriptsDropped, index, Math.Max(1, state.Document.DocumentScriptKinds), "document scripts and the open action are not carried to the new file");
+                AddWarning(AssemblyWarningCode.ScriptsDropped, index, Math.Max(1, info!.DocumentScriptKinds), "document scripts and the open action are not carried to the new file");
             if (state.MediaBoxDefaulted > 0)
                 AddWarning(AssemblyWarningCode.MediaBoxDefaulted, index, state.MediaBoxDefaulted, "pages with no media box were given the Letter size");
         }
