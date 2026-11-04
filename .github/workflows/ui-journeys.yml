@@ -121,14 +121,23 @@ jobs:
           # Linux", also a window that takes keys) behind it. End the console and close the menu.
           # The console comes back later in the run (inside Windows Terminal on the ARM64 image) and takes the keyboard from the app in the middle of a journey, so a hidden watcher
           # keeps ending it for the rest of the job. It touches only wsl, wslhost, the Widgets processes (their news badge and flyouts can take the focus) and a terminal window titled for wsl.exe.
-          $watcher = @'
-          while ($true) {
-            Get-Process wsl, wslhost, Widgets, WidgetService -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
-            Get-Process WindowsTerminal -ErrorAction SilentlyContinue | Where-Object { $_.MainWindowTitle -match 'wsl' } | Stop-Process -Force -ErrorAction SilentlyContinue
-            Start-Sleep -Seconds 2
+          # On x64 the runner agent itself runs in a Windows Terminal (titled for hosted-compute-agent), so there only a terminal titled for wsl is ended; on ARM64 the agent has a console of its own, and
+          # any Windows Terminal is the wsl one. What it ends is logged to build/out/shots/watcher.log, which is uploaded with the screenshots.
+          New-Item -ItemType Directory -Force build/out/shots | Out-Null
+          $log = Join-Path $PWD 'build/out/shots/watcher.log'
+          $watcher = @"
+          `$log = '$log'
+          `$arm = [bool](`$env:PROCESSOR_ARCHITECTURE -eq 'ARM64')
+          while (`$true) {
+            foreach (`$p in @(Get-Process wsl, wslhost, Widgets, WidgetService -ErrorAction SilentlyContinue)) { Add-Content `$log "`$(Get-Date -Format o) ending `$(`$p.ProcessName) `$(`$p.Id)"; Stop-Process -Id `$p.Id -Force -ErrorAction SilentlyContinue }
+            foreach (`$p in @(Get-Process WindowsTerminal -ErrorAction SilentlyContinue | Where-Object { `$arm -or `$_.MainWindowTitle -match 'wsl' })) { Add-Content `$log "`$(Get-Date -Format o) ending WindowsTerminal `$(`$p.Id) '`$(`$p.MainWindowTitle)'"; Stop-Process -Id `$p.Id -Force -ErrorAction SilentlyContinue }
+            Start-Sleep -Seconds 1
           }
-          '@
-          Start-Process pwsh -WindowStyle Hidden -ArgumentList '-NoProfile', '-Command', $watcher
+          "@
+          # Start-Process does not quote a script for a child, so it goes as an encoded command.
+          $encoded = [Convert]::ToBase64String([System.Text.Encoding]::Unicode.GetBytes($watcher))
+          Start-Process pwsh -WindowStyle Hidden -ArgumentList '-NoProfile', '-EncodedCommand', $encoded
+          Add-Content $log "$(Get-Date -Format o) watcher started"
           Start-Sleep -Seconds 3
           [System.Windows.Forms.SendKeys]::SendWait('{ESC}')
           Start-Sleep -Seconds 2
