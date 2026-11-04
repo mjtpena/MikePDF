@@ -299,7 +299,7 @@ Decisions taken where the spec was silent or in conflict (all can be overridden)
 - **Settings is a singleton tab** per window (design 13). Closing it goes back to the tab it was opened from.
 - **A window with one tab:** that tab is part of the title bar (not draggable out); dragging it moves the window. With two or more tabs, dragging out creates a window (TabView tear-out), and letting go over another window's strip merges the tab into it.
 - **Closing the last tab** leaves an empty tab (design 3.1.4); Ctrl+W on a lone empty tab does nothing.
-- **Dirty prompts** exist and are tested with a fake flag (`TabModel.IsDirty`; the journeys set it with the test seam `MIKEPDF_TEST_FAKE_DIRTY`). The Save button is disabled until the save pipeline sets `AppHost.SaveHandler`.
+- **Dirty prompts** exist; `TabModel.IsDirty` follows the tab's edit model (work package W3-save-app), the Save button of the prompt saves for real through `AppHost.SaveHandler`, and "Don't save" deletes the journal. The journeys make a document dirty with the test seam `MIKEPDF_TEST_FAKE_DIRTY`, which applies one real highlight edit.
 
 Measured facts about WinUI's `TabView` in Windows App SDK 2.5.1 (answers to OQ-TAB-7 / spike S13):
 

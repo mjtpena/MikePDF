@@ -908,6 +908,7 @@
   <data name="Save_Cancel" xml:space="preserve"><value>Cancel</value></data>
   <data name="Save_Done_Announce" xml:space="preserve"><value>Saved {0}</value></data>
   <data name="Save_Copy_Done" xml:space="preserve"><value>Saved a copy as {0}</value></data>
+  <data name="Save_FlatCopy_Done" xml:space="preserve"><value>Saved a flattened copy as {0}. The copy can't be edited. Your open document stays as it is.</value></data>
   <data name="Save_Failed_Title" xml:space="preserve"><value>MikePDF couldn't save safely</value></data>
   <data name="Save_Failed_Body" xml:space="preserve"><value>Your changes are still here. Nothing in your file was changed.</value></data>
   <data name="Save_Refused_Title" xml:space="preserve"><value>{0} wasn't saved</value></data>

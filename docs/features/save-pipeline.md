@@ -420,3 +420,36 @@ Built: the edit model and planner, the journal (format, strict reader, writer, s
 | SP-36 | **Not run** (manual) |
 | SP-37 | **Not recorded** |
 | SP-38 to SP-41 | `FileReplacerTests`, `SaveCoordinatorTests` |
+
+## 16. Implementation status (work package W3-save-app, 2026-11-04)
+
+Built: the save core wired into the app. Save (Ctrl+S), Save as (Ctrl+Shift+S) and Save a flattened copy are registry commands with their enabled state and reasons (`NoEdits`, `SaveBusy`); the Save button is in the bar only while the document has edits; the tab, the window title and their UIA names say "unsaved changes"; the close prompt (tab, window, app) saves for real, and "Don't save" deletes the journal; a Windows session end keeps it; crash recovery at launch and when a document opens; every `SaveReason` has a message; the changed-on-disk banner; the "can't be backed up" chip; the writer host is built beside the app and laid out in the package. The pipeline stays in `MikePDF.Broker.Saving` (`DocumentSaver` is the shell's one door to it, `SavePresentation` turns a result into resource keys and actions, `ExternalChanges` compares file stamps); the window code is `MainWindow.Save.cs`, `MainWindow.Recovery.cs` and `Services/SaveService.cs`.
+
+| Criterion | Tests |
+|---|---|
+| SP-02 (the shell's part: marker, title and Save follow the model) | `SaveAppTests.TheModelTellsTheShellWhenAnythingThatChangesTheDirtyStateHappened`, `DocumentSaverTests.TheModelTellsTheShellWhenItBecomesDirtyWhenASaveBeginsAndWhenItIsClean` |
+| SP-18 (Save becomes Save As with the reason) | `DocumentSaverTests.EveryReasonThatBlocksSavingInPlaceOffersASaveAs`; journey `SP18_ASaveIntoAReadOnlyFile...` |
+| SP-21 (banner and prompt) | `DocumentSaverTests.APathReplacedByAnotherFileAsksFirstAndOverwrite...`, `AFileThatIsAsItWasIsUnchanged...`, `ARewriteOfTheSameLength...`, `AFileReplacedByAnotherFile...`, `AMovedOrDeletedFile...`; journey `SP21_AFileChangedByAnotherProgram...` |
+| SP-23 (Save blocked, message) | `DocumentSaverTests.ADocumentOpenedWithAPasswordIsRefused...`. **Not done:** Save As offering an unprotected copy (the writer cannot decrypt) |
+| SP-25 (Save As switches the tab, re-keys the journal) | `DocumentSaverTests.SaveAs...` (three), `SaveAppTests.AfterSaveAsTheNextCommandStartsAJournal...`, `SaveAppFlowTests.SaveAsThroughTheSandboxedHost...`; journey `SP25_SaveAs...` |
+| SP-27 (journal deleted only after the replace; reopen on the new file) | `SaveAppFlowTests.EditsAppliedThroughTheModelAreSavedByTheSandboxedHost...`. **Not built:** the frame-level swap without a gap (AC-15): the tab reopens on the saved file at the same page and zoom, and shows the busy ring for a moment |
+| SP-28, journey 8 | `SaveAppFlowTests.AfterACrashTheJournalIsOffered...`; journey `SP28_AnAppKilledWithUnsavedEdits...` |
+| SP-29 | `SaveAppFlowTests.ADocumentWhoseFileChanged...`, `AJournalAnotherInstanceHasOpenIsLeftAlone...`, `AWindowThatClosesBecauseWindowsEndsTheSession...`; journeys `SP29_NotNow...`, `SP29_Discard...` |
+| SP-30, journey 3 | `SaveAppFlowTests.EditsAppliedThroughTheModel...`; journey `SP30_CtrlSSavesTheEdits...`. **Not done:** journeys 4 and 5 (forms and pages: stages 2 and 3 are not built) |
+| SP-32 (edits blocked during a save, re-enabled) | `DocumentSaverTests.EditsAreBlockedWhileASaveRuns...` |
+| SP-35 (names, announcements once) | journeys `SP30_...` (tab and window names, "Saved alpha" once). Not run in this work package |
+| TAB-10 (now with the real pipeline) | journeys `TAB10_TheSaveButtonOfTheClosePromptSaves...`, `TAB10_DontSave...`; the older `TAB10_Closing...` and `TAB11_...` run on the same seam |
+
+**Decisions taken** (all can be overridden; the first four are in docs/design/decisions.md):
+
+- **Recovery asks twice, in two places.** A dialog at launch lists every document with unsaved changes (design 14 section 2.7) before the session is built; "Not now" keeps the journals and the empty window lists them (3.5 item 1); a journal found when a document is opened (not settled this run) is asked about for that document. Esc is Not now, Restore is the default, Discard asks once more.
+- **A password-protected document with edits is refused before anything is created, and no Save As is offered.** The spec's text ("Save a copy without the password") cannot be honoured: the writer cannot write encrypted objects, so a copy would be refused for the same reason. `Save_Encrypted` says the changes are kept and how to drop them. OQ-SP-8 stays open.
+- **Overwrite writes the held bytes plus the edits over what is at the path**, not the other program's file with the edits on top: the edits were made against the bytes the broker holds.
+- **Save as to the file's own path is a Save; a flattened copy to the file's own path is refused**; so is a Save As or flattened copy to a path another tab shows.
+- **Not offered in the UI:** the "Rewrite the whole file" option of Save As (`DocumentSaver` and the coordinator support it; the file picker has no checkbox and a custom dialog is not built). `file.revert` is not a command: `file.reload` (commands.md) confirms when there are edits and drops them.
+- **The signature confirmation** (3.3) is asked before a flattened copy of a document with signature fields. The notice on the first edit is the annotation work package's.
+- **`MIKEPDF_TEST_FAKE_DIRTY`** now applies one real highlight through the edit model, and `MIKEPDF_TEST_SAVE_AS_PATH` replaces the file picker (tabs-windows-session.md section 16).
+
+**Not done or not verified:** the frame-level swap (AC-15); the rewrite option; journeys 4 and 5; SP-19, SP-33, SP-36, SP-37 (unchanged from section 15); Narrator, high-contrast and 225% passes over the new dialogs and strips; keyboard reach of the failure strip with one F6 (section 5 of the design); pen and touch. **No UI journey was run** (the rules of the work package forbid it); CI runs them. The writer host's size in the package is the open question below.
+
+**Open questions:** (1) *Package size.* `MikePDF.WriterHost` is a self-contained .NET process (it needs the JIT; the Native AOT route of ShellHost is closed while it does). Its output is 103 MB raw, about 42 MB deflated (a zip, not MSIX, so only an estimate), against the 60 MB per architecture of the master prompt section 11, with the app already self-contained. Trimming fails today (`WarmUp.cs` walks assemblies by reflection, IL2026). Options: make the warm-up trim-safe and trim; share the app's runtime; or Native AOT the host. (2) Whether the launch recovery dialog should appear when `startup.restore` is `Never` (it does now). (3) The stage 5 fresh engine is a new process outside `EngineBudget`; it lives for the check. (4) `FileSavePicker` creates an empty file at the name it returns; the app removes it again when the save does not happen. (5) With the policy `SaveMode=AlwaysSaveAsCopy`, a second Save suggests "(edited) (edited)".

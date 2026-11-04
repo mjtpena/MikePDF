@@ -48,6 +48,17 @@ The ADR-0005, ADR-0008 and spec amendments proposed in the S10 and S11 reports a
 | A journal another instance has open | Skipped by recovery (it is that instance's live session), not offered for discard |
 | Forms and page changes | Refused with `UnsupportedEdits` until the forms and page-organiser packages bring the engine's PDFium save and `NormalizeTail` |
 
+## Taken while wiring the save into the app (W3-save-app, 2026-11-04): for Opus to confirm
+| Item | Decision as built |
+|---|---|
+| Crash recovery questions | A dialog at launch lists every document with unsaved changes (before the session is built, as design 14 3.8 says); "Not now" keeps the journals and lists them in the empty window; a journal found when a document opens is asked about for that document (save-pipeline 3.5). Esc is Not now, so a keystroke never discards. It appears whatever `startup.restore` says |
+| Password-protected documents with edits | Save is refused before anything is created and no Save As is offered: the writer cannot write encrypted objects, so a copy would be refused too. The spec's "Save a copy without the password" cannot be kept. OQ-SP-8 stays open |
+| Overwrite after the path was replaced | Writes the bytes the broker holds plus the edits over what is at the path; the other program's version is not the base |
+| Rebase after a save | The document is reopened on the saved file at the same page and zoom (the busy ring shows for a moment). The swap without a gap (annotation-core AC-15) is not built |
+| Writer host in the package | Self-contained, untrimmed, in `WriterHost\` beside the app; run in place like the engine. About 42 MB deflated on top of a package with a 60 MB budget: not decided, see save-pipeline.md section 16 |
+| Not offered yet | The Save As option "Rewrite the whole file" (the picker has no checkbox); `file.revert` (use `file.reload`, which now confirms when there are edits) |
+| Test seams | `MIKEPDF_TEST_FAKE_DIRTY` applies a real highlight; `MIKEPDF_TEST_SAVE_AS_PATH` replaces the file picker |
+
 ## After the S6b spike (2026-11-03)
 | Item | Decision |
 |---|---|

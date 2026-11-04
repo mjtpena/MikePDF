@@ -410,7 +410,7 @@ public sealed partial class MainWindow
             // The working document, its tab and its journal are as they were; only the copy is new.
             var copyName = System.IO.Path.GetFileName(target ?? string.Empty);
             AnnounceSave(Strings.Format("Save_Copy_Done", copyName));
-            FinishSaveStrip(shown, Strings.Format("Save_Copy_Done", copyName));
+            FinishSaveStrip(shown, Strings.Format("Save_FlatCopy_Done", copyName), entry); // always shown: it says what the copy is, and that the open document is as it was
             RefreshCommands();
             return;
         }
@@ -432,7 +432,7 @@ public sealed partial class MainWindow
         entry.KeptStamp = null;
         var name = System.IO.Path.GetFileNameWithoutExtension(current);
         AnnounceSave(Strings.Format("Save_Done_Announce", name));
-        FinishSaveStrip(shown, Strings.Format("Save_Done_Announce", name));
+        FinishSaveStrip(shown, Strings.Format("Save_Done_Announce", name), null);
         OnEntryEditsChanged(entry);
         if (rebase)
         {
@@ -554,22 +554,25 @@ public sealed partial class MainWindow
     }
 
     // A save that was slow enough to show the strip says it is done, for a moment; one that was not says nothing but the announcement ("No toast", design 9.3).
-    private void FinishSaveStrip(bool wasShown, string message)
+    private void FinishSaveStrip(bool wasShown, string message, TabEntry? forceFor)
     {
-        if (!wasShown)
+        if (!wasShown && (forceFor is null || !ReferenceEquals(forceFor, _active)))
         {
             HideSaveStrip();
             return;
         }
 
+        _saveStripOwner = forceFor ?? _saveStripOwner;
         SaveStrip.Severity = InfoBarSeverity.Success;
+        SaveStrip.Title = message;
+        SaveStrip.IsOpen = true;
         SaveStrip.IsClosable = true;
         SaveBar.Visibility = Visibility.Collapsed;
         _saveCancelButton!.Visibility = Visibility.Collapsed;
         SaveActions.Children.Clear();
         SaveActions.Visibility = Visibility.Collapsed;
         SaveDetail.Visibility = Visibility.Collapsed;
-        SaveStatus.Text = message;
+        SaveStatus.Text = string.Empty;
         _saveLingerTimer ??= DispatcherQueue.CreateTimer();
         _saveLingerTimer.IsRepeating = false;
         _saveLingerTimer.Interval = SavedLinger;
@@ -806,15 +809,26 @@ public sealed partial class MainWindow
         }
     }
 
+    // What the banner shows now: it is rebuilt only when this changes (the chrome is refreshed on every scroll, and a banner rebuilt each time would lose the focus and flicker).
+    private (TabEntry Entry, ExternalChange Change, bool Dirty, string Name)? _changedShown;
+
     private void ShowChangedBar(TabEntry? entry)
     {
         if (entry is null || entry.Changed == ExternalChange.None || entry.Session is not { IsOpen: true })
         {
             ChangedBar.IsOpen = false;
+            _changedShown = null;
             return;
         }
 
         var name = TitleOf(entry.Model);
+        var shown = (entry, entry.Changed, entry.Edits is { Model.IsDirty: true }, name);
+        if (ChangedBar.IsOpen && _changedShown == shown)
+        {
+            return;
+        }
+
+        _changedShown = shown;
         var changed = entry.Changed == ExternalChange.Changed;
         ChangedBar.Title = Strings.Format(changed ? "ExternalChange_Changed" : "ExternalChange_Gone", name);
         ChangedDetail.Text = Strings.Get("ExternalChange_Edits");
@@ -835,6 +849,7 @@ public sealed partial class MainWindow
             entry.KeptStamp = FileStamp.Take(entry.Model.Path!);
             entry.Changed = ExternalChange.None;
             ChangedBar.IsOpen = false;
+            _changedShown = null;
         };
         ChangedActions.Children.Add(keep);
         ChangedBar.IsOpen = true;
