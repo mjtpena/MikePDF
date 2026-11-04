@@ -7,7 +7,7 @@
 ## Build layout
 | Area | Tooling | Notes |
 |---|---|---|
-| C# | .NET 10, `MikePDF.slnx`, `Directory.Build.props` (nullable, warnings as errors, analysers latest-recommended), `Directory.Packages.props` (central package management with lock files) | `global.json` pins the SDK feature band. DEV runs 10.0.300; CI installs 10.0.4xx (ADR-0001 A1) |
+| C# | .NET 10, `MikePDF.slnx`, `Directory.Build.props` (nullable, warnings as errors, analysers latest-recommended), `Directory.Packages.props` (central package management with lock files) | `global.json` pins SDK 10.0.403 (runtime 10.0.14); DEV and CI both install it (ADR-0001 A3) |
 | C++ | CMake ≥ 3.28, C++20, MSVC (v143 on DEV with 14.44, v145 on CI with VS 2026), hardening flags `/guard:cf /CETCOMPAT /sdl /Qspectre /W4 /WX` | `CMakeLists.txt` at the root. GoogleTest v1.18.0 via `FetchContent`, pinned by SHA-256 |
 | PDFium | `build/pdfium.lock` (JSON: release, asset SHA-256s) + `build/fetch-pdfium.ps1` | Prebuilt chromium/8125 until ADR-0002's own build exists |
 | Entry point | `build.ps1 [-Configuration Release] [-Arch x64\|arm64] [-Test]` | The same script runs locally and in CI |
