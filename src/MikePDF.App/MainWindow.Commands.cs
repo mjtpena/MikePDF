@@ -8,6 +8,7 @@ using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Controls.Primitives;
 using Microsoft.UI.Xaml.Input;
 using MikePDF.App.Services;
+using MikePDF.Broker.Saving;
 using MikePDF.Core.Colour;
 using MikePDF.Core.Commands;
 using MikePDF.Core.Settings;
@@ -88,6 +89,9 @@ public sealed partial class MainWindow
     private void BindCommands()
     {
         Bind(OpenButton, "file.open");
+        Bind(SaveButton, "file.save");
+        Bind(SaveAsItem, "file.saveAs");
+        Bind(SaveFlattenedItem, "file.saveFlattenedCopy");
         Bind(PrintButton, "file.print");
         Bind(PrintCancelButton, "print.cancel", Parts.Click | Parts.Tooltip | Parts.Accelerator);
         PrintCancelButton.Content = Strings.Get("Print_Strip_Cancel");
@@ -276,6 +280,8 @@ public sealed partial class MainWindow
             PrintingAllowed = policy.PrintingAllowed,
             OwnerAllowsPrinting = !open || session!.OwnerAllowsPrinting,
             PrintJobRunning = PrintJobRunning,
+            HasEdits = open && ActiveHasEdits,
+            SaveRunning = ActiveIsSaving,
         };
     }
 
@@ -536,6 +542,7 @@ public sealed partial class MainWindow
         Async("app.about", ShowAboutAsync);
         RegisterSettingsActions(Sync, Async);
         RegisterPrintActions(Sync, Async);
+        RegisterSaveActions(Sync, Async);
     }
 
     // Reload opens the same file again in the same tab, where it was.
@@ -543,6 +550,21 @@ public sealed partial class MainWindow
     {
         if (_active is { Session: { IsOpen: true } session } entry)
         {
+            if (entry.SaveRun is { Running: true })
+            {
+                return;
+            }
+
+            // Reloading drops what is not saved: ask first (commands.md file.reload), then the journal goes with it.
+            if (entry.Edits is { Model.IsDirty: true } && !await ConfirmReloadAsync(entry))
+            {
+                return;
+            }
+
+            entry.ReleaseEdits(discard: true);
+            entry.Changed = ExternalChange.None;
+            entry.KeptStamp = null;
+            ChangedBar.IsOpen = false;
             Banner.IsOpen = false;
             var view = session.CaptureView();
             entry.SetSession(null);

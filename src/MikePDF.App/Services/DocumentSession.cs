@@ -222,6 +222,7 @@ internal sealed partial class DocumentSession : IAsyncDisposable
         }
 
         var token = _cts.Token;
+        HoldFile();
         try
         {
             _main ??= await StartDocumentEngineAsync(token).ConfigureAwait(true);
@@ -246,6 +247,7 @@ internal sealed partial class DocumentSession : IAsyncDisposable
             var info = await _document.GetInfoAsync(token).ConfigureAwait(true);
             Title = info.Value is { Title.Length: > 0 } reply ? reply.Title : System.IO.Path.GetFileNameWithoutExtension(Path);
             Permissions = info.Value?.Permissions ?? uint.MaxValue;
+            SignatureCount = (int)(info.Value?.SignatureCount ?? 0);
             await ReadDirectionAsync(token).ConfigureAwait(true);
             if (await LoadFirstSizesAsync(token).ConfigureAwait(true) is { } sizeError)
             {
@@ -276,6 +278,31 @@ internal sealed partial class DocumentSession : IAsyncDisposable
         PrefetchVisible();
         _ = LoadRemainingSizesAsync(token);
         return new OpenOutcome(OpenOutcomeKind.Opened);
+    }
+
+    /// <summary>
+    /// The broker's own handle on the document, opened for reading with the share flags every document is opened with (ADR-0005 A3: others may rename or replace the path, not write to the file). A save checks the
+    /// path against this file's identity (docs/features/save-pipeline.md 3.6 item 3). Null when the file could not be held; the save then makes no identity check.
+    /// </summary>
+    public Microsoft.Win32.SafeHandles.SafeFileHandle? HeldFile { get; private set; }
+
+    /// <summary>How many signature fields the document has (a flattened copy or a whole-file rewrite makes them invalid).</summary>
+    public int SignatureCount { get; private set; }
+
+    /// <summary>The document was opened with a password: MikePDF cannot write encrypted objects, so it cannot save edits into it.</summary>
+    public bool OpenedWithPassword => _password is not null;
+
+    private void HoldFile()
+    {
+        HeldFile?.Dispose();
+        try
+        {
+            HeldFile = File.OpenHandle(Path, FileMode.Open, FileAccess.Read, EngineSupervisor.DocumentShare);
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+        {
+            HeldFile = null;
+        }
     }
 
     // The binding side the file asks for (/ViewerPreferences /Direction, schema 5). The engine answers 0 left to right, 1 right to left, 2 absent; an engine that cannot answer leaves it automatic.
@@ -806,6 +833,8 @@ internal sealed partial class DocumentSession : IAsyncDisposable
         }
 
         // (The pool engine is the budget's and is shared: the documents this session had open in it are closed above, the engine stays.)
+        HeldFile?.Dispose();
+        HeldFile = null;
         Cache.Clear();
         Cache.DisposeEvicted();
         _cts.Dispose();

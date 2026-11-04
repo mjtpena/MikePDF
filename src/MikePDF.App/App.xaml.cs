@@ -44,6 +44,8 @@ public partial class App : Application
         var first = host.CreateWindow();
         try
         {
+            // Unsaved changes left by a crash come first (design 14 3.8): the question is asked before the session is built, and the documents the person wants back are opened after it, so their tabs apply the journals.
+            var recovered = await first.PromptStartupRecoveryAsync();
             if (action == RestoreAction.Restore)
             {
                 host.Restore(loaded.Session!, first);
@@ -56,6 +58,8 @@ public partial class App : Application
             {
                 first.ShowNotice(Strings.Get("Restore_Failed")); // a damaged file counts as empty; this is said once, and the next write replaces it
             }
+
+            await first.OpenRecoveredAsync(recovered);
         }
         catch (Exception e) when (e is not OutOfMemoryException)
         {

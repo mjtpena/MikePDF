@@ -73,6 +73,27 @@ internal sealed class EngineHost
     /// <summary>The shared pool engine: renders the low-res placeholders (ADR-0006 decision 3), so a slow page parse in the document's engine never blocks them, and the thumbnails, the text, the bookmarks and the search (WP-S2). Its slots hold a thumbnail up to 1 MiB.</summary>
     public EngineSupervisorOptions PoolOptions() => Options(EngineKind.Pool, slotCount: 4, slotSize: 1 << 20);
 
+    /// <summary>
+    /// The writer host (ADR-0008): a self-contained .NET process in the same AppContainer, handles in and bytes out. It needs the JIT, so unlike the engine it may make dynamic code. Null when it is not part of
+    /// this installation.
+    /// </summary>
+    public EngineSupervisorOptions? WriterHostOptions()
+    {
+        var path = Path.Combine(AppPaths.WriterHostSource, "MikePDF.WriterHost.exe");
+        if (!File.Exists(path))
+        {
+            return null;
+        }
+
+        return new EngineSupervisorOptions
+        {
+            EnginePath = path,
+            Profile = _profile,
+            Peer = ProcessKind.WriterHost,
+            Policy = SandboxPolicy.Default with { ProhibitDynamicCode = false, ProcessMemoryLimitBytes = (long)EngineMemoryLimitMb << 20 },
+        };
+    }
+
     private EngineSupervisorOptions Options(EngineKind kind, int slotCount, int slotSize) => new()
     {
         EnginePath = _enginePath,

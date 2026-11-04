@@ -39,10 +39,16 @@ internal static partial class AppPaths
     /// <summary>The windows and tabs that were open (docs/features/tabs-windows-session.md 3.6): paths and view state, never a password. In the private folder, like every file the engine must not reach.</summary>
     public static string SessionPath => Path.Combine(PrivateDirectory, "session.json");
 
+    /// <summary>The edit journals (docs/features/save-pipeline.md 3.4): what was added to each open document and not yet saved. They hold the person's own text, so they are in the private folder the engine cannot read.</summary>
+    public static string JournalsDirectory => Path.Combine(PrivateDirectory, "journals");
+
     public static string CommandHistoryPath => Path.Combine(PrivateDirectory, "palette-history.json");
 
     /// <summary>The engine, beside the executable. It runs from here: in a package this is under WindowsApps, which Windows protects and the package signature covers.</summary>
     public static string EngineSource => Path.Combine(AppContext.BaseDirectory, "Engine");
+
+    /// <summary>The writer host, beside the executable like the engine, and run in place from there (ADR-0008): the sandboxed process that parses and writes PDF structure for a save.</summary>
+    public static string WriterHostSource => Path.Combine(AppContext.BaseDirectory, "WriterHost");
 
     /// <summary>The AppContainer profile. A packaged app's profile is scoped under its package by Windows, so the plain name cannot clash with a development build's.</summary>
     public static string ProfileName => "MikePDF.Engine";
