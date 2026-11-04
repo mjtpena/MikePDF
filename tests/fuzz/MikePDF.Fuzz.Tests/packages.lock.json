@@ -191,11 +191,25 @@
       "mikepdf.core": {
         "type": "Project",
         "dependencies": {
+          "MikePDF.Ink": "[1.0.0, )",
           "MikePDF.Protocol": "[1.0.0, )"
         }
       },
-      "mikepdf.pdfwriter": {
+      "mikepdf.ink": {
         "type": "Project"
+      },
+      "mikepdf.markup": {
+        "type": "Project",
+        "dependencies": {
+          "MikePDF.Core": "[1.0.0, )",
+          "MikePDF.Ink": "[1.0.0, )"
+        }
+      },
+      "mikepdf.pdfwriter": {
+        "type": "Project",
+        "dependencies": {
+          "MikePDF.Markup": "[1.0.0, )"
+        }
       },
       "mikepdf.pdfwriter.fuzz": {
         "type": "Project",

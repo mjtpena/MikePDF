@@ -5,6 +5,8 @@
   <ItemGroup>
     <!-- Only for the Status enum (typed errors, 6.4). -->
     <ProjectReference Include="..\MikePDF.Protocol\MikePDF.Protocol.csproj" />
+    <!-- The edit mapper folds ink strokes into annotations with the same simplification and outline code the overlay and the appearance use. -->
+    <ProjectReference Include="..\MikePDF.Ink\MikePDF.Ink.csproj" />
   </ItemGroup>
   <ItemGroup>
     <InternalsVisibleTo Include="MikePDF.Core.Tests" />

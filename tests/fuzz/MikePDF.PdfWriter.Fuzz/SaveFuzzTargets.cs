@@ -328,27 +328,27 @@ internal static class SaveFuzzTargets
             PageCount = 1,
             Edits = [new AnnotationEdit { Operation = EditOperation.Add, Page = 0, Kind = AnnotationKind.Underline, Rect = [10, 20, 110, 40], Color = [0, 0, 0], Name = "u", QuadPoints = [10, 40, 110, 40, 10, 20, 110, 20, 10, 60, 110, 60, 10, 50, 110, 50] }],
         });
+
+        // Version 2: every kind the annotation tools add, a reply, a review state, a replace and a popup.
+        yield return EditBlobCodec.Encode(new EditBlob
+        {
+            PageCount = 2,
+            Edits =
+            [
+                new AnnotationEdit { Operation = EditOperation.Add, Page = 0, Kind = AnnotationKind.Squiggly, Rect = [10, 20, 110, 40], Color = [1, 0, 0], Name = "sq", QuadPoints = [10, 40, 110, 40, 10, 20, 110, 20], Subject = "Squiggly", Created = "D:20261104101530+01'00'", PopupRect = [120, 20, 300, 120], Contents = "c" },
+                new AnnotationEdit { Operation = EditOperation.Add, Page = 0, Kind = AnnotationKind.FreeText, Rect = [10, 60, 190, 100], Color = [0, 0, 1], Name = "ft", Contents = "Hello", InteriorColor = [1, 1, 0.8f], Width = 2, FontId = 5, FontSize = 12, TextColor = [0, 0, 0], Align = 1 },
+                new AnnotationEdit { Operation = EditOperation.Add, Page = 0, Kind = AnnotationKind.Line, Rect = [0, 0, 100, 50], Color = [0, 0, 0], Name = "ln", Vertices = [0, 0, 100, 50], LineEnd = LineEndKind.ClosedArrow, Dash = DashKind.Dashed, InteriorColor = [1, 0, 0] },
+                new AnnotationEdit { Operation = EditOperation.Add, Page = 1, Kind = AnnotationKind.Polygon, Rect = [0, 0, 100, 50], Color = [0, 0, 0], Name = "pg", Vertices = [0, 0, 100, 0, 50, 50], InteriorColor = [0, 1, 0] },
+                new AnnotationEdit { Operation = EditOperation.Add, Page = 1, Kind = AnnotationKind.PolyLine, Rect = [0, 0, 100, 50], Color = [0, 0, 0], Name = "pl", Vertices = [0, 0, 100, 0, 100, 40], LineEnd = LineEndKind.Diamond },
+                new AnnotationEdit { Operation = EditOperation.Add, Page = 1, Kind = AnnotationKind.Stamp, Rect = [0, 0, 150, 40], Color = [0, 0.5f, 0], Name = "st", StandardName = "Approved", Traits = (EditTraits)(1u << EditTraitBits.TurnsShift) },
+                new AnnotationEdit { Operation = EditOperation.Add, Page = 1, Kind = AnnotationKind.Ink, Rect = [0, 0, 50, 50], Color = [0, 0, 1], Name = "ink", Strokes = [[0, 0, 10, 10, 20, 5], [30, 30]], InkWidths = [[1, 2, 1], [3]], Traits = EditTraits.Highlighter },
+                new AnnotationEdit { Operation = EditOperation.Add, Page = 1, Kind = AnnotationKind.Text, Rect = [5, 5, 25, 25], Color = [1, 1, 0], Name = "rp", Contents = "Agreed", ParentName = "ink", ReplyKind = 2, State = 1 },
+                new AnnotationEdit { Operation = EditOperation.Replace, Page = 0, Name = "ft", ExpectSubtype = "FreeText", ExpectRect = [10, 60, 190, 100], Kind = AnnotationKind.FreeText, Rect = [10, 60, 200, 110], Color = [0, 0, 1], FontSize = 14, TextColor = [0, 0, 0] },
+            ],
+        });
     }
 
-    private static AnnotationChange ToChange(AnnotationEdit edit) => new()
-    {
-        Kind = (AnnotationEditKind)(int)edit.Operation,
-        Page = (int)edit.Page,
-        Annotation = (NewAnnotationKind)(int)edit.Kind,
-        Rect = edit.Rect,
-        Color = edit.Color,
-        Opacity = edit.Opacity,
-        Width = edit.Width,
-        Contents = edit.Contents,
-        Author = edit.Author,
-        Name = edit.Name,
-        Flags = edit.Flags,
-        QuadPoints = edit.QuadPoints,
-        Strokes = edit.Strokes,
-        TargetObject = (int)edit.TargetObject,
-        ExpectSubtype = edit.ExpectSubtype,
-        ExpectRect = edit.ExpectRect,
-    };
+    private static AnnotationChange ToChange(AnnotationEdit edit) => MikePDF.WriterHost.EditConversion.ToChange(edit);
 
     private static byte[] BuildTinyPdf()
     {

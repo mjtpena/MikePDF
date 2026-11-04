@@ -3,6 +3,10 @@
     <Description>Strict PDF parser, object model and incremental writer. Hosted only in MikePDF.WriterHost (ADR-0008).</Description>
   </PropertyGroup>
   <ItemGroup>
+    <!-- The geometry and appearance of every annotation kind: one implementation, shared with the overlay (annotation-core 3.3). -->
+    <ProjectReference Include="..\MikePDF.Markup\MikePDF.Markup.csproj" />
+  </ItemGroup>
+  <ItemGroup>
     <InternalsVisibleTo Include="MikePDF.PdfWriter.Tests" />
   </ItemGroup>
 </Project>

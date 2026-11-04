@@ -59,6 +59,8 @@ public static class AnnotationAppender
             var annots = LoadAnnots(document, page, out var annotsRef);
             var before = annots.Count;
             var names = new HashSet<string>(StringComparer.Ordinal);
+            var addedRefs = new Dictionary<string, PdfReference>(StringComparer.Ordinal);
+            var rotation = PageRotation(document, page);
             foreach (var edit in group)
             {
                 switch (edit.Kind)
@@ -70,20 +72,22 @@ public static class AnnotationAppender
                             ParseContext.Fatal(PdfErrorCode.InvalidEdit, "two new annotations on a page have the same /NM");
                         }
 
-                        var (appearance, dictionary) = AnnotationBuilder.Build(edit, page.Reference, modified);
-                        var apRef = Unwrap(update.Add(appearance));
-                        dictionary = dictionary.With("AP", new PdfDictionary([new KeyValuePair<PdfName, PdfObject>(new PdfName("N"), apRef)]));
-                        annots.Add(Unwrap(update.Add(dictionary)));
+                        addedRefs[edit.Name!] = AddAnnotation(document, update, page, annots, addedRefs, edit, modified, rotation);
                         added++;
                         break;
                     case AnnotationEditKind.Delete:
                         var deleteIndex = Find(document, annots, edit);
-                        annots.RemoveAt(deleteIndex);
+                        RemoveWithPopup(document, annots, deleteIndex);
                         removed++;
                         break;
                     case AnnotationEditKind.Update:
                         var updateIndex = Find(document, annots, edit);
                         annots[updateIndex] = Patch(document, update, annots[updateIndex], edit, modified);
+                        break;
+                    case AnnotationEditKind.Replace:
+                        RequireAdd(edit, replacing: true);
+                        var replaceIndex = Find(document, annots, edit);
+                        ReplaceAnnotation(document, update, page, annots, replaceIndex, edit, modified, rotation);
                         break;
                     default:
                         ParseContext.Fatal(PdfErrorCode.InvalidEdit, "unknown edit");
@@ -137,23 +141,177 @@ public static class AnnotationAppender
         return [.. array];
     }
 
-    private static void RequireAdd(AnnotationChange edit)
+    private static void RequireAdd(AnnotationChange edit, bool replacing = false)
     {
-        if (edit.Rect is not { Length: 4 } || edit.Color is not { Length: 3 } || string.IsNullOrEmpty(edit.Name))
+        if (edit.Rect is not { Length: 4 } || edit.Color is not { Length: 3 } || (!replacing && string.IsNullOrEmpty(edit.Name)))
         {
             ParseContext.Fatal(PdfErrorCode.InvalidEdit, "a new annotation needs a rectangle, a colour and a name");
         }
 
-        var needsQuads = edit.Annotation is NewAnnotationKind.Highlight or NewAnnotationKind.Underline or NewAnnotationKind.StrikeOut;
+        var needsQuads = edit.Annotation is NewAnnotationKind.Highlight or NewAnnotationKind.Underline or NewAnnotationKind.StrikeOut or NewAnnotationKind.Squiggly;
         if ((needsQuads && edit.QuadPoints is not { Length: > 0 }) || (edit.QuadPoints is { } quads && quads.Length % 8 != 0))
         {
             ParseContext.Fatal(PdfErrorCode.InvalidEdit, "a text markup needs its quadrilaterals");
         }
 
-        if (edit.Annotation == NewAnnotationKind.Ink && edit.Strokes is not { Count: > 0 })
+        if (edit.Annotation == NewAnnotationKind.Ink && (edit.Strokes is not { Count: > 0 } || edit.Strokes.Any(static s => s.Length < 2 || s.Length % 2 != 0)))
         {
             ParseContext.Fatal(PdfErrorCode.InvalidEdit, "an ink annotation needs strokes");
         }
+
+        var vertexCount = (edit.Vertices?.Length ?? 0) / 2;
+        var vertexRule = edit.Annotation switch
+        {
+            NewAnnotationKind.Line => vertexCount == 2,
+            NewAnnotationKind.Polygon => vertexCount >= 3,
+            NewAnnotationKind.PolyLine => vertexCount >= 2,
+            _ => true,
+        };
+        if (!vertexRule || (edit.Vertices is { } v && v.Length % 2 != 0))
+        {
+            ParseContext.Fatal(PdfErrorCode.InvalidEdit, "a line, polygon or polyline has too few vertices");
+        }
+
+        if (edit.Annotation == NewAnnotationKind.Stamp && string.IsNullOrEmpty(edit.StandardName))
+        {
+            ParseContext.Fatal(PdfErrorCode.InvalidEdit, "a stamp needs its standard name");
+        }
+
+        if (edit.Annotation == NewAnnotationKind.FreeText && (!(edit.FontSize >= 1f) || edit.TextColor is not { Length: 3 } || edit.FontId is < 0 or > 11))
+        {
+            ParseContext.Fatal(PdfErrorCode.InvalidEdit, "a text box needs a font, a size and a text colour");
+        }
+
+        if (edit.Dash is < 0 or > 2 || edit.LineStart is < 0 or > 5 || edit.LineEnd is < 0 or > 5 || edit.ReplyKind is < 0 or > 2 || edit.State is < 0 or > 4 || edit.Align is < 0 or > 2)
+        {
+            ParseContext.Fatal(PdfErrorCode.InvalidEdit, "a style value is out of range");
+        }
+
+        if (edit.ReplyKind != 0 && (edit.Annotation != NewAnnotationKind.Text || string.IsNullOrEmpty(edit.ParentName)))
+        {
+            ParseContext.Fatal(PdfErrorCode.InvalidEdit, "a reply is a text annotation that names its parent");
+        }
+    }
+
+    /// <summary>Creates one annotation, its appearance and its popup; returns the annotation's reference.</summary>
+    private static PdfReference AddAnnotation(StrictDocument document, IncrementalUpdate update, PageEntry page, List<PdfObject> annots,
+        Dictionary<string, PdfReference> addedRefs, AnnotationChange edit, DateTimeOffset modified, int rotation)
+    {
+        var built = AnnotationBuilder.Build(edit, page.Reference, modified, rotation);
+        var apRef = Unwrap(update.Add(built.Appearance));
+        var dictionary = built.Annotation.With("AP", new PdfDictionary([new KeyValuePair<PdfName, PdfObject>(new PdfName("N"), apRef)]));
+        if (edit.ReplyKind != 0)
+        {
+            dictionary = dictionary.With("IRT", ResolveParent(document, annots, addedRefs, edit.ParentName!));
+        }
+
+        var noteRef = Unwrap(update.Add(dictionary));
+        annots.Add(noteRef);
+        if (built.Popup is { } popup)
+        {
+            var popupRef = Unwrap(update.Add(popup.With("Parent", noteRef)));
+            Unwrap(update.Replace(noteRef.Number, dictionary.With("Popup", popupRef)));
+            annots.Add(popupRef);
+        }
+
+        return noteRef;
+    }
+
+    /// <summary>Rebuilds a loaded annotation in place: same object number, same place in the list, the popup and the reply link kept.</summary>
+    private static void ReplaceAnnotation(StrictDocument document, IncrementalUpdate update, PageEntry page, List<PdfObject> annots, int index,
+        AnnotationChange edit, DateTimeOffset modified, int rotation)
+    {
+        var item = annots[index];
+        var old = item is PdfReference reference ? (PdfDictionary)document.Latest.LoadReferenced(reference) : (PdfDictionary)item;
+        var name = old["NM"] is PdfString nm ? NameText(nm) : edit.Name;
+        var effective = edit with { Name = string.IsNullOrEmpty(name) ? edit.Name ?? "replaced" : name };
+        var built = AnnotationBuilder.Build(effective, page.Reference, modified, rotation);
+        var apRef = Unwrap(update.Add(built.Appearance));
+        var dictionary = built.Annotation.With("AP", new PdfDictionary([new KeyValuePair<PdfName, PdfObject>(new PdfName("N"), apRef)]));
+        foreach (var key in new[] { "IRT", "Popup" })
+        {
+            if (old[key] is { } carried && dictionary[key] is null)
+            {
+                dictionary = dictionary.With(key, carried);
+            }
+        }
+
+        if (edit.Created is null && old["CreationDate"] is { } created && dictionary["CreationDate"] is null)
+        {
+            dictionary = dictionary.With("CreationDate", created);
+        }
+
+        if (dictionary["Popup"] is null && built.Popup is { } popup && item is PdfReference self)
+        {
+            var popupRef = Unwrap(update.Add(popup.With("Parent", self)));
+            dictionary = dictionary.With("Popup", popupRef);
+            annots.Add(popupRef);
+        }
+
+        if (item is PdfReference r)
+        {
+            Unwrap(update.Replace(r.Number, dictionary));
+        }
+        else
+        {
+            annots[index] = dictionary;
+        }
+    }
+
+    /// <summary>Takes an annotation off the list, and its popup with it (the popup belongs to it and would be left dangling).</summary>
+    private static void RemoveWithPopup(StrictDocument document, List<PdfObject> annots, int index)
+    {
+        var target = annots[index] is PdfReference reference ? document.Latest.LoadReferenced(reference) as PdfDictionary : annots[index] as PdfDictionary;
+        annots.RemoveAt(index);
+        if (target?["Popup"] is PdfReference popup)
+        {
+            annots.RemoveAll(item => item is PdfReference r && r.Number == popup.Number);
+        }
+    }
+
+    private static PdfReference ResolveParent(StrictDocument document, List<PdfObject> annots, Dictionary<string, PdfReference> addedRefs, string name)
+    {
+        if (addedRefs.TryGetValue(name, out var fresh))
+        {
+            return fresh;
+        }
+
+        var newNumbers = addedRefs.Values.Select(static r => r.Number).ToHashSet();
+        foreach (var item in annots)
+        {
+            if (item is PdfReference r && !newNumbers.Contains(r.Number)
+                && document.Latest.LoadReferenced(r) is PdfDictionary d && d["NM"] is PdfString nm && string.Equals(NameText(nm), name, StringComparison.Ordinal))
+            {
+                return r;
+            }
+        }
+
+        ParseContext.Fatal(PdfErrorCode.InvalidEdit, "a reply names a parent that is not on its page");
+        throw new InvalidOperationException();
+    }
+
+    /// <summary>The page's effective /Rotate, which may be inherited from the page tree (7.7.3.3), in degrees; 0 for a value that is not a multiple of 90.</summary>
+    internal static int PageRotation(StrictDocument document, PageEntry page)
+    {
+        PdfDictionary? current = page.Dictionary;
+        for (var depth = 0; depth < 64 && current is not null; depth++)
+        {
+            if (current["Rotate"] is { } value)
+            {
+                var degrees = document.Latest.ResolveInternal(value) switch
+                {
+                    PdfInteger i => i.Value,
+                    PdfReal r => (long)Math.Round(r.Value),
+                    _ => 0L,
+                };
+                var normal = (int)(((degrees % 360) + 360) % 360);
+                return normal % 90 == 0 ? normal : 0;
+            }
+
+            current = current["Parent"] is PdfReference parent ? document.Latest.LoadReferenced(parent) as PdfDictionary : null;
+        }
+
+        return 0;
     }
 
     /// <summary>Finds the annotation an edit targets in the page's list, verifies the expectation, and returns its index.</summary>

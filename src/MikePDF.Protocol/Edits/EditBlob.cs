@@ -78,7 +78,7 @@ public enum EditTraits : uint
 /// One annotation edit of the edit blob. Pages are ordinals in the base document (0 based): the broker translates page identities before it writes
 /// the blob. Every coordinate is in default user space, with no conversion in the writer (save-pipeline 7).
 /// </summary>
-public sealed class AnnotationEdit
+public sealed record AnnotationEdit
 {
     public EditOperation Operation { get; init; }
 

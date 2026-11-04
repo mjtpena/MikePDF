@@ -33,6 +33,7 @@ public static class EditCommandCatalog
         ["MoveAnnotation"] = EditKinds.Annotations,
         ["ResizeAnnotation"] = EditKinds.Annotations,
         ["DeleteAnnotation"] = EditKinds.Annotations,
+        ["CompositeAnnotation"] = EditKinds.Annotations,
         ["AddReply"] = EditKinds.Annotations,
         ["SetReviewState"] = EditKinds.Annotations,
         ["AddInkStroke"] = EditKinds.Annotations,

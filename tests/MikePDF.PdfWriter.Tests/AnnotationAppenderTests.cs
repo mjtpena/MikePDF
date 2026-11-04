@@ -136,11 +136,11 @@ public sealed class AnnotationAppenderTests
         Assert.Equal("Multiply", ((PdfDictionary)graphicsStates["GS"]!).GetName("BM")); // a highlight darkens the text under it
         var contents = Encoding.ASCII.GetString(doc.DecodeStream(form).Value);
         Assert.Contains("/GS gs", contents, StringComparison.Ordinal);
-        Assert.Contains(" f\n", contents, StringComparison.Ordinal);
+        Assert.Contains("f\nQ\n", contents, StringComparison.Ordinal);
 
         var note = Annotation(doc, 0, 1);
         Assert.Equal(28, ((PdfInteger)note["F"]!).Value); // Print, NoZoom, NoRotate
-        Assert.Equal("Note", note.GetName("Name"));
+        Assert.Equal("Comment", note.GetName("Name")); // the default icon
         var title = Assert.IsType<PdfString>(note["Contents"]);
         Assert.True(title.Value.StartsWith(new byte[] { 0xFE, 0xFF })); // not ASCII: UTF-16BE with a byte order mark
 

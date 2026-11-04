@@ -122,9 +122,9 @@ public sealed class AnnotationEditMapperTests
     }
 
     [Fact]
-    public void AKindNobodyWritesYetIsRefused()
+    public void AKindThatDoesNotExistIsRefused()
     {
-        var add = EditCommand.Create("AddAnnotation", new { page = 0, kind = "Stamp", name = "a", rect = new[] { 1f, 2f, 3f, 4f }, color = new[] { 1f, 0f, 0f } });
+        var add = EditCommand.Create("AddAnnotation", new { page = 0, kind = "Hologram", name = "a", rect = new[] { 1f, 2f, 3f, 4f }, color = new[] { 1f, 0f, 0f } });
 
         Assert.Throws<UnsupportedEditException>(() => AnnotationEditMapper.ToBlob([add], 1));
     }

@@ -15,6 +15,8 @@
   </ItemGroup>
   <ItemGroup>
     <!-- The visual-diff tool's image type and SSIM (ADR-0011 decision 5 compares printed output with them), compiled in rather than referenced: the tool is an executable. -->
+    <!-- The one conversion from a decoded edit to the writer's terms (the host is a self-contained executable and cannot be referenced). -->
+    <Compile Include="..\..\src\MikePDF.WriterHost\EditConversion.cs" Link="Saving\Linked\EditConversion.cs" />
     <Compile Include="..\..\tools\MikePDF.Render\Imaging\Ssim.cs" Link="Printing\Linked\Ssim.cs" />
     <Compile Include="..\..\tools\MikePDF.Render\Imaging\BgraImage.cs" Link="Printing\Linked\BgraImage.cs" />
   </ItemGroup>
