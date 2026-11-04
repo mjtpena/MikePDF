@@ -10,5 +10,7 @@
     <!-- BSD-3-Clause PDFium test resources, see Fixtures/pdfium/MANIFEST.md -->
     <Content Include="Fixtures\pdfium\*.pdf" CopyToOutputDirectory="PreserveNewest" LinkBase="Fixtures\pdfium" />
     <Content Include="Fixtures\pdfium\MANIFEST.md" CopyToOutputDirectory="PreserveNewest" LinkBase="Fixtures\pdfium" />
+    <!-- Assembler fixtures A, B and C, made by spikes/S11/fixtures/gen_fixtures.py (the project's own, Apache-2.0), see Fixtures/assembly/MANIFEST.md -->
+    <Content Include="Fixtures\assembly\*" CopyToOutputDirectory="PreserveNewest" LinkBase="Fixtures\assembly" />
   </ItemGroup>
 </Project>

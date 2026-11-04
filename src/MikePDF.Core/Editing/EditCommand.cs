@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
 
 namespace MikePDF.Core.Editing;
@@ -106,8 +107,21 @@ public sealed class EditCommand
 
     public EditKinds Kind => EditCommandCatalog.KindOf(Cmd);
 
-    /// <summary>Builds a command from any serialisable object of named fields (an anonymous object is the usual caller).</summary>
+    /// <summary>
+    /// Builds a command from any serialisable object of named fields (an anonymous object is the usual caller). This serialises by reflection, which a trimmed or Native AOT
+    /// build cannot do for a type nobody names: it is for tests, fuzz targets and tools. Shipped code builds the payload with <see cref="FromJson"/> or the constructor.
+    /// </summary>
+    [RequiresUnreferencedCode("Serialises the fields by reflection: the properties of an anonymous type are trimmed away. Use FromJson in shipped code.")]
+    [RequiresDynamicCode("Serialises the fields by reflection. Use FromJson in shipped code.")]
     public static EditCommand Create(string cmd, object fields) => new(cmd, JsonSerializer.SerializeToElement(fields));
+
+    /// <summary>Builds a command from the JSON text of its fields (an object). No reflection: safe in a trimmed or Native AOT build.</summary>
+    public static EditCommand FromJson(string cmd, string fieldsJson)
+    {
+        ArgumentNullException.ThrowIfNull(fieldsJson);
+        using var document = JsonDocument.Parse(fieldsJson);
+        return new EditCommand(cmd, document.RootElement);
+    }
 
     public override string ToString() => Cmd + " " + Payload.GetRawText();
 }

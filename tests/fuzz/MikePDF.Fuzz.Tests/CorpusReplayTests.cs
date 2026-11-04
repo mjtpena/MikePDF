@@ -124,6 +124,32 @@ public class CorpusReplayTests
             MikePDF.PdfWriter.Fuzz.SaveFuzzTargets.EditOutcome(File.ReadAllBytes(file));
     }
 
+    [Fact]
+    public void The_pdf_seeds_and_corpus_pass_the_page_assembler()
+    {
+        foreach (var file in FuzzAssets.Pdfs)
+            MikePDF.PdfWriter.Fuzz.AssembleFuzzTargets.AssembleOutcome(File.ReadAllBytes(file));
+
+        // The assembler fixtures (A, B, C) with cuts and byte flips spread over the whole file: nothing may throw, hang or break an invariant.
+        var fixtures = FuzzAssets.Pdfs.Where(static f => Path.GetFileName(f) is "A.pdf" or "B.pdf" or "C.pdf").ToList();
+        Assert.Equal(3, fixtures.Count);
+        foreach (var file in fixtures)
+        {
+            byte[] seed = File.ReadAllBytes(file);
+            int stride = Math.Max(1, seed.Length / 300);
+            for (int cut = 0; cut < seed.Length; cut += stride) MikePDF.PdfWriter.Fuzz.AssembleFuzzTargets.AssembleOutcome(seed[..cut]);
+            for (int at = 0; at < seed.Length; at += stride)
+            {
+                byte[] mutated = (byte[])seed.Clone();
+                mutated[at] ^= 0xFF;
+                MikePDF.PdfWriter.Fuzz.AssembleFuzzTargets.AssembleOutcome(mutated);
+            }
+        }
+
+        foreach (var file in Corpus("pdfwriter-assemble"))
+            MikePDF.PdfWriter.Fuzz.AssembleFuzzTargets.AssembleOutcome(File.ReadAllBytes(file));
+    }
+
     // Every truncation, and a byte flip at every position: nothing may throw, whatever the bytes.
     private static void ReplayWithEveryTruncationAndFlip(byte[] seed, Func<byte[], long> outcome)
     {

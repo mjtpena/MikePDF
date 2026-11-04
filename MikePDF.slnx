@@ -33,5 +33,6 @@
     <Project Path="tools/MikePDF.ProtocolGen/MikePDF.ProtocolGen.csproj" />
     <Project Path="tools/MikePDF.Render/MikePDF.Render.csproj" />
     <Project Path="tools/MikePDF.Render.Reference/MikePDF.Render.Reference.csproj" />
+    <Project Path="tools/MikePDF.TrimProbe/MikePDF.TrimProbe.csproj" />
   </Folder>
 </Solution>

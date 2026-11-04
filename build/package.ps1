@@ -4,7 +4,7 @@
 .DESCRIPTION
   Single architecture (default):
     1. builds the sandboxed engine with CMake (./build.ps1 -SkipManaged), unless -SkipNativeBuild
-    2. publishes MikePDF.App: self-contained .NET, ReadyToRun, framework-dependent Windows App SDK (not Native AOT yet: see MikePDF.App.csproj)
+    2. publishes MikePDF.App: self-contained .NET, trimmed (install size: docs/perf/install-size.md), ReadyToRun, framework-dependent Windows App SDK (not Native AOT yet: see MikePDF.App.csproj)
     3. lays out the package: app, Engine\ (MikePDF.Engine.exe + pdfium.dll; the engine runs in place from the package), ShellExt\ (the Explorer thumbnail provider and preview
        handler DLL, from the native build), ShellHost\ (MikePDF.ShellHost.exe, Native AOT, published here: ADR-0018), Licenses\, Assets
     4. writes AppxManifest.xml from the build's manifest with the identity from build/store/identity.json (parameters override), the version,
@@ -163,7 +163,7 @@ foreach ($f in 'MikePDF.Engine.exe', 'pdfium.dll', 'MikePDF.ShellExt.dll') { if 
 
 $publish = Join-Path $OutDir "publish-$Arch$suffix"
 if (-not $SkipPublish) {
-    Step "Publish MikePDF.App ($Arch, self-contained, ReadyToRun)"
+    Step "Publish MikePDF.App ($Arch, self-contained, trimmed, ReadyToRun)"
     if (Test-Path $publish) { Remove-Item -Recurse -Force $publish }
     $publishArgs = @(
         'publish', (Join-Path $root 'src/MikePDF.App/MikePDF.App.csproj'), '-c', 'Release', '-r', "win-$Arch", '--self-contained', 'true',
@@ -171,8 +171,14 @@ if (-not $SkipPublish) {
         # resources.pri must carry the package's name, not the development manifest's (the certification kit's "App resources" test).
         "-p:ProjectPriIndexName=$($identity.Name)")
     if ($TestBuild) { $publishArgs += '-p:MikePDFSelfTest=true' }
-    dotnet @publishArgs
+    $publishLog = @()
+    dotnet @publishArgs 2>&1 | Tee-Object -Variable publishLog | Out-Host
     if ($LASTEXITCODE -ne 0) { throw 'dotnet publish failed' }
+    # The trimmer summarises the warnings of an assembly we do not build as one IL2104. Two are known and cannot be fixed here (the C#/WinRT 2.2.0 runtime and the Windows SDK
+    # projection of the .NET SDK: see MikePDF.App.csproj); an IL2104 for any other assembly is a new trim hazard and fails the package.
+    $knownTrimWarnings = 'WinRT.Runtime', 'Microsoft.Windows.SDK.NET'
+    $newTrimWarnings = @($publishLog | ForEach-Object { "$_" } | Select-String -Pattern "IL2104: Assembly '([^']+)'" | ForEach-Object { $_.Matches[0].Groups[1].Value } | Where-Object { $_ -notin $knownTrimWarnings } | Select-Object -Unique)
+    if ($newTrimWarnings.Count -gt 0) { throw "The trimmer reports warnings for assemblies that were clean before: $($newTrimWarnings -join ', '). Publish with -p:TrimmerSingleWarn=false to see them." }
 }
 if (-not (Test-Path (Join-Path $publish 'MikePDF.exe'))) { throw "No MikePDF.exe in $publish" }
 

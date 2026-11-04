@@ -1,8 +1,12 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
+    <!-- Trim and AOT analysers on every build: the app publishes trimmed (docs/perf/install-size.md) and ShellHost is Native AOT. -->
+    <IsAotCompatible>true</IsAotCompatible>
     <Description>Viewer logic with no UI and no PDF parsing: coordinate maths, layout, zoom, tile scheduling and caching (master prompt 6.3, 7.1; ADR-0006).</Description>
   </PropertyGroup>
   <ItemGroup>
+    <!-- MIT, build tool, pinned so that an SDK update does not change the lock files: see MikePDF.App.csproj. -->
+    <PackageReference Include="Microsoft.NET.ILLink.Tasks" VersionOverride="10.0.14" PrivateAssets="all" />
     <!-- Only for the Status enum (typed errors, 6.4). -->
     <ProjectReference Include="..\MikePDF.Protocol\MikePDF.Protocol.csproj" />
     <!-- The edit mapper folds ink strokes into annotations with the same simplification and outline code the overlay and the appearance use. -->

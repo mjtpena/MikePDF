@@ -172,7 +172,7 @@
       "targetsInherited": ["R2", "R3"],
       "measuredBy": "package",
       "harnessMetrics": ["package.install_size"],
-      "notes": "Unpacked size of the .msix (the sum of its files), excluding optional AI models; skipped when no package has been built. The size of the .msix file itself is reported as package.msix_file_size."
+      "notes": "Unpacked size of the .msix (the sum of its files), excluding optional AI models; skipped when no package has been built. The size of the .msix file itself is reported as package.msix_file_size. Gated per architecture by the package job of .github/workflows/store-release.yml (build/store/check-package-size.ps1 reads this target); see docs/perf/install-size.md."
     },
     {
       "budgetId": "recovery.engine_crash",

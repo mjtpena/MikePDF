@@ -1,0 +1,31 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    MikePDF.TrimProbe: the non-UI half of MikePDF.App, run in the form it ships in. build/trim-probe.ps1 publishes this project exactly as build/package.ps1 publishes the app
+    (self-contained, trimmed with TrimMode=full, ReadyToRun) and runs the result: settings and store JSON, the session file, edit commands, and a sandboxed engine session
+    through MikePDF.Broker and the MessagePack protocol. A reflection pattern the trimmer cannot see fails here, in seconds and without a window, instead of at a customer's
+    first launch. What it cannot reach is listed in docs/perf/install-size.md (the XAML, WinUI and COM activation parts, covered by the UI journeys).
+  -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <AssemblyName>mikepdf-trimprobe</AssemblyName>
+    <RootNamespace>MikePDF.TrimProbe</RootNamespace>
+    <Description>Runs MikePDF's non-UI libraries trimmed, as they ship.</Description>
+    <IsPackable>false</IsPackable>
+    <RuntimeIdentifier>$(MikePDFRuntimeIdentifier)</RuntimeIdentifier>
+    <SelfContained>true</SelfContained>
+    <PublishTrimmed>true</PublishTrimmed>
+    <TrimMode>full</TrimMode>
+    <NoWarn>$(NoWarn);CA2007</NoWarn>
+    <!-- The two library summaries MikePDF.App.csproj explains; build/trim-probe.ps1 fails on an IL2104 for any other assembly. -->
+    <WarningsNotAsErrors>$(WarningsNotAsErrors);IL2104</WarningsNotAsErrors>
+    <!-- Lock files are for the shipped projects; this tool restores the same packages as its references. -->
+    <RestorePackagesWithLockFile>false</RestorePackagesWithLockFile>
+    <RestoreLockedMode>false</RestoreLockedMode>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\MikePDF.Core\MikePDF.Core.csproj" />
+    <ProjectReference Include="..\..\src\MikePDF.Broker\MikePDF.Broker.csproj" />
+    <ProjectReference Include="..\..\src\MikePDF.Protocol\MikePDF.Protocol.csproj" />
+    <ProjectReference Include="..\..\src\MikePDF.Printing\MikePDF.Printing.csproj" />
+  </ItemGroup>
+</Project>
