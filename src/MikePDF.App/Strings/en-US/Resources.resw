@@ -979,6 +979,8 @@
   <data name="Recover_Unnamed" xml:space="preserve"><value>A document</value></data>
   <data name="Recover_DiscardConfirm" xml:space="preserve"><value>Discard these changes? This can't be undone.</value></data>
   <data name="Recover_Item_Automation" xml:space="preserve"><value>Open {0}: {1}</value></data>
+  <data name="Recover_Session_One" xml:space="preserve"><value>Also reopen the document that was open last time</value></data>
+  <data name="Recover_Session_Other" xml:space="preserve"><value>Also reopen the {0} documents that were open last time</value></data>
   <data name="Recover_Open" xml:space="preserve"><value>Open</value></data>
   <data name="Recover_Join" xml:space="preserve"><value>, </value></data>
   <data name="Recover_Part_Markup_One" xml:space="preserve"><value>1 markup change</value></data>

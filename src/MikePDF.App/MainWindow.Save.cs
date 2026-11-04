@@ -223,7 +223,7 @@ public sealed partial class MainWindow
         }
 
         var baseName = System.IO.Path.GetFileNameWithoutExtension(current);
-        var suggested = mode == SaveMode.FlattenedCopy ? Strings.Format("Save_SuggestedFlatName", baseName) : edited ? Strings.Format("Save_SuggestedName", baseName) : baseName;
+        var suggested = mode == SaveMode.FlattenedCopy ? SaveNames.WithSuffix(baseName, Strings.Get("Save_SuggestedFlatName")) : edited ? SaveNames.WithSuffix(baseName, Strings.Get("Save_SuggestedName")) : baseName; // no second "(edited)" on a copy of a copy
         var picked = await PickSavePathAsync(suggested, mode == SaveMode.FlattenedCopy ? Strings.Get("Save_FlattenedTitle") : Strings.Get("Save_AsDialog_Title"));
         if (picked is null)
         {

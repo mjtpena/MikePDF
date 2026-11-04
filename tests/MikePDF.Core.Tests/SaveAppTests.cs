@@ -1,4 +1,5 @@
 using MikePDF.Core.Commands;
+using MikePDF.Core.Windowing;
 using MikePDF.Core.Editing;
 using MikePDF.Core.Editing.Journal;
 using MikePDF.Core.Editing.Recovery;
@@ -221,5 +222,68 @@ public sealed class SaveAppTests : IDisposable
         {
             Assert.True(ResourceText.Has(key), key);
         }
+    }
+
+    // ---- the suggested name of a copy (SaveMode=AlwaysSaveAsCopy) ---------------------------------------------------------------------------------------
+
+    [Fact]
+    public void ACopySuggestsTheEditedSuffixOnceAndNeverTwice()
+    {
+        var format = ResourceText.Get("Save_SuggestedName");
+
+        var first = SaveNames.WithSuffix("Annual report", format);
+        var second = SaveNames.WithSuffix(first, format);
+
+        Assert.Equal("Annual report (edited)", first);
+        Assert.Equal(first, second); // saving a copy of the copy does not give "(edited) (edited)"
+        Assert.Equal("Annual report (EDITED)", SaveNames.WithSuffix("Annual report (EDITED)", format)); // case does not matter to a file name
+    }
+
+    [Fact]
+    public void ANameThatOnlyMentionsTheSuffixInTheMiddleStillGetsIt()
+    {
+        var format = ResourceText.Get("Save_SuggestedName");
+
+        Assert.Equal("Notes (edited) v2 (edited)", SaveNames.WithSuffix("Notes (edited) v2", format));
+    }
+
+    [Fact]
+    public void TheFlattenedSuffixIsKeptOnceToo()
+    {
+        var format = ResourceText.Get("Save_SuggestedFlatName");
+
+        var flat = SaveNames.WithSuffix("Form", format);
+
+        Assert.Equal("Form (flattened)", flat);
+        Assert.Equal(flat, SaveNames.WithSuffix(flat, format));
+    }
+
+    [Theory]
+    [InlineData("{0} (copy)", "a (copy)", "a (copy)")]
+    [InlineData("{0} (copy)", "a", "a (copy)")]
+    [InlineData("Copy of {0}", "Copy of a", "Copy of Copy of a")] // a prefix format has no suffix to look for: applied as it is
+    [InlineData("{0}", "a", "a")]
+    public void AnyFormatTheTranslationsUseIsApplied(string format, string name, string expected) => Assert.Equal(expected, SaveNames.WithSuffix(name, format));
+
+    // ---- one dialog after a crash, not two ------------------------------------------------------------------------------------------------------------------
+
+    [Theory]
+    [InlineData(RestoreAction.AskThenRestore, true, RestoreAction.Restore)] // the box was left checked: no second question
+    [InlineData(RestoreAction.AskThenRestore, false, RestoreAction.StartFresh)] // unchecked: start fresh, no second question
+    [InlineData(RestoreAction.AskThenRestore, null, RestoreAction.AskThenRestore)] // no recovery dialog was shown (no journal): the session question is asked on its own, as before
+    [InlineData(RestoreAction.Restore, false, RestoreAction.Restore)] // the setting says always: nothing was asked, so there is no answer to obey
+    [InlineData(RestoreAction.StartFresh, true, RestoreAction.StartFresh)]
+    [InlineData(RestoreAction.StartFresh, null, RestoreAction.StartFresh)]
+    public void TheSessionQuestionRidesInTheRecoveryDialogWhenThereIsOne(RestoreAction decided, bool? answered, RestoreAction expected) =>
+        Assert.Equal(expected, SessionPolicy.AfterRecovery(decided, answered));
+
+    [Fact]
+    public void WithRestoreSetToNeverTheSessionIsNotAskedAboutButUnsavedWorkStillIs()
+    {
+        var unclean = new SessionFile(false, DateTimeOffset.UtcNow, 0, [new SessionWindow(new StoredBounds(0, 0, 800, 600, 96, "d"), false, 0, false, "thumbnails", [new SessionTab(TabKind.Document, @"C:.pdf", null, null, TabViewState.Start, true)])]);
+
+        Assert.Equal(RestoreAction.StartFresh, SessionPolicy.Decide(RestoreMode.Never, unclean)); // no session question, so none rides anywhere
+        Assert.Equal(RestoreAction.AskThenRestore, SessionPolicy.Decide(RestoreMode.Ask, unclean)); // and with Ask it is the one that rides in the recovery dialog
+        // The recovery dialog itself does not consult the setting: PromptStartupRecoveryAsync takes no restore mode (MainWindow.Recovery.cs).
     }
 }
