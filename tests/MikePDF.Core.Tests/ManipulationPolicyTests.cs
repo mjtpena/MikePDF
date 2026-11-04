@@ -16,9 +16,9 @@ public sealed class ManipulationPolicyTests
     [InlineData(PointerKind.Pen, true, false)]
     [InlineData(PointerKind.Mouse, false, false)]
     [InlineData(PointerKind.Mouse, true, false)]
-    [InlineData(PointerKind.Touchpad, false, false)]
+    [InlineData(PointerKind.Touchpad, false, true)]
     [InlineData(PointerKind.Touchpad, true, false)]
-    public void OnlyAFingerAndAPenThatIsNotSelectingMayMoveTheView(PointerKind device, bool selecting, bool expected) =>
+    public void EverythingButAMouseMayMoveTheViewUnlessItsPressIsSelecting(PointerKind device, bool selecting, bool expected) =>
         Assert.Equal(expected, ManipulationPolicy.MayMoveView(device, selecting));
 
     [Fact]

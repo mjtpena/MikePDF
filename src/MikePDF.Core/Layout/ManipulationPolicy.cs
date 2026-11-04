@@ -16,14 +16,14 @@ public enum PointerKind
 public static class ManipulationPolicy
 {
     /// <summary>
-    /// Whether a manipulation by <paramref name="device"/> may pan, zoom, run inertia or turn a page. A finger always may. A mouse or touchpad never may: it scrolls with the wheel, the
-    /// scrollbars and the auto-scroll of a selection drag, and its drag selects. A pen may, except when its press began on the page (<paramref name="selectionPressActive"/>: a
-    /// selection or a link), when its drag selects too.
+    /// Whether a manipulation by <paramref name="device"/> may pan, zoom, run inertia or turn a page. A finger always may. A mouse never may: it scrolls with the wheel, the
+    /// scrollbars and the auto-scroll of a selection drag, and its drag selects. A pen or a precision touchpad (whose two-finger pan and pinch arrive as manipulations) may, except
+    /// when its press began on the page (<paramref name="selectionPressActive"/>: a selection or a link), when its drag selects too.
     /// </summary>
     public static bool MayMoveView(PointerKind device, bool selectionPressActive) => device switch
     {
         PointerKind.Touch => true,
-        PointerKind.Pen => !selectionPressActive,
+        PointerKind.Pen or PointerKind.Touchpad => !selectionPressActive,
         _ => false,
     };
 }
