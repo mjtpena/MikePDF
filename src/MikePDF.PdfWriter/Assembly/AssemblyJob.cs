@@ -689,6 +689,26 @@ internal sealed partial class AssemblyJob
     private void AddWarning(AssemblyWarningCode code, int source, int count, string message) =>
         _warnings.Add(new AssemblyWarning(code, source, count, message));
 
+    /// <summary>File-attachment annotations on pages of the source that are not in the output. When the annotations cannot be read, <paramref name="unknown"/> is set: nothing may be dropped unreported.</summary>
+    private static int LeftOutAttachments(SourceState state, out bool unknown)
+    {
+        unknown = false;
+        if (!SourceDocument.TryRead(() => state.Document.AttachmentsOnPages, out var perPage))
+        {
+            unknown = true;
+            return 0;
+        }
+
+        var total = 0;
+        for (var page = 0; page < perPage.Count; page++)
+        {
+            if (!state.Included.Contains(page))
+                total += perPage[page];
+        }
+
+        return total;
+    }
+
     private void CollectWarnings()
     {
         foreach (var state in _contributing)
@@ -699,6 +719,12 @@ internal sealed partial class AssemblyJob
                 AddWarning(AssemblyWarningCode.TagsDropped, index, 1, "the structure tree (accessibility tags) is not carried to the new file");
             if (info is { HasSignatures: true })
                 AddWarning(AssemblyWarningCode.SignaturesNotKept, index, state.SignaturesCleared, "digital signatures are not kept in the new file");
+            var leftOut = LeftOutAttachments(state, out var cannotTell);
+            var embedded = info is { HasEmbeddedFiles: true };
+            if (embedded || leftOut > 0 || cannotTell)
+                AddWarning(AssemblyWarningCode.AttachmentsDropped, index, Math.Max(1, leftOut + (embedded ? 1 : 0)), "embedded files and attachments on pages that are left out are not carried to the new file");
+            if (info is { HasDocumentScripts: true })
+                AddWarning(AssemblyWarningCode.ScriptsDropped, index, Math.Max(1, state.Document.DocumentScriptKinds), "document scripts and the open action are not carried to the new file");
             if (state.MediaBoxDefaulted > 0)
                 AddWarning(AssemblyWarningCode.MediaBoxDefaulted, index, state.MediaBoxDefaulted, "pages with no media box were given the Letter size");
         }

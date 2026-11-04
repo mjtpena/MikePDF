@@ -240,6 +240,18 @@ public enum AssemblyWarningCode
     /// <summary>A source is tagged (has a structure tree) and the output has no tags. Decided for v1.0: tags are dropped, the UI says so before the save (OQ-PO-9).</summary>
     TagsDropped,
 
+    /// <summary>
+    /// A source has embedded files (a catalog-level <c>/Names /EmbeddedFiles</c> tree, which is not carried) or file-attachment annotations on pages that are not in the
+    /// output. <see cref="AssemblyWarning.Count"/> is the number of attachment annotations left out, plus one for the embedded-files tree. File attachments on kept pages stay.
+    /// </summary>
+    AttachmentsDropped,
+
+    /// <summary>
+    /// A source has document-level scripts or an action that runs when the document opens, none of which is carried: <c>/Names /JavaScript</c>, <c>/OpenAction</c> or the
+    /// catalog's <c>/AA</c>. <see cref="AssemblyWarning.Count"/> is how many of the three it has. Actions on links, buttons and fields are kept.
+    /// </summary>
+    ScriptsDropped,
+
     /// <summary>A source has digital signatures; the output is a new document, so they are gone. The signature fields stay, empty, if their page is in.</summary>
     SignaturesNotKept,
 
@@ -336,7 +348,9 @@ public sealed record AssemblerSourceInfo(
     bool HasForm,
     bool HasPageLabels,
     bool HasNamedDestinations,
-    string? Title);
+    string? Title,
+    bool HasEmbeddedFiles = false,
+    bool HasDocumentScripts = false);
 
 /// <summary>One source after opening: its info, or why it was refused. Every source is reported, so a dialog can list all the files that cannot be used at once.</summary>
 public sealed record AssemblerSourceStatus(int Index, string Name, AssemblerSourceInfo? Info, AssemblyRefusal? Refusal)

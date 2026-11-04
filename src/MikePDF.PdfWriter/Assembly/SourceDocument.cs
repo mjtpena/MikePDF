@@ -312,6 +312,46 @@ internal sealed class SourceDocument
 
     public bool HasOutline => Dict(Catalog["Outlines"]) is { } outlines && outlines["First"] is not null and not PdfNull;
 
+    /// <summary>A catalog-level <c>/Names /EmbeddedFiles</c> tree. The output has no such tree.</summary>
+    public bool HasEmbeddedFiles => Dict(Catalog["Names"]) is { } names && names["EmbeddedFiles"] is not null and not PdfNull;
+
+    /// <summary>How many of document JavaScript (<c>/Names /JavaScript</c>), <c>/OpenAction</c> and the catalog's <c>/AA</c> the source has. The output has none of them.</summary>
+    public int DocumentScriptKinds =>
+        ((Dict(Catalog["Names"]) is { } names && names["JavaScript"] is not null and not PdfNull) ? 1 : 0)
+        + (Catalog["OpenAction"] is not null and not PdfNull ? 1 : 0)
+        + (Catalog["AA"] is not null and not PdfNull ? 1 : 0);
+
+    public bool HasDocumentScripts => DocumentScriptKinds > 0;
+
+    private int[]? _attachmentsOnPage;
+
+    /// <summary>
+    /// File-attachment annotations on each page, read once per source (a split asks again for every part). Each page's annotation array is bounded by
+    /// <see cref="AssemblerLimits.MaxAnnotationsPerPage"/>; a page with more is counted up to the bound.
+    /// </summary>
+    public IReadOnlyList<int> AttachmentsOnPages
+    {
+        get
+        {
+            if (_attachmentsOnPage is not null)
+                return _attachmentsOnPage;
+            var counts = new int[Pages.Count];
+            for (var i = 0; i < counts.Length; i++)
+            {
+                if (Arr(Pages[i].Dictionary["Annots"]) is not { } annots)
+                    continue;
+                for (var k = 0; k < Math.Min(annots.Count, Limits.MaxAnnotationsPerPage); k++)
+                {
+                    if (Dict(annots[k]) is { } annotation && annotation.GetName("Subtype") == "FileAttachment")
+                        counts[i]++;
+                }
+            }
+
+            _attachmentsOnPage = counts;
+            return counts;
+        }
+    }
+
     public bool HasPageLabels => Dict(Catalog["PageLabels"]) is not null;
 
     public bool HasNamedDestinations =>

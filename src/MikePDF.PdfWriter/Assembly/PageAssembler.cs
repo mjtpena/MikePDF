@@ -90,6 +90,10 @@ public sealed class AssemblySourceSet
                     warnings.Add(new AssemblyWarning(AssemblyWarningCode.TagsDropped, i, 1, "the structure tree (accessibility tags) is not carried to the new file"));
                 if (info.HasSignatures)
                     warnings.Add(new AssemblyWarning(AssemblyWarningCode.SignaturesNotKept, i, 0, "digital signatures are not kept in the new file"));
+                if (info.HasEmbeddedFiles)
+                    warnings.Add(new AssemblyWarning(AssemblyWarningCode.AttachmentsDropped, i, 1, "the embedded files of the document are not carried to the new file"));
+                if (info.HasDocumentScripts)
+                    warnings.Add(new AssemblyWarning(AssemblyWarningCode.ScriptsDropped, i, Math.Max(1, document.DocumentScriptKinds), "document scripts and the open action are not carried to the new file"));
             }
             catch (AssemblyAbort abort)
             {
@@ -111,7 +115,12 @@ public sealed class AssemblySourceSet
             Read(() => document.HasForm),
             Read(() => document.HasPageLabels),
             Read(() => document.HasNamedDestinations),
-            SourceDocument.TryRead(() => document.Title, out var title) ? title : null);
+            SourceDocument.TryRead(() => document.Title, out var title) ? title : null,
+            ReadAssumingYes(() => document.HasEmbeddedFiles),
+            ReadAssumingYes(() => document.HasDocumentScripts));
+
+        // What is dropped must be reported: a catalog part that cannot be read is assumed to be there.
+        static bool ReadAssumingYes(Func<bool> read) => !SourceDocument.TryRead(read, out var value) || value;
     }
 
     /// <summary>Assembles the planned pages into one new document held in memory (<see cref="AssemblyOutput.Bytes"/>). The output is reopened and checked unless <see cref="AssemblerOptions.VerifyOutput"/> is off.</summary>
