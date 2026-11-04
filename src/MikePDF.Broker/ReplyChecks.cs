@@ -8,7 +8,7 @@ namespace MikePDF.Broker;
 /// The semantic checks on the engine's replies that the schema cannot express (A.9): the decoder has already enforced every length, count and range;
 /// these relate a reply to the request it answers and to the document. Pure functions, so tests can feed them anything.
 /// </summary>
-internal static class ReplyChecks
+internal static partial class ReplyChecks
 {
     private const int MaxMatchEnd = 200_000; // a page's text is cut at this many characters (GetPageTextReply.total)
 

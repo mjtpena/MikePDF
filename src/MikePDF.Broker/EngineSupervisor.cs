@@ -1044,6 +1044,85 @@ public sealed class SupervisedDocument : IAsyncDisposable
     public Task<EngineResult<TileLease>> RenderBandAsync(RenderBandArgs args, ulong generation, TimeSpan? deadline = null, CancellationToken cancellationToken = default) =>
         CallAsync((client, id, defaultDeadline) => client.RenderBandAsync(id, args, generation, deadline ?? defaultDeadline, cancellationToken), cancellationToken);
 
+    // ---- schema 7 -------------------------------------------------------------------------------------------------------------------------------------
+    // Text quads, the annotation read side, forms and the engine's own save. A restart of the engine is invisible to the position-addressed reads; what is not is the engine's in-memory
+    // state, which only the caller can rebuild: the display mirror (SetAnnotationHidden) and every form value are gone with the engine that held them, and are replayed from the edit model.
+
+    /// <summary>The quadrilaterals that mark a run of characters of a page. See <see cref="EngineClient.GetTextQuadsAsync"/>.</summary>
+    public Task<EngineResult<GetTextQuadsReply>> GetTextQuadsAsync(uint page, uint start, uint count, uint firstQuad, CancellationToken cancellationToken = default) =>
+        CallAsync((client, id, deadline) => client.GetTextQuadsAsync(id, page, start, count, firstQuad, deadline, cancellationToken), cancellationToken);
+
+    public Task<EngineResult<ListAnnotationsReply>> ListAnnotationsAsync(uint page, uint first, uint count, CancellationToken cancellationToken = default) =>
+        CallAsync((client, id, deadline) => client.ListAnnotationsAsync(id, page, first, count, deadline, cancellationToken), cancellationToken);
+
+    public Task<EngineResult<GetAnnotationReply>> GetAnnotationAsync(uint page, uint index, CancellationToken cancellationToken = default) =>
+        CallAsync((client, id, deadline) => client.GetAnnotationAsync(id, page, index, deadline, cancellationToken), cancellationToken);
+
+    public Task<EngineResult<GetInkStrokeReply>> GetInkStrokeAsync(uint page, uint index, uint stroke, uint first, uint count, CancellationToken cancellationToken = default) =>
+        CallAsync((client, id, deadline) => client.GetInkStrokeAsync(id, page, index, stroke, first, count, deadline, cancellationToken), cancellationToken);
+
+    /// <summary>The display mirror: hides or shows one annotation in the engine's in-memory document. The engine puts the file's flags back before it saves.</summary>
+    public Task<EngineResult<SetAnnotationHiddenReply>> SetAnnotationHiddenAsync(uint page, uint index, bool hidden, CancellationToken cancellationToken = default) =>
+        CallAsync((client, id, deadline) => client.SetAnnotationHiddenAsync(id, page, index, hidden, deadline, cancellationToken), cancellationToken);
+
+    public Task<EngineResult<CountAnnotationsReply>> CountAnnotationsAsync(uint firstPage, uint count, CancellationToken cancellationToken = default) =>
+        CallAsync((client, id, deadline) => client.CountAnnotationsAsync(id, firstPage, count, deadline, cancellationToken), cancellationToken);
+
+    public Task<EngineResult<GetFormFieldsReply>> GetFormFieldsAsync(uint first, uint count, CancellationToken cancellationToken = default) =>
+        CallAsync((client, id, deadline) => client.GetFormFieldsAsync(id, first, count, deadline, cancellationToken), cancellationToken);
+
+    public Task<EngineResult<GetFormFieldDetailReply>> GetFormFieldDetailAsync(uint fieldId, uint firstOption, CancellationToken cancellationToken = default) =>
+        CallAsync((client, id, deadline) => client.GetFormFieldDetailAsync(id, fieldId, firstOption, deadline, cancellationToken), cancellationToken);
+
+    /// <summary>Changes one field through PDFium's form-fill events. <paramref name="kind"/>: 0 text, 1 toggle, 2 choice.</summary>
+    public Task<EngineResult<SetFormFieldValueReply>> SetFormFieldValueAsync(uint fieldId, ushort kind, string? text, bool isChecked, IReadOnlyList<uint>? selected, CancellationToken cancellationToken = default) =>
+        CallAsync((client, id, deadline) => client.SetFormFieldValueAsync(id, fieldId, kind, text, isChecked, selected, deadline, cancellationToken), cancellationToken);
+
+    /// <summary>Resets a field (0), resets every field (1) or presses a push button (2); only a reset is ever performed.</summary>
+    public Task<EngineResult<FormActionReply>> FormActionAsync(uint fieldId, ushort action, CancellationToken cancellationToken = default) =>
+        CallAsync((client, id, deadline) => client.FormActionAsync(id, fieldId, action, deadline, cancellationToken), cancellationToken);
+
+    /// <summary>
+    /// PDFium's own save of the engine's in-memory document (stage 2 of a save, save-pipeline 3.3) into <paramref name="output"/>, an empty file the caller made and opened for writing.
+    /// The engine gets a duplicate of the handle and closes it; the caller's handle stays the caller's. <paramref name="mode"/> 0 is incremental, 1 a full rewrite; mode 2 (flattened) is
+    /// the writer host's job and the engine refuses it. The deadline defaults to the save-pipeline's <c>60 s + 30 s per 100 MB</c> when the caller does not give one.
+    /// </summary>
+    public Task<EngineResult<SaveDocumentReply>> SaveDocumentAsync(ushort mode, SafeFileHandle output, TimeSpan? deadline = null, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(output);
+        return CallOnInstanceAsync(
+            (instance, id, defaultDeadline) =>
+            {
+                ulong remote;
+                try
+                {
+                    remote = instance.DuplicateIntoEngine(output);
+                }
+                catch (System.ComponentModel.Win32Exception e)
+                {
+                    return Task.FromResult(EngineResult<SaveDocumentReply>.Fail(Status.EngineCrashed, e.Message));
+                }
+
+                return instance.Client.SaveDocumentAsync(id, mode, 0, remote, deadline ?? SaveDeadline(), cancellationToken);
+            },
+            cancellationToken);
+    }
+
+    private TimeSpan SaveDeadline()
+    {
+        // 60 s + 30 s per 100 MB of the document the engine holds.
+        long bytes = 0;
+        try
+        {
+            bytes = _file.IsInvalid || _file.IsClosed ? 0 : RandomAccess.GetLength(_file);
+        }
+        catch (Exception e) when (e is IOException or ObjectDisposedException or UnauthorizedAccessException)
+        {
+        }
+
+        return TimeSpan.FromSeconds(60 + 30 * (bytes / 100_000_000.0));
+    }
+
     public Task<EngineResult<CancelBeforeReply>> CancelBeforeAsync(ulong generation, CancellationToken cancellationToken = default) =>
         CallAsync((client, id, _) => client.CancelBeforeAsync(id, generation, TimeSpan.FromSeconds(5), cancellationToken), cancellationToken);
 
@@ -1077,7 +1156,12 @@ public sealed class SupervisedDocument : IAsyncDisposable
 
     internal void DisposeHandle() => _file.Dispose();
 
-    private async Task<EngineResult<T>> CallAsync<T>(Func<EngineClient, uint, TimeSpan, Task<EngineResult<T>>> call, CancellationToken cancellationToken)
+    private Task<EngineResult<T>> CallAsync<T>(Func<EngineClient, uint, TimeSpan, Task<EngineResult<T>>> call, CancellationToken cancellationToken)
+        where T : class =>
+        CallOnInstanceAsync((instance, id, deadline) => call(instance.Client, id, deadline), cancellationToken);
+
+    // Like CallAsync, for a call that has to put a handle into the engine it is made on: it gets the instance, not only its client.
+    private async Task<EngineResult<T>> CallOnInstanceAsync<T>(Func<EngineInstance, uint, TimeSpan, Task<EngineResult<T>>> call, CancellationToken cancellationToken)
         where T : class
     {
         if (Volatile.Read(ref _closed) != 0)
@@ -1099,7 +1183,7 @@ public sealed class SupervisedDocument : IAsyncDisposable
                 return EngineResult<T>.Fail(lost, "The document could not be reopened after an engine restart.");
             }
 
-            return await call(instance.Client, acquired.EngineDocumentId, _owner.DefaultDeadline).ConfigureAwait(false);
+            return await call(instance, acquired.EngineDocumentId, _owner.DefaultDeadline).ConfigureAwait(false);
         }
         finally
         {
