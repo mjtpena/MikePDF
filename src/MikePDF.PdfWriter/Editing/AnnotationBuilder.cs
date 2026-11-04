@@ -21,7 +21,7 @@ internal static class AnnotationBuilder
         AnnotationSpec spec;
         try
         {
-            spec = AnnotationSpecBuilder.Build(ToModel(change, modified), pageRotation);
+            spec = AnnotationSpecBuilder.Build(ToModel(change, modified, pageRotation), pageRotation);
         }
         catch (Exception e) when (e is not PdfParseException)
         {
@@ -36,7 +36,7 @@ internal static class AnnotationBuilder
     }
 
     /// <summary>The model's view of an edit: the values the Markup library draws from.</summary>
-    internal static Annotation ToModel(AnnotationChange c, DateTimeOffset modified)
+    internal static Annotation ToModel(AnnotationChange c, DateTimeOffset modified, int pageRotation = 0)
     {
         var rect = c.Rect!;
         var colour = c.Color!;
@@ -58,7 +58,8 @@ internal static class AnnotationBuilder
                 c.FontSize,
                 c.TextColor is { Length: 3 } tc ? Rgb.FromFloats(tc) : Rgb.Black,
                 (TextAlign)c.Align,
-                (c.Traits & 1) != 0),
+                (c.Traits & 1) != 0,
+                pageRotation),
             NewAnnotationKind.Line => new LinePayload(
                 new PointD(c.Vertices![0], c.Vertices[1]),
                 new PointD(c.Vertices[2], c.Vertices[3]),
@@ -123,7 +124,7 @@ internal static class AnnotationBuilder
     {
         SpecName n => new PdfName(n.Value),
         SpecInt i => new PdfInteger(i.Value),
-        SpecReal r => new PdfReal(r.Value),
+        SpecReal r => new PdfReal(Math.Round(r.Value, 4)),
         SpecText t => Text(t.Value),
         SpecDate d => PdfString.FromAscii(d.Value),
         SpecBool b => PdfBoolean.From(b.Value),
@@ -192,5 +193,5 @@ internal static class AnnotationBuilder
     private static PdfDictionary Dictionary(params (string Key, PdfObject Value)[] entries) =>
         new(entries.Select(static e => new KeyValuePair<PdfName, PdfObject>(new PdfName(e.Key), e.Value)));
 
-    private static PdfArray Numbers(double[] values) => new(values.Select(static v => (PdfObject)new PdfReal(v)));
+    private static PdfArray Numbers(double[] values) => new(values.Select(static v => (PdfObject)new PdfReal(Math.Round(v, 4))));
 }

@@ -33,8 +33,11 @@ public sealed record TextMarkupPayload(IReadOnlyList<Quad> Quads) : AnnotationPa
 /// <summary>A sticky note: its icon.</summary>
 public sealed record NotePayload(NoteIcon Icon) : AnnotationPayload;
 
-/// <summary>A text box or typewriter text. The text is the annotation's <c>Contents</c>; the border is its colour and width; the fill is its interior colour.</summary>
-public sealed record FreeTextPayload(FontFamily Family, bool Bold, bool Italic, double Size, Rgb TextColor, TextAlign Align, bool Typewriter) : AnnotationPayload;
+/// <summary>
+/// A text box or typewriter text. The text is the annotation's <c>Contents</c>; the border is its colour and width; the fill is its interior colour.
+/// <c>PageRotation</c> is the page's /Rotate when the box was made: the rectangle is in user space, so which of its sides is the width of the text depends on it.
+/// </summary>
+public sealed record FreeTextPayload(FontFamily Family, bool Bold, bool Italic, double Size, Rgb TextColor, TextAlign Align, bool Typewriter, int PageRotation = 0) : AnnotationPayload;
 
 /// <summary>A rectangle or an ellipse: the rectangle is the geometry.</summary>
 public sealed record BoxPayload : AnnotationPayload;
@@ -112,6 +115,9 @@ public sealed record Annotation
     public PdfRect? PopupRect { get; init; }
 
     public AnnotationOrigin Origin { get; init; } = AnnotationOrigin.Created;
+
+    /// <summary>For a loaded annotation, its PDF object number when the engine reported it (0 when unknown); commands then name the object, since <c>/NM</c> may be missing or repeated.</summary>
+    public int ObjectNumber { get; init; }
 
     public required AnnotationPayload Payload { get; init; }
 

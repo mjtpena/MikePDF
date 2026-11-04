@@ -121,6 +121,11 @@ public static class AnnotationFields
                     f["typewriter"] = true;
                 }
 
+                if (t.PageRotation != 0)
+                {
+                    f["rot"] = t.PageRotation;
+                }
+
                 break;
             case LinePayload l:
                 f["vertices"] = new[] { l.Start.X, l.Start.Y, l.End.X, l.End.Y };
@@ -205,7 +210,8 @@ public static class AnnotationFields
                 Float(f, "size") ?? 12,
                 Rgb.FromNumbers(Floats(f, "tcolor") ?? [0, 0, 0]),
                 Enum.Parse<TextAlign>(Str(f, "align") ?? "left", ignoreCase: true),
-                Bool(f, "typewriter")),
+                Bool(f, "typewriter"),
+                Int(f, "rot") ?? 0),
             MarkupKind.Rectangle or MarkupKind.Ellipse => new BoxPayload(),
             MarkupKind.Line or MarkupKind.Arrow => new LinePayload(new PointD(vertices![0], vertices[1]), new PointD(vertices[2], vertices[3]), le[0], le[1]),
             MarkupKind.Polygon or MarkupKind.PolyLine => new PolyPayload(Points(vertices ?? throw new KeyNotFoundException("vertices")), le[0], le[1]),

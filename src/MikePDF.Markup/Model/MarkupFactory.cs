@@ -190,10 +190,10 @@ public sealed class MarkupFactory(string author, TimeProvider? time = null, Func
 
     /// <summary>A text box over a user-space rectangle. A typewriter has no border and no fill.</summary>
     public Annotation FreeText(int page, PdfRect rect, string text, FontFamily family = FontFamily.Sans, bool bold = false, bool italic = false, double size = 12,
-        Rgb? textColor = null, TextAlign align = TextAlign.Left, bool typewriter = false, double borderWidth = 0, Rgb? borderColor = null, Rgb? fill = null)
+        Rgb? textColor = null, TextAlign align = TextAlign.Left, bool typewriter = false, double borderWidth = 0, Rgb? borderColor = null, Rgb? fill = null, int pageRotation = 0)
     {
         var (clean, _) = WinAnsi.Filter(text);
-        var payload = new FreeTextPayload(family, bold, italic, Math.Clamp(size, 6, 144), textColor ?? Rgb.Black, align, typewriter);
+        var payload = new FreeTextPayload(family, bold, italic, Math.Clamp(size, 6, 144), textColor ?? Rgb.Black, align, typewriter, pageRotation);
         var a = Base(MarkupKind.FreeText, page, rect, borderColor ?? Rgb.Black, payload, clean) with
         {
             Width = typewriter ? 0 : Math.Clamp(borderWidth, 0, 12),
@@ -203,7 +203,17 @@ public sealed class MarkupFactory(string author, TimeProvider? time = null, Func
         return GrowToFit(a);
     }
 
-    /// <summary>The box grown, never shrunk, so that its text fits (free-text 3.3).</summary>
+    /// <summary>
+    /// A text box over a rectangle of the displayed page (a click or a drag with the tool). The rectangle is turned into user space through the page's
+    /// geometry, and the box remembers the page's rotation so that it can grow the right way.
+    /// </summary>
+    public Annotation FreeTextOnPage(int page, PageFrame frame, RectD displayRect, string text, FontFamily family = FontFamily.Sans, bool bold = false, bool italic = false,
+        double size = 12, Rgb? textColor = null, TextAlign align = TextAlign.Left, bool typewriter = false, double borderWidth = 0, Rgb? borderColor = null, Rgb? fill = null)
+    {
+        return FreeText(page, frame.ToUser(displayRect), text, family, bold, italic, size, textColor, align, typewriter, borderWidth, borderColor, fill, frame.RotateDegrees);
+    }
+
+    /// <summary>The box grown, never shrunk, so that its text fits (free-text 3.3). It grows down in the displayed page, whatever the page's rotation.</summary>
     public static Annotation GrowToFit(Annotation a)
     {
         if (a.Payload is not FreeTextPayload text)
@@ -211,11 +221,28 @@ public sealed class MarkupFactory(string author, TimeProvider? time = null, Func
             return a;
         }
 
+        var rotation = ((text.PageRotation % 360) + 360) % 360;
+        var odd = rotation % 180 != 0;
         var border = text.Typewriter ? 0 : a.Width;
         var fontId = StandardFonts.FontId(text.Family, text.Bold, text.Italic);
-        var layout = TextLayout.Layout(a.Contents, fontId, text.Size, TextLayout.InnerWidth(a.Rect.Width, border), text.Align);
+        var displayWidth = odd ? a.Rect.Height : a.Rect.Width;
+        var displayHeight = odd ? a.Rect.Width : a.Rect.Height;
+        var layout = TextLayout.Layout(a.Contents, fontId, text.Size, TextLayout.InnerWidth(displayWidth, border), text.Align);
         var needed = TextLayout.MinimumBoxHeight(layout, border);
-        return needed > a.Rect.Height ? a with { Rect = new PdfRect(a.Rect.Left, a.Rect.Top - needed, a.Rect.Right, a.Rect.Top) } : a;
+        if (needed <= displayHeight)
+        {
+            return a;
+        }
+
+        var r = a.Rect;
+        var grown = rotation switch
+        {
+            90 => new PdfRect(r.Left, r.Bottom, r.Left + needed, r.Top), // display down is user right
+            180 => new PdfRect(r.Left, r.Bottom, r.Right, r.Bottom + needed), // display down is user up
+            270 => new PdfRect(r.Right - needed, r.Bottom, r.Right, r.Top), // display down is user left
+            _ => new PdfRect(r.Left, r.Top - needed, r.Right, r.Top),
+        };
+        return a with { Rect = grown };
     }
 
     public Annotation Box(MarkupKind kind, int page, PdfRect rect, Rgb? color = null, double width = 2, Rgb? fill = null, DashStyle dash = DashStyle.Solid, double opacity = 1)
@@ -303,6 +330,26 @@ public sealed class MarkupFactory(string author, TimeProvider? time = null, Func
         var rect = dragged is { } box
             ? new PdfRect(box.Left, box.Top - fit.Height, box.Left + fit.Width, box.Top)
             : new PdfRect(topLeft.X, topLeft.Y - fit.Height, topLeft.X + fit.Width, topLeft.Y);
+        return Base(MarkupKind.Stamp, page, rect, StampCatalog.RgbOf(name), new StampPayload(name, turns)) with { Opacity = Math.Clamp(opacity, MarkupDefaults.MinOpacity, 1), Subject = name };
+    }
+
+    /// <summary>
+    /// A built-in stamp placed on the displayed page: fitted into 200 x 100 points (or into the dragged box) as it is displayed, with the user's quarter
+    /// turns, then turned into user space through the page's geometry (stamps 3.4, 3.5).
+    /// </summary>
+    public Annotation StampOnPage(int page, PageFrame frame, string name, PointD displayTopLeft, RectD? displayDrag = null, int userTurns = 0, double opacity = 1)
+    {
+        if (!StampCatalog.IsStandard(name))
+        {
+            throw new ArgumentException("Not a standard stamp name.", nameof(name));
+        }
+
+        var (w, h) = StampArtwork.NativeSize(name);
+        var turns = ((userTurns % 4) + 4) % 4;
+        var (nw, nh) = turns % 2 == 0 ? (w, h) : (h, w);
+        var fit = StampFit(nw, nh, displayDrag?.Width ?? 200, displayDrag?.Height ?? 100);
+        var origin = displayDrag is { } drag ? new PointD(drag.X, drag.Y) : displayTopLeft;
+        var rect = frame.ToUser(new RectD(origin.X, origin.Y, fit.Width, fit.Height));
         return Base(MarkupKind.Stamp, page, rect, StampCatalog.RgbOf(name), new StampPayload(name, turns)) with { Opacity = Math.Clamp(opacity, MarkupDefaults.MinOpacity, 1), Subject = name };
     }
 

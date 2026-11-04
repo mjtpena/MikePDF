@@ -3,6 +3,9 @@
     <ProjectReference Include="..\..\src\MikePDF.Broker\MikePDF.Broker.csproj" />
     <ProjectReference Include="..\..\src\MikePDF.Core\MikePDF.Core.csproj" />
     <ProjectReference Include="..\..\src\MikePDF.Printing\MikePDF.Printing.csproj" />
+    <!-- The annotation model, the commands and the stroke library: the markup save tests drive them through the real pipeline. -->
+    <ProjectReference Include="..\..\src\MikePDF.Markup\MikePDF.Markup.csproj" />
+    <ProjectReference Include="..\..\src\MikePDF.Ink\MikePDF.Ink.csproj" />
     <!-- The tests compare the sandboxed host with an in-process validation of the same files (an oracle, not a product use). -->
     <ProjectReference Include="..\..\src\MikePDF.PdfWriter\MikePDF.PdfWriter.csproj" />
     <ProjectReference Include="..\..\src\MikePDF.Protocol\MikePDF.Protocol.csproj" />
@@ -15,10 +18,15 @@
   </ItemGroup>
   <ItemGroup>
     <!-- The visual-diff tool's image type and SSIM (ADR-0011 decision 5 compares printed output with them), compiled in rather than referenced: the tool is an executable. -->
-    <!-- The one conversion from a decoded edit to the writer's terms (the host is a self-contained executable and cannot be referenced). -->
-    <Compile Include="..\..\src\MikePDF.WriterHost\EditConversion.cs" Link="Saving\Linked\EditConversion.cs" />
     <Compile Include="..\..\tools\MikePDF.Render\Imaging\Ssim.cs" Link="Printing\Linked\Ssim.cs" />
     <Compile Include="..\..\tools\MikePDF.Render\Imaging\BgraImage.cs" Link="Printing\Linked\BgraImage.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- The one conversion from a decoded edit to the writer's terms (the host is a self-contained executable and cannot be referenced). -->
+    <Compile Include="..\..\src\MikePDF.WriterHost\EditConversion.cs" Link="Saving\Linked\EditConversion.cs" />
+    <!-- The document builder and the sample annotations of the Markup tests (one definition). -->
+    <Compile Include="..\MikePDF.Markup.Tests\Support\TestDocuments.cs" Link="Markup\Linked\TestDocuments.cs" />
+    <Compile Include="..\MikePDF.Markup.Tests\Support\Samples.cs" Link="Markup\Linked\Samples.cs" />
   </ItemGroup>
   <PropertyGroup>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
