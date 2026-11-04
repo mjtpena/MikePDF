@@ -1,8 +1,11 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
+    <IsAotCompatible>true</IsAotCompatible>
     <Description>IPC message schema and generated serialisers (ADR-0005).</Description>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="MessagePack" />
+    <!-- MIT, build tool, pinned so that an SDK update does not change the lock files: see MikePDF.App.csproj. -->
+    <PackageReference Include="Microsoft.NET.ILLink.Tasks" VersionOverride="10.0.14" PrivateAssets="all" />
   </ItemGroup>
 </Project>

@@ -19,6 +19,17 @@ public sealed class AbSupportTests
     }
 
     [Fact]
+    public void ASideWithAPackageHandsItToItsRunAndASideWithoutOneDoesNot()
+    {
+        var withPackage = new ProcessSide("head", @"C:\bundle\harness\MikePDF.Perf.exe", @"C:\bundle\engine", @"C:\work\head", "ci-x64", "ci", "MikePDF.Perf", 0, @"C:\pkg\MikePDF_1.0.0.0_x64.msix");
+        var arguments = withPackage.Arguments(@"C:\out\r1", new HashSet<string> { "package.install_size" }).ToList();
+        Assert.Equal(["--package", @"C:\pkg\MikePDF_1.0.0.0_x64.msix", "--only", "package.install_size"], arguments.TakeLast(4));
+
+        var without = new ProcessSide("base", @"C:\bundle\harness\MikePDF.Perf.exe", @"C:\bundle\engine", @"C:\work\base", "ci-x64", "ci", "MikePDF.Perf");
+        Assert.DoesNotContain("--package", without.Arguments(@"C:\out\r1", null));
+    }
+
+    [Fact]
     public void TheReportShowsBaseHeadRatioIntervalAndVerdictForEveryMetricAndSaysWhenItIsPlanted()
     {
         var rounds = Enumerable.Range(0, 8).Select(_ => new AbRound(

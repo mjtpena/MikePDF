@@ -9,7 +9,7 @@ namespace MikePDF.Perf.Comparison;
 /// One side of the A/B run: a built copy of the harness (<c>MikePDF.Perf.exe</c>) with its own built engine. Each measurement is a separate
 /// <c>run</c> in a new process of that side's own harness, so the side is measured exactly as it was built: its broker, its protocol code and its engine.
 /// </summary>
-public sealed record ProcessSide(string Name, string ExePath, string EngineDirectory, string WorkDirectory, string RunnerId, string Profile, string ContainerPrefix, double PlantedSlowdown = 0)
+public sealed record ProcessSide(string Name, string ExePath, string EngineDirectory, string WorkDirectory, string RunnerId, string Profile, string ContainerPrefix, double PlantedSlowdown = 0, string? PackagePath = null)
 {
     /// <summary>The longest one run may take (the whole ci suite takes about a minute on a hosted runner).</summary>
     public static readonly TimeSpan RunLimit = TimeSpan.FromMinutes(15);
@@ -80,6 +80,13 @@ public sealed record ProcessSide(string Name, string ExePath, string EngineDirec
         yield return Path.Combine(WorkDirectory, "documents");
         yield return "--appcontainer";
         yield return ContainerPrefix + "." + Name;
+        if (PackagePath is not null)
+        {
+            // Only this side's own package: the other side's metric is then "not measured on the base" (no baseline), never a number from the wrong build.
+            yield return "--package";
+            yield return PackagePath;
+        }
+
         if (only is not null)
         {
             yield return "--only";

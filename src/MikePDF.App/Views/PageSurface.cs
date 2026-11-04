@@ -33,7 +33,7 @@ namespace MikePDF.App.Views;
 /// Shift with the arrow keys (and Ctrl for words) moves the selection and Esc clears it, here.
 /// </para>
 /// </summary>
-public sealed class PageSurface : Control
+public sealed partial class PageSurface : Control
 {
     /// <summary>Scroll per wheel notch, in device-independent pixels.</summary>
     private const double WheelStepDip = 100;
