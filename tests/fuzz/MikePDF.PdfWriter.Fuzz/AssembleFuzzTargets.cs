@@ -53,9 +53,9 @@ internal static class AssembleFuzzTargets
             var refusal = status.Refusal!;
             Check(Enum.IsDefined(refusal.Reason), "a refusal without a defined reason");
             Check(refusal.Reason != AssemblyRefusalReason.OutputInvalid, "OutputInvalid at open");
-            // The reasons that come from the parser are exactly the files the strict parser refuses.
+            // A file the strict parser refuses is refused for a parser reason (or a limit). The converse does not hold: the strict open reads only the cross-reference
+            // chain, and the assembler also parses the catalog and the page tree, where one object can be what the parser refuses.
             var fromParser = refusal.Reason is AssemblyRefusalReason.SourceNotReadable or AssemblyRefusalReason.SourceEncrypted or AssemblyRefusalReason.SourceUnsupported;
-            Check(!fromParser || strict.IsFailure(), "the assembler refused as unreadable a file the strict parser accepts");
             Check(!strict.IsFailure() || fromParser || refusal.Reason == AssemblyRefusalReason.LimitExceeded, "the strict parser refused a file the assembler took");
             return MutationalFuzzer.Mix(signature, 100 + (long)refusal.Reason);
         }

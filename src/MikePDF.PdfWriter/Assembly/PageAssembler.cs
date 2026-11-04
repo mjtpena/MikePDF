@@ -10,6 +10,13 @@ namespace MikePDF.PdfWriter.Assembly;
 /// Inputs are plain data (the bytes of each file, which the writer host maps from the handle it was given) and an output stream or buffer. Not
 /// thread-safe.
 /// </summary>
+/// <remarks>
+/// Wiring a writer-host message to this is thin: map each source handle to a <see cref="ReadOnlyMemory{T}"/> (as <c>SaveOperations</c> does with
+/// <c>MappedFile</c>), build the <see cref="AssemblerSource"/> list and the <see cref="AssemblyPlan"/> from the request, call
+/// <see cref="Open"/> (its <see cref="AssemblySourceSet.Sources"/> and <see cref="AssemblySourceSet.Warnings"/> answer a "which files can I use"
+/// request without a plan), then <see cref="AssemblySourceSet.AssembleTo"/> with a stream over the broker's output handle. A refusal carries a
+/// <see cref="AssemblyRefusalReason"/> and, for a source, its index and name; nothing here throws for a file's contents.
+/// </remarks>
 public static class PageAssembler
 {
     /// <summary>Opens every source. Never throws for bad input: a source that cannot be used is reported in <see cref="AssemblySourceSet.Sources"/>.</summary>

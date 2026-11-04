@@ -1,5 +1,4 @@
 using System.Text;
-using MikePDF.Broker;
 using MikePDF.Integration.Tests.Support;
 using MikePDF.PdfWriter.Assembly;
 using MikePDF.Protocol;
