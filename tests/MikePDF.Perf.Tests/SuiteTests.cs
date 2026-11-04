@@ -133,14 +133,24 @@ public sealed class SuiteTests(HarnessFixture fixture)
         Assert.Contains("No baseline", noBaselineOutput, StringComparison.Ordinal);
     }
 
+    /// <summary>
+    /// How much better than the quick run the doctored baselines are. The gate measures again, on a shared runner, so what it sees can differ from the quick run's median by
+    /// a large factor (the first run in a fresh process pays for cold caches and a noisy neighbour): a factor of five once left <c>open.large.first_tile.text2000</c> within
+    /// the threshold on a hosted arm64 runner and failed the test without any code change. At this factor the verdict no longer depends on that noise; only the metric's own
+    /// floor, which the doctoring cannot touch, still has to be exceeded.
+    /// </summary>
+    private const double ImplausiblyBetter = 1000;
+
+    private static MetricResult ImplausiblyBetterThanMeasured(MetricResult m) => m with { Median = m.LowerIsBetter ? m.Median / ImplausiblyBetter : m.Median * ImplausiblyBetter };
+
     [Fact]
     public async Task TheGateFailsWithExitCodeOneWhenTheBaselineWasMuchFasterAndTriesTheSuspectsAgain()
     {
         var run = await QuickRunAsync();
-        // A baseline in which everything was five times better than it is now.
+        // A baseline in which everything was a thousand times better than it is now.
         var doctored = run.Results with
         {
-            Metrics = [.. run.Results.Metrics.Where(m => CheapMetrics.Contains(m.Id)).Select(m => m with { Median = m.LowerIsBetter ? m.Median / 5 : m.Median * 5 })],
+            Metrics = [.. run.Results.Metrics.Where(m => CheapMetrics.Contains(m.Id)).Select(ImplausiblyBetterThanMeasured)],
         };
         var baseline = Path.Combine(NewDirectory(), "baseline.json");
         ResultsJson.Save(baseline, doctored);
@@ -168,7 +178,7 @@ public sealed class SuiteTests(HarnessFixture fixture)
         var cpu = run.Results.Machine.Cpu;
         var doctored = run.Results with
         {
-            Metrics = [.. run.Results.Metrics.Where(m => CheapMetrics.Contains(m.Id)).Select(m => m with { Median = m.LowerIsBetter ? m.Median / 5 : m.Median * 5 })],
+            Metrics = [.. run.Results.Metrics.Where(m => CheapMetrics.Contains(m.Id)).Select(ImplausiblyBetterThanMeasured)],
         };
         var only = string.Join(',', CheapMetrics);
 
