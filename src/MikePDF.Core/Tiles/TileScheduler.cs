@@ -156,15 +156,16 @@ public sealed class TileScheduler : IAsyncDisposable
         }
 
         await _stop.CancelAsync().ConfigureAwait(false);
-        List<Flight> flights;
+
+        // Cancelled under the gate, like the planner does: a flight that finishes removes itself under the gate and only then disposes its source, so a source
+        // that is still in _inFlight while the gate is held cannot be disposed. (A snapshot cancelled outside the gate could meet a source the flight just disposed.)
+        // The callbacks this runs (the engine client's abandon of the request) take locks of their own and never the gate; removing an entry while enumerating is allowed.
         lock (_gate)
         {
-            flights = [.. _inFlight.Values];
-        }
-
-        foreach (var f in flights)
-        {
-            f.Cts.Cancel();
+            foreach (var f in _inFlight.Values)
+            {
+                f.Cts.Cancel();
+            }
         }
 
         try
