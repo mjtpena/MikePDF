@@ -167,6 +167,29 @@ public static class AppData
         }
     }
 
+    /// <summary>The folder of the edit journals (docs/features/save-pipeline.md 3.4), or null when there is none.</summary>
+    public static string? JournalFolder() => PrivateFolder() is { } folder ? Path.Combine(folder, "journals") : null;
+
+    /// <summary>The journals that exist now: what an app that died with unsaved edits leaves.</summary>
+    public static IReadOnlyList<string> Journals() =>
+        JournalFolder() is { } folder && Directory.Exists(folder) ? [.. Directory.EnumerateFiles(folder, "*.jsonl")] : [];
+
+    /// <summary>Removes every journal, so that a run that was killed with unsaved edits does not make the next one ask about them.</summary>
+    public static void DeleteJournals()
+    {
+        if (JournalFolder() is { } folder && Directory.Exists(folder))
+        {
+            try
+            {
+                Directory.Delete(folder, recursive: true);
+            }
+            catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+            {
+                // Left for the next run.
+            }
+        }
+    }
+
     public static void DeleteSession()
     {
         if (PrivateFolder() is { } folder)

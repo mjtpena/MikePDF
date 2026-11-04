@@ -67,9 +67,14 @@ public sealed class MikePDFApp : IDisposable
     public static string Fixture(string name) => Path.Combine(AppContext.BaseDirectory, "Fixtures", name);
 
     /// <summary>Starts MikePDF (alias <c>mikepdf.exe</c>) with an optional document and waits for its window. Any running MikePDF is closed first.</summary>
-    public static MikePDFApp Launch(string? document = null, string restore = "Never", bool fakeDirty = false, IReadOnlyDictionary<string, string>? environment = null, params string[] moreDocuments)
+    public static MikePDFApp Launch(string? document = null, string restore = "Never", bool fakeDirty = false, IReadOnlyDictionary<string, string>? environment = null, bool keepJournals = false, params string[] moreDocuments)
     {
         KillAll();
+        if (!keepJournals)
+        {
+            AppData.DeleteJournals(); // a journey killed with unsaved edits must not make the next one ask about them (only the recovery journeys keep them)
+        }
+
         var alias = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Microsoft", "WindowsApps", "mikepdf.exe");
         if (!File.Exists(alias))
         {
