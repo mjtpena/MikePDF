@@ -314,3 +314,11 @@ Shared AC-01 to AC-25 ([annotation-core](annotation-core.md)) apply where releva
 | FM-27 | Facing mode and 400% zoom: the editor sits on the field and tracks scrolling and zoom without lag. | Integration |
 | FM-28 | Signature fields are drawn and not interactive; activation shows the message. | UI journey |
 | FM-29 | Phase B (only if OQ-FM-2 approves it): the recognised `AF*_Format` grammar formats values; unrecognised scripts are left raw and flagged; the saved appearance matches the ruling. Not part of the first work package. | Unit + Fidelity |
+
+## Implementation notes: the engine side (W3-engine, schema 7, ADR-0005 A5)
+
+`GetFormFields` (45), `GetFormFieldDetail` (46), `SetFormFieldValue` (47), `FormAction` (48) and the field highlight (`RenderTile.flags` bit 3, not bit 2: bit 2 was already the dark-pages bit) are built. Where the pinned PDFium (chromium/8125) is narrower than this spec:
+- **Tab order (3.5, OQ-FM-1).** No call reads a page's `/Tabs`, so the engine lists every page in document order (`/Annots` order within a page). `states` bit 3 says a widget is skipped by Tab. The row, column and structure orders are not implemented.
+- **Defaults and options.** `defaultValue` is the widget's own `/DV`, not an inherited one. An option's export value is not readable, so `optionValues` repeats the labels.
+- **Push buttons.** The action type of a button cannot be read. `FormAction` action 2 presses the button in an environment without scripting or network and reports a reset (1) when a field changed and "unsupported" (2) otherwise; "refused because it would send data" (3) is never reported. The has-script flags of the detail reply say that a format, validate or calculate action exists; no script is run.
+- **How a value changes.** Only through PDFium's form events (focus, select all, replace, kill focus; a click; set index selected), so appearance regeneration and `/MaxLen` are PDFium's. `SaveDocument` ends an edit in progress first. `NormalizeTail` (writer host) repairs the saved tail; the check box and radio artwork rule (10.2) is its flag bit 0.

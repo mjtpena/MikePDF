@@ -104,7 +104,7 @@ The order that lets the most work run in parallel without rework. A step may sta
 5. file-association-jumplist after tabs (activations land in tabs) and S13.
 
 **M4, in this order**
-1. **Schema v6** (one WP): annotation read side, `GetTextQuads`, forms messages, `SaveDocument`, `RenderTile` flags, writer-host messages 1025 to 1027, the edit blob schema.
+1. **Schema v6 and v7** (two WPs): v6 (ADR-0005 A4, W3-save-core) has the writer-host save messages and the edit blob; v7 (A5, W3-engine) has `GetTextQuads`, the annotation read side, the forms messages, `SaveDocument`, the `RenderTile` flag and `NormalizeTail`. `ImportStampImage` (1027) and the page-organiser messages are not in either.
 2. **`MikePDF.Markup` base, edit model, commands, undo, and the journal with recovery.** No write feature may ship before the journal (§0.2 rule 5).
 3. **Save for annotations** (writer host `AppendAnnotations`, validation, replace) driven by the smallest annotation kind, text markup, because S4 verified its appearance shape. Needs S10.
 4. **Annotation foundation UI**: overlay layer, selection, hit-testing, keyboard navigation, UIA peers. Needs S9.
@@ -156,29 +156,29 @@ Existing ids: 1 to 4 lifecycle, 16 to 25 document and reading, 32 and 33 renderi
 | 2049 | `ShellRenderPage` | ShellHost | v5 | shell-extensions |
 | 2050 | `ShellClose` | ShellHost | v5 | shell-extensions |
 | n/a | `ProcessKind.ShellHandler = 3`; C++ **client** encoders and decoders in the generator | all | v5 | shell-extensions |
-| 27 | `GetTextQuads` | Engine | v6 | text-markup |
-| 40 | `ListAnnotations` | Engine | v6 | annotation-core |
-| 41 | `GetAnnotation` | Engine | v6 | annotation-core |
-| 42 | `GetInkStroke` | Engine | v6 | annotation-core (ink) |
-| 43 | `SetAnnotationHidden` | Engine | v6 | annotation-core |
-| 44 | `CountAnnotations` | Engine | v6 | annotation-core (panel) |
-| 45 | `GetFormFields` | Engine | v6 | forms |
-| 46 | `GetFormFieldDetail` | Engine | v6 | forms |
-| 47 | `SetFormFieldValue` | Engine | v6 | forms |
-| 48 | `FormAction` | Engine | v6 | forms |
-| 62 | `SaveDocument` | Engine | v6 | save-pipeline |
-| n/a | `RenderTile.flags` maximum 3 to 7 (bit 2: field highlight) | Engine | v6 | forms |
+| 27 | `GetTextQuads` | Engine | v7 (built, ADR-0005 A5) | text-markup |
+| 40 | `ListAnnotations` | Engine | v7 (built, ADR-0005 A5) | annotation-core |
+| 41 | `GetAnnotation` | Engine | v7 (built, ADR-0005 A5) | annotation-core |
+| 42 | `GetInkStroke` | Engine | v7 (built, ADR-0005 A5) | annotation-core (ink) |
+| 43 | `SetAnnotationHidden` | Engine | v7 (built, ADR-0005 A5) | annotation-core |
+| 44 | `CountAnnotations` | Engine | v7 (built, ADR-0005 A5) | annotation-core (panel) |
+| 45 | `GetFormFields` | Engine | v7 (built, ADR-0005 A5) | forms |
+| 46 | `GetFormFieldDetail` | Engine | v7 (built, ADR-0005 A5) | forms |
+| 47 | `SetFormFieldValue` | Engine | v7 (built, ADR-0005 A5) | forms |
+| 48 | `FormAction` | Engine | v7 (built, ADR-0005 A5) | forms |
+| 62 | `SaveDocument` | Engine | v7 (built, ADR-0005 A5) | save-pipeline |
+| n/a | `RenderTile.flags` maximum 7 to 15 (bit 3: field highlight; bit 2 was already dark pages) | Engine | v7 (built, ADR-0005 A5) | forms |
 | 1025 | `AppendAnnotations` | WriterHost | v6 | save-pipeline |
-| 1026 | `NormalizeTail` | WriterHost | v6 | save-pipeline |
-| 1027 | `ImportStampImage` | WriterHost | v6 | stamps |
+| 1026 | `NormalizeTail` | WriterHost | v7 (built, ADR-0005 A5) | save-pipeline |
+| 1027 | `ImportStampImage` | WriterHost | not yet assigned (reserved in v7) | stamps |
 | n/a | New schema file `mikepdf.edits.json` (edit blob, not a frame) | WriterHost | v6 | save-pipeline |
-| 56 | `InsertPages` | Engine | v7 | page-organiser |
-| 57 | `InsertBlankPage` | Engine | v7 | page-organiser |
-| 58 | `DeletePages` | Engine | v7 | page-organiser |
-| 59 | `MovePages` | Engine | v7 | page-organiser |
-| 60 | `RotatePages` | Engine | v7 | page-organiser |
-| 61 | `CreateDocument` | Engine (pool or assembly kind) | v7 | page-organiser |
-| 1028 | `AssemblePages` | WriterHost | v7, only if S11 picks the assembler | page-organiser |
+| 56 | `InsertPages` | Engine | v8 or later | page-organiser |
+| 57 | `InsertBlankPage` | Engine | v8 or later | page-organiser |
+| 58 | `DeletePages` | Engine | v8 or later | page-organiser |
+| 59 | `MovePages` | Engine | v8 or later | page-organiser |
+| 60 | `RotatePages` | Engine | v8 or later | page-organiser |
+| 61 | `CreateDocument` | Engine (pool or assembly kind) | v8 or later | page-organiser |
+| 1028 | `AssemblePages` | WriterHost | v8 or later, only if S11 picks the assembler | page-organiser |
 
 Engine behaviour changes that are not messages: `EngineKind::Shell`; the document kind's limit from 1 to 2 open documents (or an assembly kind); the invariant that `SaveDocument` first restores display-mirror annotation flags.
 

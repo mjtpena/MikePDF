@@ -214,3 +214,7 @@ Shared criteria AC-01 to AC-25 in [annotation-core](annotation-core.md) also app
 | TM-22 | Permissions bit 6 clear disables the commands, palette reason shown. | Unit |
 | TM-23 | Facing pages: marking text on the right page of a spread draws and saves correctly. | Integration |
 | TM-24 | Performance: highlighting a 40-word selection on a 600-page document returns quads in < 50 ms from the engine and shows the overlay in the next frame (proposed; recorded, not asserted until measured). | Integration (perf) |
+
+## Implementation notes: the engine side (W3-engine, schema 7, ADR-0005 A5)
+
+`GetTextQuads` (27) is built: character numbering as `GetPageText`; quads from line grouping by baseline and direction, whitespace trimmed at both ends of a line, a line-end hyphen kept, rotated text in the text's own frame (from `FPDFText_GetMatrix`, since `FPDFText_GetCharAngle` runs the other way), output in the order top-left, top-right, bottom-left, bottom-right; 64 quads per reply from `firstQuad`, at most 4096 per range (`truncated`).

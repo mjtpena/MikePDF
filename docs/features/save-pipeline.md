@@ -233,7 +233,7 @@ This is the save behaviour. Output requirements for every saved file: original b
 
 ## 11. Engine and protocol additions
 
-### 11.1 Engine: `SaveDocument` (schema v5, id 62; forms need it before page operations arrive in v6)
+### 11.1 Engine: `SaveDocument` (id 62, built in schema v7, ADR-0005 A5; mode 2 is not implemented there: the flattened copy is `RewriteDocument` in the writer host)
 
 | Request field | Type | Limits |
 |---|---|---|
@@ -394,8 +394,8 @@ Built: the edit model and planner, the journal (format, strict reader, writer, s
 | SP-08 | `JournalWriterTests`: caps, the 90% warning, the control reserve, passwords, the 200 character excerpt. The byte scan of "a fixture session" covers the journal layer; the feature specs' own payloads are theirs to test |
 | SP-09 | `AnnotationEditMapperTests` (net effect), `AnnotationAppenderTests` (ordinals, expectation mismatch aborts). **Not done:** translating page identities to ordinals after page moves and deletes (page-organiser) |
 | SP-10 | `EditBlobTests` (round trip, every limit one over, truncation at every length, bit flips); fuzz target `EditBlob` |
-| SP-11 | `MikePDF.Protocol.Tests` golden and malformed frames and `protocol_tests.cpp` for the three schema 6 messages. `NormalizeTail` and `SaveDocument` are not in schema 6 |
-| SP-12 | **Not done**: stages 2 and 3 need the engine's PDFium save |
+| SP-11 | `MikePDF.Protocol.Tests` golden and malformed frames and `protocol_tests.cpp` for the three schema 6 messages, and (W3-engine, schema 7, ADR-0005 A5) for `SaveDocument` and `NormalizeTail`: the golden vectors, `LimitTests`, `MalformedFrameTests`, `Schema7FormSaveAndNormalizeRequests` and `Schema7Replies` in `protocol_tests.cpp`, and `Schema7ClientTests` for the broker side |
+| SP-12 | Stages 2 and 3 are built (W3-engine, schema 7): `SaveTest` (engine, `save_tests.cpp`), `TailNormalizerTests` (classic and xref-stream layouts, no private keys, the original as prefix) and, through the real sandboxed processes, `Schema7EndToEndTests.AFilledFormIsSavedRepairedAndReadBackWithItsValuesAndNothingOfPDFiumsOwn` and `APDFiumSaveOfEveryFixtureIsRepairedToAFileThatAddsNoError`. **Not claimed:** "9 of 9 xref-stream sources validate" is not measured as a count; the per-fixture outcomes are in the end-to-end test. `qpdf --check` is not run |
 | SP-13 | `AnnotationAppenderTests`: classic, xref-stream and hybrid bases, a base with earlier updates, `/Prev`, `/Size`, `/ID`, `%%EOF`, prefix; PDFium reads every annotation. `qpdf --check` is not run |
 | SP-14 | `SaveCoordinatorTests.ASaveWithNoCommands...` |
 | SP-15 | `SaveCoordinatorTests.AFaultyOutput...`: dropped annotation, corrupt xref offset, wrong `/Size`, a PDFium key, a damaged prefix, a fresh engine that disagrees |

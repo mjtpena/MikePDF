@@ -348,3 +348,7 @@ These apply to every kind. Each annotation spec repeats the ones that need type-
 | AC-23 | Signed-document notice appears once on the first edit of a signed fixture and the saved file keeps the original bytes as an exact prefix. | Integration |
 | AC-24 | Foreign annotation edit set: delete, reply, state change and non-text-anchored move work on a file annotated by another app and leave the foreign appearance stream byte-identical after a move. | Integration + Fidelity |
 | AC-25 | Journey 3 (§12.5): highlight text, add a note, save, reopen: annotations intact. | UI journey |
+
+## Implementation notes: the engine side (W3-engine, schema 7, ADR-0005 A5)
+
+`ListAnnotations` (40), `GetAnnotation` (41), `GetInkStroke` (42), `SetAnnotationHidden` (43) and `CountAnnotations` (44) are built, with the display mirror and invariant 4a (`SaveDocument` restores every flag the mirror changed before it saves, and puts them back after). What the pinned PDFium cannot read is reported as absent and not guessed: the `/BS` style (`borderStyle` 0, the width from `/Border` only), `/LE` (`lineEndings` empty), a popup's `/Open` (`popupOpen` false), and `/C` of an annotation that has an appearance stream (`ListAnnotations.colours` is 0; `GetAnnotation` falls back to the first colour the stream paints with). Ink points carry no width (the PDF format has none): `hasWidths` is false until a later schema carries MikePDF's private samples (OQ-INK-3). The index of an annotation is its position in the page's `/Annots`.
