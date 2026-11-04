@@ -145,7 +145,7 @@ public sealed class MikePDFApp : IDisposable
         // A key sent as soon as the window exists was lost on the hosted ARM64 runner (Ctrl+L, Ctrl+comma: nothing happened, the window was not yet where keyboard input goes). Make the window the foreground
         // window and wait until the keyboard focus is inside this process before the journey sends anything. If it never gets there the journey goes on and fails with its own message.
         window.SetForeground();
-        var processId = process.Id;
+        var processId = application.ProcessId;
         Retry.WhileFalse(() =>
         {
             try
