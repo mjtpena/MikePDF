@@ -53,6 +53,9 @@ target_include_directories(fuzz_shell_reply PRIVATE ${CMAKE_SOURCE_DIR}/src/Mike
 # The engine's document-open and render path, through the PDFium wrapper. PDFium itself stays the uninstrumented prebuilt DLL.
 mikepdf_fuzz_target(fuzz_engine_document engine_document_fuzz.cpp
   ${CMAKE_SOURCE_DIR}/src/MikePDF.Engine.Pdfium/src/document.cpp
+  ${CMAKE_SOURCE_DIR}/src/MikePDF.Engine.Pdfium/src/annotations.cpp
+  ${CMAKE_SOURCE_DIR}/src/MikePDF.Engine.Pdfium/src/forms.cpp
+  ${CMAKE_SOURCE_DIR}/src/MikePDF.Engine.Pdfium/src/text_quads.cpp
   ${CMAKE_SOURCE_DIR}/src/MikePDF.Engine.Pdfium/src/library.cpp
   ${MIKEPDF_FUZZ_PROTOCOL_SOURCES})
 target_include_directories(fuzz_engine_document PRIVATE

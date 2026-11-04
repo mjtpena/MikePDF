@@ -59,6 +59,29 @@ public sealed class IncrementalUpdate
         return PdfResult.Ok(new PdfReference(number, 0));
     }
 
+    /// <summary>
+    /// Adds an object under a number the caller chose, for an object other objects already refer to by that number (the tail of a PDFium save, which has written its own references).
+    /// The number must not be one the base document has or this update already uses; later <see cref="Add"/> calls continue above it. Numbers between the base's size and
+    /// <paramref name="number"/> that nothing adds stay unused, which a cross-reference section allows.
+    /// </summary>
+    public PdfResult<PdfReference> AddAt(int number, PdfObject obj)
+    {
+        ArgumentNullException.ThrowIfNull(obj);
+        if (CheckObject(obj) is { } bad)
+            return PdfResult.Fail<PdfReference>(bad);
+        if (number < _base.Size)
+            return PdfResult.Fail<PdfReference>(new PdfError(PdfErrorCode.InvalidUpdate, $"object number {number} belongs to the base document; use Replace"));
+        if (number > _base.Limits.MaxObjectNumber - 1)
+            return PdfResult.Fail<PdfReference>(new PdfError(PdfErrorCode.InvalidUpdate, "object number above the limit", Limit: PdfLimit.ObjectNumber));
+        if (_objects.ContainsKey(number))
+            return PdfResult.Fail<PdfReference>(new PdfError(PdfErrorCode.InvalidUpdate, $"object {number} is already part of this update"));
+        _objects[number] = obj;
+        _generations[number] = 0;
+        if (number >= _nextNumber)
+            _nextNumber = number + 1;
+        return PdfResult.Ok(new PdfReference(number, 0));
+    }
+
     /// <summary>Replaces an existing in-use object, keeping its object and generation number.</summary>
     public PdfResult<PdfReference> Replace(int number, PdfObject obj)
     {

@@ -223,8 +223,8 @@ public sealed class Schema
             if (f.Optional && f.Type != FieldType.Text) errors.Add($"{w}: only strings can be optional");
             if (f.Type == FieldType.Array)
             {
-                if (f.Element is null or FieldType.Array or FieldType.Bool or FieldType.Enum or FieldType.U64 or FieldType.I32)
-                    errors.Add($"{w}: array element must be u16, u32, f32 or string");
+                if (f.Element is null or FieldType.Array or FieldType.Bool or FieldType.Enum or FieldType.U64)
+                    errors.Add($"{w}: array element must be u16, u32, i32, f32 or string");
                 if (f.MaxCount is null or < 0) errors.Add($"{w}: array needs maxCount");
                 if (f.Optional) errors.Add($"{w}: arrays cannot be optional");
             }

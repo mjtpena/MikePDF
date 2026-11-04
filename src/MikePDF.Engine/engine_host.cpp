@@ -135,6 +135,17 @@ void EngineHost::handle_frame(protocol::RequestEnvelope request, Clock::time_poi
         case MessageType::SearchPage:
         case MessageType::GetDocumentDetails:
         case MessageType::GetViewerPreferences:
+        case MessageType::GetTextQuads:
+        case MessageType::ListAnnotations:
+        case MessageType::GetAnnotation:
+        case MessageType::GetInkStroke:
+        case MessageType::SetAnnotationHidden:
+        case MessageType::CountAnnotations:
+        case MessageType::GetFormFields:
+        case MessageType::GetFormFieldDetail:
+        case MessageType::SetFormFieldValue:
+        case MessageType::FormAction:
+        case MessageType::SaveDocument:
         case MessageType::RenderBand:
         case MessageType::RenderTile: {
             {
@@ -148,6 +159,10 @@ void EngineHost::handle_frame(protocol::RequestEnvelope request, Clock::time_poi
             return;
         }
         case MessageType::ValidateStructure:  // the WriterHost's
+        case MessageType::AppendAnnotations:
+        case MessageType::NormalizeTail:
+        case MessageType::RewriteDocument:
+        case MessageType::VerifyAnnotations:
         case MessageType::ShellOpen:          // ShellHost's
         case MessageType::ShellRenderPage:
         case MessageType::ShellClose:

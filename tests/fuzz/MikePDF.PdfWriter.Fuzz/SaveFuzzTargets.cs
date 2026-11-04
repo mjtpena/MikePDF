@@ -36,6 +36,52 @@ internal static class SaveFuzzTargets
 
     public static void EditPdf(ReadOnlySpan<byte> input) => _ = EditOutcome(input.ToArray());
 
+    public static void TailNormalize(ReadOnlySpan<byte> input) => _ = TailOutcome(input.ToArray());
+
+    // ---- NormalizeTail (schema 7, save-pipeline 3.3 stage 3): the engine is untrusted, and the file it saved is what this reads ----
+
+    /// <summary>
+    /// The input is taken as the engine's save of a document: the original is everything up to the end of its first <c>%%EOF</c> line (an incremental save keeps the
+    /// original as a prefix), and the whole input is the PDFium file. A second run takes the first half of the input as the original, which is not a prefix of anything
+    /// sensible and has to be refused or handled, never trusted. Normalize may refuse; when it does not, the output keeps the original as its prefix and opens strictly.
+    /// </summary>
+    public static long TailOutcome(byte[] data)
+    {
+        ReadOnlySpan<byte> marker = "%%EOF"u8;
+        var eof = data.AsSpan().IndexOf(marker);
+        var originalLength = data.Length / 2;
+        if (eof >= 0)
+        {
+            originalLength = eof + marker.Length;
+            while (originalLength < data.Length && originalLength < eof + marker.Length + 2 && data[originalLength] is (byte)'\r' or (byte)'\n')
+            {
+                originalLength++;
+            }
+        }
+
+        long signature = 5;
+        foreach (var split in new[] { originalLength, data.Length / 2 })
+        {
+            var original = data.AsMemory(0, split);
+            foreach (var options in new[] { new TailNormalizeOptions(), new TailNormalizeOptions { RestoreCheckAndRadioStreams = false, StripPdfiumKeys = false } })
+            {
+                var result = TailNormalizer.Normalize(original, data, options);
+                if (result.TryGetError(out var error))
+                {
+                    signature = MutationalFuzzer.Mix(signature, 1 + (long)error.Code);
+                    continue;
+                }
+
+                var output = result.Value.Output;
+                Check(output.Length >= original.Length && output.AsSpan(0, original.Length).SequenceEqual(original.Span), "the normalised file does not keep the original as its prefix");
+                Check(StrictDocument.Open(output, FuzzTargets.Limits).TryGetValue(out _), "the normalised file does not open strictly");
+                signature = MutationalFuzzer.Mix(signature, 1000 + result.Value.ObjectsRewritten + (100 * result.Value.ObjectsAdded) + (10_000 * result.Value.WidgetsRestored));
+            }
+        }
+
+        return signature;
+    }
+
     // ---- the journal ----
 
     public static long JournalOutcome(byte[] data)
@@ -275,10 +321,42 @@ internal static class SaveFuzzTargets
     {
         Directory.CreateDirectory(directory);
         var n = 0;
+        if (target == "tail")
+        {
+            foreach (var seed in TailSeeds())
+            {
+                File.WriteAllBytes(Path.Combine(directory, $"seed-{n++:D2}.pdf"), seed);
+            }
+
+            return;
+        }
+
         foreach (var seed in target == "journal" ? JournalSeeds() : EditBlobSeeds())
         {
             File.WriteAllBytes(Path.Combine(directory, $"seed-{n++:D2}" + (target == "journal" ? ".jsonl" : ".bin")), seed);
         }
+    }
+
+    /// <summary>Files shaped like PDFium's incremental save of <see cref="TinyPdf"/>: its bytes, then rewritten and added objects, a cross-reference table, a trailer with /Prev, startxref.</summary>
+    private static IEnumerable<byte[]> TailSeeds()
+    {
+        var original = Encoding.Latin1.GetString(TinyPdf);
+        var prev = original.LastIndexOf("xref\n", StringComparison.Ordinal);
+        byte[] Tail(string objects, string subsections, int size)
+        {
+            var text = new StringBuilder(original).Append(objects);
+            var at = text.Length;
+            text.Append("xref\r\n").Append(subsections).Append("trailer\r\n<< /Size ").Append(size).Append(" /Root 1 0 R /Prev ").Append(prev).Append(" >>\r\nstartxref\r\n").Append(at).Append("\r\n%%EOF\r\n");
+            return Encoding.Latin1.GetBytes(text.ToString());
+        }
+
+        const string Entry = "0000000000 00000 n\r\n";
+        yield return Tail("3 0 obj\r\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /PDFIUM_Generated true >>\r\nendobj\r\n", "3 1\r\n" + Entry, 5);
+        yield return Tail(
+            "3 0 obj\r\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Annots [5 0 R] >>\r\nendobj\r\n5 0 obj\r\n<< /Type /Annot /Subtype /Widget /FT /Btn /T (c) /Rect [10 10 30 30] /AS /Off /AP << /N << /Off 6 0 R >> >> >>\r\nendobj\r\n6 0 obj\r\n<< /Length 0 >>\r\nstream\r\n\r\nendstream\r\nendobj\r\n",
+            "3 1\r\n" + Entry + "5 2\r\n" + Entry + Entry,
+            7);
+        yield return Tail("1 0 obj\r\n<< /Type /Catalog /Pages 2 0 R /PDFIUM_Flag 1 >>\r\nendobj\r\n4 0 obj\r\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] >>\r\nendobj\r\n", "1 1\r\n" + Entry + "4 1\r\n" + Entry, 5);
     }
 
     private static IEnumerable<byte[]> JournalSeeds()

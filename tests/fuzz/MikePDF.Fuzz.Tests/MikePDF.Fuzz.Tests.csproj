@@ -26,6 +26,8 @@
     <!-- The save targets' seeds (save-pipeline 3.4 and 11.3), made by the PdfWriter fuzz harness with the option seeds-out (see its README). -->
     <Content Include="..\seeds\journal\*.jsonl" LinkBase="seeds\journal" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="..\seeds\editblob\*.bin" LinkBase="seeds\editblob" CopyToOutputDirectory="PreserveNewest" />
+    <!-- NormalizeTail's seeds (schema 7): files shaped like PDFium's incremental save; made by the PdfWriter fuzz harness with the option seeds-out. -->
+    <Content Include="..\seeds\tail\*.pdf" LinkBase="seeds\tail" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
   <ItemGroup>
     <!-- Where the harness apphosts are built (the same configuration and framework as this project). -->

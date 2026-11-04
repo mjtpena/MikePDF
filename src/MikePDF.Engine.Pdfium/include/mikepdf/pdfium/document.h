@@ -7,7 +7,9 @@
 #include <functional>
 #include <memory>
 #include <span>
+#include <string>
 #include <string_view>
+#include <unordered_map>
 #include <vector>
 
 #include "mikepdf/protocol/enums.h"
@@ -17,6 +19,7 @@
 struct fpdf_document_t__;
 struct fpdf_bitmap_t__;
 struct fpdf_page_t__;
+struct fpdf_annotation_t__;
 
 namespace mikepdf::pdfium {
 
@@ -37,6 +40,12 @@ inline constexpr std::uint32_t kRenderFormFields = 2;
 inline constexpr std::uint32_t kRenderDarkPage = 4;
 /// RenderBand only: PDFium's printing mode (no screen-only annotations, no LCD text).
 inline constexpr std::uint32_t kRenderPrinting = 4;
+/// RenderTile only (schema 7), and only together with kRenderFormFields: PDFium's own form field highlight, a translucent tint on every fillable widget, drawn by FPDF_FFLDraw with
+/// the page. It is never part of a print, a snapshot or a flattened copy (RenderBand has no such bit), and it is switched off again as soon as the tile is drawn.
+inline constexpr std::uint32_t kRenderFieldHighlight = 8;
+
+/// What is drawn of a page's form fields on top of the page itself.
+enum class FormDraw : std::uint8_t { None, Fields, Highlighted };
 
 /// One horizontal band of a page laid out at `page_width_px` x `page_height_px` device pixels (after the rotation), for printing.
 struct BandRequest {
@@ -134,6 +143,52 @@ public:
     /// between pages and every few hundred objects); `fonts_complete` says whether every page was walked. Never fails for a document that opened.
     [[nodiscard]] protocol::Result<protocol::GetDocumentDetailsReply> details(std::uint32_t max_font_pages, const std::function<bool()>& expired);
 
+    // ---- schema 7: text quads, the annotation read side, forms and the engine's own save -------------------------------------------------
+    // An annotation is named by (page, index): its position in the page's /Annots array, which does not change while the document is open (nothing here adds or removes
+    // one). Every text value is a PDF text string decoded to UTF-8 and cut at a code point boundary at the schema limit.
+
+    /// The quadrilaterals of the characters [start, start + count) of a page, one per line of text, 64 from `first_quad` on (GetTextQuads in the schema).
+    /// InvalidArgument: page out of range, start at or past the end of the text, first_quad past the end of the quads. Damaged: the page or its text cannot be loaded.
+    [[nodiscard]] protocol::Result<protocol::GetTextQuadsReply> text_quads(std::uint32_t page, std::uint32_t start, std::uint32_t count, std::uint32_t first_quad);
+
+    [[nodiscard]] protocol::Result<protocol::ListAnnotationsReply> list_annotations(std::uint32_t page, std::uint32_t first, std::uint32_t count);
+
+    /// InvalidArgument: page or index out of range, or no dictionary at that position.
+    [[nodiscard]] protocol::Result<protocol::GetAnnotationReply> annotation(std::uint32_t page, std::uint32_t index);
+
+    /// InvalidArgument: not an ink annotation, or no such stroke. Unsupported: the stroke has more points than the engine copies out of PDFium (1,000,000).
+    [[nodiscard]] protocol::Result<protocol::GetInkStrokeReply> ink_stroke(std::uint32_t page, std::uint32_t index, std::uint32_t stroke, std::uint32_t first, std::uint32_t count);
+
+    /// The display mirror (annotation-core 3.3): sets or puts back the Hidden flag in the in-memory document. The file's own flags are remembered the first time an annotation is
+    /// changed, reported by list_annotations and annotation, and put back by save() before PDFium writes anything.
+    [[nodiscard]] protocol::Status set_annotation_hidden(std::uint32_t page, std::uint32_t index, bool hidden);
+
+    /// How many annotations each of `count` pages from `first_page` has that a person sees (not links, popups or widgets). `expired` is polled between pages; when it returns true the result is Timeout.
+    [[nodiscard]] protocol::Result<protocol::CountAnnotationsReply> count_annotations(std::uint32_t first_page, std::uint32_t count, const std::function<bool()>& expired);
+
+    /// One window of the document's form widgets in tab order (document order within each page). The list is built once, page by page, with `expired` polled between pages: when it
+    /// returns true the result is Timeout and the next call carries on from the page it reached. Unsupported: PDFium cannot make a form-fill environment.
+    [[nodiscard]] protocol::Result<protocol::GetFormFieldsReply> form_fields(std::uint32_t first, std::uint32_t count, const std::function<bool()>& expired);
+
+    [[nodiscard]] protocol::Result<protocol::GetFormFieldDetailReply> form_field_detail(std::uint32_t field_id, std::uint32_t first_option, const std::function<bool()>& expired);
+
+    /// Changes one field through PDFium's form-fill events (SetFormFieldValue in the schema has the statuses).
+    [[nodiscard]] protocol::Result<protocol::SetFormFieldValueReply> set_form_field_value(const protocol::SetFormFieldValue& request, const std::function<bool()>& expired);
+
+    /// Reset one field, reset every field, or press a push button (FormAction in the schema has the statuses). `expired` is polled between the fields of a reset of all.
+    [[nodiscard]] protocol::Result<protocol::FormActionReply> form_action(std::uint32_t field_id, std::uint16_t action, const std::function<bool()>& expired);
+
+    /// Receives what PDFium writes, a block at a time. Returns false to stop the save (the disk is full, the handle was closed).
+    using SaveSink = std::function<bool(const void* data, unsigned long size)>;
+
+    /// FPDF_SaveAsCopy of the in-memory document. Ends a form edit in progress first (so a typed value is kept), then puts the file's own annotation flags back for the duration of the
+    /// save (a display mirror flag must never reach a saved file) and sets the mirror again afterwards, whether or not the save worked. `incremental` is FPDF_INCREMENTAL, otherwise
+    /// FPDF_NO_INCREMENTAL. Ok: `bytes_written` is what the sink received. Damaged: PDFium or the sink failed.
+    [[nodiscard]] protocol::Status save(bool incremental, const SaveSink& sink, std::uint64_t& bytes_written);
+
+    /// How many annotations have a Hidden flag that differs from the file's (a test hook for the save invariant).
+    [[nodiscard]] std::size_t mirrored_annotation_count() const noexcept { return mirror_.size(); }
+
 private:
     struct PageCache;
     struct PageCacheDeleter {
@@ -170,12 +225,49 @@ private:
     /// A window that does not start at the page's corner of a page with a skewed image is drawn from the corner instead, into a scratch bitmap that is cropped (when it fits
     /// the budget), so that it is the same pixels as that part of the whole page drawn at once.
     [[nodiscard]] protocol::Status render_window(fpdf_page_t__* page, std::uint32_t index, int x, int y, int width, int height, int size_x, int size_y, int rotate,
-                                                 bool with_forms, int flags, std::uint8_t* destination, std::uint32_t stride, const InterruptCheck& interrupt);
+                                                 FormDraw forms, int flags, std::uint8_t* destination, std::uint32_t stride, const InterruptCheck& interrupt);
 
-    /// Draws a loaded page into `bitmap` and, when `with_forms`, the widgets of its form fields on top of it with the same transform. Shared by tiles and bands so that
+    /// Draws a loaded page into `bitmap` and, unless `forms` is None, the widgets of its form fields on top of it with the same transform. Shared by tiles and bands so that
     /// both draw a widget the same way. Unsupported when PDFium cannot make the form-fill environment.
     [[nodiscard]] protocol::Status render_page(fpdf_bitmap_t__* bitmap, fpdf_page_t__* page, int start_x, int start_y, int size_x, int size_y, int rotate,
-                                               bool with_forms, int flags, const InterruptCheck& interrupt);
+                                               FormDraw forms, int flags, const InterruptCheck& interrupt);
+
+    /// Display mirror: (page << 32 | index) of every annotation whose /F this engine changed, with the file's value and the value it set.
+    struct MirroredFlags {
+        int original;
+        int current;
+    };
+    std::unordered_map<std::uint64_t, MirroredFlags> mirror_;
+
+    /// The form widgets of the document in tab order, built page by page. A fieldId is a position in this list.
+    struct Widget {
+        std::uint32_t page;
+        std::uint32_t index;
+        int type;          // FPDF_FORMFIELD_*; 0 when PDFium does not know the widget as part of a field
+        std::string name;  // the fully qualified field name, cut at 256 bytes; widgets that share a name share a value
+    };
+    std::vector<Widget> widgets_;
+    std::uint32_t widgets_scanned_pages_{0};
+    bool widgets_ready_{false};
+
+    /// The quads of the last range asked about, so that the 64-quad windows of one range cost one pass over its characters.
+    struct QuadCache {
+        std::uint32_t page{0xFFFFFFFFu};
+        std::uint32_t start{};
+        std::uint32_t count{};
+        std::vector<float> xs;  // four corners a quad
+        std::vector<float> ys;
+        bool truncated{false};
+    };
+    QuadCache quads_;
+
+    /// Annotations and the display mirror (annotations.cpp).
+    [[nodiscard]] bool restore_mirrored_flags();
+    void reapply_mirrored_flags();
+    [[nodiscard]] int file_flags(std::uint32_t page, std::uint32_t index, int current) const;
+
+    /// Forms (forms.cpp). Both Timeout-able: the widget list is built page by page.
+    [[nodiscard]] protocol::Status ensure_widgets(const std::function<bool()>& expired);
 
     fpdf_document_t__* handle_{nullptr};
     std::uint32_t page_count_{0};

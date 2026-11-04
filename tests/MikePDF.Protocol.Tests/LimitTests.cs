@@ -52,7 +52,10 @@ public sealed class LimitTests
     private static void AddArrayCases(List<Case> cases, StructDef st, FieldDef f, string prop, string where, bool isRequest)
     {
         var element = f.Element!.Value;
-        var companions = st.Fields.Where(o => o.Type == FieldType.Array).Select(o => (Prop: Schema.Pascal(o.Name), Field: o)).ToList();
+
+        // The arrays that must have one length (sameLengthAs, directly or through a common first array); arrays outside the group keep their own limit.
+        string Root(FieldDef d) => d.SameLengthAs ?? d.Name;
+        var companions = st.Fields.Where(o => o.Type == FieldType.Array && Root(o) == Root(f)).Select(o => (Prop: Schema.Pascal(o.Name), Field: o)).ToList();
 
         void Count(string label, int n, bool valid) =>
             cases.Add(new($"{where}: {label}", where, st.TypeName, isRequest, o =>
@@ -85,6 +88,7 @@ public sealed class LimitTests
         {
             FieldType.U16 => typeof(ushort),
             FieldType.U32 => typeof(uint),
+            FieldType.I32 => typeof(int),
             FieldType.F32 => typeof(float),
             _ => typeof(string),
         }, n);
@@ -96,6 +100,7 @@ public sealed class LimitTests
     {
         FieldType.U16 => (ushort)(f.Min ?? 0),
         FieldType.U32 => (uint)(f.Min ?? 0),
+        FieldType.I32 => (int)(f.Min ?? 0),
         FieldType.F32 => (float)f.Max!.Value,
         _ => "x",
     };

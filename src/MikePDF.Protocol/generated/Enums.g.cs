@@ -10,7 +10,7 @@ namespace MikePDF.Protocol;
 /// <summary>Constants taken from the schema.</summary>
 public static class ProtocolInfo
 {
-    public const uint SchemaVersion = 6u;
+    public const uint SchemaVersion = 7u;
     public const int MaxFrameBytes = 65536;
     public const uint MaxDeadlineMs = 86400000u;
 }
@@ -93,12 +93,24 @@ public enum MessageType : ushort
     GetPageText = 24,
     SearchPage = 25,
     GetDocumentDetails = 26,
+    GetTextQuads = 27,
     GetViewerPreferences = 28,
     RenderTile = 32,
     CancelBefore = 33,
     RenderBand = 34,
+    ListAnnotations = 40,
+    GetAnnotation = 41,
+    GetInkStroke = 42,
+    SetAnnotationHidden = 43,
+    CountAnnotations = 44,
+    GetFormFields = 45,
+    GetFormFieldDetail = 46,
+    SetFormFieldValue = 47,
+    FormAction = 48,
+    SaveDocument = 62,
     ValidateStructure = 1024,
     AppendAnnotations = 1025,
+    NormalizeTail = 1026,
     RewriteDocument = 1029,
     VerifyAnnotations = 1030,
     ShellOpen = 2048,
@@ -119,7 +131,7 @@ public static class MessageTypeInfo
 {
     public static bool IsDefined(MessageType value) => value switch
     {
-        MessageType.Hello or MessageType.Ping or MessageType.Shutdown or MessageType.AttachSlotRing or MessageType.OpenDocument or MessageType.CloseDocument or MessageType.GetDocumentInfo or MessageType.GetPageSizes or MessageType.GetOutline or MessageType.GetPageLinks or MessageType.GetLinkUri or MessageType.GetPageBoxes or MessageType.GetPageText or MessageType.SearchPage or MessageType.GetDocumentDetails or MessageType.GetViewerPreferences or MessageType.RenderTile or MessageType.CancelBefore or MessageType.RenderBand or MessageType.ValidateStructure or MessageType.AppendAnnotations or MessageType.RewriteDocument or MessageType.VerifyAnnotations or MessageType.ShellOpen or MessageType.ShellRenderPage or MessageType.ShellClose => true,
+        MessageType.Hello or MessageType.Ping or MessageType.Shutdown or MessageType.AttachSlotRing or MessageType.OpenDocument or MessageType.CloseDocument or MessageType.GetDocumentInfo or MessageType.GetPageSizes or MessageType.GetOutline or MessageType.GetPageLinks or MessageType.GetLinkUri or MessageType.GetPageBoxes or MessageType.GetPageText or MessageType.SearchPage or MessageType.GetDocumentDetails or MessageType.GetTextQuads or MessageType.GetViewerPreferences or MessageType.RenderTile or MessageType.CancelBefore or MessageType.RenderBand or MessageType.ListAnnotations or MessageType.GetAnnotation or MessageType.GetInkStroke or MessageType.SetAnnotationHidden or MessageType.CountAnnotations or MessageType.GetFormFields or MessageType.GetFormFieldDetail or MessageType.SetFormFieldValue or MessageType.FormAction or MessageType.SaveDocument or MessageType.ValidateStructure or MessageType.AppendAnnotations or MessageType.NormalizeTail or MessageType.RewriteDocument or MessageType.VerifyAnnotations or MessageType.ShellOpen or MessageType.ShellRenderPage or MessageType.ShellClose => true,
         _ => false,
     };
 
@@ -140,12 +152,24 @@ public static class MessageTypeInfo
         MessageType.GetPageText => DocumentIdRule.Required,
         MessageType.SearchPage => DocumentIdRule.Required,
         MessageType.GetDocumentDetails => DocumentIdRule.Required,
+        MessageType.GetTextQuads => DocumentIdRule.Required,
         MessageType.GetViewerPreferences => DocumentIdRule.Required,
         MessageType.RenderTile => DocumentIdRule.Required,
         MessageType.CancelBefore => DocumentIdRule.Required,
         MessageType.RenderBand => DocumentIdRule.Required,
+        MessageType.ListAnnotations => DocumentIdRule.Required,
+        MessageType.GetAnnotation => DocumentIdRule.Required,
+        MessageType.GetInkStroke => DocumentIdRule.Required,
+        MessageType.SetAnnotationHidden => DocumentIdRule.Required,
+        MessageType.CountAnnotations => DocumentIdRule.Required,
+        MessageType.GetFormFields => DocumentIdRule.Required,
+        MessageType.GetFormFieldDetail => DocumentIdRule.Required,
+        MessageType.SetFormFieldValue => DocumentIdRule.Required,
+        MessageType.FormAction => DocumentIdRule.Required,
+        MessageType.SaveDocument => DocumentIdRule.Required,
         MessageType.ValidateStructure => DocumentIdRule.None,
         MessageType.AppendAnnotations => DocumentIdRule.None,
+        MessageType.NormalizeTail => DocumentIdRule.None,
         MessageType.RewriteDocument => DocumentIdRule.None,
         MessageType.VerifyAnnotations => DocumentIdRule.None,
         MessageType.ShellOpen => DocumentIdRule.None,

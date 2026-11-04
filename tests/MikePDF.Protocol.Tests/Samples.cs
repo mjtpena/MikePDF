@@ -65,6 +65,28 @@ public static class Samples
             BaseHandle = 0x1F4, OutputHandle = 0x1FC, PageCount = 342, Pages = [0, 9999999], Added = [3, 0], Removed = [1, 100_000_000],
         }),
         new("req_verify_annotations_no_pages", 45, 0, 90000, new VerifyAnnotations { BaseHandle = 1, OutputHandle = 2, PageCount = 1, Pages = [], Added = [], Removed = [] }),
+
+        // Schema 7: the annotation read side, text quads, forms, the engine's save and the tail normaliser.
+        new("req_get_text_quads", 50, 7, 1000, new GetTextQuads { Page = 41, Start = 199_999, Count = 200_000, FirstQuad = 4095 }),
+        new("req_get_text_quads_first_word", 51, 7, 1000, new GetTextQuads { Page = 0, Start = 0, Count = 1, FirstQuad = 0 }),
+        new("req_list_annotations", 52, 7, 1000, new ListAnnotations { Page = 9_999_999, First = 99_999, Count = 64 }),
+        new("req_list_annotations_first_window", 53, 7, 1000, new ListAnnotations { Page = 0, First = 0, Count = 1 }),
+        new("req_get_annotation", 54, 7, 1000, new GetAnnotation { Page = 3, Index = 99_999 }),
+        new("req_get_ink_stroke", 55, 7, 1000, new GetInkStroke { Page = 3, Index = 12, Stroke = 99_999, First = 9_999_999, Count = 1024 }),
+        new("req_set_annotation_hidden", 56, 7, 1000, new SetAnnotationHidden { Page = 3, Index = 12, Hidden = true }),
+        new("req_set_annotation_shown", 57, 7, 1000, new SetAnnotationHidden { Page = 3, Index = 12, Hidden = false }),
+        new("req_count_annotations", 58, 7, 5000, new CountAnnotations { FirstPage = 9_999_999, Count = 5000 }),
+        new("req_get_form_fields", 59, 7, 1000, new GetFormFields { First = 99_999, Count = 64 }),
+        new("req_get_form_field_detail", 60, 7, 1000, new GetFormFieldDetail { FieldId = 99_999, FirstOption = 9999 }),
+        new("req_set_form_field_value_choice", 63, 7, 1000, new SetFormFieldValue { FieldId = 6, Kind = 2, Text = "", Checked = false, Selected = [0, 9999] }),
+        new("req_set_form_field_value_text", 61, 7, 1000, new SetFormFieldValue { FieldId = 4, Kind = 0, Text = "Ünïcode ✓ text", Checked = false, Selected = [] }),
+        new("req_set_form_field_value_toggle", 62, 7, 1000, new SetFormFieldValue { FieldId = 5, Kind = 1, Text = "", Checked = true, Selected = [] }),
+        new("req_form_action_reset", 64, 7, 1000, new FormAction { FieldId = 99_999, Action = 0 }),
+        new("req_form_action_activate", 65, 7, 1000, new FormAction { FieldId = 2, Action = 2 }),
+        new("req_save_document", 66, 7, 90000, new SaveDocument { Mode = 0, Flags = 0, OutputHandle = 0x2A4 }),
+        new("req_save_document_full", 67, 7, 90000, new SaveDocument { Mode = 2, Flags = 3, OutputHandle = 0xFFFFFFFFFFFFFFFFUL }),
+        new("req_normalize_tail", 68, 0, 90000, new NormalizeTail { OriginalHandle = 0x1F4, PdfiumHandle = 0x1F8, OutputHandle = 0x1FC, Flags = 3 }),
+        new("req_normalize_tail_smallest", 69, 0, 1, new NormalizeTail { OriginalHandle = 1, PdfiumHandle = 1, OutputHandle = 1, Flags = 0 }),
     ];
 
     public static IReadOnlyList<ResponseSample> Responses { get; } =
@@ -178,6 +200,107 @@ public static class Samples
         }),
         new("rsp_verify_annotations", 44, Status.Ok, MessageType.VerifyAnnotations, new VerifyAnnotationsReply { Ok = true, Mismatches = [7, 9999999] }),
         new("rsp_verify_annotations_clean", 45, Status.Ok, MessageType.VerifyAnnotations, new VerifyAnnotationsReply { Ok = true, Mismatches = [] }),
+
+        // Schema 7.
+        new("rsp_get_text_quads", 50, Status.Ok, MessageType.GetTextQuads, new GetTextQuadsReply
+        {
+            TotalQuads = 2, Truncated = false,
+            Xs = [72f, 144f, 72f, 144f, 72f, 130.5f, 72f, 130.5f],
+            Ys = [712f, 712f, 700f, 700f, 698f, 698f, 686f, 686f],
+        }),
+        new("rsp_get_text_quads_none", 51, Status.Ok, MessageType.GetTextQuads, new GetTextQuadsReply { TotalQuads = 4096, Truncated = true, Xs = [], Ys = [] }),
+        new("rsp_list_annotations", 52, Status.Ok, MessageType.ListAnnotations, new ListAnnotationsReply
+        {
+            Total = 100_000,
+            Subtypes = [9, 1, 20, 28],
+            Flags = [4, 28, 0, 0xFFFFFFFFu],
+            Lefts = [72f, 20f, -1_000_000f, 0f],
+            Bottoms = [700f, 20f, 0f, 0f],
+            Rights = [144f, 44f, 1_000_000f, 0f],
+            Tops = [712f, 44f, 10f, 0f],
+            Colours = [0xFFFFEB00u, 0xFF000000u, 0u, 1u],
+            Nms = ["MikePDF:0123456789abcdef0123456789abcdef", "", new string('n', 64), "é"],
+            Authors = ["A. Reviewer", "", new string('a', 128), "ü"],
+            Modified = ["D:20241103123456+10'00'", "", new string('m', 32), ""],
+            Snippets = ["The marked text ✓", "", new string('s', 192), ""],
+            Parents = [-1, 0, 99_999, -1],
+        }),
+        new("rsp_list_annotations_empty", 53, Status.Ok, MessageType.ListAnnotations, new ListAnnotationsReply
+        {
+            Total = 0, Subtypes = [], Flags = [], Lefts = [], Bottoms = [], Rights = [], Tops = [], Colours = [], Nms = [], Authors = [], Modified = [], Snippets = [], Parents = [],
+        }),
+        new("rsp_get_annotation_ink", 55, Status.Ok, MessageType.GetAnnotation, new GetAnnotationReply
+        {
+            Subtype = 15, Flags = 0xFFFFFFFFu, Left = -1_000_000f, Bottom = -1_000_000f, Right = 1_000_000f, Top = 1_000_000f, Colour = 0xFF0000FFu, InteriorColour = 0xFF00FF00u, Opacity = 1f,
+            BorderWidth = 1000f, BorderStyle = 4, Contents = new string('c', 16384), ContentsTruncated = true, Author = new string('a', 256), Subject = new string('s', 256), Nm = new string('n', 64),
+            Created = new string('d', 32), Modified = new string('m', 32), ParentIndex = 99_999, ReplyType = 2, StateModel = "Review", State = "Accepted", PopupOpen = true, Name = new string('i', 64),
+            QuadPoints = new float[512], Vertices = new float[2048], VerticesTruncated = true, LineEndings = [10, 0], StrokeCount = 100_000, PointCount = 10_000_000,
+            DefaultAppearance = new string('f', 256), Alignment = 2, HasAppearance = false,
+        }),
+        new("rsp_get_annotation", 54, Status.Ok, MessageType.GetAnnotation, new GetAnnotationReply
+        {
+            Subtype = 9, Flags = 4, Left = 72f, Bottom = 700f, Right = 144f, Top = 712f, Colour = 0xFFFFEB00u, InteriorColour = 0, Opacity = 0.5f, BorderWidth = 1f, BorderStyle = 0,
+            Contents = "A comment ✓", ContentsTruncated = false, Author = "A. Reviewer", Subject = "Highlight", Nm = "MikePDF:0123456789abcdef0123456789abcdef",
+            Created = "D:20241103123456+10'00'", Modified = "D:20241103123456+10'00'", ParentIndex = -1, ReplyType = 0, StateModel = "", State = "", PopupOpen = false, Name = "",
+            QuadPoints = [72f, 712f, 144f, 712f, 72f, 700f, 144f, 700f], Vertices = [], VerticesTruncated = false, LineEndings = [], StrokeCount = 0, PointCount = 0,
+            DefaultAppearance = "", Alignment = 0, HasAppearance = true,
+        }),
+        new("rsp_get_ink_stroke", 56, Status.Ok, MessageType.GetInkStroke, new GetInkStrokeReply
+        {
+            PointCount = 3, Xs = [10f, 11.5f, 13f], Ys = [20f, 22f, 21f], HasWidths = false, Widths = [0f, 0f, 0f],
+        }),
+        new("rsp_get_ink_stroke_widths", 57, Status.Ok, MessageType.GetInkStroke, new GetInkStrokeReply
+        {
+            PointCount = 10_000_000, Xs = [1f], Ys = [2f], HasWidths = true, Widths = [1000f],
+        }),
+        new("rsp_set_annotation_hidden", 58, Status.Ok, MessageType.SetAnnotationHidden, new SetAnnotationHiddenReply()),
+        new("rsp_count_annotations", 59, Status.Ok, MessageType.CountAnnotations, new CountAnnotationsReply { Counts = [0, 3, 65535, 12] }),
+        new("rsp_get_form_fields", 60, Status.Ok, MessageType.GetFormFields, new GetFormFieldsReply
+        {
+            Total = 100_000,
+            FieldIds = [0, 99_999, 7],
+            Pages = [0, 9_999_999, 3],
+            Lefts = [72f, 100f, 50f],
+            Bottoms = [700f, 100f, 40f],
+            Rights = [300f, 120f, 90f],
+            Tops = [720f, 120f, 60f],
+            Types = [6, 2, 4],
+            Flags = [0, 1, 0x00262000u],
+            States = [0, 1, 15],
+            MaxLens = [0, 10, 65535],
+            Names = ["name", "agree", new string('f', 128)],
+            AlternateNames = ["Full name", "", "É"],
+            Values = ["Alice ✓", "", new string('v', 128)],
+        }),
+        new("rsp_get_form_fields_none", 61, Status.Ok, MessageType.GetFormFields, new GetFormFieldsReply
+        {
+            Total = 0, FieldIds = [], Pages = [], Lefts = [], Bottoms = [], Rights = [], Tops = [], Types = [], Flags = [], States = [], MaxLens = [], Names = [], AlternateNames = [], Values = [],
+        }),
+        new("rsp_get_form_field_detail", 62, Status.Ok, MessageType.GetFormFieldDetail, new GetFormFieldDetailReply
+        {
+            Type = 4, Flags = 0x00060000u, Name = "country", AlternateName = "Country of residence", Value = "France", ValueTruncated = false, DefaultValue = "France", MaxLen = 0,
+            Quadding = 1, FontSize = 12f, ExportValue = "", Checked = false, WidgetCount = 1, OptionsTotal = 10_000, OptionLabels = ["France", "Germany"], OptionValues = ["France", "Germany"],
+            SelectedIndices = [0], HasFormatScript = false, HasValidateScript = true, HasCalculateScript = false,
+        }),
+        new("rsp_get_form_field_detail_maximal", 63, Status.Ok, MessageType.GetFormFieldDetail, new GetFormFieldDetailReply
+        {
+            Type = 7, Flags = 0xFFFFFFFFu, Name = new string('n', 512), AlternateName = new string('a', 256), Value = new string('v', 8192), ValueTruncated = true, DefaultValue = new string('d', 8192),
+            MaxLen = 65535, Quadding = 2, FontSize = 1000f, ExportValue = new string('e', 64), Checked = true, WidgetCount = 100_000, OptionsTotal = 10_000,
+            OptionLabels = Enumerable.Repeat(new string('l', 128), 64).ToArray(), OptionValues = Enumerable.Repeat(new string('o', 128), 64).ToArray(),
+            SelectedIndices = Enumerable.Repeat(9999u, 64).ToArray(), HasFormatScript = true, HasValidateScript = true, HasCalculateScript = true,
+        }),
+        new("rsp_set_form_field_value", 64, Status.Ok, MessageType.SetFormFieldValue, new SetFormFieldValueReply { Accepted = true, Value = "Alice ✓", AffectedPages = [3, 4, 9_999_999], Truncated = false }),
+        new("rsp_set_form_field_value_refused", 65, Status.Ok, MessageType.SetFormFieldValue, new SetFormFieldValueReply { Accepted = false, Value = new string('v', 8192), AffectedPages = Enumerable.Repeat(1u, 256).ToArray(), Truncated = true }),
+        new("rsp_form_action", 66, Status.Ok, MessageType.FormAction, new FormActionReply { AffectedPages = [0, 1, 2], Performed = 1, Truncated = false }),
+        new("rsp_form_action_refused", 67, Status.Ok, MessageType.FormAction, new FormActionReply { AffectedPages = [], Performed = 3, Truncated = true }),
+        new("rsp_save_document", 68, Status.Ok, MessageType.SaveDocument, new SaveDocumentReply { BytesWritten = 1_099_511_627_776UL, PageCount = 10_000_000 }),
+        new("rsp_save_document_small", 69, Status.Ok, MessageType.SaveDocument, new SaveDocumentReply { BytesWritten = 1_234, PageCount = 1 }),
+        new("rsp_normalize_tail_refused", 70, Status.Ok, MessageType.NormalizeTail, new NormalizeTailReply
+        {
+            Ok = false, BytesWritten = 0, Truncated = true, IssueCodes = [30, 65535], IssueMessages = ["error: the PDFium file does not begin with the original", "café"],
+        }),
+        new("rsp_normalize_tail", 71, Status.Ok, MessageType.NormalizeTail, new NormalizeTailReply { Ok = true, BytesWritten = 2_147_483_647, Truncated = false, IssueCodes = [], IssueMessages = [] }),
+        new("rsp_save_document_permission_denied", 72, Status.PermissionDenied, MessageType.SaveDocument, null),
         new("rsp_error_password_required", 4, Status.PasswordRequired, MessageType.OpenDocument, null),
         new("rsp_error_timeout", 9, Status.Timeout, MessageType.RenderTile, null),
     ];

@@ -86,12 +86,35 @@ internal static class WarmUp
             }
         }
 
+        TailCodePaths();
+
+        _ = ProtocolCodec.EncodeRequestFrame(6, 0, 1000, new NormalizeTail { OriginalHandle = 1, PdfiumHandle = 2, OutputHandle = 3, Flags = 3 });
+        _ = ProtocolCodec.EncodeResponseFrame(6, Status.Ok, MessageType.NormalizeTail, new NormalizeTailReply { Ok = false, IssueCodes = [29], IssueMessages = ["error: warm"] });
+        _ = ProtocolCodec.EncodeResponseFrame(6, Status.Ok, MessageType.NormalizeTail, new NormalizeTailReply { Ok = true, BytesWritten = 1, IssueCodes = [], IssueMessages = [] });
         _ = ProtocolCodec.EncodeRequestFrame(3, 0, 1000, new AppendAnnotations { BaseHandle = 1, EditsHandle = 2, EditsLength = 1, OutputHandle = 3, PageCount = 1 });
         _ = ProtocolCodec.EncodeRequestFrame(4, 0, 1000, new RewriteDocument { BaseHandle = 1, OutputHandle = 2, Flags = 3 });
         _ = ProtocolCodec.EncodeRequestFrame(5, 0, 1000, new VerifyAnnotations { BaseHandle = 1, OutputHandle = 2, PageCount = 1, Pages = [0], Added = [1], Removed = [0] });
         _ = ProtocolCodec.EncodeResponseFrame(3, Status.Ok, MessageType.AppendAnnotations, new AppendAnnotationsReply { Ok = false, IssueCodes = [29], IssueMessages = ["error: warm"] });
         _ = ProtocolCodec.EncodeResponseFrame(4, Status.Ok, MessageType.RewriteDocument, new RewriteDocumentReply { Ok = false, IssueCodes = [29], IssueMessages = ["error: warm"] });
         _ = ProtocolCodec.EncodeResponseFrame(5, Status.Ok, MessageType.VerifyAnnotations, new VerifyAnnotationsReply { Ok = true, Mismatches = [] });
+    }
+
+    /// <summary>
+    /// NormalizeTail's code, run on a tiny document and a tail written the way PDFium writes one (an object rewritten, a cross-reference table, a trailer, startxref): the strict parse of
+    /// the appended objects, the walk for private keys and check box appearances, the incremental writer with its self-check, and a refusal.
+    /// </summary>
+    private static void TailCodePaths()
+    {
+        var original = MinimalPdf();
+        var text = Encoding.Latin1.GetString(original);
+        var tail = new StringBuilder("\r\n3 0 obj\r\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /PDFIUM_HasGeneratedAP true >>\r\nendobj\r\n");
+        var xref = original.Length + tail.Length;
+        tail.Append("xref\r\n3 1\r\n0000000000 00000 n\r\n\r\ntrailer\r\n<< /Size 4 /Root 1 0 R /Prev ").Append(text.LastIndexOf("xref\n", StringComparison.Ordinal)).Append(" >>\r\nstartxref\r\n").Append(xref).Append("\r\n%%EOF\r\n");
+        var pdfium = new byte[original.Length + tail.Length];
+        original.CopyTo(pdfium, 0);
+        Encoding.Latin1.GetBytes(tail.ToString()).CopyTo(pdfium, original.Length);
+        _ = MikePDF.PdfWriter.TailNormalizer.Normalize(original, pdfium, new MikePDF.PdfWriter.TailNormalizeOptions());
+        _ = MikePDF.PdfWriter.TailNormalizer.Normalize(original, original, new MikePDF.PdfWriter.TailNormalizeOptions());
     }
 
     private static void LoadReferencedAssemblies(Assembly assembly, HashSet<string> seen)

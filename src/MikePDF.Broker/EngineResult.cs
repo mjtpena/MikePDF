@@ -37,6 +37,12 @@ public readonly record struct RenderTileArgs(
     /// the inverted matrix to them. A tile cache must be emptied when this changes, because the pixels differ.
     /// </summary>
     public const uint DarkPage = 4;
+
+    /// <summary>
+    /// The fillable-field highlight (schema 7): PDFium's own translucent tint over every fillable widget, drawn with the form layer, so it only means something together with
+    /// <see cref="FormFields"/>. Never for a print, a snapshot or a flattened copy. A tile cache must be emptied when this changes, because the pixels differ.
+    /// </summary>
+    public const uint FieldHighlight = 8;
 }
 
 /// <summary>

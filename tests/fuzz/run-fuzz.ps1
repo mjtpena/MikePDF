@@ -13,6 +13,7 @@
     shell-reply-cpp   the Explorer handler's reply decoder and checks (SHELL-18, libFuzzer+ASan)   tests/fuzz/shell_reply_fuzz.cpp
     shell-request-cs  ShellHost's request decoder and rules (SHELL-18)                             tests/fuzz/MikePDF.ShellHost.Fuzz
     pdfwriter-edit    MikePDF.PdfWriter stage 4 (annotation edits) and the copies on arbitrary files   tests/fuzz/MikePDF.PdfWriter.Fuzz
+    pdfwriter-tail    MikePDF.PdfWriter NormalizeTail (stage 3, schema 7) on an arbitrary engine save  tests/fuzz/MikePDF.PdfWriter.Fuzz
     pdfwriter-assemble  MikePDF.PdfWriter page assembler (extract, merge, duplicate) on arbitrary files
     journal-cs        the edit journal's reader and the recovery code behind it (save-pipeline 3.4)
     editblob-cs       the edit blob's reader and the appender on what it decodes (save-pipeline 11.3)
@@ -31,7 +32,7 @@
 #>
 [CmdletBinding()]
 param(
-    [ValidateSet('protocol-cpp', 'engine-document', 'protocol-cs', 'pdfwriter-parse', 'pdfwriter-append', 'shell-reply-cpp', 'shell-request-cs', 'pdfwriter-edit', 'pdfwriter-assemble', 'journal-cs', 'editblob-cs', 'all')]
+    [ValidateSet('protocol-cpp', 'engine-document', 'protocol-cs', 'pdfwriter-parse', 'pdfwriter-append', 'shell-reply-cpp', 'shell-request-cs', 'pdfwriter-edit', 'pdfwriter-tail', 'pdfwriter-assemble', 'journal-cs', 'editblob-cs', 'all')]
     [string[]] $Target = @('all'),
     [int] $Seconds = 60,
     [string] $OutRoot,
@@ -53,9 +54,9 @@ $root = (Resolve-Path (Join-Path $PSScriptRoot '../..')).Path
 if (-not $OutRoot) { $OutRoot = Join-Path $root 'build/out/fuzz' }
 if (-not $CorpusRoot) { $CorpusRoot = Join-Path $OutRoot 'corpus' }
 if (-not $FindingsRoot) { $FindingsRoot = Join-Path $OutRoot 'findings' }
-$all = 'protocol-cpp', 'engine-document', 'protocol-cs', 'pdfwriter-parse', 'pdfwriter-append', 'shell-reply-cpp', 'shell-request-cs', 'pdfwriter-edit', 'pdfwriter-assemble', 'journal-cs', 'editblob-cs'
+$all = 'protocol-cpp', 'engine-document', 'protocol-cs', 'pdfwriter-parse', 'pdfwriter-append', 'shell-reply-cpp', 'shell-request-cs', 'pdfwriter-edit', 'pdfwriter-tail', 'pdfwriter-assemble', 'journal-cs', 'editblob-cs'
 # One harness (MikePDF.PdfWriter.Fuzz) serves these; the first word it is started with picks the target.
-$pdfwriterGroup = 'pdfwriter-parse', 'pdfwriter-append', 'pdfwriter-edit', 'pdfwriter-assemble', 'journal-cs', 'editblob-cs'
+$pdfwriterGroup = 'pdfwriter-parse', 'pdfwriter-append', 'pdfwriter-edit', 'pdfwriter-tail', 'pdfwriter-assemble', 'journal-cs', 'editblob-cs'
 if ($Target -contains 'all') { $Target = $all }
 if ($SelfTest) { $Target = @('protocol-cs'); $CSharpMode = 'coverage' }
 New-Item -ItemType Directory -Force $OutRoot, $CorpusRoot, $FindingsRoot, (Join-Path $OutRoot 'logs') | Out-Null
@@ -80,6 +81,7 @@ $csBin = @{
     'pdfwriter-parse'  = Join-Path $root 'build/out/fuzz-bin/pdfwriter'
     'pdfwriter-append' = Join-Path $root 'build/out/fuzz-bin/pdfwriter'
     'pdfwriter-edit'   = Join-Path $root 'build/out/fuzz-bin/pdfwriter'
+    'pdfwriter-tail'   = Join-Path $root 'build/out/fuzz-bin/pdfwriter'
     'pdfwriter-assemble' = Join-Path $root 'build/out/fuzz-bin/pdfwriter'
     'journal-cs'       = Join-Path $root 'build/out/fuzz-bin/pdfwriter'
     'editblob-cs'      = Join-Path $root 'build/out/fuzz-bin/pdfwriter'
@@ -87,7 +89,7 @@ $csBin = @{
 }
 
 $driverExe = Join-Path $root 'build/out/fuzz-driver/driver/Release/libfuzzer_dotnet.exe'
-$useCoverage = ($CSharpMode -eq 'coverage') -and [bool] ($Target | Where-Object { $_ -in 'protocol-cs', 'pdfwriter-parse', 'pdfwriter-append', 'pdfwriter-edit', 'pdfwriter-assemble', 'journal-cs', 'editblob-cs', 'shell-request-cs' })
+$useCoverage = ($CSharpMode -eq 'coverage') -and [bool] ($Target | Where-Object { $_ -in 'protocol-cs', 'pdfwriter-parse', 'pdfwriter-append', 'pdfwriter-edit', 'pdfwriter-tail', 'pdfwriter-assemble', 'journal-cs', 'editblob-cs', 'shell-request-cs' })
 # SharpFuzz.CommandLine 2.3.0 (MIT, tests/fuzz/.config/dotnet-tools.json): a tool-manifest version pins the version but not the bytes, so the
 # package's SHA-512 is pinned here and checked after the restore.
 $sharpFuzzCliSha512 = 'G/7VoIh0eqKYdGM9GZJqM+twCotc9T3WFl6QMaulYhzKNGwS90zdXx43JC3jYrwz/BTGVDv4Nu1VK5F+f12kzg=='
@@ -186,9 +188,13 @@ foreach ($file in Get-ChildItem (Join-Path $PSScriptRoot 'seeds/shell-request') 
 # The save targets' seeds were made by `MikePDF.PdfWriter.Fuzz <journal|editblob> --seeds-out <dir>` and are committed.
 $journalSeeds = Join-Path $seedRoot 'journal'
 $editblobSeeds = Join-Path $seedRoot 'editblob'
-New-Item -ItemType Directory -Force $journalSeeds, $editblobSeeds | Out-Null
+$tailSeeds = Join-Path $seedRoot 'tail'
+New-Item -ItemType Directory -Force $journalSeeds, $editblobSeeds, $tailSeeds | Out-Null
 Copy-Item (Join-Path $PSScriptRoot 'seeds/journal/*.jsonl') $journalSeeds -Force
 Copy-Item (Join-Path $PSScriptRoot 'seeds/editblob/*.bin') $editblobSeeds -Force
+# NormalizeTail's seeds: the PDF seeds (an engine save is a PDF) and files shaped like PDFium's incremental save (`MikePDF.PdfWriter.Fuzz tail --seeds-out`, committed).
+Copy-Item (Join-Path $PSScriptRoot 'seeds/tail/*.pdf') $tailSeeds -Force
+Copy-Item (Join-Path $pdfSeeds '*.pdf') $tailSeeds -Force
 $dictionaries = Join-Path $PSScriptRoot 'dictionaries'
 
 # ---- run -----------------------------------------------------------------------------------------------------------------
@@ -333,6 +339,7 @@ foreach ($t in $Target) {
         'pdfwriter-parse'  { $results += Invoke-CSharp $t 'MikePDF.PdfWriter.Fuzz' @('parse') $pdfSeeds (Join-Path $dictionaries 'pdf.dict') 131072 }
         'pdfwriter-append' { $results += Invoke-CSharp $t 'MikePDF.PdfWriter.Fuzz' @('append') $pdfSeeds (Join-Path $dictionaries 'pdf.dict') 131072 }
         'pdfwriter-edit'   { $results += Invoke-CSharp $t 'MikePDF.PdfWriter.Fuzz' @('edit') $pdfSeeds (Join-Path $dictionaries 'pdf.dict') 131072 }
+        'pdfwriter-tail'   { $results += Invoke-CSharp $t 'MikePDF.PdfWriter.Fuzz' @('tail') $tailSeeds (Join-Path $dictionaries 'pdf.dict') 131072 }
         'pdfwriter-assemble' { $results += Invoke-CSharp $t 'MikePDF.PdfWriter.Fuzz' @('assemble') $pdfSeeds (Join-Path $dictionaries 'pdf.dict') 131072 }
         'journal-cs'       { $results += Invoke-CSharp $t 'MikePDF.PdfWriter.Fuzz' @('journal') $journalSeeds (Join-Path $dictionaries 'journal.dict') 65536 }
         'editblob-cs'      { $results += Invoke-CSharp $t 'MikePDF.PdfWriter.Fuzz' @('editblob') $editblobSeeds (Join-Path $dictionaries 'protocol.dict') 65536 }

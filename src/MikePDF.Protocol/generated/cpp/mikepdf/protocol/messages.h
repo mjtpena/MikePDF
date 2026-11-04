@@ -552,6 +552,47 @@ struct GetDocumentDetailsReply {
     bool operator==(const GetDocumentDetailsReply&) const = default;
 };
 
+/// Request payload of GetTextQuads (message type 27).
+struct GetTextQuads {
+    static constexpr MessageType kMessageType = MessageType::GetTextQuads;
+    std::uint32_t page{};
+    /// First character, in the numbering of GetPageText.
+    std::uint32_t start{};
+    /// Characters; the range is cut at the end of the page's text.
+    std::uint32_t count{};
+    std::uint32_t first_quad{};
+
+    /// Checks every schema limit.
+    [[nodiscard]] Status validate() const;
+    /// Validates, then writes the payload array. Writes nothing if validation fails.
+    [[nodiscard]] Status encode(Writer& writer) const;
+    /// Reads and fully validates one payload. The value is default-constructed on failure.
+    [[nodiscard]] static Result<GetTextQuads> decode(Reader& reader);
+
+    bool operator==(const GetTextQuads&) const = default;
+};
+
+/// Reply payload of GetTextQuads (message type 27).
+struct GetTextQuadsReply {
+    static constexpr MessageType kMessageType = MessageType::GetTextQuads;
+    /// Quads of the whole range, at most 4096.
+    std::uint32_t total_quads{};
+    /// The range has more than 4096 quads; only the first 4096 are reported.
+    bool truncated{};
+    /// Four corners a quad (top-left, top-right, bottom-left, bottom-right), 64 quads at most.
+    std::vector<float> xs{};
+    std::vector<float> ys{};
+
+    /// Checks every schema limit.
+    [[nodiscard]] Status validate() const;
+    /// Validates, then writes the payload array. Writes nothing if validation fails.
+    [[nodiscard]] Status encode(Writer& writer) const;
+    /// Reads and fully validates one payload. The value is default-constructed on failure.
+    [[nodiscard]] static Result<GetTextQuadsReply> decode(Reader& reader);
+
+    bool operator==(const GetTextQuadsReply&) const = default;
+};
+
 /// Request payload of GetViewerPreferences (message type 28).
 struct GetViewerPreferences {
     static constexpr MessageType kMessageType = MessageType::GetViewerPreferences;
@@ -596,7 +637,7 @@ struct RenderTile {
     std::int32_t tile_y{};
     std::uint32_t tile_width{};
     std::uint32_t tile_height{};
-    /// Bit 0 annotations, bit 1 form fields, bit 2 dark pages (the tile is recoloured the way the inverted page colour does it, except for colour photographs). Bit 2 means printing mode in RenderBand: the two messages have their own flags.
+    /// Bit 0 annotations, bit 1 form fields, bit 2 dark pages (the tile is recoloured the way the inverted page colour does it, except for colour photographs), bit 3 the fillable-field highlight (schema 7; only with bit 1: PDFium's own form field highlight, drawn on the widgets of the page; never set for a print, a snapshot or a flattened copy). Bit 2 means printing mode in RenderBand: the two messages have their own flags.
     std::uint32_t flags{};
     std::uint32_t slot_index{};
     std::uint64_t generation{};
@@ -703,6 +744,450 @@ struct RenderBandReply {
     bool operator==(const RenderBandReply&) const = default;
 };
 
+/// Request payload of ListAnnotations (message type 40).
+struct ListAnnotations {
+    static constexpr MessageType kMessageType = MessageType::ListAnnotations;
+    std::uint32_t page{};
+    std::uint32_t first{};
+    std::uint32_t count{};
+
+    /// Checks every schema limit.
+    [[nodiscard]] Status validate() const;
+    /// Validates, then writes the payload array. Writes nothing if validation fails.
+    [[nodiscard]] Status encode(Writer& writer) const;
+    /// Reads and fully validates one payload. The value is default-constructed on failure.
+    [[nodiscard]] static Result<ListAnnotations> decode(Reader& reader);
+
+    bool operator==(const ListAnnotations&) const = default;
+};
+
+/// Reply payload of ListAnnotations (message type 40).
+struct ListAnnotationsReply {
+    static constexpr MessageType kMessageType = MessageType::ListAnnotations;
+    /// Entries in the page's /Annots; the engine stops counting at 100000.
+    std::uint32_t total{};
+    std::vector<std::uint16_t> subtypes{};
+    /// The /F flags of the file.
+    std::vector<std::uint32_t> flags{};
+    std::vector<float> lefts{};
+    std::vector<float> bottoms{};
+    std::vector<float> rights{};
+    std::vector<float> tops{};
+    /// 0xAARRGGBB; 0 when the annotation has no /C or has an appearance stream.
+    std::vector<std::uint32_t> colours{};
+    /// /NM; empty when absent.
+    std::vector<std::string> nms{};
+    /// /T, cut at a code point boundary.
+    std::vector<std::string> authors{};
+    /// The raw /M text; the broker parses it.
+    std::vector<std::string> modified{};
+    /// The start of /Contents, cut at a code point boundary.
+    std::vector<std::string> snippets{};
+    /// Index of the annotation this one replies to, -1 for none.
+    std::vector<std::int32_t> parents{};
+
+    /// Checks every schema limit.
+    [[nodiscard]] Status validate() const;
+    /// Validates, then writes the payload array. Writes nothing if validation fails.
+    [[nodiscard]] Status encode(Writer& writer) const;
+    /// Reads and fully validates one payload. The value is default-constructed on failure.
+    [[nodiscard]] static Result<ListAnnotationsReply> decode(Reader& reader);
+
+    bool operator==(const ListAnnotationsReply&) const = default;
+};
+
+/// Request payload of GetAnnotation (message type 41).
+struct GetAnnotation {
+    static constexpr MessageType kMessageType = MessageType::GetAnnotation;
+    std::uint32_t page{};
+    std::uint32_t index{};
+
+    /// Checks every schema limit.
+    [[nodiscard]] Status validate() const;
+    /// Validates, then writes the payload array. Writes nothing if validation fails.
+    [[nodiscard]] Status encode(Writer& writer) const;
+    /// Reads and fully validates one payload. The value is default-constructed on failure.
+    [[nodiscard]] static Result<GetAnnotation> decode(Reader& reader);
+
+    bool operator==(const GetAnnotation&) const = default;
+};
+
+/// Reply payload of GetAnnotation (message type 41).
+struct GetAnnotationReply {
+    static constexpr MessageType kMessageType = MessageType::GetAnnotation;
+    std::uint16_t subtype{};
+    /// The /F flags of the file (see ListAnnotations).
+    std::uint32_t flags{};
+    float left{};
+    float bottom{};
+    float right{};
+    float top{};
+    /// 0xAARRGGBB from /C and /CA (for an annotation with an appearance stream: the first colour the stream paints with, with /CA as the alpha); 0 when there is none.
+    std::uint32_t colour{};
+    /// 0xAARRGGBB from /IC; 0 when absent.
+    std::uint32_t interior_colour{};
+    /// /CA, 1 when absent.
+    float opacity{};
+    float border_width{};
+    /// Solid, dashed, beveled, inset, underline; the pinned PDFium cannot read it, so 0.
+    std::uint16_t border_style{};
+    std::string contents{};
+    bool contents_truncated{};
+    std::string author{};
+    std::string subject{};
+    std::string nm{};
+    /// The raw /CreationDate text.
+    std::string created{};
+    /// The raw /M text.
+    std::string modified{};
+    /// Index of the annotation this one replies to (/IRT), -1 for none.
+    std::int32_t parent_index{};
+    /// /RT: 0 none, 1 reply, 2 group.
+    std::uint16_t reply_type{};
+    std::string state_model{};
+    std::string state{};
+    /// Always false with the pinned PDFium.
+    bool popup_open{};
+    /// /Name: the icon of a Text annotation or the name of a Stamp.
+    std::string name{};
+    std::vector<float> quad_points{};
+    std::vector<float> vertices{};
+    bool vertices_truncated{};
+    /// Always empty with the pinned PDFium.
+    std::vector<std::uint16_t> line_endings{};
+    std::uint32_t stroke_count{};
+    std::uint32_t point_count{};
+    /// /DA of a FreeText annotation.
+    std::string default_appearance{};
+    /// /Q: left, centred, right.
+    std::uint16_t alignment{};
+    /// The dictionary has an /AP entry.
+    bool has_appearance{};
+
+    /// Checks every schema limit.
+    [[nodiscard]] Status validate() const;
+    /// Validates, then writes the payload array. Writes nothing if validation fails.
+    [[nodiscard]] Status encode(Writer& writer) const;
+    /// Reads and fully validates one payload. The value is default-constructed on failure.
+    [[nodiscard]] static Result<GetAnnotationReply> decode(Reader& reader);
+
+    bool operator==(const GetAnnotationReply&) const = default;
+};
+
+/// Request payload of GetInkStroke (message type 42).
+struct GetInkStroke {
+    static constexpr MessageType kMessageType = MessageType::GetInkStroke;
+    std::uint32_t page{};
+    std::uint32_t index{};
+    std::uint32_t stroke{};
+    std::uint32_t first{};
+    std::uint32_t count{};
+
+    /// Checks every schema limit.
+    [[nodiscard]] Status validate() const;
+    /// Validates, then writes the payload array. Writes nothing if validation fails.
+    [[nodiscard]] Status encode(Writer& writer) const;
+    /// Reads and fully validates one payload. The value is default-constructed on failure.
+    [[nodiscard]] static Result<GetInkStroke> decode(Reader& reader);
+
+    bool operator==(const GetInkStroke&) const = default;
+};
+
+/// Reply payload of GetInkStroke (message type 42).
+struct GetInkStrokeReply {
+    static constexpr MessageType kMessageType = MessageType::GetInkStroke;
+    /// Points of the whole stroke.
+    std::uint32_t point_count{};
+    std::vector<float> xs{};
+    std::vector<float> ys{};
+    bool has_widths{};
+    /// Zeros when hasWidths is false.
+    std::vector<float> widths{};
+
+    /// Checks every schema limit.
+    [[nodiscard]] Status validate() const;
+    /// Validates, then writes the payload array. Writes nothing if validation fails.
+    [[nodiscard]] Status encode(Writer& writer) const;
+    /// Reads and fully validates one payload. The value is default-constructed on failure.
+    [[nodiscard]] static Result<GetInkStrokeReply> decode(Reader& reader);
+
+    bool operator==(const GetInkStrokeReply&) const = default;
+};
+
+/// Request payload of SetAnnotationHidden (message type 43).
+struct SetAnnotationHidden {
+    static constexpr MessageType kMessageType = MessageType::SetAnnotationHidden;
+    std::uint32_t page{};
+    std::uint32_t index{};
+    bool hidden{};
+
+    /// Checks every schema limit.
+    [[nodiscard]] Status validate() const;
+    /// Validates, then writes the payload array. Writes nothing if validation fails.
+    [[nodiscard]] Status encode(Writer& writer) const;
+    /// Reads and fully validates one payload. The value is default-constructed on failure.
+    [[nodiscard]] static Result<SetAnnotationHidden> decode(Reader& reader);
+
+    bool operator==(const SetAnnotationHidden&) const = default;
+};
+
+/// Reply payload of SetAnnotationHidden (message type 43).
+struct SetAnnotationHiddenReply {
+    static constexpr MessageType kMessageType = MessageType::SetAnnotationHidden;
+
+    /// Checks every schema limit.
+    [[nodiscard]] Status validate() const;
+    /// Validates, then writes the payload array. Writes nothing if validation fails.
+    [[nodiscard]] Status encode(Writer& writer) const;
+    /// Reads and fully validates one payload. The value is default-constructed on failure.
+    [[nodiscard]] static Result<SetAnnotationHiddenReply> decode(Reader& reader);
+
+    bool operator==(const SetAnnotationHiddenReply&) const = default;
+};
+
+/// Request payload of CountAnnotations (message type 44).
+struct CountAnnotations {
+    static constexpr MessageType kMessageType = MessageType::CountAnnotations;
+    std::uint32_t first_page{};
+    std::uint32_t count{};
+
+    /// Checks every schema limit.
+    [[nodiscard]] Status validate() const;
+    /// Validates, then writes the payload array. Writes nothing if validation fails.
+    [[nodiscard]] Status encode(Writer& writer) const;
+    /// Reads and fully validates one payload. The value is default-constructed on failure.
+    [[nodiscard]] static Result<CountAnnotations> decode(Reader& reader);
+
+    bool operator==(const CountAnnotations&) const = default;
+};
+
+/// Reply payload of CountAnnotations (message type 44).
+struct CountAnnotationsReply {
+    static constexpr MessageType kMessageType = MessageType::CountAnnotations;
+    std::vector<std::uint16_t> counts{};
+
+    /// Checks every schema limit.
+    [[nodiscard]] Status validate() const;
+    /// Validates, then writes the payload array. Writes nothing if validation fails.
+    [[nodiscard]] Status encode(Writer& writer) const;
+    /// Reads and fully validates one payload. The value is default-constructed on failure.
+    [[nodiscard]] static Result<CountAnnotationsReply> decode(Reader& reader);
+
+    bool operator==(const CountAnnotationsReply&) const = default;
+};
+
+/// Request payload of GetFormFields (message type 45).
+struct GetFormFields {
+    static constexpr MessageType kMessageType = MessageType::GetFormFields;
+    std::uint32_t first{};
+    std::uint32_t count{};
+
+    /// Checks every schema limit.
+    [[nodiscard]] Status validate() const;
+    /// Validates, then writes the payload array. Writes nothing if validation fails.
+    [[nodiscard]] Status encode(Writer& writer) const;
+    /// Reads and fully validates one payload. The value is default-constructed on failure.
+    [[nodiscard]] static Result<GetFormFields> decode(Reader& reader);
+
+    bool operator==(const GetFormFields&) const = default;
+};
+
+/// Reply payload of GetFormFields (message type 45).
+struct GetFormFieldsReply {
+    static constexpr MessageType kMessageType = MessageType::GetFormFields;
+    std::uint32_t total{};
+    std::vector<std::uint32_t> field_ids{};
+    std::vector<std::uint32_t> pages{};
+    std::vector<float> lefts{};
+    std::vector<float> bottoms{};
+    std::vector<float> rights{};
+    std::vector<float> tops{};
+    std::vector<std::uint16_t> types{};
+    /// The field's /Ff.
+    std::vector<std::uint32_t> flags{};
+    std::vector<std::uint16_t> states{};
+    /// 0 = none.
+    std::vector<std::uint16_t> max_lens{};
+    /// The fully qualified field name, cut at a code point boundary.
+    std::vector<std::string> names{};
+    /// /TU.
+    std::vector<std::string> alternate_names{};
+    /// The start of the value; empty for a password field.
+    std::vector<std::string> values{};
+
+    /// Checks every schema limit.
+    [[nodiscard]] Status validate() const;
+    /// Validates, then writes the payload array. Writes nothing if validation fails.
+    [[nodiscard]] Status encode(Writer& writer) const;
+    /// Reads and fully validates one payload. The value is default-constructed on failure.
+    [[nodiscard]] static Result<GetFormFieldsReply> decode(Reader& reader);
+
+    bool operator==(const GetFormFieldsReply&) const = default;
+};
+
+/// Request payload of GetFormFieldDetail (message type 46).
+struct GetFormFieldDetail {
+    static constexpr MessageType kMessageType = MessageType::GetFormFieldDetail;
+    std::uint32_t field_id{};
+    std::uint32_t first_option{};
+
+    /// Checks every schema limit.
+    [[nodiscard]] Status validate() const;
+    /// Validates, then writes the payload array. Writes nothing if validation fails.
+    [[nodiscard]] Status encode(Writer& writer) const;
+    /// Reads and fully validates one payload. The value is default-constructed on failure.
+    [[nodiscard]] static Result<GetFormFieldDetail> decode(Reader& reader);
+
+    bool operator==(const GetFormFieldDetail&) const = default;
+};
+
+/// Reply payload of GetFormFieldDetail (message type 46).
+struct GetFormFieldDetailReply {
+    static constexpr MessageType kMessageType = MessageType::GetFormFieldDetail;
+    /// FPDF_FORMFIELD_* as in GetFormFieldsReply.types.
+    std::uint16_t type{};
+    /// The field's /Ff.
+    std::uint32_t flags{};
+    std::string name{};
+    std::string alternate_name{};
+    std::string value{};
+    bool value_truncated{};
+    std::string default_value{};
+    /// 0 = none.
+    std::uint16_t max_len{};
+    std::uint16_t quadding{};
+    float font_size{};
+    std::string export_value{};
+    bool checked{};
+    std::uint32_t widget_count{};
+    std::uint32_t options_total{};
+    std::vector<std::string> option_labels{};
+    std::vector<std::string> option_values{};
+    std::vector<std::uint32_t> selected_indices{};
+    bool has_format_script{};
+    bool has_validate_script{};
+    bool has_calculate_script{};
+
+    /// Checks every schema limit.
+    [[nodiscard]] Status validate() const;
+    /// Validates, then writes the payload array. Writes nothing if validation fails.
+    [[nodiscard]] Status encode(Writer& writer) const;
+    /// Reads and fully validates one payload. The value is default-constructed on failure.
+    [[nodiscard]] static Result<GetFormFieldDetailReply> decode(Reader& reader);
+
+    bool operator==(const GetFormFieldDetailReply&) const = default;
+};
+
+/// Request payload of SetFormFieldValue (message type 47).
+struct SetFormFieldValue {
+    static constexpr MessageType kMessageType = MessageType::SetFormFieldValue;
+    std::uint32_t field_id{};
+    /// 0 text, 1 toggle state, 2 choice.
+    std::uint16_t kind{};
+    std::string text{};
+    bool checked{};
+    std::vector<std::uint32_t> selected{};
+
+    /// Checks every schema limit.
+    [[nodiscard]] Status validate() const;
+    /// Validates, then writes the payload array. Writes nothing if validation fails.
+    [[nodiscard]] Status encode(Writer& writer) const;
+    /// Reads and fully validates one payload. The value is default-constructed on failure.
+    [[nodiscard]] static Result<SetFormFieldValue> decode(Reader& reader);
+
+    bool operator==(const SetFormFieldValue&) const = default;
+};
+
+/// Reply payload of SetFormFieldValue (message type 47).
+struct SetFormFieldValueReply {
+    static constexpr MessageType kMessageType = MessageType::SetFormFieldValue;
+    bool accepted{};
+    std::string value{};
+    std::vector<std::uint32_t> affected_pages{};
+    /// More than 256 pages are affected; treat every page as changed.
+    bool truncated{};
+
+    /// Checks every schema limit.
+    [[nodiscard]] Status validate() const;
+    /// Validates, then writes the payload array. Writes nothing if validation fails.
+    [[nodiscard]] Status encode(Writer& writer) const;
+    /// Reads and fully validates one payload. The value is default-constructed on failure.
+    [[nodiscard]] static Result<SetFormFieldValueReply> decode(Reader& reader);
+
+    bool operator==(const SetFormFieldValueReply&) const = default;
+};
+
+/// Request payload of FormAction (message type 48).
+struct FormAction {
+    static constexpr MessageType kMessageType = MessageType::FormAction;
+    std::uint32_t field_id{};
+    /// 0 reset field, 1 reset all, 2 activate button.
+    std::uint16_t action{};
+
+    /// Checks every schema limit.
+    [[nodiscard]] Status validate() const;
+    /// Validates, then writes the payload array. Writes nothing if validation fails.
+    [[nodiscard]] Status encode(Writer& writer) const;
+    /// Reads and fully validates one payload. The value is default-constructed on failure.
+    [[nodiscard]] static Result<FormAction> decode(Reader& reader);
+
+    bool operator==(const FormAction&) const = default;
+};
+
+/// Reply payload of FormAction (message type 48).
+struct FormActionReply {
+    static constexpr MessageType kMessageType = MessageType::FormAction;
+    std::vector<std::uint32_t> affected_pages{};
+    std::uint16_t performed{};
+    /// More than 256 pages are affected; treat every page as changed.
+    bool truncated{};
+
+    /// Checks every schema limit.
+    [[nodiscard]] Status validate() const;
+    /// Validates, then writes the payload array. Writes nothing if validation fails.
+    [[nodiscard]] Status encode(Writer& writer) const;
+    /// Reads and fully validates one payload. The value is default-constructed on failure.
+    [[nodiscard]] static Result<FormActionReply> decode(Reader& reader);
+
+    bool operator==(const FormActionReply&) const = default;
+};
+
+/// Request payload of SaveDocument (message type 62).
+struct SaveDocument {
+    static constexpr MessageType kMessageType = MessageType::SaveDocument;
+    /// 0 incremental, 1 full rewrite, 2 flattened (reserved, Unsupported).
+    std::uint16_t mode{};
+    /// Bit 0 flatten form fields, bit 1 flatten comments and markup; only with mode 2.
+    std::uint32_t flags{};
+    /// A write handle valid in the engine, to an empty file.
+    std::uint64_t output_handle{};
+
+    /// Checks every schema limit.
+    [[nodiscard]] Status validate() const;
+    /// Validates, then writes the payload array. Writes nothing if validation fails.
+    [[nodiscard]] Status encode(Writer& writer) const;
+    /// Reads and fully validates one payload. The value is default-constructed on failure.
+    [[nodiscard]] static Result<SaveDocument> decode(Reader& reader);
+
+    bool operator==(const SaveDocument&) const = default;
+};
+
+/// Reply payload of SaveDocument (message type 62).
+struct SaveDocumentReply {
+    static constexpr MessageType kMessageType = MessageType::SaveDocument;
+    std::uint64_t bytes_written{};
+    std::uint32_t page_count{};
+
+    /// Checks every schema limit.
+    [[nodiscard]] Status validate() const;
+    /// Validates, then writes the payload array. Writes nothing if validation fails.
+    [[nodiscard]] Status encode(Writer& writer) const;
+    /// Reads and fully validates one payload. The value is default-constructed on failure.
+    [[nodiscard]] static Result<SaveDocumentReply> decode(Reader& reader);
+
+    bool operator==(const SaveDocumentReply&) const = default;
+};
+
 /// Request payload of ValidateStructure (message type 1024).
 struct ValidateStructure {
     static constexpr MessageType kMessageType = MessageType::ValidateStructure;
@@ -778,6 +1263,45 @@ struct AppendAnnotationsReply {
     [[nodiscard]] static Result<AppendAnnotationsReply> decode(Reader& reader);
 
     bool operator==(const AppendAnnotationsReply&) const = default;
+};
+
+/// Request payload of NormalizeTail (message type 1026).
+struct NormalizeTail {
+    static constexpr MessageType kMessageType = MessageType::NormalizeTail;
+    std::uint64_t original_handle{};
+    std::uint64_t pdfium_handle{};
+    std::uint64_t output_handle{};
+    /// Bit 0 restore author check box and radio state streams, bit 1 strip PDFium private keys.
+    std::uint32_t flags{};
+
+    /// Checks every schema limit.
+    [[nodiscard]] Status validate() const;
+    /// Validates, then writes the payload array. Writes nothing if validation fails.
+    [[nodiscard]] Status encode(Writer& writer) const;
+    /// Reads and fully validates one payload. The value is default-constructed on failure.
+    [[nodiscard]] static Result<NormalizeTail> decode(Reader& reader);
+
+    bool operator==(const NormalizeTail&) const = default;
+};
+
+/// Reply payload of NormalizeTail (message type 1026).
+struct NormalizeTailReply {
+    static constexpr MessageType kMessageType = MessageType::NormalizeTail;
+    bool ok{};
+    std::uint64_t bytes_written{};
+    /// More issues were found than fit.
+    bool truncated{};
+    std::vector<std::uint32_t> issue_codes{};
+    std::vector<std::string> issue_messages{};
+
+    /// Checks every schema limit.
+    [[nodiscard]] Status validate() const;
+    /// Validates, then writes the payload array. Writes nothing if validation fails.
+    [[nodiscard]] Status encode(Writer& writer) const;
+    /// Reads and fully validates one payload. The value is default-constructed on failure.
+    [[nodiscard]] static Result<NormalizeTailReply> decode(Reader& reader);
+
+    bool operator==(const NormalizeTailReply&) const = default;
 };
 
 /// Request payload of RewriteDocument (message type 1029).
@@ -964,8 +1488,8 @@ struct ShellCloseReply {
     bool operator==(const ShellCloseReply&) const = default;
 };
 
-using RequestPayload = std::variant<Hello, Ping, Shutdown, AttachSlotRing, OpenDocument, CloseDocument, GetDocumentInfo, GetPageSizes, GetOutline, GetPageLinks, GetLinkUri, GetPageBoxes, GetPageText, SearchPage, GetDocumentDetails, GetViewerPreferences, RenderTile, CancelBefore, RenderBand, ValidateStructure, AppendAnnotations, RewriteDocument, VerifyAnnotations, ShellOpen, ShellRenderPage, ShellClose>;
-using ReplyPayload = std::variant<HelloReply, Pong, ShutdownReply, AttachSlotRingReply, OpenDocumentReply, CloseDocumentReply, GetDocumentInfoReply, GetPageSizesReply, GetOutlineReply, GetPageLinksReply, GetLinkUriReply, GetPageBoxesReply, GetPageTextReply, SearchPageReply, GetDocumentDetailsReply, GetViewerPreferencesReply, RenderTileReply, CancelBeforeReply, RenderBandReply, ValidateStructureReply, AppendAnnotationsReply, RewriteDocumentReply, VerifyAnnotationsReply, ShellOpenReply, ShellRenderPageReply, ShellCloseReply>;
+using RequestPayload = std::variant<Hello, Ping, Shutdown, AttachSlotRing, OpenDocument, CloseDocument, GetDocumentInfo, GetPageSizes, GetOutline, GetPageLinks, GetLinkUri, GetPageBoxes, GetPageText, SearchPage, GetDocumentDetails, GetTextQuads, GetViewerPreferences, RenderTile, CancelBefore, RenderBand, ListAnnotations, GetAnnotation, GetInkStroke, SetAnnotationHidden, CountAnnotations, GetFormFields, GetFormFieldDetail, SetFormFieldValue, FormAction, SaveDocument, ValidateStructure, AppendAnnotations, NormalizeTail, RewriteDocument, VerifyAnnotations, ShellOpen, ShellRenderPage, ShellClose>;
+using ReplyPayload = std::variant<HelloReply, Pong, ShutdownReply, AttachSlotRingReply, OpenDocumentReply, CloseDocumentReply, GetDocumentInfoReply, GetPageSizesReply, GetOutlineReply, GetPageLinksReply, GetLinkUriReply, GetPageBoxesReply, GetPageTextReply, SearchPageReply, GetDocumentDetailsReply, GetTextQuadsReply, GetViewerPreferencesReply, RenderTileReply, CancelBeforeReply, RenderBandReply, ListAnnotationsReply, GetAnnotationReply, GetInkStrokeReply, SetAnnotationHiddenReply, CountAnnotationsReply, GetFormFieldsReply, GetFormFieldDetailReply, SetFormFieldValueReply, FormActionReply, SaveDocumentReply, ValidateStructureReply, AppendAnnotationsReply, NormalizeTailReply, RewriteDocumentReply, VerifyAnnotationsReply, ShellOpenReply, ShellRenderPageReply, ShellCloseReply>;
 
 /// Decode the payload of a request or reply of the given type. An unknown type is a ProtocolError.
 [[nodiscard]] Result<RequestPayload> decode_request_payload(MessageType type, Reader& reader);

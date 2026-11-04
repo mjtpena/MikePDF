@@ -105,6 +105,14 @@ public sealed class WriterHostClient : IAsyncDisposable
     public Task<EngineResult<AppendAnnotationsReply>> AppendAnnotationsAsync(SafeFileHandle baseFile, SafeFileHandle edits, long editsLength, SafeFileHandle output, int pageCount, TimeSpan deadline, CancellationToken cancellationToken = default) =>
         WithHandlesAsync<AppendAnnotationsReply>([baseFile, edits, output], (client, remote) => client.AppendAnnotationsAsync(remote[0], remote[1], (ulong)editsLength, remote[2], (uint)pageCount, deadline, cancellationToken), cancellationToken);
 
+    /// <summary>
+    /// Stage 3 of a save: repairs the tail PDFium appended to its incremental save. <paramref name="original"/> is the document as opened, <paramref name="pdfiumFile"/> the engine's
+    /// SaveDocument output (read-only for the host), <paramref name="output"/> an empty file the caller made. Flags: 1 restore the original check box and radio button state streams,
+    /// 2 strip PDFium's private keys. An <c>Ok</c> reply with <c>ok</c> false is a refusal with a reason.
+    /// </summary>
+    public Task<EngineResult<NormalizeTailReply>> NormalizeTailAsync(SafeFileHandle original, SafeFileHandle pdfiumFile, SafeFileHandle output, uint flags, TimeSpan deadline, CancellationToken cancellationToken = default) =>
+        WithHandlesAsync<NormalizeTailReply>([original, pdfiumFile, output], (client, remote) => client.NormalizeTailAsync(remote[0], remote[1], remote[2], flags, deadline, cancellationToken), cancellationToken);
+
     /// <summary>A full rewrite of <paramref name="baseFile"/> into <paramref name="output"/>; flags 1 flatten form fields, 2 flatten comments.</summary>
     public Task<EngineResult<RewriteDocumentReply>> RewriteDocumentAsync(SafeFileHandle baseFile, SafeFileHandle output, uint flags, TimeSpan deadline, CancellationToken cancellationToken = default) =>
         WithHandlesAsync<RewriteDocumentReply>([baseFile, output], (client, remote) => client.RewriteDocumentAsync(remote[0], remote[1], flags, deadline, cancellationToken), cancellationToken);

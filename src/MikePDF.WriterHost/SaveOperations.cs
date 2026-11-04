@@ -125,6 +125,50 @@ internal static class SaveOperations
         });
     }
 
+    /// <summary>
+    /// Stage 3 of a save (schema 7): the original's bytes, then the objects PDFium appended and a cross-reference section in the original's form (<see cref="TailNormalizer"/>). A file that
+    /// does not fit (not PDFium's save of this original, an object the strict parser refuses) is an <c>Ok</c> reply with <c>ok</c> false and the reason.
+    /// </summary>
+    public static (Status Status, NormalizeTailReply? Reply) NormalizeTail(NormalizeTail message, uint deadlineMs, DateTime received)
+    {
+        using var originalHandle = Own(message.OriginalHandle);
+        using var pdfiumHandle = Own(message.PdfiumHandle);
+        using var outputHandle = Own(message.OutputHandle);
+        if (originalHandle is null || pdfiumHandle is null || outputHandle is null)
+        {
+            return (Status.InvalidArgument, null);
+        }
+
+        if (Expired(deadlineMs, received))
+        {
+            return (Status.Timeout, null);
+        }
+
+        using var original = MappedFile.Open(originalHandle, out var originalFailure);
+        using var pdfium = MappedFile.Open(pdfiumHandle, out var pdfiumFailure);
+        if (original is null || pdfium is null)
+        {
+            return (originalFailure == MapFailure.TooLarge || pdfiumFailure == MapFailure.TooLarge ? Status.Unsupported : Status.InvalidArgument, null);
+        }
+
+        var normalized = TailNormalizer.Normalize(
+            original.Data,
+            pdfium.Data,
+            new TailNormalizeOptions { RestoreCheckAndRadioStreams = (message.Flags & 1) != 0, StripPdfiumKeys = (message.Flags & 2) != 0 });
+        if (normalized.TryGetError(out var error))
+        {
+            return (Status.Ok, new NormalizeTailReply { Ok = false, IssueCodes = [(uint)error.Code], IssueMessages = [Validation.Bounded("error: " + error.Message)] });
+        }
+
+        var result = normalized.Value;
+        if (!WriteOutput(outputHandle, result.Output))
+        {
+            return (Status.InvalidArgument, null);
+        }
+
+        return (Status.Ok, new NormalizeTailReply { Ok = true, BytesWritten = (ulong)result.Output.Length, IssueCodes = [], IssueMessages = [] });
+    }
+
     public static (Status Status, VerifyAnnotationsReply? Reply) Verify(VerifyAnnotations message, uint deadlineMs, DateTime received)
     {
         using var baseHandle = Own(message.BaseHandle);

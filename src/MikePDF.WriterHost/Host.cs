@@ -8,7 +8,7 @@ namespace MikePDF.WriterHost;
 
 /// <summary>
 /// The host's two lanes, as in the engine (ADR-0005 rule 2): the reading lane answers Hello, Ping and Shutdown itself, so the broker's
-/// heartbeat keeps working during a long validation; ValidateStructure and the save messages (AppendAnnotations, RewriteDocument, VerifyAnnotations) run on one worker. Anything malformed or out of sequence ends the
+/// heartbeat keeps working during a long validation; ValidateStructure and the save messages (AppendAnnotations, RewriteDocument, VerifyAnnotations, NormalizeTail) run on one worker. Anything malformed or out of sequence ends the
 /// process; the broker restarts it.
 /// </summary>
 internal static class Host
@@ -126,7 +126,7 @@ internal static class Host
                         case Shutdown:
                             await ReplyAsync(request, Status.Ok, new ShutdownReply()).ConfigureAwait(false);
                             return await StopAsync(worker, ExitCode.Ok).ConfigureAwait(false);
-                        case ValidateStructure or AppendAnnotations or RewriteDocument or VerifyAnnotations:
+                        case ValidateStructure or AppendAnnotations or RewriteDocument or VerifyAnnotations or NormalizeTail:
                             if (!_queue.Writer.TryWrite((request, received)))
                             {
                                 return Die(ExitCode.ProtocolViolation, "request queue overflow");
@@ -167,6 +167,7 @@ internal static class Host
                     AppendAnnotations append => SaveOperations.Append(append, request.DeadlineMs, received),
                     RewriteDocument rewrite => SaveOperations.Rewrite(rewrite, request.DeadlineMs, received),
                     VerifyAnnotations verify => SaveOperations.Verify(verify, request.DeadlineMs, received),
+                    NormalizeTail normalize => SaveOperations.NormalizeTail(normalize, request.DeadlineMs, received),
                     _ => (Status.Unsupported, null),
                 };
                 await ReplyAsync(request, outcome.Status, outcome.Reply).ConfigureAwait(false);

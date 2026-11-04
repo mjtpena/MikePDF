@@ -259,6 +259,99 @@ public sealed class EngineClient : IAsyncDisposable
             ? ReadAsync<SearchPageReply>(new SearchPage { Page = page, Query = query, Flags = flags }, documentId, deadline, cancellationToken)
             : Task.FromResult(EngineResult<SearchPageReply>.Fail(Status.InvalidArgument, "unknown document or page out of range"));
 
+    // ---- schema 7: text quads, the annotation read side, forms and the engine's save. Every call is checked against the document before it is sent, and every reply against the call
+    // (ReplyChecks). A window that does not fit what was asked for, an index outside the page or a rectangle that is not one ends the session like any other protocol violation.
+
+    /// <summary>
+    /// The quadrilaterals of the characters <c>[start, start + count)</c> of a page (character numbering of GetPageText), one per line of text, in PDF user space and in the
+    /// order top-left, top-right, bottom-left, bottom-right of the text's own frame. A reply holds 64 quads at most; ask again with <paramref name="firstQuad"/> moved on while
+    /// <c>firstQuad + quads &lt; totalQuads</c>.
+    /// </summary>
+    public Task<EngineResult<GetTextQuadsReply>> GetTextQuadsAsync(uint documentId, uint page, uint start, uint count, uint firstQuad, TimeSpan deadline, CancellationToken cancellationToken = default) =>
+        TryGetPageCount(documentId, out var pageCount) && page < pageCount && count > 0 && (ulong)start + count <= ReplyChecks.MaxPageCharacters
+            ? ReadAsync<GetTextQuadsReply>(new GetTextQuads { Page = page, Start = start, Count = count, FirstQuad = firstQuad }, documentId, deadline, cancellationToken)
+            : Task.FromResult(EngineResult<GetTextQuadsReply>.Fail(Status.InvalidArgument, "unknown document, page out of range or character range outside the page's text limit"));
+
+    /// <summary>One window of up to 64 annotations of a page, in the order of the page's /Annots array (the index of an entry is its position there).</summary>
+    public Task<EngineResult<ListAnnotationsReply>> ListAnnotationsAsync(uint documentId, uint page, uint first, uint count, TimeSpan deadline, CancellationToken cancellationToken = default) =>
+        TryGetPageCount(documentId, out var pageCount) && page < pageCount
+            ? ReadAsync<ListAnnotationsReply>(new ListAnnotations { Page = page, First = first, Count = count }, documentId, deadline, cancellationToken)
+            : Task.FromResult(EngineResult<ListAnnotationsReply>.Fail(Status.InvalidArgument, "unknown document or page out of range"));
+
+    public Task<EngineResult<GetAnnotationReply>> GetAnnotationAsync(uint documentId, uint page, uint index, TimeSpan deadline, CancellationToken cancellationToken = default) =>
+        TryGetPageCount(documentId, out var pageCount) && page < pageCount
+            ? ReadAsync<GetAnnotationReply>(new GetAnnotation { Page = page, Index = index }, documentId, deadline, cancellationToken)
+            : Task.FromResult(EngineResult<GetAnnotationReply>.Fail(Status.InvalidArgument, "unknown document or page out of range"));
+
+    /// <summary>A window of up to 1024 points of one stroke of an ink annotation.</summary>
+    public Task<EngineResult<GetInkStrokeReply>> GetInkStrokeAsync(uint documentId, uint page, uint index, uint stroke, uint first, uint count, TimeSpan deadline, CancellationToken cancellationToken = default) =>
+        TryGetPageCount(documentId, out var pageCount) && page < pageCount
+            ? ReadAsync<GetInkStrokeReply>(new GetInkStroke { Page = page, Index = index, Stroke = stroke, First = first, Count = count }, documentId, deadline, cancellationToken)
+            : Task.FromResult(EngineResult<GetInkStrokeReply>.Fail(Status.InvalidArgument, "unknown document or page out of range"));
+
+    /// <summary>
+    /// The display mirror (annotation-core 3.3): hides or shows one annotation in the engine's in-memory document so that tiles stop drawing an original the user deleted or moved.
+    /// The engine puts the file's own flags back before it saves.
+    /// </summary>
+    public Task<EngineResult<SetAnnotationHiddenReply>> SetAnnotationHiddenAsync(uint documentId, uint page, uint index, bool hidden, TimeSpan deadline, CancellationToken cancellationToken = default) =>
+        TryGetPageCount(documentId, out var pageCount) && page < pageCount
+            ? ReadAsync<SetAnnotationHiddenReply>(new SetAnnotationHidden { Page = page, Index = index, Hidden = hidden }, documentId, deadline, cancellationToken)
+            : Task.FromResult(EngineResult<SetAnnotationHiddenReply>.Fail(Status.InvalidArgument, "unknown document or page out of range"));
+
+    /// <summary>How many annotations each of <paramref name="count"/> pages from <paramref name="firstPage"/> has that a person sees (not links, popups or widgets).</summary>
+    public Task<EngineResult<CountAnnotationsReply>> CountAnnotationsAsync(uint documentId, uint firstPage, uint count, TimeSpan deadline, CancellationToken cancellationToken = default) =>
+        TryGetPageCount(documentId, out var pageCount) && count > 0 && (ulong)firstPage + count <= pageCount
+            ? ReadAsync<CountAnnotationsReply>(new CountAnnotations { FirstPage = firstPage, Count = count }, documentId, deadline, cancellationToken)
+            : Task.FromResult(EngineResult<CountAnnotationsReply>.Fail(Status.InvalidArgument, "unknown document or page range out of bounds"));
+
+    /// <summary>One window of up to 64 form widgets in tab order. The first call walks the document's pages, so it can take a while on a big form.</summary>
+    public Task<EngineResult<GetFormFieldsReply>> GetFormFieldsAsync(uint documentId, uint first, uint count, TimeSpan deadline, CancellationToken cancellationToken = default) =>
+        TryGetPageCount(documentId, out _)
+            ? ReadAsync<GetFormFieldsReply>(new GetFormFields { First = first, Count = count }, documentId, deadline, cancellationToken)
+            : Task.FromResult(EngineResult<GetFormFieldsReply>.Fail(Status.InvalidArgument, "unknown document"));
+
+    public Task<EngineResult<GetFormFieldDetailReply>> GetFormFieldDetailAsync(uint documentId, uint fieldId, uint firstOption, TimeSpan deadline, CancellationToken cancellationToken = default) =>
+        TryGetPageCount(documentId, out _)
+            ? ReadAsync<GetFormFieldDetailReply>(new GetFormFieldDetail { FieldId = fieldId, FirstOption = firstOption }, documentId, deadline, cancellationToken)
+            : Task.FromResult(EngineResult<GetFormFieldDetailReply>.Fail(Status.InvalidArgument, "unknown document"));
+
+    /// <summary>
+    /// Changes one field's value through PDFium's form-fill events. <paramref name="kind"/> 0 is text (<paramref name="text"/>), 1 a toggle (<paramref name="isChecked"/>), 2 a choice
+    /// (<paramref name="selected"/>, ascending option positions). The reply says whether the field now holds what was asked for, what it holds, and which pages to redraw.
+    /// </summary>
+    public Task<EngineResult<SetFormFieldValueReply>> SetFormFieldValueAsync(uint documentId, uint fieldId, ushort kind, string? text, bool isChecked, IReadOnlyList<uint>? selected, TimeSpan deadline, CancellationToken cancellationToken = default) =>
+        TryGetPageCount(documentId, out _)
+            ? ReadAsync<SetFormFieldValueReply>(new SetFormFieldValue { FieldId = fieldId, Kind = kind, Text = text ?? string.Empty, Checked = isChecked, Selected = selected is null ? [] : [.. selected] }, documentId, deadline, cancellationToken)
+            : Task.FromResult(EngineResult<SetFormFieldValueReply>.Fail(Status.InvalidArgument, "unknown document"));
+
+    /// <summary>Resets a field (0), resets every field (1, <paramref name="fieldId"/> is ignored: send 0) or presses a push button (2). Only a reset is ever performed.</summary>
+    public Task<EngineResult<FormActionReply>> FormActionAsync(uint documentId, uint fieldId, ushort action, TimeSpan deadline, CancellationToken cancellationToken = default) =>
+        TryGetPageCount(documentId, out _)
+            ? ReadAsync<FormActionReply>(new FormAction { FieldId = fieldId, Action = action }, documentId, deadline, cancellationToken)
+            : Task.FromResult(EngineResult<FormActionReply>.Fail(Status.InvalidArgument, "unknown document"));
+
+    /// <summary>
+    /// PDFium's own save of the engine's in-memory document into a file handle already duplicated into the engine (write access, empty file): mode 0 incremental, 1 full rewrite.
+    /// Mode 2 and the flags belong to a flattened copy, which the writer host makes, and the engine refuses them. The engine consumes the handle on every path.
+    /// </summary>
+    public Task<EngineResult<SaveDocumentReply>> SaveDocumentAsync(uint documentId, ushort mode, uint flags, ulong remoteOutput, TimeSpan deadline, CancellationToken cancellationToken = default) =>
+        TryGetPageCount(documentId, out _)
+            ? CallAsync<SaveDocumentReply>(new SaveDocument { Mode = mode, Flags = flags, OutputHandle = remoteOutput }, documentId, deadline, WithGrace(deadline), new Pending { EngineQueue = true }, cancellationToken)
+            : Task.FromResult(EngineResult<SaveDocumentReply>.Fail(Status.InvalidArgument, "unknown document"));
+
+    /// <summary>
+    /// WriterHost, stage 3 of a save: repairs the tail PDFium appended to a file. The three handles are already duplicated into the host (original and PDFium's file read-only,
+    /// output writable and empty). An <c>Ok</c> reply with <c>ok</c> false is a refusal with a reason.
+    /// </summary>
+    public Task<EngineResult<NormalizeTailReply>> NormalizeTailAsync(ulong remoteOriginal, ulong remotePdfium, ulong remoteOutput, uint flags, TimeSpan deadline, CancellationToken cancellationToken = default) =>
+        CallAsync<NormalizeTailReply>(
+            new NormalizeTail { OriginalHandle = remoteOriginal, PdfiumHandle = remotePdfium, OutputHandle = remoteOutput, Flags = flags },
+            0,
+            deadline,
+            WithGrace(deadline),
+            new Pending { EngineQueue = true },
+            cancellationToken);
+
     private Task<EngineResult<T>> ReadAsync<T>(IRequestMessage request, uint documentId, TimeSpan deadline, CancellationToken cancellationToken)
         where T : class =>
         CallAsync<T>(request, documentId, deadline, WithGrace(deadline), new Pending { EngineQueue = true, Request = request }, cancellationToken);
@@ -767,8 +860,14 @@ public sealed class EngineClient : IAsyncDisposable
         MessageType.Ping or MessageType.Shutdown => status is Status.Ok,
         MessageType.CancelBefore or MessageType.CloseDocument or MessageType.AttachSlotRing => status is Status.Ok or Status.InvalidArgument,
         MessageType.ValidateStructure => status is Status.Ok or Status.InvalidArgument or Status.Damaged or Status.Timeout or Status.PermissionDenied or Status.Unsupported,
-        MessageType.AppendAnnotations or MessageType.RewriteDocument or MessageType.VerifyAnnotations
+        MessageType.AppendAnnotations or MessageType.RewriteDocument or MessageType.VerifyAnnotations or MessageType.NormalizeTail
             => status is Status.Ok or Status.InvalidArgument or Status.Unsupported or Status.Timeout or Status.PermissionDenied,
+        MessageType.GetTextQuads or MessageType.ListAnnotations or MessageType.GetAnnotation or MessageType.CountAnnotations or MessageType.SetAnnotationHidden
+            => status is Status.Ok or Status.InvalidArgument or Status.Damaged or Status.Timeout,
+        MessageType.GetInkStroke => status is Status.Ok or Status.InvalidArgument or Status.Unsupported or Status.Damaged or Status.Timeout,
+        MessageType.GetFormFields or MessageType.GetFormFieldDetail => status is Status.Ok or Status.InvalidArgument or Status.Unsupported or Status.Damaged or Status.Timeout,
+        MessageType.SetFormFieldValue or MessageType.FormAction => status is Status.Ok or Status.InvalidArgument or Status.Unsupported or Status.Damaged or Status.Timeout or Status.PermissionDenied,
+        MessageType.SaveDocument => status is Status.Ok or Status.InvalidArgument or Status.Unsupported or Status.Damaged or Status.Timeout or Status.PermissionDenied,
         MessageType.OpenDocument => status is Status.Ok or Status.InvalidArgument or Status.Unsupported or Status.PasswordRequired
             or Status.PasswordIncorrect or Status.UnsupportedEncryption or Status.Damaged or Status.Timeout or Status.PermissionDenied,
         MessageType.GetDocumentInfo or MessageType.GetPageSizes or MessageType.GetOutline or MessageType.GetPageLinks or MessageType.GetPageBoxes
@@ -819,6 +918,32 @@ public sealed class EngineClient : IAsyncDisposable
                 return !verify.Ok && verify.Mismatches.Length > 0 ? "a failed verification names mismatched pages" : null;
             case GetDocumentDetailsReply details:
                 return ReplyChecks.CheckDetails(details, _documents.TryGetValue(pending.DocumentId, out var pages) ? pages : 0);
+            case GetTextQuadsReply quads:
+                return pending.Request is GetTextQuads quadsAsked ? ReplyChecks.CheckTextQuads(quadsAsked, quads) : "text quads without a text quad request";
+            case ListAnnotationsReply annotations:
+                return pending.Request is ListAnnotations listAsked ? ReplyChecks.CheckAnnotationList(listAsked, annotations) : "an annotation list without a list request";
+            case GetAnnotationReply annotation:
+                return pending.Request is GetAnnotation annotationAsked ? ReplyChecks.CheckAnnotation(annotationAsked, annotation) : "an annotation without an annotation request";
+            case GetInkStrokeReply stroke:
+                return pending.Request is GetInkStroke strokeAsked ? ReplyChecks.CheckInkStroke(strokeAsked, stroke) : "a stroke without a stroke request";
+            case CountAnnotationsReply counts:
+                return pending.Request is CountAnnotations countAsked ? ReplyChecks.CheckAnnotationCounts(countAsked, counts) : "annotation counts without a count request";
+            case GetFormFieldsReply fields:
+                return pending.Request is GetFormFields fieldsAsked && _documents.TryGetValue(pending.DocumentId, out var fieldPages)
+                    ? ReplyChecks.CheckFormFields(fieldsAsked, fields, fieldPages)
+                    : "form fields without a form field request";
+            case GetFormFieldDetailReply detail:
+                return pending.Request is GetFormFieldDetail detailAsked ? ReplyChecks.CheckFormFieldDetail(detailAsked, detail) : "a field detail without a detail request";
+            case SetFormFieldValueReply setValue:
+                return _documents.TryGetValue(pending.DocumentId, out var setPages) ? ReplyChecks.CheckSetFormFieldValue(setValue, setPages) : "a field value for an unknown document";
+            case FormActionReply formAction:
+                return pending.Request is FormAction actionAsked && _documents.TryGetValue(pending.DocumentId, out var actionPages)
+                    ? ReplyChecks.CheckFormAction(actionAsked, formAction, actionPages)
+                    : "a form action reply without a form action request";
+            case SaveDocumentReply saved:
+                return _documents.TryGetValue(pending.DocumentId, out var savedPages) ? ReplyChecks.CheckSaveDocument(saved, savedPages) : "a save of an unknown document";
+            case NormalizeTailReply normalize:
+                return ReplyChecks.CheckSaveReply(normalize.Ok, normalize.IssueCodes.Length, normalize.BytesWritten);
             default:
                 return null;
         }

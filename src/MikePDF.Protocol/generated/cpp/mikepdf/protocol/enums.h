@@ -8,7 +8,7 @@
 
 namespace mikepdf::protocol {
 
-inline constexpr std::uint32_t kSchemaVersion = 6;
+inline constexpr std::uint32_t kSchemaVersion = 7;
 inline constexpr std::size_t kMaxFrameBytes = 65536;
 inline constexpr std::uint32_t kMaxDeadlineMs = 86400000;
 
@@ -96,12 +96,24 @@ enum class MessageType : std::uint16_t {
     GetPageText = 24,
     SearchPage = 25,
     GetDocumentDetails = 26,
+    GetTextQuads = 27,
     GetViewerPreferences = 28,
     RenderTile = 32,
     CancelBefore = 33,
     RenderBand = 34,
+    ListAnnotations = 40,
+    GetAnnotation = 41,
+    GetInkStroke = 42,
+    SetAnnotationHidden = 43,
+    CountAnnotations = 44,
+    GetFormFields = 45,
+    GetFormFieldDetail = 46,
+    SetFormFieldValue = 47,
+    FormAction = 48,
+    SaveDocument = 62,
     ValidateStructure = 1024,
     AppendAnnotations = 1025,
+    NormalizeTail = 1026,
     RewriteDocument = 1029,
     VerifyAnnotations = 1030,
     ShellOpen = 2048,
@@ -126,12 +138,24 @@ enum class MessageType : std::uint16_t {
         case 24:
         case 25:
         case 26:
+        case 27:
         case 28:
         case 32:
         case 33:
         case 34:
+        case 40:
+        case 41:
+        case 42:
+        case 43:
+        case 44:
+        case 45:
+        case 46:
+        case 47:
+        case 48:
+        case 62:
         case 1024:
         case 1025:
+        case 1026:
         case 1029:
         case 1030:
         case 2048:
@@ -180,6 +204,8 @@ enum class DocumentIdRule : std::uint8_t {
             return DocumentIdRule::Required;
         case MessageType::GetDocumentDetails:
             return DocumentIdRule::Required;
+        case MessageType::GetTextQuads:
+            return DocumentIdRule::Required;
         case MessageType::GetViewerPreferences:
             return DocumentIdRule::Required;
         case MessageType::RenderTile:
@@ -188,9 +214,31 @@ enum class DocumentIdRule : std::uint8_t {
             return DocumentIdRule::Required;
         case MessageType::RenderBand:
             return DocumentIdRule::Required;
+        case MessageType::ListAnnotations:
+            return DocumentIdRule::Required;
+        case MessageType::GetAnnotation:
+            return DocumentIdRule::Required;
+        case MessageType::GetInkStroke:
+            return DocumentIdRule::Required;
+        case MessageType::SetAnnotationHidden:
+            return DocumentIdRule::Required;
+        case MessageType::CountAnnotations:
+            return DocumentIdRule::Required;
+        case MessageType::GetFormFields:
+            return DocumentIdRule::Required;
+        case MessageType::GetFormFieldDetail:
+            return DocumentIdRule::Required;
+        case MessageType::SetFormFieldValue:
+            return DocumentIdRule::Required;
+        case MessageType::FormAction:
+            return DocumentIdRule::Required;
+        case MessageType::SaveDocument:
+            return DocumentIdRule::Required;
         case MessageType::ValidateStructure:
             return DocumentIdRule::None;
         case MessageType::AppendAnnotations:
+            return DocumentIdRule::None;
+        case MessageType::NormalizeTail:
             return DocumentIdRule::None;
         case MessageType::RewriteDocument:
             return DocumentIdRule::None;
