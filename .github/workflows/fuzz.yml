@@ -17,7 +17,7 @@ on:
         required: true
         default: '300'
       targets:
-        description: 'Comma-separated: protocol-cpp, engine-document, protocol-cs, pdfwriter-parse, pdfwriter-append, shell-reply-cpp, shell-request-cs, pdfwriter-edit, pdfwriter-tail, journal-cs, editblob-cs, or all'
+        description: 'Comma-separated: protocol-cpp, engine-document, protocol-cs, pdfwriter-parse, pdfwriter-append, shell-reply-cpp, shell-request-cs, pdfwriter-edit, pdfwriter-tail, pdfwriter-assemble, journal-cs, editblob-cs, or all'
         required: true
         default: 'all'
       processes:
@@ -57,7 +57,7 @@ jobs:
           REQUESTED: ${{ inputs.targets || 'all' }}
         run: |
           # Only names from this fixed list are ever passed on; anything else in the request is dropped.
-          known=(protocol-cpp engine-document protocol-cs pdfwriter-parse pdfwriter-append shell-reply-cpp shell-request-cs pdfwriter-edit pdfwriter-tail journal-cs editblob-cs)
+          known=(protocol-cpp engine-document protocol-cs pdfwriter-parse pdfwriter-append shell-reply-cpp shell-request-cs pdfwriter-edit pdfwriter-tail pdfwriter-assemble journal-cs editblob-cs)
           IFS=',' read -ra wanted <<< "$(echo "$REQUESTED" | tr -d ' ')"
           picked=()
           for target in "${known[@]}"; do

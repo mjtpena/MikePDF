@@ -18,6 +18,7 @@
     <!-- The same seeds the fuzz runs start from (protocol golden vectors; PDFium BSD-3-Clause fixtures, see their MANIFEST.md). -->
     <Content Include="..\..\MikePDF.Protocol.Tests\golden\*.bin" LinkBase="seeds\golden" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="..\..\MikePDF.PdfWriter.Tests\Fixtures\pdfium\*.pdf" LinkBase="seeds\pdf" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="..\..\MikePDF.PdfWriter.Tests\Fixtures\assembly\*.pdf" LinkBase="seeds\pdf" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="..\..\MikePDF.Integration.Tests\Fixtures\*.pdf" LinkBase="seeds\pdf-integration" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="..\dictionaries\*.dict" LinkBase="dictionaries" CopyToOutputDirectory="PreserveNewest" />
     <!-- The shell targets' seeds (SHELL-18), made by seeds/make_shell_seeds.py. -->
