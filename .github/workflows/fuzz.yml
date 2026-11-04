@@ -88,7 +88,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
         with:
-          dotnet-version: '10.0.4xx' # ADR-0001 pin (10.0.403); global.json rolls forward to it
+          dotnet-version: '10.0.403' # ADR-0001 pin: SDK 10.0.403 carries runtime 10.0.14 (CVE-2026-111497 fix); same as global.json
 
       # The corpus is the memory of the fuzzer: restore the newest one for this target, and save a new one afterwards. Cache entries are
       # immutable, so every run saves under its own key and restores by prefix. (They are evicted after 7 days unused or at the repository
