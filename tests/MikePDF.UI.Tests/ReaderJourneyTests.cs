@@ -285,6 +285,71 @@ public sealed class ReaderJourneyTests : IDisposable
         app.WaitFor("the selection cleared", () => app.SelectedText.Length == 0);
     }
 
+    private static string Squeeze(string text) => System.Text.RegularExpressions.Regex.Replace(text, @"\s+", " ").Trim();
+
+    /// <summary>
+    /// A mouse drag selects and nothing else: it never pans the document. WinUI raises manipulations for a mouse drag as well as for touch, and a pan by the same drag moved the page under the
+    /// pointer (with inertia) while the text was being selected. The view is read through the screen box of a line that is not touched by the drag (it moves one pixel for every pixel the view scrolls)
+    /// and through the page indicator; they are read again after a rest long enough for inertia to show.
+    /// </summary>
+    [UiFact]
+    public void DraggingDownSlowlyOverSeveralLinesSelectsThemAndDoesNotScrollTheDocument()
+    {
+        using var app = Open(out var article);
+        var page = article.ChapterPages[0].Page;
+        GoTo(app, page);
+        app.PressWithControl(VirtualKeyShort.KEY_0); // 100%: the page is 1056 pixels tall, more than the window shows, so there is room to scroll both ways
+        app.WaitFor("100 percent", () => app.ZoomPercent == 100);
+        Thread.Sleep(600);
+        Assert.True(app.Require("PageSurface").BoundingRectangle.Height < 1056, "the page is taller than the window");
+
+        const string firstLine = "A page is more than the words";
+        var start = Box(app, firstLine);
+        var end = Box(app, "paper.");
+        Assert.True(end.Top > start.Bottom + 30, "the selection runs over several lines");
+        var anchorBefore = Box(app, firstLine).Top;
+        var pageBefore = app.CurrentPage;
+        Assert.Equal(page, pageBefore);
+
+        // Down the lines in small steps, with a pause between the moves and a rest before the button goes up.
+        app.Drag(MikePDFApp.LeftOf(start), MikePDFApp.RightOf(end), stepPixels: 3, stepDelayMs: 25, restBeforeReleaseMs: 400);
+        app.WaitFor("the lines selected", () => Squeeze(app.SelectedText).EndsWith("short of paper.", StringComparison.Ordinal));
+        var selected = Squeeze(app.SelectedText);
+        Assert.StartsWith(firstLine, selected, StringComparison.Ordinal);
+        Assert.Contains("thumb", selected, StringComparison.Ordinal);   // from the middle of the paragraph
+        Assert.Contains("hurried", selected, StringComparison.Ordinal); // and from near its end
+
+        // Time for any inertia to carry the view on, then the view is where it was.
+        Thread.Sleep(900);
+        Assert.Equal(anchorBefore, Box(app, firstLine).Top);
+        Assert.Equal(pageBefore, app.CurrentPage);
+        app.Capture("text-selection-several-lines");
+    }
+
+    [UiFact]
+    public void DraggingAcrossTextInThePagedFlowSelectsItAndDoesNotTurnThePage()
+    {
+        using var app = Open(out var article);
+        var page = article.ChapterPages[0].Page;
+        GoTo(app, page);
+        app.PressWithControl(VirtualKeyShort.KEY_7); // one page at a time
+        app.WaitFor("one page at a time", () => app.HelpText("ViewButton").Contains("one page at a time", StringComparison.Ordinal));
+        app.PressWithControl(VirtualKeyShort.KEY_1); // the whole page: it fits the window, which is when a swipe turns the page
+        Thread.Sleep(600);
+        Assert.Equal(page, app.CurrentPage);
+
+        // A line of text well over the 80 pixels of a swipe.
+        const string line = "A page is more than the words printed on it.";
+        var box = Box(app, line);
+        Assert.True(box.Width >= 160, "the drag is far enough to be a swipe");
+        app.Drag(MikePDFApp.LeftOf(box), MikePDFApp.JustPast(box), stepPixels: 4, stepDelayMs: 25, restBeforeReleaseMs: 300);
+        app.WaitForEqual("the line selected", line, () => Squeeze(app.SelectedText));
+
+        Thread.Sleep(900);
+        Assert.Equal(page, app.CurrentPage);
+        Assert.Equal(box.Top, Box(app, line).Top);
+    }
+
     [UiFact]
     public void DoubleClickSelectsAWordTripleClickALineAndShiftArrowsGrowTheSelection()
     {

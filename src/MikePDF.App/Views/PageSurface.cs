@@ -28,7 +28,7 @@ namespace MikePDF.App.Views;
 /// current match are drawn over them as shapes (ADR-0006: overlays live on separate layers above the tiles).
 /// <para>
 /// Input: wheel scrolls, Shift+wheel or a horizontal wheel scrolls sideways, Ctrl+wheel zooms about the pointer, touch drags and pinches (with
-/// inertia). The mouse and the pen select text: drag, double click for a word, triple click for a line, and a click on a link follows it.
+/// inertia; <see cref="ManipulationPolicy"/> keeps a mouse drag, and a pen drag that is selecting, from panning). The mouse and the pen select text: drag, double click for a word, triple click for a line, and a click on a link follows it.
 /// Page Up, Page Down, Home, End, the arrow keys and Space navigate, and Ctrl+A and Ctrl+C select and copy, as commands the window's dispatcher runs;
 /// Shift with the arrow keys (and Ctrl for words) moves the selection and Esc clears it, here.
 /// </para>
@@ -94,6 +94,7 @@ public sealed partial class PageSurface : Control
         PointerCaptureLost += (_, _) => EndPress();
         PointerExited += (_, _) => ProtectedCursor = _arrow;
         PointerWheelChanged += OnPointerWheelChanged;
+        ManipulationStarted += OnManipulationStarted;
         ManipulationDelta += OnManipulationDelta;
         KeyDown += OnKeyDown;
         Tapped += OnTapped;
@@ -451,11 +452,32 @@ public sealed partial class PageSurface : Control
         e.Handled = true;
     }
 
+    // WinUI raises manipulations for a mouse or a pen drag as well as for a finger. Whether this one may move the view is decided once, when it starts, and held until it completes: the
+    // inertia of a pen drag that selected text arrives after the pen is up, when _pressed is already false.
+    private bool? _manipulationMovesView;
+
+    private bool ManipulationMovesView(Microsoft.UI.Input.PointerDeviceType device) =>
+        _manipulationMovesView ??= ManipulationPolicy.MayMoveView(KindOf(device), _pressed);
+
+    private static PointerKind KindOf(Microsoft.UI.Input.PointerDeviceType device) => device switch
+    {
+        Microsoft.UI.Input.PointerDeviceType.Touch => PointerKind.Touch,
+        Microsoft.UI.Input.PointerDeviceType.Pen => PointerKind.Pen,
+        Microsoft.UI.Input.PointerDeviceType.Touchpad => PointerKind.Touchpad,
+        _ => PointerKind.Mouse,
+    };
+
+    private void OnManipulationStarted(object sender, ManipulationStartedRoutedEventArgs e)
+    {
+        _manipulationMovesView = null;
+        _ = ManipulationMovesView(e.PointerDeviceType);
+    }
+
     private void OnManipulationDelta(object sender, ManipulationDeltaRoutedEventArgs e)
     {
-        if (_session is null || _session.Presenting)
+        if (_session is null || _session.Presenting || !ManipulationMovesView(e.PointerDeviceType))
         {
-            return; // in a talk a drag or a pinch moves nothing; a swipe turns the page when it ends
+            return; // in a talk a drag or a pinch moves nothing; a swipe turns the page when it ends. A mouse drag, or a pen drag that is selecting, is a selection, not a pan
         }
 
         var scale = RasterScale;
@@ -474,7 +496,9 @@ public sealed partial class PageSurface : Control
     // A swipe across a page turns it: in presentation always, in the paged flow when the spread fits the window (otherwise the same movement is a pan).
     private void OnManipulationCompleted(object sender, ManipulationCompletedRoutedEventArgs e)
     {
-        if (_session is not { IsOpen: true } session || !(session.Presenting || (session.Mode.IsPaged && session.Controller.SpreadFitsWindow)))
+        var movesView = ManipulationMovesView(e.PointerDeviceType);
+        _manipulationMovesView = null;
+        if (!movesView || _session is not { IsOpen: true } session || !(session.Presenting || (session.Mode.IsPaged && session.Controller.SpreadFitsWindow)))
         {
             return;
         }
@@ -976,18 +1000,28 @@ public sealed partial class PageSurface : Control
         return end > start ? Math.Min(start + hit.Atom, end - 1) : -1;
     }
 
-    /// <summary>Scrolls atoms <c>[start, end)</c> into view.</summary>
-    internal void RevealAccessibleRange(int start, int end)
+    /// <summary>
+    /// Scrolls atoms <c>[start, end)</c> into view as UI Automation's <c>ITextRangeProvider::ScrollIntoView</c> asks: nothing if they are all in view, otherwise the start of the range
+    /// at the top of the window (<paramref name="alignToTop"/>) or its end at the bottom.
+    /// </summary>
+    internal void RevealAccessibleRange(int start, int end, bool alignToTop = true)
     {
         if (_session is null)
         {
             return;
         }
 
-        foreach (var (page, rect) in _accessibleModel.LineRects(start, end))
+        (int Page, RectD Rect)? first = null;
+        (int Page, RectD Rect)? last = null;
+        foreach (var line in _accessibleModel.LineRects(start, end))
         {
-            _session.RevealPageRect(page, rect);
-            return;
+            first ??= line;
+            last = line;
+        }
+
+        if (first is { } a && last is { } b)
+        {
+            _session.RevealPageRange(a.Page, a.Rect, b.Page, b.Rect, alignToTop);
         }
     }
 

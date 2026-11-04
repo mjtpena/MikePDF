@@ -270,6 +270,15 @@ internal sealed partial class DocumentSession
         }
     }
 
+    /// <summary>Brings a range of text (its first and last line boxes, page space) into view as UI Automation's <c>ScrollIntoView</c> asks: not at all if all of it is there, else its start at the top or its end at the bottom.</summary>
+    public void RevealPageRange(int firstPage, RectD first, int lastPage, RectD last, bool alignToTop)
+    {
+        if (Controller.NeedsRevealRange(firstPage, first, lastPage, last))
+        {
+            Change(() => Controller.RevealPageRange(firstPage, first, lastPage, last, alignToTop));
+        }
+    }
+
     // ---- selection ---------------------------------------------------------------------------------------------------------------
 
     /// <summary>The selected text, for the clipboard, with line breaks as Windows text has them.</summary>

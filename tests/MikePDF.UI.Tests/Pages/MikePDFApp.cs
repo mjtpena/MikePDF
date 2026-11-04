@@ -563,10 +563,10 @@ public sealed class MikePDFApp : IDisposable
         Wait.UntilInputIsProcessed();
     }
 
-    public void Drag(System.Drawing.Point from, System.Drawing.Point to)
+    public void Drag(System.Drawing.Point from, System.Drawing.Point to, int stepPixels = 6, int stepDelayMs = 12, int restBeforeReleaseMs = 80)
     {
         Window.SetForeground();
-        NativeMouse.Drag(from, to);
+        NativeMouse.Drag(from, to, stepPixels, stepDelayMs, restBeforeReleaseMs);
         Wait.UntilInputIsProcessed();
     }
 
