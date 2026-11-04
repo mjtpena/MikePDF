@@ -124,6 +124,28 @@ try {
     if (${Filter-method}) { $arguments += @('--filter-method', ${Filter-method}) }
     dotnet @arguments
     $code = $LASTEXITCODE
+    if ($Ci -and $code -ne 0) {
+        # A hosted runner loses an occasional key or flyout (docs/testing.md, "Flakes"). Run only the journeys that failed once more, each with a fresh app: one that passes the second time is
+        # reported as a flake by name (in the job summary and in flaky-<arch>.txt, uploaded with the TRX), one that fails twice fails the job. A run with many failures is broken, not flaky: no rerun.
+        $trx = Join-Path $root "build/out/ui-results/ui-journeys-$Arch.trx"
+        $failed = @()
+        if (Test-Path $trx) {
+            $failed = @(([xml](Get-Content $trx -Raw)).TestRun.Results.UnitTestResult | Where-Object { $_.outcome -eq 'Failed' } | ForEach-Object { ($_.testName -split '\.')[-1] } | Sort-Object -Unique)
+        }
+        if ($failed.Count -gt 0 -and $failed.Count -le 10) {
+            Write-Host "Rerunning $($failed.Count) failed journey(s) once: $($failed -join ', ')" -ForegroundColor Yellow
+            $rerun = @('test', '--project', (Join-Path $root 'tests/MikePDF.UI.Tests'), '-c', 'Release', '--no-build', '--results-directory', (Join-Path $root 'build/out/ui-results'), '--report-xunit-trx', '--report-xunit-trx-filename', "ui-journeys-$Arch-rerun.trx")
+            foreach ($name in $failed) { $rerun += @('--filter-method', "*$name") }
+            dotnet @rerun
+            $rerunCode = $LASTEXITCODE
+            $verdict = if ($rerunCode -eq 0) { 'passed on the rerun (flaky)' } else { 'FAILED AGAIN on the rerun' }
+            $lines = @("UI journeys ($Arch): $($failed.Count) failed on the first run, $verdict.") + ($failed | ForEach-Object { "- $_" })
+            $lines | Set-Content (Join-Path $root "build/out/ui-results/flaky-$Arch.txt")
+            if ($env:GITHUB_STEP_SUMMARY) { $lines | Add-Content $env:GITHUB_STEP_SUMMARY }
+            $lines | ForEach-Object { Write-Host $_ -ForegroundColor Yellow }
+            $code = $rerunCode
+        }
+    }
 }
 finally {
     Remove-Item Env:MIKEPDF_UI_TESTS, Env:MIKEPDF_UI_CI, Env:MIKEPDF_UI_ARCH, Env:MIKEPDF_SHOTS_DIR -ErrorAction SilentlyContinue
