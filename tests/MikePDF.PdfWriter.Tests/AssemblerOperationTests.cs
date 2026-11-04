@@ -45,6 +45,8 @@ public sealed class AssemblerOperationTests
 
     [Theory]
     [MemberData(nameof(Layouts))]
+    [Trait("Spec", "PO-13")]
+    [Trait("Spec", "PO-15")]
     public void ExtractKeepsWhatBelongsToTheKeptPages(string layout)
     {
         var output = AssemblyFixtures.Assemble([A(layout)], AssemblyPlan.Range(0, 3, 5));
@@ -66,6 +68,8 @@ public sealed class AssemblerOperationTests
     }
 
     [Fact]
+    [Trait("Spec", "PO-12")]
+    [Trait("Spec", "PO-13")]
     public void ExtractedPagesLinkToEachOtherAndDropLinksToPagesLeftOut()
     {
         var output = AssemblyFixtures.Assemble([A()], AssemblyPlan.Pick(0, [0, 1, 2, 3]));
@@ -82,6 +86,8 @@ public sealed class AssemblerOperationTests
     [InlineData(new[] { 0, 1, 2 }, new[] { "Chapter 1:0:PAGE-A-01", "Section 1.1:1:PAGE-A-02", "Section 1.2:1:PAGE-A-03" })]
     [InlineData(new[] { 2, 7, 9 }, new[] { "Section 1.2:0:PAGE-A-03", "Section 3.1:0:PAGE-A-08", "Section 3.3:0:PAGE-A-10" })]
     [InlineData(new[] { 6, 7, 8, 9 }, new[] { "Chapter 3:0:PAGE-A-07", "Section 3.1:1:PAGE-A-08", "Section 3.2 (URI):1:uri", "Section 3.3:1:PAGE-A-10" })]
+    [Trait("Spec", "PO-12")]
+    [Trait("Spec", "PO-13")]
     public void AnEntryForAPageLeftOutIsDroppedAndItsSurvivingChildrenMoveUp(int[] pages, string[] expected)
     {
         var output = AssemblyFixtures.Assemble([A()], AssemblyPlan.Pick(0, pages));
@@ -90,6 +96,7 @@ public sealed class AssemblerOperationTests
     }
 
     [Fact]
+    [Trait("Spec", "PO-13")]
     public void AClosedBranchStaysClosed()
     {
         var output = AssemblyFixtures.Assemble([A()], AssemblyPlan.Range(0, 3, 5));
@@ -104,6 +111,7 @@ public sealed class AssemblerOperationTests
     [InlineData(new[] { 0, 1 }, new[] { "i", "ii" })]
     [InlineData(new[] { 3, 4, 5 }, new[] { "A-2", "A-3", "A-4" })]
     [InlineData(new[] { 9, 0, 4 }, new[] { "A-8", "i", "A-3" })]
+    [Trait("Spec", "PO-13")]
     public void PageLabelsFollowTheirPages(int[] pages, string[] labels)
     {
         var output = AssemblyFixtures.Assemble([A()], AssemblyPlan.Pick(0, pages));
@@ -112,6 +120,8 @@ public sealed class AssemblerOperationTests
     }
 
     [Fact]
+    [Trait("Spec", "PO-13")]
+    [Trait("Spec", "PO-14")]
     public void FormFieldsOnKeptPagesKeepTheirValuesAndOthersAreNotCarried()
     {
         var output = AssemblyFixtures.Assemble([A()], AssemblyPlan.Pick(0, [4, 7]));
@@ -127,6 +137,7 @@ public sealed class AssemblerOperationTests
     }
 
     [Fact]
+    [Trait("Spec", "PO-14")]
     public void ExtractingPagesWithoutFieldsLeavesNoForm()
     {
         var output = AssemblyFixtures.Assemble([A()], AssemblyPlan.Range(0, 2, 2));
@@ -137,6 +148,7 @@ public sealed class AssemblerOperationTests
     }
 
     [Fact]
+    [Trait("Spec", "PO-13")]
     public void AnnotationsTravelWithTheirPopupsAndReplies()
     {
         var output = AssemblyFixtures.Assemble([A()], AssemblyPlan.Range(0, 0, 0));
@@ -156,6 +168,7 @@ public sealed class AssemblerOperationTests
     }
 
     [Fact]
+    [Trait("Spec", "OQ-PO-9")]
     public void TheStructureTreeIsDroppedWithAWarningTheUiCanShowBeforeTheSave()
     {
         var set = PageAssembler.Open([A(), C()], AssemblyFixtures.Fixed);
@@ -178,6 +191,7 @@ public sealed class AssemblerOperationTests
     }
 
     [Fact]
+    [Trait("Spec", "PO-13")]
     public void OptionalContentKeepsItsLayerWiring()
     {
         var output = AssemblyFixtures.Assemble([A()], AssemblyPlan.Range(0, 0, 2));
@@ -204,6 +218,8 @@ public sealed class AssemblerOperationTests
 
     [Theory]
     [MemberData(nameof(Layouts))]
+    [Trait("Spec", "PO-09")]
+    [Trait("Spec", "PO-10")]
     public void RotationBoxesAndRenderingSurviveReorderingAndMerging(string layout)
     {
         // C reversed, then A's rotated and cropped pages (6, 7) between C's pages, merged into one file.
@@ -223,6 +239,7 @@ public sealed class AssemblerOperationTests
     }
 
     [Fact]
+    [Trait("Spec", "PO-10")]
     public void PagesInheritTheirBoxesAndResourcesFromTheNodesAboveThem()
     {
         // A two-level tree: /Resources, /MediaBox and /Rotate on the root, /CropBox on the middle node, one page overriding the rotation.
@@ -249,7 +266,7 @@ public sealed class AssemblerOperationTests
         Assert.False(pageDictionaries[0].ContainsKey("CropBox"));
         Assert.Equal(180, ((PdfInteger)pageDictionaries[1]["Rotate"]!).Value);
         Assert.NotNull(pageDictionaries[1]["CropBox"]);
-        Assert.All(pageDictionaries, static d => Assert.NotNull(d["Resources"]));
+        Assert.All(pageDictionaries, d => Assert.True(AssemblyChecks.Resolve(document, d["Resources"]) is PdfDictionary resources && resources.ContainsKey("Font"), "the page's resources are the inherited ones"));
         var profile = AssemblyChecks.AssertOpensInFreshEngine(output);
         Assert.Equal(["PAGE-I-03", "PAGE-I-02", "PAGE-I-01"], profile.Keys);
         Assert.Equal(["0,0,300,400", "0,0,612,792", "0,0,612,792"], profile.Pages.Select(static p => p.Media));
@@ -262,6 +279,9 @@ public sealed class AssemblerOperationTests
     // ---------------------------------------------------------------- merge
 
     [Fact]
+    [Trait("Spec", "PO-13")]
+    [Trait("Spec", "PO-15")]
+    [Trait("Spec", "PO-20")]
     public void MergeKeepsEveryLinkOutlineEntryAndNameOfBothFiles()
     {
         var output = AssemblyFixtures.Assemble([A(), B()], AssemblyPlan.Merge((0, 10), (1, 5)));
@@ -279,6 +299,7 @@ public sealed class AssemblerOperationTests
     }
 
     [Fact]
+    [Trait("Spec", "PO-13")]
     public void MergeCanWrapEachSourcesOutlineUnderAnEntryNamedAfterIt()
     {
         var output = AssemblyFixtures.Assemble([A(), B()], AssemblyPlan.Merge((0, 10), (1, 5)), AssemblyFixtures.Fixed with { WrapSourceOutlines = true });
@@ -293,6 +314,8 @@ public sealed class AssemblerOperationTests
     }
 
     [Fact]
+    [Trait("Spec", "PO-11")]
+    [Trait("Spec", "PO-13")]
     public void NamedDestinationsThatClashAreRenamedAndEveryLinkStillGoesToItsOwnFile()
     {
         var output = AssemblyFixtures.Assemble([A(), B()], AssemblyPlan.Merge((0, 10), (1, 5)));
@@ -312,6 +335,8 @@ public sealed class AssemblerOperationTests
     }
 
     [Fact]
+    [Trait("Spec", "PO-14")]
+    [Trait("Spec", "OQ-PO-8")]
     public void FormFieldsWithTheSameNameAreRenamedAndKeepTheirOwnValues()
     {
         var output = AssemblyFixtures.Assemble([A(), B()], AssemblyPlan.Merge((0, 10), (1, 5)));
@@ -337,6 +362,7 @@ public sealed class AssemblerOperationTests
     }
 
     [Fact]
+    [Trait("Spec", "PO-14")]
     public void FormResourceNamesThatClashAreRenamedSoNothingDrawsInTheWrongFont()
     {
         // A and B both define /Helv in /AcroForm /DR /Font, Helvetica in A and Courier in B. A's free-text annotation (page 4) has no appearance and is drawn from
@@ -367,6 +393,7 @@ public sealed class AssemblerOperationTests
     }
 
     [Fact]
+    [Trait("Spec", "PO-14")]
     public void MergingAFileWithItselfRenamesWhatClashesAndKeepsBothCopiesWorking()
     {
         var output = AssemblyFixtures.Assemble([A(), A()], AssemblyPlan.Merge((0, 10), (1, 10)));
@@ -381,6 +408,7 @@ public sealed class AssemblerOperationTests
     }
 
     [Fact]
+    [Trait("Spec", "PO-13")]
     public void PagesFromAnUnlabelledFileKeepTheNumbersTheyHadWhenOthersHaveLabels()
     {
         var output = AssemblyFixtures.Assemble([A(), C()], new AssemblyPlan([new(0, 0), new(1, 2), new(1, 3), new(0, 3)]));
@@ -391,6 +419,9 @@ public sealed class AssemblerOperationTests
     // ---------------------------------------------------------------- insert from file, duplicate, split
 
     [Fact]
+    [Trait("Spec", "PO-09")]
+    [Trait("Spec", "PO-11")]
+    [Trait("Spec", "PO-13")]
     public void InsertFromFilePutsTheChosenPagesWhereAskedAndLeavesTheRestAlone()
     {
         var output = AssemblyFixtures.Assemble([A(), B()], AssemblyPlan.Insert(0, 10, 3, 1, [0, 1]));
@@ -412,6 +443,8 @@ public sealed class AssemblerOperationTests
     }
 
     [Fact]
+    [Trait("Spec", "PO-09")]
+    [Trait("Spec", "PO-11")]
     public void DuplicatingAPageGivesTheCopyItsOwnLinksAnnotationsAndFields()
     {
         var output = AssemblyFixtures.Assemble([A()], AssemblyPlan.Duplicate(0, 10, [1]));
@@ -439,6 +472,7 @@ public sealed class AssemblerOperationTests
     }
 
     [Fact]
+    [Trait("Spec", "PO-13")]
     public void ADuplicatedNoteGetsItsOwnPopupAndReply()
     {
         var output = AssemblyFixtures.Assemble([A()], AssemblyPlan.Pick(0, [0, 0]));
@@ -458,6 +492,8 @@ public sealed class AssemblerOperationTests
     }
 
     [Fact]
+    [Trait("Spec", "PO-13")]
+    [Trait("Spec", "PO-19")]
     public void SplitMakesOneFilePerPartFromSourcesParsedOnce()
     {
         var set = PageAssembler.Open([A()], AssemblyFixtures.Fixed);
@@ -487,6 +523,7 @@ public sealed class AssemblerOperationTests
     }
 
     [Fact]
+    [Trait("Spec", "PO-26")]
     public void ALargeFlatDocumentGetsABalancedPageTree()
     {
         var output = AssemblyFixtures.Assemble([AssemblyFixtures.Source("big", MiniPdf.Large("L", 300, 1))], AssemblyPlan.Range(0, 0, 299));

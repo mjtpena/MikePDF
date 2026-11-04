@@ -26,7 +26,7 @@ internal static unsafe partial class Pdfium
     private static readonly Regex KeyPattern = new(@"PAGE-[A-Z0-9]+-\d+", RegexOptions.Compiled);
 
     /// <summary>Reads <paramref name="bytes"/> in a fresh PDFium document. Null when PDFium refuses the file.</summary>
-    public static PdfiumProfile? Profile(byte[] bytes, bool render = true)
+    public static PdfiumProfile? Profile(byte[] bytes, bool render = true, int maxPages = int.MaxValue)
     {
         EnsureLoaded();
         lock (Gate)
@@ -45,7 +45,7 @@ internal static unsafe partial class Pdfium
                 new Span<byte>((void*)formInfo, 1024).Clear();
                 *(int*)formInfo = 1;
                 form = FPDFDOC_InitFormFillEnvironment(document, formInfo);
-                return ReadProfile(document, form, render);
+                return ReadProfile(document, form, render, maxPages);
             }
             finally
             {
@@ -60,12 +60,13 @@ internal static unsafe partial class Pdfium
         }
     }
 
-    private static PdfiumProfile ReadProfile(nint document, nint form, bool render)
+    private static PdfiumProfile ReadProfile(nint document, nint form, bool render, int maxPages)
     {
         var count = FPDF_GetPageCount(document);
+        var read = Math.Min(count, maxPages); // only the first pages are described; the page count is always the whole document's
         var texts = new string[count];
         var keys = new string?[count];
-        for (var i = 0; i < count; i++)
+        for (var i = 0; i < read; i++)
         {
             var page = FPDF_LoadPage(document, i);
             var textPage = FPDFText_LoadPage(page);
@@ -95,14 +96,16 @@ internal static unsafe partial class Pdfium
         }
 
         var pages = new List<PdfiumPage>();
-        for (var i = 0; i < count; i++)
+        for (var i = 0; i < read; i++)
         {
             var page = FPDF_LoadPage(document, i);
             if (form != 0)
                 FORM_OnAfterLoadPage(page, form);
             float left, bottom, right, top;
-            _ = FPDFPage_GetMediaBox(page, &left, &bottom, &right, &top);
-            var media = string.Create(System.Globalization.CultureInfo.InvariantCulture, $"{left:0.##},{bottom:0.##},{right:0.##},{top:0.##}");
+            // PDFium answers for a box set on the page itself, not one inherited from the page tree: "-" is "not on the page".
+            var media = FPDFPage_GetMediaBox(page, &left, &bottom, &right, &top) != 0
+                ? string.Create(System.Globalization.CultureInfo.InvariantCulture, $"{left:0.##},{bottom:0.##},{right:0.##},{top:0.##}")
+                : "-";
             var crop = FPDFPage_GetCropBox(page, &left, &bottom, &right, &top) != 0
                 ? string.Create(System.Globalization.CultureInfo.InvariantCulture, $"{left:0.##},{bottom:0.##},{right:0.##},{top:0.##}")
                 : "-";

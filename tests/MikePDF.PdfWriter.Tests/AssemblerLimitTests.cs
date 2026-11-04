@@ -60,6 +60,7 @@ public sealed class AssemblerLimitTests
     }
 
     [Fact]
+    [Trait("Spec", "PO-26")]
     public void TheDefaultOutputCapIs100000PagesAnd100001IsRefused()
     {
         // PO-26: "merge of 100,000 total pages is accepted and 100,001 refused". One page used 100,000 times: every copy is its own page.
@@ -278,6 +279,7 @@ public sealed class AssemblerLimitTests
     // ---------------------------------------------------------------- nesting, hostile input
 
     [Fact]
+    [Trait("Spec", "PO-27")]
     public void ADeeplyNestedPageTreeIsRefusedAtTheParsersNestingLimit()
     {
         // A chain of nodes, each the only kid of the one above, ending in one page.
@@ -302,6 +304,7 @@ public sealed class AssemblerLimitTests
     }
 
     [Fact]
+    [Trait("Spec", "PO-27")]
     public void AClosureTooBigForTheOutputLimitIsRefusedWhileItIsBeingWritten()
     {
         // One page whose resources hold a 3 MB image; the output may be 1 MB.
@@ -314,6 +317,7 @@ public sealed class AssemblerLimitTests
     }
 
     [Fact]
+    [Trait("Spec", "PO-27")]
     public void AnObjectStreamThatInflatesPastTheDecompressionBudgetIsRefused()
     {
         var bytes = AssemblyFixtures.AsXrefStream(AssemblyFixtures.Read("A.pdf"));

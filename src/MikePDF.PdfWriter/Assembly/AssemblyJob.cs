@@ -511,12 +511,13 @@ internal sealed partial class AssemblyJob
         var document = state.Document;
         var slot = document.Pages[page.SourcePage];
         var dictionary = slot.Dictionary.Without("Parent").Without("B").Without("Annots").With("Type", new PdfName("Page"));
+        PdfObject? inheritedResources = null; // already in output terms: it is added after the page's own entries are copied
 
         if (dictionary["Resources"] is null or PdfNull)
         {
             dictionary = dictionary.Without("Resources");
             if (slot.Inherited.Resources is { } resources)
-                dictionary = dictionary.With("Resources", HoistedResources(copy, slot.Inherited, resources));
+                inheritedResources = HoistedResources(copy, slot.Inherited, resources);
         }
 
         if (dictionary["MediaBox"] is null or PdfNull)
@@ -548,6 +549,8 @@ internal sealed partial class AssemblyJob
         }
 
         var rewritten = (PdfDictionary)Rewrite(copy, dictionary);
+        if (inheritedResources is not null)
+            rewritten = rewritten.With("Resources", inheritedResources);
         rewritten = rewritten.With("Parent", new PdfReference(parent));
         var annotations = PageAnnotations(copy, slot);
         if (annotations.Count > 0)
@@ -555,11 +558,14 @@ internal sealed partial class AssemblyJob
         _writer.WriteObject(page.Number, rewritten);
     }
 
-    /// <summary>The /Resources a page inherited as a direct dictionary are written once and shared by the pages below the node that had them.</summary>
+    /// <summary>
+    /// The /Resources a page inherited, in output terms. A direct dictionary is written once as an object of its own and shared by the pages below the
+    /// node that had it; a reference is mapped like any other.
+    /// </summary>
     private PdfObject HoistedResources(CopyState copy, Inherited inherited, PdfObject resources)
     {
         if (resources is not PdfDictionary direct || inherited.ResourcesOwner is not { } owner)
-            return resources;
+            return Rewrite(copy, resources);
         if (_hoistedResources.TryGetValue(owner, out var existing))
             return existing;
         var number = NewNumber();

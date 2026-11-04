@@ -17,6 +17,8 @@ public sealed class AssemblerRefusalTests
     // ---------------------------------------------------------------- sources the strict parser refuses (R-39)
 
     [Fact]
+    [Trait("Spec", "PO-21")]
+    [Trait("Spec", "R-39")]
     public void AnEncryptedSourceIsRefusedWithATypedReason()
     {
         var status = Open(FixtureTests.Read("encrypted_hello_world_r3.pdf"));
@@ -32,6 +34,8 @@ public sealed class AssemblerRefusalTests
 
     [Theory]
     [MemberData(nameof(StrictRefusals))]
+    [Trait("Spec", "PO-27")]
+    [Trait("Spec", "R-39")]
     public void AFileTheStrictParserRefusesCannotBeASourceAndSaysWhy(string file)
     {
         var expected = FixtureTests.Expectations.Single(e => e.File == file).StrictError;
@@ -42,6 +46,7 @@ public sealed class AssemblerRefusalTests
     }
 
     [Fact]
+    [Trait("Spec", "PO-27")]
     public void DamagedBytesAreRefusedAndNeverThrow()
     {
         var good = AssemblyFixtures.Read("C.pdf");
@@ -52,6 +57,8 @@ public sealed class AssemblerRefusalTests
     }
 
     [Fact]
+    [Trait("Spec", "PO-27")]
+    [Trait("Spec", "R-39")]
     public void AStreamFilterTheParserCannotDecodeIsReportedAsUnsupported()
     {
         var bytes = AssemblyFixtures.AsXrefStream(AssemblyFixtures.Read("C.pdf"));
@@ -61,6 +68,7 @@ public sealed class AssemblerRefusalTests
     }
 
     [Fact]
+    [Trait("Spec", "PO-27")]
     public void ParserLimitsAreCarriedThroughAsLimitRefusals()
     {
         var status = Open(AssemblyFixtures.Read("A.pdf"), options: AssemblyFixtures.Fixed with { ParserLimits = new ParserLimits { MaxFileSize = 1000 } });
@@ -69,6 +77,8 @@ public sealed class AssemblerRefusalTests
     }
 
     [Fact]
+    [Trait("Spec", "PO-27")]
+    [Trait("Spec", "R-39")]
     public void EverySourceIsReportedSoADialogCanListAllThatCannotBeUsedAndTheRestStillAssemble()
     {
         var set = PageAssembler.Open(
@@ -103,6 +113,7 @@ public sealed class AssemblerRefusalTests
     [InlineData("/Count /A")]
     [InlineData("/Count -3")]
     [InlineData("")]
+    [Trait("Spec", "PO-27")]
     public void APageTreeWhoseCountDisagreesWithItsLeavesIsRefused(string count)
     {
         var document = new TinyDoc(3);
@@ -120,6 +131,7 @@ public sealed class AssemblerRefusalTests
     }
 
     [Fact]
+    [Trait("Spec", "PO-27")]
     public void ACountOfTenMillionOnAThreePageDocumentIsRefusedNotTrusted()
     {
         var document = new TinyDoc(3);
@@ -128,6 +140,7 @@ public sealed class AssemblerRefusalTests
     }
 
     [Fact]
+    [Trait("Spec", "PO-27")]
     public void ANodeReachableTwiceIsRefusedWhetherCycleOrSharedPage()
     {
         var document = new TinyDoc(2);
@@ -140,6 +153,7 @@ public sealed class AssemblerRefusalTests
     }
 
     [Fact]
+    [Trait("Spec", "PO-27")]
     public void KidsThatAreNotReferencesToDictionariesAreRefused()
     {
         var direct = new TinyDoc(1).Build(tree: "<< /Type /Pages /Kids [<< /Type /Page /MediaBox [0 0 1 1] >>] /Count 1 >>");
@@ -181,6 +195,7 @@ public sealed class AssemblerRefusalTests
     }
 
     [Fact]
+    [Trait("Spec", "PO-23")]
     public void ACancelledAssemblyReturnsCancelledAndNoFile()
     {
         using var cancel = new CancellationTokenSource();
@@ -268,6 +283,7 @@ public sealed class AssemblerRefusalTests
     }
 
     [Fact]
+    [Trait("Spec", "PO-22")]
     public void ASignedFileLosesItsSignaturesWithAWarningTheUiCanShowBeforeTheSave()
     {
         var bytes = FixtureTests.Read("two_signatures.pdf");
