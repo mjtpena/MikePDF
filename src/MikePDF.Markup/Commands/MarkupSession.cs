@@ -299,7 +299,7 @@ public sealed class MarkupSession
     }
 
     /// <summary>Changes the comment of an annotation. Owned ones and foreign ones by the same author. One step.</summary>
-    public bool SetContents(string id, string text)
+    public bool SetContents(string id, string text, PageFrame? frame = null)
     {
         if (Store.Get(id) is not { } a || !Allowed(a, AnnotationOperation.EditContents))
         {
@@ -309,7 +309,11 @@ public sealed class MarkupSession
         var normal = CommentText.Truncate(CommentText.Normalise(text));
         if (a.IsOwned)
         {
-            return Restate(a, MarkupFactory.GrowToFit(a with { Contents = normal, Modified = Factory.Now() }), "comment changed");
+            // A mark with a comment has a popup for other readers to open it by; without one it has none. A note always has one (sticky-notes 2.4).
+            var popup = a.Kind == MarkupKind.Note || a.ReplyKind != ReplyKind.None
+                ? a.PopupRect
+                : normal.Length == 0 ? null : a.PopupRect ?? (frame is null ? null : NoteGeometry.PopupFor(frame, a.Rect));
+            return Restate(a, MarkupFactory.GrowToFit(a with { Contents = normal, PopupRect = popup, Modified = Factory.Now() }), "comment changed");
         }
 
         // A foreign annotation keeps its appearance: only /Contents changes.

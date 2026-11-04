@@ -9,7 +9,7 @@ using MikePDF.Protocol.Edits;
 namespace MikePDF.Markup.Tests.Support;
 
 /// <summary>A page of a test document: its boxes and /Rotate.</summary>
-internal sealed record PageSpec(double[] MediaBox, double[]? CropBox = null, int Rotate = 0)
+internal sealed record PageSpec(double[] MediaBox, double[]? CropBox = null, int Rotate = 0, string? Content = null)
 {
     public static PageSpec Letter { get; } = new([0, 0, 612, 792]);
 }
@@ -34,12 +34,19 @@ internal static class TestDocuments
 
         Object("<< /Type /Catalog /Pages 2 0 R >>");
         Object($"<< /Type /Pages /Kids [{string.Join(' ', pages.Select((_, i) => $"{3 + i} 0 R"))}] /Count {pages.Length} >>");
+        var contentNumber = 3 + pages.Length;
         foreach (var page in pages)
         {
             var box = string.Join(' ', page.MediaBox.Select(static v => v.ToString(CultureInfo.InvariantCulture)));
             var crop = page.CropBox is null ? string.Empty : " /CropBox [" + string.Join(' ', page.CropBox.Select(static v => v.ToString(CultureInfo.InvariantCulture))) + "]";
             var rotate = page.Rotate == 0 ? string.Empty : $" /Rotate {page.Rotate}";
-            Object($"<< /Type /Page /Parent 2 0 R /MediaBox [{box}]{crop}{rotate} >>");
+            var contents = page.Content is null ? string.Empty : $" /Contents {contentNumber++} 0 R";
+            Object($"<< /Type /Page /Parent 2 0 R /MediaBox [{box}]{crop}{rotate}{contents} >>");
+        }
+
+        foreach (var page in pages.Where(static p => p.Content is not null))
+        {
+            Object("<< /Length " + page.Content!.Length.ToString(CultureInfo.InvariantCulture) + " >>\nstream\n" + page.Content + "\nendstream");
         }
 
         var xref = pdf.Length;

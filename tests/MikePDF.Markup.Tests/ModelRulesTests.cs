@@ -347,4 +347,23 @@ public sealed class ModelRulesTests
         Assert.True(a.Rect.Left < a.Rect.Right && a.Rect.Bottom < a.Rect.Top);
         Assert.Equal((40, 100), (Math.Round(a.Rect.Width, 6), Math.Round(a.Rect.Height, 6))); // turned a quarter: the sides swap
     }
+
+    [Fact]
+    public void SN01_AThreadWithACycleOrALongChainIsWalkedOnceAndTerminates()
+    {
+        var samples = new Samples();
+        var store = new AnnotationStore();
+        var a = samples.Note() with { Id = "a", Parent = "c" }; // a answers c, c answers b, b answers a: a loop
+        var b = samples.Note() with { Id = "b", Parent = "a" };
+        var c = samples.Note() with { Id = "c", Parent = "b" };
+        store.Add(a);
+        store.Add(b);
+        store.Add(c);
+
+        var thread = store.Thread("a");
+
+        Assert.Equal(["a", "b", "c"], thread.Select(static x => x.Id).Order());
+        Assert.Empty(store.Thread("missing"));
+        Assert.Equal(["b"], store.RepliesTo("a").Select(static x => x.Id));
+    }
 }

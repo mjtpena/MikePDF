@@ -329,4 +329,97 @@ public sealed class MarkupSaveTests(SandboxFixture sandbox)
 
         Assert.Equal(4, PdfiumProbe.Annotations(File.ReadAllBytes(doc), 0)!.Count);
     }
+
+    [Fact]
+    public async Task ST12_AllFourteenStampsAndSevenIconsAreVisibleInAFreshEngineWithNoPriorRender()
+    {
+        using var workspace = new SaveWorkspace();
+        var original = TestDocuments.Build(PageSpec.Letter);
+        var doc = workspace.Write("doc.pdf", original);
+        var frame = Samples.Frame();
+        var samples = new Samples();
+        var editSession = new EditSession(new JournalStore(workspace.Journals), doc, "1.0.0.0");
+        var markup = new MarkupSession(editSession.Model, samples.Factory, samples.Time);
+        var placed = new List<(string Label, Annotation Annotation)>();
+        var names = StampCatalog.Names.ToList();
+        for (var i = 0; i < names.Count; i++)
+        {
+            var stamp = samples.Factory.StampOnPage(0, frame, names[i], new PointD(20 + (i % 2 * 290), 20 + (i / 2 * 50)), new RectD(20 + (i % 2 * 290), 20 + (i / 2 * 50), 260, 44));
+            placed.Add((names[i], markup.Add(stamp)));
+        }
+
+        var icons = Enum.GetValues<NoteIcon>();
+        for (var i = 0; i < icons.Length; i++)
+        {
+            placed.Add(($"icon {icons[i]}", markup.Add(samples.Factory.Note(0, frame, new PointD(20 + (i * 40), 500), string.Empty, icons[i]))));
+        }
+
+        await using var host = await sandbox.StartWriterHostAsync();
+        using var held = File.OpenHandle(doc, FileMode.Open, FileAccess.Read, EngineSupervisor.DocumentShare);
+        var result = await Coordinator(host, sandbox).SaveSessionAsync(editSession, doc, doc, SaveMode.Save, 1, held, cancellationToken: new CancellationTokenSource(Wait).Token);
+        Assert.True(result.IsSaved, result.Reason + " " + result.Detail);
+
+        var (width, height) = TileSize(frame);
+        await using var engine = await sandbox.StartAsync();
+        var before = await RenderFileAsync(engine, workspace.Write("base.pdf", original), width, height);
+        var after = await RenderFileAsync(engine, doc, width, height);
+        PngDump.Write("stamps-and-icons", after, width, height);
+        foreach (var (label, annotation) in placed)
+        {
+            var shown = frame.ToDisplay(annotation.Rect);
+            var changed = 0;
+            for (var y = (int)(shown.Y * Scale); y < (int)Math.Ceiling(shown.Bottom * Scale); y++)
+            {
+                for (var x = (int)(shown.X * Scale); x < (int)Math.Ceiling(shown.Right * Scale); x++)
+                {
+                    changed += Differs(before, after, (y * width) + x) ? 1 : 0;
+                }
+            }
+
+            Assert.True(changed >= 40, $"{label} drew {changed} pixels");
+        }
+
+        // The standard spelling of the stamp names, as a name object, in a fresh PDFium's eyes: fourteen stamps, seven notes and a popup for each note's comment-less... (none: no comment).
+        var read = PdfiumProbe.Annotations(File.ReadAllBytes(doc), 0)!;
+        Assert.Equal(14, read.Count(static a => a.Subtype == PdfiumProbe.Stamp));
+        Assert.Equal(7, read.Count(static a => a.Subtype == PdfiumProbe.Text));
+    }
+
+    [Fact]
+    public async Task TM11_AHighlightAndAHighlighterStrokeMultiplyOverTextSoItStaysLegible()
+    {
+        // A black bar stands for text. Under a highlight the bar must stay dark (Multiply); beside it the page shows the marker colour.
+        using var workspace = new SaveWorkspace();
+        var original = TestDocuments.Build(new PageSpec(Media, null, 0, "0 0 0 rg 100 500 200 20 re f"));
+        var doc = workspace.Write("doc.pdf", original);
+        var frame = Samples.Frame();
+        var samples = new Samples();
+        var editSession = new EditSession(new JournalStore(workspace.Journals), doc, "1.0.0.0");
+        var markup = new MarkupSession(editSession.Model, samples.Factory, samples.Time);
+        markup.Add(samples.Factory.TextMarkup(MarkupKind.Highlight, 0, [Quad.FromRect(new PdfRect(80, 495, 320, 525))]));
+        var stroke = new InkStroke("h", [new InkSample(80, 600, 1), new InkSample(320, 600, 1)]);
+        markup.AddInkStroke(0, stroke, InkStyle.DefaultHighlighter, Rgb.Yellow);
+        var bar2 = new InkStroke("b", [new InkSample(80, 300, 1), new InkSample(320, 300, 1)]);
+        markup.AddInkStroke(0, bar2, InkStyle.DefaultPen, new Rgb(0, 0, 1));
+        await using var host = await sandbox.StartWriterHostAsync();
+        using var held = File.OpenHandle(doc, FileMode.Open, FileAccess.Read, EngineSupervisor.DocumentShare);
+        var result = await Coordinator(host, sandbox).SaveSessionAsync(editSession, doc, doc, SaveMode.Save, 1, held, cancellationToken: new CancellationTokenSource(Wait).Token);
+        Assert.True(result.IsSaved, result.Reason + " " + result.Detail);
+
+        var (width, height) = TileSize(frame);
+        await using var engine = await sandbox.StartAsync();
+        var after = await RenderFileAsync(engine, doc, width, height);
+        PngDump.Write("multiply", after, width, height);
+        (int R, int G, int B) At(double x, double y)
+        {
+            var i = ((((int)((792 - y) * Scale)) * width) + (int)(x * Scale)) * 4;
+            return (after[i + 2], after[i + 1], after[i]);
+        }
+
+        var under = At(200, 510); // inside the bar and inside the highlight
+        var beside = At(90, 510); // inside the highlight, outside the bar
+        Assert.True(under.R < 70 && under.G < 70 && under.B < 70, $"the text under the highlight turned {under}");
+        Assert.True(beside.R > 220 && beside.G > 200 && beside.B < 120, $"the marker colour beside the text is {beside}");
+        Assert.Equal((255, 255, 255), At(200, 560)); // nothing between the two marks
+    }
 }

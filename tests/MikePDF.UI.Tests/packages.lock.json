@@ -273,8 +273,12 @@
       "mikepdf.core": {
         "type": "Project",
         "dependencies": {
+          "MikePDF.Ink": "[1.0.0, )",
           "MikePDF.Protocol": "[1.0.0, )"
         }
+      },
+      "mikepdf.ink": {
+        "type": "Project"
       },
       "mikepdf.printing": {
         "type": "Project",

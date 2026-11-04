@@ -71,9 +71,7 @@ public static class NoteArtwork
                 items.Add(new ScenePath(new PathBuilder().Move(P(4.5, 3.5)).Line(P(8, 6.5)).Line(P(11.5, 3.5)).Segments, PaintMode.Stroke, null, Ink, Stroke(1.2), CapStyle.Round, JoinStyle.Round));
                 break;
             case NoteIcon.Insert:
-                var caret = new PathBuilder().Move(P(2, 3)).Curve(P(8, 3).X, P(8, 3).Y, P(9, 10).X, P(9, 10).Y, P(10, 17).X, P(10, 17).Y)
-                    .Curve(P(11, 10).X, P(11, 10).Y, P(12, 3).X, P(12, 3).Y, P(18, 3).X, P(18, 3).Y).Close();
-                items.Add(Shape(caret, true, 0.8));
+                items.Add(Shape(new PathBuilder().Polygon([P(2, 3), P(10, 18), P(18, 3), P(10, 7)]), true, 0.8));
                 break;
             default:
                 throw new ArgumentOutOfRangeException(nameof(icon));

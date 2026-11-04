@@ -1,5 +1,6 @@
 #pragma warning disable CA1861 // test data: arrays written inline are the point of these cases
 
+using MikePDF.Core.Geometry;
 using MikePDF.Markup.Tests.Support;
 using MikePDF.PdfWriter;
 using MikePDF.PdfWriter.Editing;
@@ -300,5 +301,57 @@ public sealed class SavedStructureTests
         var text = System.Text.Encoding.Latin1.GetString(file);
         var patched = text.Replace(from, to, StringComparison.Ordinal);
         return System.Text.Encoding.Latin1.GetBytes(patched);
+    }
+
+    [Fact]
+    public void TM17_AMarkWithACommentHasAPopupAndRemovingTheCommentRemovesItAtTheNextSave()
+    {
+        var samples = new Samples();
+        var frame = Samples.Frame();
+        var original = TestDocuments.Build(PageSpec.Letter);
+        var mark = samples.Session.Add(samples.Factory.TextMarkup(MarkupKind.Highlight, 0, [Quad.FromRect(new PdfRect(72, 700, 272, 716))], contents: "see page 4", frame: frame));
+        Assert.NotNull(mark.PopupRect);
+        var first = TestDocuments.Save(original, samples.Model, 1);
+        samples.Model.MarkSaved(samples.Model.BeginSave());
+        var withPopup = TestDocuments.Annotations(TestDocuments.Open(first), 0);
+        Assert.Equal(["Highlight", "Popup"], withPopup.Select(static a => a.Dictionary.GetName("Subtype")));
+        Assert.Equal(withPopup[1].Reference, withPopup[0].Dictionary["Popup"]);
+
+        Assert.True(samples.Session.SetContents(mark.Id, string.Empty));
+        var second = TestDocuments.Save(first, samples.Model, 1);
+
+        TestDocuments.AssertSound(first, second);
+        var without = TestDocuments.Annotations(TestDocuments.Open(second), 0);
+        Assert.Equal(["Highlight"], without.Select(static a => a.Dictionary.GetName("Subtype")));
+        Assert.Null(without[0].Dictionary["Popup"]);
+        Assert.Equal(withPopup[0].Reference, without[0].Reference); // the same object, rebuilt in place
+        Assert.Null(samples.Session.Store.Get(mark.Id)!.PopupRect);
+
+        // And the comment comes back with its popup.
+        samples.Model.MarkSaved(samples.Model.BeginSave());
+        Assert.True(samples.Session.SetContents(mark.Id, "again", frame));
+        var third = TestDocuments.Save(second, samples.Model, 1);
+        TestDocuments.AssertSound(second, third);
+        Assert.Equal(["Highlight", "Popup"], TestDocuments.Annotations(TestDocuments.Open(third), 0).Select(static a => a.Dictionary.GetName("Subtype")));
+    }
+
+    [Fact]
+    public void ST02_AllFourteenStampsAreWrittenWithTheirStandardNameAsANameObject()
+    {
+        var samples = new Samples();
+        var original = TestDocuments.Build(PageSpec.Letter);
+        foreach (var name in StampCatalog.Names)
+        {
+            samples.Session.Add(samples.Stamp(name: name));
+        }
+
+        var saved = TestDocuments.Save(original, samples.Model, 1);
+
+        var document = TestDocuments.Open(saved);
+        var names = TestDocuments.Annotations(document, 0).Select(static a => a.Dictionary["Name"]).ToList();
+        Assert.All(names, static n => Assert.IsType<PdfName>(n)); // never a string (S4 F3)
+        Assert.Equal(StampCatalog.Names, names.Cast<PdfName>().Select(static n => n.Value));
+        Assert.Equal(["Approved", "Experimental", "NotApproved", "AsIs", "Expired", "NotForPublicRelease", "Confidential", "Final", "Sold", "Departmental", "ForComment", "TopSecret", "Draft", "ForPublicRelease"], names.Cast<PdfName>().Select(static n => n.Value));
+        TestDocuments.AssertSound(original, saved);
     }
 }

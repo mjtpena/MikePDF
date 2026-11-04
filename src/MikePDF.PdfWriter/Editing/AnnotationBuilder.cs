@@ -18,21 +18,20 @@ internal static class AnnotationBuilder
 {
     public static BuiltAnnotation Build(AnnotationChange change, PdfReference page, DateTimeOffset modified, int pageRotation)
     {
-        AnnotationSpec spec;
         try
         {
-            spec = AnnotationSpecBuilder.Build(ToModel(change, modified, pageRotation), pageRotation);
+            var spec = AnnotationSpecBuilder.Build(ToModel(change, modified, pageRotation), pageRotation);
+            var dictionary = ToDictionary(spec.Dictionary, page);
+            var popup = spec.Popup is { } p ? ToDictionary(p, page) : null;
+            return new BuiltAnnotation(ToStream(spec.Appearance), dictionary, popup);
         }
         catch (Exception e) when (e is not PdfParseException)
         {
-            // Whatever the values were, the host must refuse the edit, not die: the model code throws for values it cannot draw.
+            // Whatever the values were, the host must refuse the edit, not die: the model code throws for values it cannot draw, and the object
+            // model for numbers it cannot write.
             ParseContext.Fatal(PdfErrorCode.InvalidEdit, "an annotation's appearance cannot be generated: " + e.Message);
             throw;
         }
-
-        var dictionary = ToDictionary(spec.Dictionary, page);
-        var popup = spec.Popup is { } p ? ToDictionary(p, page) : null;
-        return new BuiltAnnotation(ToStream(spec.Appearance), dictionary, popup);
     }
 
     /// <summary>The model's view of an edit: the values the Markup library draws from.</summary>

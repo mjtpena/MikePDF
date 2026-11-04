@@ -228,11 +228,21 @@ public static class AnnotationAppender
         var built = AnnotationBuilder.Build(effective, page.Reference, modified, rotation);
         var apRef = Unwrap(update.Add(built.Appearance));
         var dictionary = built.Annotation.With("AP", new PdfDictionary([new KeyValuePair<PdfName, PdfObject>(new PdfName("N"), apRef)]));
-        foreach (var key in new[] { "IRT", "Popup" })
+        if (old["IRT"] is { } answered && dictionary["IRT"] is null)
         {
-            if (old[key] is { } carried && dictionary[key] is null)
+            dictionary = dictionary.With("IRT", answered);
+        }
+
+        // The popup stays with an annotation that still has a comment to show, and goes when the comment goes (text-markup 2.6, TM-17).
+        if (old["Popup"] is PdfReference oldPopup)
+        {
+            if (built.Popup is not null)
             {
-                dictionary = dictionary.With(key, carried);
+                dictionary = dictionary.With("Popup", oldPopup);
+            }
+            else
+            {
+                annots.RemoveAll(entry => entry is PdfReference r && r.Number == oldPopup.Number);
             }
         }
 
