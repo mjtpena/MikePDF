@@ -37,6 +37,7 @@ function Publish-Probe([string] $Name, [bool] $Trim) {
     if (Test-Path $out) { Remove-Item -Recurse -Force $out }
     $publishArgs = @('publish', (Join-Path $root 'tools/MikePDF.TrimProbe/MikePDF.TrimProbe.csproj'), '-c', 'Release', '-r', "win-$Arch", '--self-contained', 'true',
         "-p:MikePDFArch=$Arch", "-p:PublishTrimmed=$($Trim.ToString().ToLowerInvariant())", "-p:PublishReadyToRun=$((-not $NoReadyToRun).ToString().ToLowerInvariant())", '-o', $out, '-nologo', '-v', 'q')
+    $publishLog = @()
     dotnet @publishArgs 2>&1 | Tee-Object -Variable publishLog | Out-Host
     if ($LASTEXITCODE -ne 0) { throw "dotnet publish of the probe ($Name) failed" }
     # The same rule as build/package.ps1: the two known library summaries (see MikePDF.App.csproj) are warnings, any other assembly's is a failure.

@@ -171,6 +171,7 @@ if (-not $SkipPublish) {
         # resources.pri must carry the package's name, not the development manifest's (the certification kit's "App resources" test).
         "-p:ProjectPriIndexName=$($identity.Name)")
     if ($TestBuild) { $publishArgs += '-p:MikePDFSelfTest=true' }
+    $publishLog = @()
     dotnet @publishArgs 2>&1 | Tee-Object -Variable publishLog | Out-Host
     if ($LASTEXITCODE -ne 0) { throw 'dotnet publish failed' }
     # The trimmer summarises the warnings of an assembly we do not build as one IL2104. Two are known and cannot be fixed here (the C#/WinRT 2.2.0 runtime and the Windows SDK
