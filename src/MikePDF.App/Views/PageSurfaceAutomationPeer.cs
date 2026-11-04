@@ -20,7 +20,7 @@ namespace MikePDF.App.Views;
 /// </para>
 /// <para>Not implemented: text attributes (font, colour), annotations as children of the text, the "this document is not tagged" announcement, and the structure tree for tagged files. Narrator, NVDA and Accessibility Insights have not been run against this.</para>
 /// </summary>
-public sealed class PageSurfaceAutomationPeer : FrameworkElementAutomationPeer, ITextProvider, ITextProvider2
+public sealed partial class PageSurfaceAutomationPeer : FrameworkElementAutomationPeer, ITextProvider, ITextProvider2
 {
     private readonly PageSurface _surface;
 
@@ -110,7 +110,7 @@ public sealed class PageSurfaceAutomationPeer : FrameworkElementAutomationPeer, 
 }
 
 /// <summary>A UI Automation text range over the combined model: a thin adapter, the logic is <see cref="TextRange"/>.</summary>
-public sealed class PageTextRangeProvider : ITextRangeProvider
+public sealed partial class PageTextRangeProvider : ITextRangeProvider
 {
     private readonly PageSurfaceAutomationPeer _peer;
     private readonly PageSurface _surface;
