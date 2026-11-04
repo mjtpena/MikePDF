@@ -142,6 +142,21 @@ public sealed class MikePDFApp : IDisposable
         var automation = new UIA3Automation();
         var application = Application.Attach(process);
         var window = Retry.WhileNull(() => application.GetMainWindow(automation), Patience).Result ?? throw new TimeoutException("No main window.");
+        // A key sent as soon as the window exists was lost on the hosted ARM64 runner (Ctrl+L, Ctrl+comma: nothing happened, the window was not yet where keyboard input goes). Make the window the foreground
+        // window and wait until the keyboard focus is inside this process before the journey sends anything. If it never gets there the journey goes on and fails with its own message.
+        window.SetForeground();
+        var processId = process.Id;
+        Retry.WhileFalse(() =>
+        {
+            try
+            {
+                return automation.FocusedElement()?.Properties.ProcessId.ValueOrDefault == processId;
+            }
+            catch (System.Runtime.InteropServices.COMException)
+            {
+                return false;
+            }
+        }, TimeSpan.FromSeconds(10), TimeSpan.FromMilliseconds(200));
         return new MikePDFApp(automation, application, window);
     }
 
