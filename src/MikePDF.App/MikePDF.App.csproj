@@ -69,10 +69,13 @@
     (the ordinary build of the host, with its runtime beside it); build/package.ps1 lays out the shipped one from a Native AOT publish of its own, a single 3 MB executable (a Copy task, not a Content item, so
     `dotnet publish` of the app does not carry this one). `run-ui-tests.ps1 -PackageLayout` tests the shipped form.
   -->
-  <Target Name="BuildWriterHost" BeforeTargets="BeforeBuild">
+  <!-- Skipped by build/package.ps1 (-p:MikePDFSkipWriterHostBuild=true): it publishes the host itself, as Native AOT, and the published app must not carry this development build of it. -->
+  <Target Name="BuildWriterHost" BeforeTargets="BeforeBuild" Condition="'$(MikePDFSkipWriterHostBuild)' != 'true'">
+    <!-- Nobody restores the host when only the app is built (a clean checkout; build/run-ui-tests.ps1 builds src/MikePDF.App alone): restore it here, in an evaluation of its own so that it is not cached. -->
+    <MSBuild Projects="..\MikePDF.WriterHost\MikePDF.WriterHost.csproj" Targets="Restore" Properties="Configuration=$(Configuration);MikePDFArch=$(MikePDFArch);MSBuildRestoreSessionId=$([System.Guid]::NewGuid())" />
     <MSBuild Projects="..\MikePDF.WriterHost\MikePDF.WriterHost.csproj" Targets="Build" Properties="Configuration=$(Configuration);MikePDFArch=$(MikePDFArch)" />
   </Target>
-  <Target Name="CopyWriterHost" AfterTargets="Build">
+  <Target Name="CopyWriterHost" AfterTargets="Build" Condition="'$(MikePDFSkipWriterHostBuild)' != 'true'">
     <PropertyGroup>
       <MikePDFWriterHostDir>$(MSBuildThisFileDirectory)..\MikePDF.WriterHost\bin\$(Configuration)\$(TargetFramework)\$(MikePDFRuntimeIdentifier)\</MikePDFWriterHostDir>
     </PropertyGroup>
