@@ -92,6 +92,11 @@ Found while reviewing wave 1. Each gets a work package or joins one.
 | The view-mode metrics (PV-12 open of 10,000 pages in two-page mode, PV-17 presentation turn) live in `tools/MikePDF.Perf/Metrics/ViewModeMetrics.cs` and `Scenarios/ViewModeScenarios.cs` but are not registered in `PerfRunner` or `MetricCatalog`, so `run --only` cannot select them and the A/B gate does not see them | W2-views-2 | Next perf work package: register them, ungated first, then gate after A/A calibration |
 | PRINT-10 full run (1,000 pages to Microsoft Print to PDF, `PrintThousandPageTests`): broker peak 220 MiB against 164 MiB at 10 pages, engine 15 MiB against 5 MiB, so the 5% bound fails. Find whether it is a per-page retention (about 56 KB a page in the broker) or heap that is never collected, and fix it | W2-print-sheet | Next print or engine work package |
 | Two UI journeys failed in a full local run on 2026-11-02 and were never reported fixed or flaky: `TAB10_ClosingATabWithUnsavedEdits...` and `C5_C6_C7_PageColoursChange...` | W2-print-sheet (seen in its logs) | Check them in the first green run of the CI UI journeys (#24) |
+| The x64 MSIX is 59.65 MB against the 60 MB budget once the writer host ships (AOT, 1.33 MB of it). Every wave 3 feature now has to pay for its size, or something else has to shrink | W3-save-app | Opus: measure in every wave 3 PR; a size job in CI that fails above 60 MB |
+| The writer host is Native AOT now and no longer needs the JIT, but `WriterHostClient` still turns `ProhibitDynamicCode` off for it. Turn it on | W3-save-app | Next save or sandbox work package |
+| Stage 5 validation starts a fresh engine outside `EngineBudget` | W3-save-app | Engine WP |
+| A password-protected document with edits can't be saved, and no unprotected copy is offered (SP-23): the writer can't write encrypted objects | W3-save-app | Save WP after `m4/engine-v7` (the engine's PDFium save may do it) |
+| .NET runtime 10.0.8 has a high-severity advisory (GHSA-p3jp-9v83-76w9, Brotli decoder out-of-bounds write, fixed in 10.0.14); the self-contained app ships that runtime, and the AOT projects fail NuGet audit | Opus, reviewing W3-save-app | `m3/runtime-10.0.14` (running) |
 
 ## What only the user can do
 The following gate v1.0, and agents can't do them:
