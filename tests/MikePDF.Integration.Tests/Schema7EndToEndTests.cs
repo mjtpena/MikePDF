@@ -281,6 +281,78 @@ public sealed class Schema7EndToEndTests(SandboxFixture sandbox)
     }
 
     [Fact]
+    public async Task TheReadSideAnswersThroughTheSandboxForTextAnnotationsAndForms()
+    {
+        // TM-01 and AC-02 (the reads), FM-01 (the list and the detail), FM-19 (the highlight) over the real pipe, with the broker's reply checks in the path.
+        using var workspace = new Workspace();
+        await using var engine = await sandbox.StartAsync();
+
+        var hello = await engine.OpenDocumentAsync(workspace.Copy(SandboxFixture.FixturePath("hello_world.pdf"), "hello.pdf"));
+        Assert.Equal(Status.Ok, hello.Status);
+        await using (var document = hello.Value!)
+        {
+            var text = await document.GetPageTextAsync(0, 0, 2048);
+            Assert.Equal(Status.Ok, text.Status);
+            Assert.True(text.Value!.Total > 0);
+            var quads = await document.GetTextQuadsAsync(0, 0, Math.Min(text.Value.Total, 200000), 0);
+            Assert.Equal(Status.Ok, quads.Status);
+            Assert.True(quads.Value!.TotalQuads >= 1);
+            Assert.Equal(quads.Value.Xs.Length, quads.Value.Ys.Length);
+            Assert.Equal(0, quads.Value.Xs.Length % 4);
+            Assert.Equal(Status.InvalidArgument, (await document.GetTextQuadsAsync(5, 0, 10, 0)).Status); // a page the document does not have
+            Assert.NotEqual(Status.Ok, (await document.GetFormFieldDetailAsync(99999, 0)).Status);
+        }
+
+        var annots = await engine.OpenDocumentAsync(workspace.Copy(WriterFixture("annots.pdf"), "annots.pdf"));
+        Assert.Equal(Status.Ok, annots.Status);
+        await using (var document = annots.Value!)
+        {
+            var listed = await document.ListAnnotationsAsync(0, 0, 64);
+            Assert.Equal(Status.Ok, listed.Status);
+            Assert.True(listed.Value!.Subtypes.Length > 0);
+            var one = await document.GetAnnotationAsync(0, 0);
+            Assert.Equal(Status.Ok, one.Status);
+            Assert.Equal(listed.Value.Subtypes[0], one.Value!.Subtype);
+            var counts = await document.CountAnnotationsAsync(0, document.PageCount);
+            Assert.Equal(Status.Ok, counts.Status);
+            Assert.Equal((int)document.PageCount, counts.Value!.Counts.Length);
+            Assert.NotEqual(Status.Ok, (await document.GetAnnotationAsync(0, 99999)).Status);
+        }
+
+        var form = await engine.OpenDocumentAsync(workspace.Copy(SandboxFixture.FixturePath("acroform_filled.pdf"), "form.pdf"));
+        Assert.Equal(Status.Ok, form.Status);
+        await using (var document = form.Value!)
+        {
+            var (total, fields) = await FieldsAsync(document);
+            Assert.True(total > 0);
+            var detail = await document.GetFormFieldDetailAsync(fields.FieldIds[0], 0);
+            Assert.Equal(Status.Ok, detail.Status);
+            Assert.Equal(fields.Types[0], detail.Value!.Type);
+
+            // The highlight changes the pixels over a widget and only when asked for, and the next tile without it is as before.
+            async Task<byte[]> Tile(uint flags)
+            {
+                var result = await document.RenderTileAsync(new RenderTileArgs(0, 1f, 0, 0, 0, 640, 800, flags), 1);
+                Assert.Equal(Status.Ok, result.Status);
+                using var lease = result.Value!;
+                var bytes = new byte[640 * 800 * 4];
+                for (var y = 0; y < 800; y++)
+                {
+                    lease.Pixels.Slice(y * lease.Stride, 640 * 4).CopyTo(bytes.AsSpan(y * 640 * 4, 640 * 4));
+                }
+
+                return bytes;
+            }
+
+            var plain = await Tile(RenderTileArgs.Annotations | RenderTileArgs.FormFields);
+            var lit = await Tile(RenderTileArgs.Annotations | RenderTileArgs.FormFields | RenderTileArgs.FieldHighlight);
+            var plainAgain = await Tile(RenderTileArgs.Annotations | RenderTileArgs.FormFields);
+            Assert.False(plain.AsSpan().SequenceEqual(lit), "the field highlight changed nothing");
+            Assert.True(plain.AsSpan().SequenceEqual(plainAgain), "the highlight stayed on after it was switched off");
+        }
+    }
+
+    [Fact]
     public async Task TheEngineRefusesWhatItDoesNotServeAndTheHandleIsGoneAfterwards()
     {
         using var workspace = new Workspace();
