@@ -44,7 +44,8 @@ public sealed class SavedStructureTests
             var model = added[i];
             var dictionary = annotationsOnly[i].Dictionary;
             Assert.Equal(model.Subtype, dictionary.GetName("Subtype"));
-            Assert.True(Geo.NearlyEqual(model.Rect, TestDocuments.Rect(document, dictionary), 0.01), $"{model.Kind}: /Rect");
+            var expectedRect = model.Kind == MarkupKind.Note ? NoteGeometry.SavedRect(model.Rect, rotate) : model.Rect; // an icon is anchored at its upper-left corner of the unturned page
+            Assert.True(Geo.NearlyEqual(expectedRect, TestDocuments.Rect(document, dictionary), 0.01), $"{model.Kind}: /Rect");
             Assert.Equal(model.Id, System.Text.Encoding.Latin1.GetString(((PdfString)dictionary["NM"]!).Value));
             Assert.Equal(PageReference(document), dictionary["P"]); // rule 2: /P is the page
             Assert.True((((PdfInteger)dictionary["F"]!).Value & 4) != 0, $"{model.Kind}: Print"); // annotation-core 3.5

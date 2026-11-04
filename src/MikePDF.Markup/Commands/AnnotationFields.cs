@@ -108,6 +108,11 @@ public static class AnnotationFields
                 break;
             case NotePayload n:
                 f["icon"] = n.Icon.ToString();
+                if (n.PageRotation != 0)
+                {
+                    f["rot"] = n.PageRotation;
+                }
+
                 break;
             case FreeTextPayload t:
                 f["family"] = t.Family.ToString();
@@ -202,7 +207,7 @@ public static class AnnotationFields
         AnnotationPayload payload = kind switch
         {
             MarkupKind.Highlight or MarkupKind.Underline or MarkupKind.StrikeOut or MarkupKind.Squiggly => new TextMarkupPayload(Quads(Floats(f, "quads") ?? throw new KeyNotFoundException("quads"))),
-            MarkupKind.Note => new NotePayload(Enum.TryParse<NoteIcon>(Str(f, "icon"), out var icon) ? icon : NoteIcon.Comment),
+            MarkupKind.Note => new NotePayload(Enum.TryParse<NoteIcon>(Str(f, "icon"), out var icon) ? icon : NoteIcon.Comment, Int(f, "rot") ?? 0),
             MarkupKind.FreeText => new FreeTextPayload(
                 Enum.Parse<FontFamily>(Str(f, "family") ?? "Sans"),
                 Bool(f, "bold"),

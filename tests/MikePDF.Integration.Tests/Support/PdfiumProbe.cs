@@ -40,10 +40,11 @@ internal static partial class PdfiumProbe
     [StructLayout(LayoutKind.Sequential)]
     private struct FsRectF
     {
+        // FS_RECTF is left, top, right, bottom, with top above bottom in PDF space.
         public float Left;
-        public float Bottom;
-        public float Right;
         public float Top;
+        public float Right;
+        public float Bottom;
     }
 
     public static IReadOnlyList<PdfiumAnnotation>? Annotations(byte[] file, int pageIndex)

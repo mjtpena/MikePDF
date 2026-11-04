@@ -66,7 +66,15 @@ public sealed class GeometryTests
         Assert.Equal((100, 140), (Math.Round(shown.X, 6), Math.Round(shown.Y, 6)));
         Assert.True(rect.Left >= frame.Box.Left - 1e-9 && rect.Right <= frame.Box.Right + 1e-9 && rect.Bottom >= frame.Box.Bottom - 1e-9 && rect.Top <= frame.Box.Top + 1e-9);
 
+        // The rectangle the file holds is 20 by 20 and inside the page too, and the displayed icon is what the saved rectangle says it is.
+        var saved = NoteGeometry.SavedRect(rect, rotate);
+        Assert.Equal((20, 20), (Math.Round(saved.Width, 6), Math.Round(saved.Height, 6)));
+        Assert.True(saved.Left >= frame.Box.Left - 1e-9 && saved.Right <= frame.Box.Right + 1e-9 && saved.Bottom >= frame.Box.Bottom - 1e-9 && saved.Top <= frame.Box.Top + 1e-9);
+        Assert.True(Geo.NearlyEqual(rect, NoteGeometry.FromSavedRect(saved, rotate), 1e-9));
+
         var pulledIn = NoteGeometry.Place(frame, new PointD(-50, 10_000));
+        var pulledSaved = NoteGeometry.SavedRect(pulledIn, rotate);
+        Assert.True(pulledSaved.Left >= frame.Box.Left - 1e-9 && pulledSaved.Right <= frame.Box.Right + 1e-9 && pulledSaved.Bottom >= frame.Box.Bottom - 1e-9 && pulledSaved.Top <= frame.Box.Top + 1e-9);
         Assert.True(pulledIn.Left >= frame.Box.Left - 1e-9 && pulledIn.Top <= frame.Box.Top + 1e-9 && pulledIn.Right <= frame.Box.Right + 1e-9 && pulledIn.Bottom >= frame.Box.Bottom - 1e-9);
     }
 
@@ -349,7 +357,7 @@ public sealed class GeometryTests
         foreach (var a in samples.OfEveryKind().Where(static a => a.ReplyKind == ReplyKind.None && a.Kind is not (MarkupKind.FreeText or MarkupKind.Stamp)))
         {
             var scene = SceneBuilder.Build(a, rotate);
-            var allowed = Geo.Inflate(a.Rect, 0.05);
+            var allowed = Geo.Inflate(a.Kind == MarkupKind.Note ? NoteGeometry.SavedRect(a.Rect, rotate) : a.Rect, 0.05);
             foreach (var path in scene.Items.OfType<ScenePath>())
             {
                 var (l, b, r, t) = ContentStreams.ExactBounds(path);

@@ -46,7 +46,7 @@ internal static class AnnotationBuilder
         {
             NewAnnotationKind.Highlight or NewAnnotationKind.Underline or NewAnnotationKind.StrikeOut or NewAnnotationKind.Squiggly =>
                 new TextMarkupPayload(Quads(c.QuadPoints!)),
-            NewAnnotationKind.Text => new NotePayload(Enum.TryParse<NoteIcon>(c.StandardName, out var icon) && Enum.IsDefined(icon) ? icon : NoteIcon.Comment),
+            NewAnnotationKind.Text => new NotePayload(Enum.TryParse<NoteIcon>(c.StandardName, out var icon) && Enum.IsDefined(icon) ? icon : NoteIcon.Comment, pageRotation),
             NewAnnotationKind.Ink => new InkPayload(
                 [.. c.Strokes!.Select((s, i) => new InkStrokeData(s, c.InkWidths is not null && i < c.InkWidths.Count ? c.InkWidths[i] : Enumerable.Repeat(c.Width, s.Length / 2).ToArray()))],
                 (c.Traits & 2) != 0),

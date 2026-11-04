@@ -54,7 +54,7 @@ public static class AnnotationSpecBuilder
         {
             Entry("Type", new SpecName("Annot")),
             Entry("Subtype", new SpecName(a.Subtype)),
-            Entry("Rect", Numbers(Rect(a.Rect))),
+            Entry("Rect", Numbers(Rect(a.Kind == MarkupKind.Note && a.ReplyKind == ReplyKind.None ? NoteGeometry.SavedRect(a.Rect, pageRotation) : a.Rect))),
             Entry("P", new SpecPageReference()),
             Entry("NM", new SpecText(a.Id)),
         };

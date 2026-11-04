@@ -582,7 +582,7 @@ public sealed class MarkupSession
             ["page"] = a.Page,
             ["name"] = a.Id,
             ["subtype"] = a.Subtype,
-            ["rect"] = Rect(a.Rect),
+            ["rect"] = Rect(a.FileRect),
         };
         if (a.ObjectNumber != 0)
         {
@@ -595,7 +595,7 @@ public sealed class MarkupSession
     private static Dictionary<string, object?> ReplaceFields(Annotation expected, Annotation replacement)
     {
         var fields = Target(expected);
-        fields["newRect"] = Rect(replacement.Rect);
+        fields["newRect"] = Rect(replacement.FileRect);
         fields["replace"] = AnnotationFields.ToFields(replacement);
         return fields;
     }

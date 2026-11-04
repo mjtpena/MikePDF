@@ -73,7 +73,7 @@ public static class SceneBuilder
         return a.Payload switch
         {
             TextMarkupPayload markup => TextMarkup(a, markup, rect),
-            NotePayload note => new Scene(NoteArtwork.Items(note.Icon, rect, a.Color).Cast<SceneItem>().ToList(), rect, Scene.Identity, a.Opacity, false, false),
+            NotePayload note => Note(a, note, rotation),
             FreeTextPayload text => FreeText(a, text, rotation),
             BoxPayload => Box(a, rect, group),
             LinePayload line => Line(a, line, group),
@@ -82,6 +82,12 @@ public static class SceneBuilder
             InkPayload ink => Ink(a, ink),
             _ => throw new InvalidOperationException("Unknown payload."),
         };
+    }
+
+    private static Scene Note(Annotation a, NotePayload note, int pageRotation)
+    {
+        var file = a.ReplyKind == ReplyKind.None ? NoteGeometry.SavedRect(a.Rect, pageRotation) : a.Rect;
+        return new Scene(NoteArtwork.Items(note.Icon, file, a.Color).Cast<SceneItem>().ToList(), file, Scene.Identity, a.Opacity, false, false);
     }
 
     private static Scene TextMarkup(Annotation a, TextMarkupPayload markup, PdfRect rect)

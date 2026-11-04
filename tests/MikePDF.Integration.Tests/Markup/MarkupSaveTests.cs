@@ -67,15 +67,25 @@ public sealed class MarkupSaveTests(SandboxFixture sandbox)
 
     private static (int Width, int Height) TileSize(PageFrame frame) => ((int)Math.Round(frame.DisplaySize.Width * Scale), (int)Math.Round(frame.DisplaySize.Height * Scale));
 
+    /// <summary>The whole page as pixels, in tiles (the engine's tile limit is 1024 in each direction).</summary>
     private static async Task<byte[]> RenderAsync(SupervisedDocument document, int width, int height, uint page = 0)
     {
-        var result = await document.RenderTileAsync(new RenderTileArgs(page, (float)Scale, 0, 0, 0, (uint)width, (uint)height), 1);
-        Assert.Equal(Status.Ok, result.Status);
-        using var lease = result.Value!;
+        const int Tile = 512;
         var bytes = new byte[width * height * 4];
-        for (var y = 0; y < height; y++)
+        for (var y = 0; y < height; y += Tile)
         {
-            lease.Pixels.Slice(y * lease.Stride, width * 4).CopyTo(bytes.AsSpan(y * width * 4, width * 4));
+            for (var x = 0; x < width; x += Tile)
+            {
+                var w = Math.Min(Tile, width - x);
+                var h = Math.Min(Tile, height - y);
+                var result = await document.RenderTileAsync(new RenderTileArgs(page, (float)Scale, 0, x, y, (uint)w, (uint)h), 1);
+                Assert.Equal(Status.Ok, result.Status);
+                using var lease = result.Value!;
+                for (var row = 0; row < h; row++)
+                {
+                    lease.Pixels.Slice(row * lease.Stride, w * 4).CopyTo(bytes.AsSpan((((y + row) * width) + x) * 4, w * 4));
+                }
+            }
         }
 
         return bytes;
@@ -129,9 +139,10 @@ public sealed class MarkupSaveTests(SandboxFixture sandbox)
         var read = PdfiumProbe.Annotations(saved, 0)!;
         foreach (var (label, annotation, subtype) in made)
         {
-            var found = read.Where(a => a.Subtype == subtype && Math.Abs(a.Left - annotation.Rect.Left) < 0.05 && Math.Abs(a.Bottom - annotation.Rect.Bottom) < 0.05
-                && Math.Abs(a.Right - annotation.Rect.Right) < 0.05 && Math.Abs(a.Top - annotation.Rect.Top) < 0.05).ToList();
-            Assert.True(found.Count == 1, $"{label} (rotate {rotate}, crop {cropBox}): expected one PDFium annotation of subtype {subtype} at {annotation.Rect}, found {found.Count} among {string.Join("; ", read.Select(r => $"{r.Subtype}@{r.Left:0.##},{r.Bottom:0.##},{r.Right:0.##},{r.Top:0.##}"))}");
+            var file = annotation.FileRect; // what the file holds: the displayed rectangle, except for an icon on a turned page
+            var found = read.Where(a => a.Subtype == subtype && Math.Abs(a.Left - file.Left) < 0.05 && Math.Abs(a.Bottom - file.Bottom) < 0.05
+                && Math.Abs(a.Right - file.Right) < 0.05 && Math.Abs(a.Top - file.Top) < 0.05).ToList();
+            Assert.True(found.Count == 1, $"{label} (rotate {rotate}, crop {cropBox}): expected one PDFium annotation of subtype {subtype} at {file}, found {found.Count} among {string.Join("; ", read.Select(r => $"{r.Subtype}@{r.Left:0.##},{r.Bottom:0.##},{r.Right:0.##},{r.Top:0.##}"))}");
             Assert.True(found[0].HasAppearance, $"{label}: no /AP in PDFium's view");
         }
 

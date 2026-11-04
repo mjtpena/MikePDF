@@ -30,8 +30,11 @@ public abstract record AnnotationPayload;
 /// <summary>Highlight, underline, strike-out and squiggly: the marked quadrilaterals.</summary>
 public sealed record TextMarkupPayload(IReadOnlyList<Quad> Quads) : AnnotationPayload;
 
-/// <summary>A sticky note: its icon.</summary>
-public sealed record NotePayload(NoteIcon Icon) : AnnotationPayload;
+/// <summary>
+/// A sticky note: its icon, and the page's /Rotate when it was placed. The note's <c>Rect</c> is the icon as displayed, in user space; the rectangle the
+/// file holds follows from it and the rotation (<see cref="NoteGeometry.SavedRect"/>), because a NoRotate icon is anchored at its user-space upper-left corner.
+/// </summary>
+public sealed record NotePayload(NoteIcon Icon, int PageRotation = 0) : AnnotationPayload;
 
 /// <summary>
 /// A text box or typewriter text. The text is the annotation's <c>Contents</c>; the border is its colour and width; the fill is its interior colour.
@@ -122,6 +125,9 @@ public sealed record Annotation
     public required AnnotationPayload Payload { get; init; }
 
     public bool IsOwned => AnnotationIds.IsOwned(Id);
+
+    /// <summary>The <c>/Rect</c> the file holds. It is <see cref="Rect"/>, except for an icon of ours on a turned page (see <see cref="NotePayload"/>).</summary>
+    public PdfRect FileRect => Payload is NotePayload { PageRotation: not 0 } n && ReplyKind == ReplyKind.None && IsOwned ? NoteGeometry.SavedRect(Rect, n.PageRotation) : Rect;
 
     /// <summary>Text markup kinds are anchored to text and cannot be moved or resized.</summary>
     public bool IsTextAnchored => Kind is MarkupKind.Highlight or MarkupKind.Underline or MarkupKind.StrikeOut or MarkupKind.Squiggly;

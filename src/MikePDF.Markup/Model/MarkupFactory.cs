@@ -164,7 +164,7 @@ public sealed class MarkupFactory(string author, TimeProvider? time = null, Func
     public Annotation Note(int page, PageFrame frame, PointD displayTopLeft, string contents, NoteIcon icon = NoteIcon.Comment, Rgb? color = null)
     {
         var rect = NoteGeometry.Place(frame, displayTopLeft);
-        var a = Base(MarkupKind.Note, page, rect, color ?? Rgb.Yellow, new NotePayload(icon), contents);
+        var a = Base(MarkupKind.Note, page, rect, color ?? Rgb.Yellow, new NotePayload(icon, frame.RotateDegrees), contents);
         return a with { PopupRect = NoteGeometry.PopupFor(frame, rect) };
     }
 
@@ -172,7 +172,7 @@ public sealed class MarkupFactory(string author, TimeProvider? time = null, Func
     public Annotation Reply(Annotation parent, string contents)
     {
         ArgumentNullException.ThrowIfNull(parent);
-        return Base(MarkupKind.Note, parent.Page, parent.Rect, parent.Color, new NotePayload(NoteIcon.Comment), contents) with
+        return Base(MarkupKind.Note, parent.Page, parent.FileRect, parent.Color, new NotePayload(NoteIcon.Comment), contents) with
         {
             Parent = parent.Id,
             ReplyKind = ReplyKind.Reply,
