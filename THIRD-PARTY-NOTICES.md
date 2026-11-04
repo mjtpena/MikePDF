@@ -14,6 +14,7 @@ Release packages embed the full licence texts: `build/generate-notices.ps1` asse
 | Windows App SDK | Microsoft Software License Terms (redistributable) | https://github.com/microsoft/WindowsAppSDK |
 | Win2D | MIT | https://github.com/microsoft/Win2D |
 | MessagePack for C# | MIT | https://github.com/MessagePack-CSharp/MessagePack-CSharp |
+| Advance widths and vertical metrics of the standard 14 fonts' twelve non-symbolic faces (numbers only, in `MikePDF.Markup`; the AFM files are not shipped). Copyright (c) 1985, 1987, 1989, 1990, 1991, 1992, 1993, 1997 Adobe Systems Incorporated. All Rights Reserved. | Adobe's AFM licence: may be used, copied and distributed for any purpose without charge, provided the copyright notices are kept | `tools/afm/generate_standard_font_data.py` says where the files came from |
 
 ## Used only to build or test (not shipped)
 | Component | Licence |
