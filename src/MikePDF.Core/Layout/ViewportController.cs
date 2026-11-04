@@ -2,6 +2,19 @@ using MikePDF.Core.Geometry;
 
 namespace MikePDF.Core.Layout;
 
+/// <summary>Where <see cref="ViewportController.RevealPageRect"/> puts a box it has to scroll to.</summary>
+public enum RevealAlignment
+{
+    /// <summary>In the middle of the viewport.</summary>
+    Center,
+
+    /// <summary>With the top of the box at the top of the viewport.</summary>
+    Top,
+
+    /// <summary>With the bottom of the box at the bottom of the viewport.</summary>
+    Bottom,
+}
+
 /// <summary>Everything a renderer needs to know about the current view. With <c>PrefetchAdjacentSpreads</c> the whole spreads before and after the one shown are also drawn ahead (a presentation: the next page must be there the moment it is asked for).</summary>
 public sealed record ViewSnapshot(DocumentLayout Layout, double ScrollX, double ScrollY, double ViewportWidth, double ViewportHeight, double VelocityPxPerSecond, bool PrefetchAdjacentSpreads = false);
 
@@ -409,10 +422,11 @@ public sealed class ViewportController
     }
 
     /// <summary>
-    /// Scrolls just enough to bring a box of a page (page space) into view: not at all if it is already there, otherwise to the middle of the viewport. In the paged flow a box on
-    /// another spread turns to that spread first (a search match, a selection moved by the keyboard). Works for either page of a spread.
+    /// Scrolls just enough to bring a box of a page (page space) into view: not at all if it is already there, otherwise to the middle of the viewport (or, with
+    /// <paramref name="alignment"/>, with its top or its bottom at the edge of the viewport). In the paged flow a box on another spread turns to that spread first
+    /// (a search match, a selection moved by the keyboard). Works for either page of a spread.
     /// </summary>
-    public void RevealPageRect(int page, RectD pageRect)
+    public void RevealPageRect(int page, RectD pageRect, RevealAlignment alignment = RevealAlignment.Center)
     {
         if (_layout.PageCount == 0)
         {
@@ -433,7 +447,15 @@ public sealed class ViewportController
         var r = projection.PageToViewport(pageRect);
         double dy = 0;
         double dx = 0;
-        if (r.Y < 0 || r.Bottom > _viewportHeight)
+        if (alignment == RevealAlignment.Top)
+        {
+            dy = r.Y;
+        }
+        else if (alignment == RevealAlignment.Bottom)
+        {
+            dy = r.Bottom - _viewportHeight;
+        }
+        else if (r.Y < 0 || r.Bottom > _viewportHeight)
         {
             dy = r.Y + (r.Height / 2) - (_viewportHeight / 2);
         }
@@ -446,6 +468,31 @@ public sealed class ViewportController
         if (dx != 0 || dy != 0)
         {
             ScrollBy(dx, dy);
+        }
+    }
+
+    /// <summary>Whether a range of text, given by its first and its last line box, needs the view to move to be seen: either end is off the window (or on another spread).</summary>
+    public bool NeedsRevealRange(int firstPage, RectD first, int lastPage, RectD last) => NeedsReveal(firstPage, first) || NeedsReveal(lastPage, last);
+
+    /// <summary>
+    /// Brings a range of text into view the way UI Automation's <c>ScrollIntoView</c> asks: not at all when the whole range is already on the screen; otherwise, with
+    /// <paramref name="alignToTop"/>, the start of the range (its first line) at the top of the viewport, and without it the end of the range (its last line) at the bottom.
+    /// A reader that follows a selection being dragged downwards therefore keeps the end of it in view, and does not jump back to where it began.
+    /// </summary>
+    public void RevealPageRange(int firstPage, RectD first, int lastPage, RectD last, bool alignToTop)
+    {
+        if (!NeedsRevealRange(firstPage, first, lastPage, last))
+        {
+            return;
+        }
+
+        if (alignToTop)
+        {
+            RevealPageRect(firstPage, first, RevealAlignment.Top);
+        }
+        else
+        {
+            RevealPageRect(lastPage, last, RevealAlignment.Bottom);
         }
     }
 

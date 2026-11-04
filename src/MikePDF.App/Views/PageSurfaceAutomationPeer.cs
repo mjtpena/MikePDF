@@ -202,7 +202,7 @@ public sealed partial class PageTextRangeProvider : ITextRangeProvider
     public int MoveEndpointByUnit(TextPatternRangeEndpoint endpoint, TextUnit unit, int count) =>
         _range.MoveEndpointByUnit(Endpoint(endpoint), Unit(unit), count);
 
-    public void ScrollIntoView(bool alignToTop) => _surface.RevealAccessibleRange(_range.Start, _range.End);
+    public void ScrollIntoView(bool alignToTop) => _surface.RevealAccessibleRange(_range.Start, _range.End, alignToTop);
 
     public void Select() => _surface.SelectAccessibleRange(_range.Start, _range.End);
 

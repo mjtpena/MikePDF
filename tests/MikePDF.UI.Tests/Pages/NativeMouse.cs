@@ -65,21 +65,24 @@ internal static partial class NativeMouse
         Thread.Sleep(60);
     }
 
-    /// <summary>Presses at <paramref name="from"/>, moves to <paramref name="to"/> in steps of a few pixels, and lets go.</summary>
-    public static void Drag(Point from, Point to)
+    /// <summary>
+    /// Presses at <paramref name="from"/>, moves to <paramref name="to"/> in steps of a few pixels, and lets go. A slow drag (small steps, a pause between them, a rest before the
+    /// button goes up) is how a person selects several lines: the moves are many and the pointer is still when it is released, so a drag that also panned would show it.
+    /// </summary>
+    public static void Drag(Point from, Point to, int stepPixels = 6, int stepDelayMs = 12, int restBeforeReleaseMs = 80)
     {
         MoveTo(from);
         Thread.Sleep(120);
         mouse_event(LeftDown, 0, 0, 0, UIntPtr.Zero);
         Thread.Sleep(80);
-        var steps = Math.Max(1, (int)Math.Ceiling(Math.Max(Math.Abs(to.X - from.X), Math.Abs(to.Y - from.Y)) / 6.0));
+        var steps = Math.Max(1, (int)Math.Ceiling(Math.Max(Math.Abs(to.X - from.X), Math.Abs(to.Y - from.Y)) / (double)Math.Max(1, stepPixels)));
         for (var i = 1; i <= steps; i++)
         {
             MoveTo(new Point(from.X + ((to.X - from.X) * i / steps), from.Y + ((to.Y - from.Y) * i / steps)));
-            Thread.Sleep(12);
+            Thread.Sleep(stepDelayMs);
         }
 
-        Thread.Sleep(80);
+        Thread.Sleep(restBeforeReleaseMs);
         mouse_event(LeftUp, 0, 0, 0, UIntPtr.Zero);
     }
 }
