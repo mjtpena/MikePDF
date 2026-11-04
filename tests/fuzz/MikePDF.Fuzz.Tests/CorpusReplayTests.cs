@@ -104,6 +104,32 @@ public class CorpusReplayTests
             MikePDF.PdfWriter.Fuzz.SaveFuzzTargets.EditOutcome(File.ReadAllBytes(file));
     }
 
+    [Fact]
+    public void The_pdf_seeds_and_corpus_pass_the_tail_normalizer()
+    {
+        // A seed is both the original (up to its first %%EOF) and the engine's save of it: a file with several revisions gives the normalizer a real tail to read.
+        foreach (var file in FuzzAssets.Pdfs)
+            MikePDF.PdfWriter.Fuzz.SaveFuzzTargets.TailOutcome(File.ReadAllBytes(file));
+
+        foreach (var file in Corpus("pdfwriter-tail"))
+            MikePDF.PdfWriter.Fuzz.SaveFuzzTargets.TailOutcome(File.ReadAllBytes(file));
+
+        // The tail seeds are shaped like PDFium's save, so the normalizer must get past its strict parse of them (the fuzzer starts from the interesting paths).
+        var tailSeeds = FuzzAssets.Files(FuzzAssets.Directory("seeds", "tail"), "*.pdf");
+        Assert.True(tailSeeds.Count >= 3, "the tail seeds are missing");
+        foreach (var file in tailSeeds)
+        {
+            var bytes = File.ReadAllBytes(file);
+            var original = bytes.AsMemory(0, bytes.AsSpan().IndexOf("%%EOF"u8) + 6);
+            var result = MikePDF.PdfWriter.TailNormalizer.Normalize(original, bytes);
+            Assert.True(result.TryGetValue(out _), file + ": " + (result.TryGetError(out var error) ? error.Message : ""));
+            ReplayWithEveryTruncationAndFlip(bytes, MikePDF.PdfWriter.Fuzz.SaveFuzzTargets.TailOutcome);
+        }
+
+        var smallest = FuzzAssets.Pdfs.OrderBy(static f => new FileInfo(f).Length).First();
+        ReplayWithEveryTruncationAndFlip(File.ReadAllBytes(smallest), MikePDF.PdfWriter.Fuzz.SaveFuzzTargets.TailOutcome);
+    }
+
     // Every truncation, and a byte flip at every position: nothing may throw, whatever the bytes.
     private static void ReplayWithEveryTruncationAndFlip(byte[] seed, Func<byte[], long> outcome)
     {

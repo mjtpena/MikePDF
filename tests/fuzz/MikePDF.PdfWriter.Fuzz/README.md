@@ -16,8 +16,9 @@ Three more targets belong to the save pipeline (save-pipeline 3.3, 3.4 and 11.3)
 | `edit` | strict open, the page tree walk, `AnnotationAppender` with an add, an add on the last page and an update and a delete aimed at what the file really has, and `DocumentRewriter` with each flatten flag | any exception, an output that does not reopen strictly or does not keep the input as a prefix, a rewrite that changes the page count |
 | `journal` | `JournalCodec.Parse` on arbitrary bytes, then the round trip of what it returned and the recovery code that consumes it (`RecoveryService.Summarise`, `SaveRecovery.IsPipelineFile`) | any exception, a hang, sequence numbers that are not 1, 2, 3, a record that does not survive being written and read again, a recorded path accepted from outside the target's folder |
 | `editblob` | `EditBlobCodec.TryDecode` on arbitrary bytes; an accepted blob must re-encode to the same bytes and is then applied to a built-in two page document by the appender | any exception, a blob that is not a fixed point, an output that does not reopen strictly with the input as a prefix |
+| `tail` | `TailNormalizer.Normalize` (NormalizeTail, schema 7) with the input as the engine's save and its first `%%EOF` as the end of the original, then with the first half as the original | any exception; an output that does not keep the original as its prefix or does not open strictly |
 
-`MikePDF.PdfWriter.Fuzz <journal|editblob> --seeds-out <dir>` writes the seeds (committed under `tests/fuzz/seeds/journal` and `tests/fuzz/seeds/editblob`). The `edit` target takes the PDF seeds.
+`MikePDF.PdfWriter.Fuzz <journal|editblob|tail> --seeds-out <dir>` writes the seeds (committed under `tests/fuzz/seeds/journal`, `tests/fuzz/seeds/editblob` and `tests/fuzz/seeds/tail`). The `edit` target takes the PDF seeds.
 
 Both of the first two targets live in `FuzzTargets.cs`. They catch nothing: an escaped exception **is** the crash. The same checks run as a fixed-seed
 mutation pass in `tests/MikePDF.PdfWriter.Tests/MutationTests.cs` on every test run.
