@@ -107,6 +107,43 @@ public sealed class TileSchedulerTests
     }
 
     [Fact]
+    public async Task DisposingWhileFlightsFinishNeverCancelsADisposedSource()
+    {
+        // DisposeAsync snapshots the flights and cancels them while flights finish on their own (each finishing flight disposes its source). Every flight here waits on a
+        // barrier that is lifted at the very moment DisposeAsync starts, so completions and the cancelling overlap; before the fix this threw ObjectDisposedException.
+        const int Rounds = 300;
+        for (var round = 0; round < Rounds; round++)
+        {
+            var barrier = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            var started = 0;
+            var tiles = new FakeRenderer { Behaviour = (r, ct) => Park(r, ct) };
+            var lowRes = new FakeRenderer { Behaviour = (r, ct) => Park(r, ct) };
+            var scheduler = new TileScheduler(tiles, lowRes, new FakePresenter(), new TileCache(1L << 30), Fast);
+
+            scheduler.Update(View());
+            var deadline = DateTime.UtcNow + Wait;
+            while (DateTime.UtcNow < deadline && (Volatile.Read(ref started) < 2 || Volatile.Read(ref started) != scheduler.InFlight))
+            {
+                await Task.Delay(1);
+            }
+
+            Assert.True(Volatile.Read(ref started) >= 2, "the flights did not start");
+
+            var lift = Task.Run(() => barrier.TrySetResult());
+            var failure = await Record.ExceptionAsync(async () => await scheduler.DisposeAsync());
+            await lift;
+            Assert.True(failure is null, $"round {round}: {failure}");
+
+            async Task<RenderResult> Park(RenderRequest r, CancellationToken ct)
+            {
+                Interlocked.Increment(ref started);
+                await barrier.Task.ConfigureAwait(false);
+                return new RenderResult(RenderStatus.Ok, new FakePixels(r.Width, r.Height));
+            }
+        }
+    }
+
+    [Fact]
     public async Task RequestsStillWantedAreNotCancelledByASmallScroll()
     {
         var cancelled = 0;
