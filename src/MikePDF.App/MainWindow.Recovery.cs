@@ -10,6 +10,12 @@ namespace MikePDF.App;
 /// <summary>What a person is asked at the start of the app, or when a document opens, because MikePDF closed before its edits were saved.</summary>
 public sealed record RecoverItem(string Name, string Summary, string Path, string AccessibleName);
 
+/// <summary>What the launch question settled: the documents to open once the session is back, and the answer to the session question it carried (null when it did not ask).</summary>
+internal sealed record StartupRecovery(IReadOnlyList<string> Open, bool? ReopenSession)
+{
+    public static StartupRecovery None { get; } = new([], null);
+}
+
 /// <summary>
 /// Crash recovery in the window (docs/features/save-pipeline.md 3.5, design 14 sections 2.7 and 3.8): the dialog at launch that lists every document with unsaved changes, the same question for one document
 /// when it is opened, and the list in the empty window of the journals that were kept for later. Finding the journals, finishing a save that was interrupted, and rebuilding the edits are
@@ -28,12 +34,12 @@ public sealed partial class MainWindow
     /// At launch: looks at every journal (which also finishes a save that was cut short) and, if some document has unsaved changes, asks what to do with them. Returns the documents to open once the session is
     /// restored; their tabs apply the journals. Nothing is saved by this.
     /// </summary>
-    internal async Task<IReadOnlyList<string>> PromptStartupRecoveryAsync()
+    internal async Task<StartupRecovery> PromptStartupRecoveryAsync(int sessionDocuments = 0)
     {
         await _loaded.Task;
         if (_services.Recovery is not { } recovery)
         {
-            return [];
+            return StartupRecovery.None;
         }
 
         IReadOnlyList<RecoveryCandidate> found;
@@ -44,16 +50,17 @@ public sealed partial class MainWindow
         catch (Exception e) when (e is IOException or UnauthorizedAccessException)
         {
             System.Diagnostics.Debug.WriteLine("Recovery scan failed: " + e.GetType().Name);
-            return [];
+            return StartupRecovery.None;
         }
 
+        // Whatever startup.restore says: unsaved work is a matter of data safety, not of restoring a session. Only the session question depends on it.
         var rows = RecoveryPrompt.Rows(found);
         if (rows.Count == 0)
         {
-            return [];
+            return StartupRecovery.None;
         }
 
-        var (answer, chosen) = await ShowRecoveryDialogAsync(rows, launch: true);
+        var (answer, chosen, reopen) = await ShowRecoveryDialogAsync(rows, launch: true, sessionDocuments);
         var open = new List<string>();
         switch (answer)
         {
@@ -89,7 +96,7 @@ public sealed partial class MainWindow
         }
 
         RefreshRecoverPanel();
-        return open;
+        return new StartupRecovery(open, reopen);
     }
 
     /// <summary>Opens the documents the person chose to restore (after the session came back): a tab that is already there is shown, and loading it applies its journal.</summary>
@@ -137,7 +144,7 @@ public sealed partial class MainWindow
         }
 
         var row = RecoveryPrompt.Row(found);
-        var (answer, _) = await ShowRecoveryDialogAsync([row], launch: false);
+        var (answer, _, _) = await ShowRecoveryDialogAsync([row], launch: false);
         switch (answer)
         {
             case RecoveryAnswer.Restore when row.CanRestore:
@@ -153,8 +160,9 @@ public sealed partial class MainWindow
     }
 
     // One dialog for one document or several. Restore is the default and Esc is Not now, so a keystroke never throws anything away (save-pipeline 4).
-    private async Task<(RecoveryAnswer Answer, IReadOnlyList<RecoveryRow> Chosen)> ShowRecoveryDialogAsync(IReadOnlyList<RecoveryRow> rows, bool launch)
+    private async Task<(RecoveryAnswer Answer, IReadOnlyList<RecoveryRow> Chosen, bool? ReopenSession)> ShowRecoveryDialogAsync(IReadOnlyList<RecoveryRow> rows, bool launch, int sessionDocuments = 0)
     {
+        CheckBox? reopen = null;
         var dialog = NewDialog();
         var panel = new StackPanel { Spacing = 8 };
         var boxes = new List<(CheckBox Box, RecoveryRow Row)>();
@@ -184,6 +192,13 @@ public sealed partial class MainWindow
             }
 
             panel.Children.Add(new TextBlock { Text = Strings.Get("Recover_Multi_Footer"), TextWrapping = TextWrapping.Wrap });
+            if (launch && sessionDocuments > 0)
+            {
+                // The session question, carried here so that there is one dialog after a crash: checked by default, as "Restore" was the default of the question it replaces.
+                reopen = new CheckBox { Content = Strings.Format(sessionDocuments == 1 ? "Recover_Session_One" : "Recover_Session_Other", sessionDocuments), IsChecked = true };
+                AutomationProperties.SetAutomationId(reopen, "RecoverReopenTabs");
+                panel.Children.Add(reopen);
+            }
         }
         else
         {
@@ -217,11 +232,12 @@ public sealed partial class MainWindow
         AutomationProperties.SetAutomationId(dialog, "RecoverDialog");
         var result = await ShowDialogAsync(dialog);
         var chosen = boxes.Where(static b => b.Box.IsChecked == true && b.Row.CanRestore).Select(static b => b.Row).ToList();
+        bool? reopenSession = reopen is null ? null : reopen.IsChecked == true;
         return result switch
         {
-            ContentDialogResult.Primary when chosen.Count > 0 => (RecoveryAnswer.Restore, chosen),
-            ContentDialogResult.Secondary => (RecoveryAnswer.Discard, rows),
-            _ => (RecoveryAnswer.NotNow, []),
+            ContentDialogResult.Primary when chosen.Count > 0 => (RecoveryAnswer.Restore, chosen, reopenSession),
+            ContentDialogResult.Secondary => (RecoveryAnswer.Discard, rows, reopenSession),
+            _ => (RecoveryAnswer.NotNow, [], reopenSession),
         };
     }
 

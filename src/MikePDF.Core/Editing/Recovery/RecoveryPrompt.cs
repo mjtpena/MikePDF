@@ -40,7 +40,7 @@ public static class RecoveryPrompt
     [
         "Recover_Title", "Recover_Body", "Recover_Summary", "Recover_Restore", "Recover_Discard", "Recover_NotNow", "Recover_Partial", "Recover_FileChanged", "Recover_Unreadable",
         "Recover_List_One", "Recover_List_Other", "Recover_Multi_Title", "Recover_Multi_Body", "Recover_Multi_Footer", "Recover_Moved", "Recover_DiscardConfirm", "Recover_Open", "Recover_Damaged",
-        "Recover_Join", "Recover_Unnamed", "Recover_Part_Markup_One", "Recover_Part_Markup_Other", "Recover_Part_Form_One", "Recover_Part_Form_Other", "Recover_Part_Pages_One", "Recover_Part_Pages_Other",
+        "Recover_Join", "Recover_Unnamed", "Recover_Session_One", "Recover_Session_Other", "Recover_Part_Markup_One", "Recover_Part_Markup_Other", "Recover_Part_Form_One", "Recover_Part_Form_Other", "Recover_Part_Pages_One", "Recover_Part_Pages_Other",
     ];
 
     /// <summary>The rows for these candidates, the most recent change first.</summary>

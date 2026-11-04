@@ -219,6 +219,7 @@ public sealed class SaveJourneyTests : IDisposable
         using var second = MikePDFApp.Launch(keepJournals: true);
         second.WaitFor("the question", () => second.Exists("RecoverDialog"));
         Assert.NotNull(second.Window.FindFirstDescendant(cf => cf.ByName("Not now")));
+        Assert.False(second.Exists("RecoverReopenTabs")); // restore is Never: there is no session question to carry, but the unsaved work is still asked about
         second.Capture("recover-dialog");
         var item = second.Require("RecoverItem_1");
         Assert.Contains("alpha.pdf", item.Name, StringComparison.Ordinal);
@@ -302,6 +303,60 @@ public sealed class SaveJourneyTests : IDisposable
         fourth.WaitForDocument(2);
         Assert.False(fourth.Exists("RecoverDialog"));
         Assert.Equal(["beta"], fourth.TabNames());
+    }
+
+    // ---- one dialog after a crash, not two (save-pipeline section 16) ----------------------------------------------------------------------------------
+
+    private static bool SessionNames(string text, params string[] names) => names.All(n => text.Contains(n, StringComparison.Ordinal));
+
+    [UiFact]
+    public void AfterACrashWithBothUnsavedChangesAndASessionToAskAboutThereIsOneDialogWhichCarriesTheSessionChoice()
+    {
+        var alpha = Pdf("alpha", 3);
+        var bravo = Pdf("bravo", 2);
+        using (var first = MikePDFApp.Launch(alpha, restore: "Ask", fakeDirty: true))
+        {
+            first.WaitForDocument(3);
+            MikePDFApp.OpenInRunningApp(bravo);
+            first.WaitFor("two tabs", () => first.TabNames().Count == 2);
+            first.WaitFor("the session written", () => AppData.ReadSession() is { } bytes && SessionNames(Encoding.UTF8.GetString(bytes), "alpha", "bravo"), TimeSpan.FromSeconds(40));
+            MikePDFApp.KillAll();
+        }
+
+        using var second = MikePDFApp.Launch(restore: "Ask", keepJournals: true);
+        second.WaitFor("the question", () => second.Exists("RecoverDialog"));
+        Assert.True(second.Exists("RecoverReopenTabs")); // the session question rides in it
+        Assert.Contains("2 documents", second.Require("RecoverReopenTabs").Name, StringComparison.Ordinal);
+        Assert.False(second.Exists("RestoreDialog")); // and there is no second dialog
+        second.Capture("recover-with-session");
+        PressDialog(second, "PrimaryButton");
+
+        second.WaitFor("both documents back, modified", () => second.TabNames().Count == 2 && second.TabNames().All(n => n.EndsWith(", unsaved changes", StringComparison.Ordinal)), TimeSpan.FromSeconds(40));
+        Assert.False(second.Exists("RestoreDialog")); // the session question was answered by the check box
+    }
+
+    [UiFact]
+    public void UncheckingTheSessionChoiceStartsFreshButStillRestoresTheChosenDocuments()
+    {
+        var alpha = Pdf("alpha", 3);
+        var bravo = Pdf("bravo", 2);
+        using (var first = MikePDFApp.Launch(alpha, restore: "Ask", fakeDirty: true))
+        {
+            first.WaitForDocument(3);
+            MikePDFApp.OpenInRunningApp(bravo);
+            first.WaitFor("two tabs", () => first.TabNames().Count == 2);
+            first.WaitFor("the session written", () => AppData.ReadSession() is { } bytes && SessionNames(Encoding.UTF8.GetString(bytes), "alpha", "bravo"), TimeSpan.FromSeconds(40));
+            MikePDFApp.KillAll();
+        }
+
+        using var second = MikePDFApp.Launch(restore: "Ask", keepJournals: true);
+        second.WaitFor("the question", () => second.Exists("RecoverDialog"));
+        second.Click("RecoverReopenTabs"); // unchecked
+        PressDialog(second, "PrimaryButton");
+
+        // The documents with unsaved changes are the person's work and come back whatever the session choice; the session itself (the layout) is not restored and nothing else is asked.
+        second.WaitFor("the documents back", () => second.TabNames().Count >= 1 && second.TabNames().All(n => n.EndsWith(", unsaved changes", StringComparison.Ordinal)), TimeSpan.FromSeconds(40));
+        Assert.False(second.Exists("RestoreDialog"));
     }
 
     // ---- the file changed on disk (SP-21, design 14 section 2.9) ----------------------------------------------------------------------------------------
