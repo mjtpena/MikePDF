@@ -1,18 +1,18 @@
 #pragma warning disable CA1861 // test data: arrays written inline are the point of these cases
 
 using MikePDF.Core.Editing;
-using MikePDF.Core.Geometry;
 using MikePDF.Ink;
 using MikePDF.Markup.Tests.Support;
 
-namespace MikePDF.Markup.Tests;
+
+namespace MikePDF.Markup.Editing.Tests;
 
 /// <summary>AC-06, AC-07, AC-08, TM-07, TM-16, SN-13, FT-12, INK-05/06 through the session: commands, their inverses, undo and redo, and what the edit model is left holding.</summary>
 public sealed class SessionTests
 {
     /// <summary>The store as a list of canonical strings in stacking order, so two states can be compared exactly.</summary>
     private static string[] Snapshot(AnnotationStore store) =>
-        [.. store.Pages.SelectMany(store.OnPage).Select(static a => a.Origin + "|" + System.Text.Json.JsonSerializer.Serialize(AnnotationFields.ToFields(a)))];
+        [.. store.Pages.SelectMany(store.OnPage).Select(static a => a.Origin + "|" + AnnotationFields.ToFields(a).ToJson())];
 
     private static void AssertUndoRestoresAndRedoReapplies(Samples samples, Action command)
     {

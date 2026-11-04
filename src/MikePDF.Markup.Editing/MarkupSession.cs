@@ -1,9 +1,8 @@
 using System.Text.Json;
 using MikePDF.Core.Editing;
-using MikePDF.Core.Geometry;
 using MikePDF.Ink;
 
-namespace MikePDF.Markup;
+namespace MikePDF.Markup.Editing;
 
 /// <summary>
 /// The annotation edits of one document (annotation-core 3.6, 8): commands that go into the save core's <see cref="EditModel"/> (so they are
@@ -312,7 +311,7 @@ public sealed class MarkupSession
             // A mark with a comment has a popup for other readers to open it by; without one it has none. A note always has one (sticky-notes 2.4).
             var popup = a.Kind == MarkupKind.Note || a.ReplyKind != ReplyKind.None
                 ? a.PopupRect
-                : normal.Length == 0 ? null : a.PopupRect ?? (frame is null ? null : NoteGeometry.PopupFor(frame, a.Rect));
+                : normal.Length == 0 ? null : a.PopupRect ?? (frame is null ? null : NotePlacement.PopupFor(frame, a.Rect));
             return Restate(a, MarkupFactory.GrowToFit(a with { Contents = normal, PopupRect = popup, Modified = Factory.Now() }), "comment changed");
         }
 
@@ -368,7 +367,7 @@ public sealed class MarkupSession
         var id = _inkBatchId!;
         var before = Store.Get(id);
         var now = Factory.Now();
-        var forward = EditCommand.Create("AddInkStroke", new Dictionary<string, object?>
+        var forward = Command("AddInkStroke", new CommandFields
         {
             ["annotation"] = id,
             ["page"] = page,
@@ -382,7 +381,7 @@ public sealed class MarkupSession
             ["subj"] = MarkupDefaults.SubjectFor(MarkupKind.Ink),
             ["created"] = PdfDates.Format(now),
             ["modified"] = PdfDates.Format(now),
-            ["stroke"] = new Dictionary<string, object?> { ["id"] = stroke.Id, ["n"] = stroke.Samples.Count, ["data"] = StrokeCodec.ToBase64(stroke.Samples) },
+            ["stroke"] = new CommandFields { ["id"] = stroke.Id, ["n"] = stroke.Samples.Count, ["data"] = StrokeCodec.ToBase64(stroke.Samples) },
             ["newBatch"] = startNew,
         });
 
@@ -391,7 +390,7 @@ public sealed class MarkupSession
         MarkupReplay.Apply(Store, forward);
         var result = Store.Get(id)!;
         var inverse = startNew
-            ? EditCommand.Create("DeleteAnnotation", new { page, name = id, subtype = "Ink", rect = Rect(result.Rect) })
+            ? Command("DeleteAnnotation", new CommandFields { ["page"] = page, ["name"] = id, ["subtype"] = "Ink", ["rect"] = Rect(result.Rect) })
             : ReplaceCommand(result, before!);
         try
         {
@@ -460,8 +459,8 @@ public sealed class MarkupSession
         var fields = ReplaceFields(a, changed);
         fields["annotation"] = id;
         fields["removed"] = result.RemovedIds;
-        fields["added"] = result.Added.Select(p => new Dictionary<string, object?> { ["id"] = p.Id, ["n"] = p.Samples.Count, ["data"] = StrokeCodec.ToBase64(p.Samples) }).ToArray();
-        Run(EditCommand.Create("EraseInk", fields), ReplaceCommand(changed, a), LabelOf(changed, "erased"));
+        fields["added"] = result.Added.Select(p => new CommandFields { ["id"] = p.Id, ["n"] = p.Samples.Count, ["data"] = StrokeCodec.ToBase64(p.Samples) }).ToArray();
+        Run(Command("EraseInk", fields), ReplaceCommand(changed, a), LabelOf(changed, "erased"));
         return true;
     }
 
@@ -579,9 +578,9 @@ public sealed class MarkupSession
 
     private static double[] Rect(PdfRect r) => [r.Left, r.Bottom, r.Right, r.Top];
 
-    private static Dictionary<string, object?> Target(Annotation a)
+    private static CommandFields Target(Annotation a)
     {
-        var fields = new Dictionary<string, object?>
+        var fields = new CommandFields
         {
             ["page"] = a.Page,
             ["name"] = a.Id,
@@ -596,7 +595,7 @@ public sealed class MarkupSession
         return fields;
     }
 
-    private static Dictionary<string, object?> ReplaceFields(Annotation expected, Annotation replacement)
+    private static CommandFields ReplaceFields(Annotation expected, Annotation replacement)
     {
         var fields = Target(expected);
         fields["newRect"] = Rect(replacement.FileRect);
@@ -613,33 +612,35 @@ public sealed class MarkupSession
         }
 
         var cmd = a.ReplyKind switch { ReplyKind.Reply => "AddReply", ReplyKind.State => "SetReviewState", _ => "AddAnnotation" };
-        return EditCommand.Create(cmd, fields);
+        return Command(cmd, fields);
     }
 
-    private static EditCommand DeleteCommand(Annotation a) => EditCommand.Create("DeleteAnnotation", Target(a));
+    private static EditCommand DeleteCommand(Annotation a) => Command("DeleteAnnotation", Target(a));
 
     private static EditCommand ReplaceCommand(Annotation expected, Annotation replacement) =>
-        EditCommand.Create("UpdateAnnotation", ReplaceFields(expected, replacement));
+        Command("UpdateAnnotation", ReplaceFields(expected, replacement));
 
     private static EditCommand RectCommand(Annotation expected, PdfRect newRect)
     {
         var fields = Target(expected);
         fields["newRect"] = Rect(newRect);
-        return EditCommand.Create("MoveAnnotation", fields);
+        return Command("MoveAnnotation", fields);
     }
 
     private static EditCommand ContentsCommand(Annotation expected, string contents)
     {
         var fields = Target(expected);
         fields["contents"] = contents;
-        return EditCommand.Create("UpdateAnnotation", fields);
+        return Command("UpdateAnnotation", fields);
     }
 
     private static EditCommand Composite(IEnumerable<EditCommand> commands) =>
-        EditCommand.Create("CompositeAnnotation", new Dictionary<string, object?>
+        Command("CompositeAnnotation", new CommandFields
         {
-            ["commands"] = commands.Select(static c => new Dictionary<string, object?> { ["c"] = c.Cmd, ["f"] = c.Payload }).ToArray(),
+            ["commands"] = commands.Select(static c => new CommandFields { ["c"] = c.Cmd, ["f"] = c.Payload }).ToArray(),
         });
+
+    private static EditCommand Command(string cmd, CommandFields fields) => EditCommand.FromJson(cmd, fields.ToJson());
 
     private sealed class TimeClock(TimeProvider time) : IInkClock
     {

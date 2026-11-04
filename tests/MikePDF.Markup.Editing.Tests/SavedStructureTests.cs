@@ -1,11 +1,12 @@
 #pragma warning disable CA1861 // test data: arrays written inline are the point of these cases
 
-using MikePDF.Core.Geometry;
+using MikePDF.Markup.Editing.Tests.Support;
 using MikePDF.Markup.Tests.Support;
 using MikePDF.PdfWriter;
 using MikePDF.PdfWriter.Editing;
 
-namespace MikePDF.Markup.Tests;
+
+namespace MikePDF.Markup.Editing.Tests;
 
 /// <summary>
 /// The model through the save core's mapper, blob codec and stage 4, and back out of the bytes: every kind is written as the specs say (annotation-core 3.9

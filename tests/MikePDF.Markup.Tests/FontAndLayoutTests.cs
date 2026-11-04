@@ -2,7 +2,6 @@
 
 using System.Security.Cryptography;
 using System.Text;
-using MikePDF.Core.Geometry;
 using MikePDF.Markup.Fonts;
 using MikePDF.Markup.Tests.Support;
 
@@ -12,8 +11,11 @@ namespace MikePDF.Markup.Tests;
 public sealed class FontAndLayoutTests
 {
     private const int Helvetica = 0;
+
     private const int HelveticaBold = 1;
+
     private const int TimesRoman = 4;
+
     private const int Courier = 8;
 
     // Adobe's published Helvetica widths for the printable ASCII characters 32 to 126, from the AFM file, written out here independently of the generated table.
@@ -99,8 +101,6 @@ public sealed class FontAndLayoutTests
         Assert.Equal(718, StandardFonts.Ascender(Helvetica));
     }
 
-    // ---- FT-03: the character set ----
-
     [Fact]
     public void FT03_ExactlyTheWinAnsiCodePointsAreSupported()
     {
@@ -140,8 +140,6 @@ public sealed class FontAndLayoutTests
         Assert.Equal("(\\225)", WinAnsi.ToLiteral("Ж")); // an unsupported character is the bullet the encoding gives its unused codes
         Assert.All(WinAnsi.ToLiteral("résumé – “quoted”"), static c => Assert.True(c is >= ' ' and <= '~'));
     }
-
-    // ---- FT-02: the layout ----
 
     private static string[] Lines(string text, int font, double size, double width, TextAlign align = TextAlign.Left) =>
         [.. TextLayout.Layout(text, font, size, width, align).Lines.Select(static l => l.Text)];
@@ -238,8 +236,6 @@ public sealed class FontAndLayoutTests
         }
     }
 
-    // ---- FT-04, FT-17, FT-18: boxes ----
-
     [Fact]
     public void FT04_ABoxGrowsToItsTextAndNeverShrinks()
     {
@@ -252,26 +248,6 @@ public sealed class FontAndLayoutTests
         Assert.Equal(520, small.Rect.Top); // it grows down
         Assert.Equal(new PdfRect(100, 400, 300, 600), roomy.Rect); // a box with room is left as the user made it
         Assert.True(MarkupFactory.GrowToFit(roomy with { Contents = "now a much longer text that has to wrap onto several lines of the box " + new string('x', 40) }).Rect.Height >= roomy.Rect.Height);
-    }
-
-    [Theory]
-    [InlineData(0)]
-    [InlineData(90)]
-    [InlineData(180)]
-    [InlineData(270)]
-    public void FT04_ABoxGrowsDownAsItIsDisplayedWhateverThePageRotation(int rotation)
-    {
-        var samples = new Samples();
-        var frame = Samples.Frame(rotation);
-        var shown = new RectD(100, 100, 100, 20);
-        var box = samples.Factory.FreeTextOnPage(0, frame, shown, "aaa bbb ccc ddd eee fff ggg hhh iii jjj", size: 12);
-
-        var after = frame.ToDisplay(box.Rect);
-
-        Assert.Equal(100, after.X, 6); // the top-left corner stays where it was displayed
-        Assert.Equal(100, after.Y, 6);
-        Assert.Equal(100, after.Width, 6);
-        Assert.True(after.Height > 20);
     }
 
     [Fact]

@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <IsAotCompatible>true</IsAotCompatible>
+    <Description>Annotation edits: the session with its commands and undo, the annotation store, hit-testing, selection handles, the shape gestures, and the mapper from pending commands to the edit blob. Lives in the broker side; the writer host does not reference it.</Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <!-- MIT, build tool, pinned so that an SDK update does not change the lock files: see MikePDF.App.csproj. -->
+    <PackageReference Include="Microsoft.NET.ILLink.Tasks" VersionOverride="10.0.14" PrivateAssets="all" />
+    <ProjectReference Include="..\MikePDF.Markup\MikePDF.Markup.csproj" />
+    <ProjectReference Include="..\MikePDF.Core\MikePDF.Core.csproj" />
+    <ProjectReference Include="..\MikePDF.Protocol\MikePDF.Protocol.csproj" />
+    <ProjectReference Include="..\MikePDF.Ink\MikePDF.Ink.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="MikePDF.Markup.Editing.Tests" />
+  </ItemGroup>
+</Project>

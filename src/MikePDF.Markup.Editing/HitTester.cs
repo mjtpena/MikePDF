@@ -1,6 +1,5 @@
-using MikePDF.Core.Geometry;
 
-namespace MikePDF.Markup;
+namespace MikePDF.Markup.Editing;
 
 /// <summary>A uniform grid over the annotations of one page, so that finding what is under the pointer does not scan them all (annotation-core 7, AC-04).</summary>
 internal sealed class SpatialIndex

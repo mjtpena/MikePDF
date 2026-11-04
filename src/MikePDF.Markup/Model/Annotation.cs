@@ -1,4 +1,3 @@
-using MikePDF.Core.Geometry;
 
 namespace MikePDF.Markup;
 
@@ -66,7 +65,7 @@ public sealed record InkPayload(IReadOnlyList<InkStrokeData> Strokes, bool Highl
 /// <summary>
 /// An annotation in the edit model (annotation-core 3.1). Immutable: a change makes a new value, which is how undo restores the model exactly.
 /// All geometry is in PDF user space of the page (points, origin bottom-left), the same space the file stores, whatever the page's rotation or
-/// CropBox origin; conversions from the displayed page are in <see cref="PageFrame"/>.
+/// CropBox origin; conversions from the displayed page are in <c>PageFrame</c> in <c>MikePDF.Markup.Editing</c>.
 /// </summary>
 public sealed record Annotation
 {

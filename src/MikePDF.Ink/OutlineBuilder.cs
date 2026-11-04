@@ -25,7 +25,7 @@ internal static class OutlineBuilder
     private const double SmallJoinAngle = 2.0 * Math.PI / 180.0;
     private const int MaxPoints = 200_000;
 
-    public static OutlineGeometry Build(ReadOnlySpan<float> xy, ReadOnlySpan<float> widths)
+    public static OutlineGeometry Build(ReadOnlySpan<float> xy, ReadOnlySpan<float> widths, InkEnds ends = InkEnds.Round)
     {
         if (xy.Length != widths.Length * 2)
         {
@@ -131,15 +131,24 @@ internal static class OutlineBuilder
         var polygon = new List<(double X, double Y)>(left.Count + right.Count + 64);
         polygon.AddRange(left);
 
-        // End cap: clockwise from the left tangent direction to the right one, through the forward direction.
-        AddArc(polygon, qx[m - 1], qy[m - 1], qr[m - 1], ulx[segCount - 1], uly[segCount - 1], -2.0 * betaL[segCount - 1]);
+        // End cap: clockwise from the left tangent direction to the right one, through the forward direction. Flat ends add no arc,
+        // so the outline runs straight across the end disc (a butt cap that stops exactly at the last point).
+        if (ends == InkEnds.Round)
+        {
+            AddArc(polygon, qx[m - 1], qy[m - 1], qr[m - 1], ulx[segCount - 1], uly[segCount - 1], -2.0 * betaL[segCount - 1]);
+        }
+
         for (var i = right.Count - 1; i >= 0; i--)
         {
             polygon.Add(right[i]);
         }
 
         // Start cap: clockwise from the right tangent direction to the left one, through the backward direction.
-        AddArc(polygon, qx[0], qy[0], qr[0], urx[0], ury[0], -((2.0 * Math.PI) - (2.0 * betaL[0])));
+        if (ends == InkEnds.Round)
+        {
+            AddArc(polygon, qx[0], qy[0], qr[0], urx[0], ury[0], -((2.0 * Math.PI) - (2.0 * betaL[0])));
+        }
+
         return new OutlineGeometry { Polygon = RemoveDuplicates(polygon) };
     }
 

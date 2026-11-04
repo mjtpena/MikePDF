@@ -1,14 +1,9 @@
 using System.Text.Json;
+using MikePDF.Core.Editing;
 using MikePDF.Ink;
 using MikePDF.Protocol.Edits;
 
-namespace MikePDF.Core.Editing;
-
-/// <summary>A pending command the save pipeline of this build cannot write (an annotation command no stage 4 generator exists for, or fields that do not fit).</summary>
-public sealed class UnsupportedEditException(string command, string reason) : InvalidOperationException($"{command}: {reason}")
-{
-    public string Command { get; } = command;
-}
+namespace MikePDF.Markup.Editing;
 
 /// <summary>
 /// Turns the pending commands of a save snapshot into the edit blob stage 4 reads (save-pipeline 11.3). The net effect is written, not the history:
@@ -264,7 +259,7 @@ public static class AnnotationEditMapper
     private static AnnotationEdit BuildInk(AnnotationEdit edit, InkBatchBuild build)
     {
         var simplified = build.Strokes.Select(s => Simplifier.Simplify(s, build.Style)).ToArray();
-        var appearance = InkAppearance.Build(simplified);
+        var appearance = InkAppearance.Build(simplified, build.Style.Tool == InkTool.Highlighter ? InkEnds.Flat : InkEnds.Round);
         var pad = 0.5;
         return edit with
         {

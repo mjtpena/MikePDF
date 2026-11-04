@@ -3,11 +3,12 @@
 using MikePDF.Broker;
 using MikePDF.Broker.Saving;
 using MikePDF.Core.Editing.Journal;
-using MikePDF.Core.Geometry;
 using MikePDF.Ink;
 using MikePDF.Integration.Tests.Saving;
 using MikePDF.Integration.Tests.Support;
 using MikePDF.Markup;
+using MikePDF.Markup.Editing;
+using MikePDF.Markup.Editing.Tests.Support;
 using MikePDF.Markup.Tests.Support;
 using MikePDF.Protocol;
 using MikePDF.Render.Imaging;

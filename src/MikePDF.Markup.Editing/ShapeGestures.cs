@@ -1,6 +1,5 @@
-using MikePDF.Core.Geometry;
 
-namespace MikePDF.Markup;
+namespace MikePDF.Markup.Editing;
 
 /// <summary>
 /// The arithmetic of drawing a shape with the pointer (shapes 3.3, SH-03): a drag that is too short makes nothing, Shift constrains, Alt draws from the centre.

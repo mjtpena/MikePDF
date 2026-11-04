@@ -1,4 +1,4 @@
-namespace MikePDF.Markup;
+namespace MikePDF.Markup.Editing;
 
 /// <summary>What can be done to an annotation (annotation-core 3.2).</summary>
 public enum AnnotationOperation

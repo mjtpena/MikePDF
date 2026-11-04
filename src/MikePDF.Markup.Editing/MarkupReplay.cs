@@ -1,9 +1,8 @@
 using System.Text.Json;
 using MikePDF.Core.Editing;
-using MikePDF.Core.Geometry;
 using MikePDF.Ink;
 
-namespace MikePDF.Markup;
+namespace MikePDF.Markup.Editing;
 
 /// <summary>
 /// What an annotation command does to the model's store. The session applies its own commands and their inverses through this, and recovery applies

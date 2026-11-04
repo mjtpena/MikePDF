@@ -175,13 +175,13 @@
         "type": "Project",
         "dependencies": {
           "MikePDF.Core": "[1.0.0, )",
+          "MikePDF.Markup.Editing": "[1.0.0, )",
           "MikePDF.Protocol": "[1.0.0, )"
         }
       },
       "mikepdf.core": {
         "type": "Project",
         "dependencies": {
-          "MikePDF.Ink": "[1.0.0, )",
           "MikePDF.Protocol": "[1.0.0, )"
         }
       },
@@ -191,8 +191,16 @@
       "mikepdf.markup": {
         "type": "Project",
         "dependencies": {
-          "MikePDF.Core": "[1.0.0, )",
           "MikePDF.Ink": "[1.0.0, )"
+        }
+      },
+      "mikepdf.markup.editing": {
+        "type": "Project",
+        "dependencies": {
+          "MikePDF.Core": "[1.0.0, )",
+          "MikePDF.Ink": "[1.0.0, )",
+          "MikePDF.Markup": "[1.0.0, )",
+          "MikePDF.Protocol": "[1.0.0, )"
         }
       },
       "mikepdf.pdfwriter": {

@@ -1,4 +1,3 @@
-using MikePDF.Core.Geometry;
 using MikePDF.Ink;
 using MikePDF.Markup.Fonts;
 
@@ -40,7 +39,7 @@ public static class MarkupGeometry
 
             case InkPayload ink:
             {
-                var result = InkAppearance.Build([.. ink.Strokes.Select(static s => new SimplifiedStroke(s.Xy, s.Widths))]);
+                var result = InkAppearance.Build([.. ink.Strokes.Select(static s => new SimplifiedStroke(s.Xy, s.Widths))], ink.Highlighter ? InkEnds.Flat : InkEnds.Round);
                 return Geo.Inflate(new PdfRect(result.Left, result.Bottom, result.Right, result.Top), InkPadding);
             }
 
@@ -139,7 +138,7 @@ public sealed class MarkupFactory(string author, TimeProvider? time = null, Func
     }
 
     /// <summary>A highlight, underline, strike-out or squiggly over quads. Highlights are yellow, the others red, by default (text-markup 2.1).</summary>
-    public Annotation TextMarkup(MarkupKind kind, int page, IReadOnlyList<Quad> quads, Rgb? color = null, double opacity = 1, double thickness = 1, string contents = "", PageFrame? frame = null)
+    public Annotation TextMarkup(MarkupKind kind, int page, IReadOnlyList<Quad> quads, Rgb? color = null, double opacity = 1, double thickness = 1, string contents = "", PdfRect? popupRect = null)
     {
         if (kind is not (MarkupKind.Highlight or MarkupKind.Underline or MarkupKind.StrikeOut or MarkupKind.Squiggly))
         {
@@ -157,16 +156,12 @@ public sealed class MarkupFactory(string author, TimeProvider? time = null, Func
             Width = kind == MarkupKind.Highlight ? 1 : Math.Clamp(thickness, MarkupDefaults.MinThickness, MarkupDefaults.MaxThickness),
         };
         var fitted = MarkupGeometry.Refit(a);
-        return frame is not null && fitted.Contents.Length > 0 ? fitted with { PopupRect = NoteGeometry.PopupFor(frame, fitted.Rect) } : fitted;
+        return popupRect is { } popup && fitted.Contents.Length > 0 ? fitted with { PopupRect = popup } : fitted;
     }
 
-    /// <summary>A note with its icon's top-left corner at a displayed point (sticky-notes 2.2); its popup is placed beside it.</summary>
-    public Annotation Note(int page, PageFrame frame, PointD displayTopLeft, string contents, NoteIcon icon = NoteIcon.Comment, Rgb? color = null)
-    {
-        var rect = NoteGeometry.Place(frame, displayTopLeft);
-        var a = Base(MarkupKind.Note, page, rect, color ?? Rgb.Yellow, new NotePayload(icon, frame.RotateDegrees), contents);
-        return a with { PopupRect = NoteGeometry.PopupFor(frame, rect) };
-    }
+    /// <summary>A note whose icon, as displayed, is in <paramref name="rect"/> (user space), with its popup beside it (sticky-notes 2.2). <paramref name="pageRotation"/> is the page's /Rotate.</summary>
+    public Annotation NoteAt(int page, PdfRect rect, PdfRect popupRect, int pageRotation, string contents, NoteIcon icon = NoteIcon.Comment, Rgb? color = null) =>
+        Base(MarkupKind.Note, page, rect, color ?? Rgb.Yellow, new NotePayload(icon, pageRotation), contents) with { PopupRect = popupRect };
 
     /// <summary>A reply to an annotation: a Text annotation that is not drawn, at the parent's rectangle (sticky-notes 2.3).</summary>
     public Annotation Reply(Annotation parent, string contents)
@@ -201,16 +196,6 @@ public sealed class MarkupFactory(string author, TimeProvider? time = null, Func
             Subject = typewriter ? "Typewriter" : "Text Box",
         };
         return GrowToFit(a);
-    }
-
-    /// <summary>
-    /// A text box over a rectangle of the displayed page (a click or a drag with the tool). The rectangle is turned into user space through the page's
-    /// geometry, and the box remembers the page's rotation so that it can grow the right way.
-    /// </summary>
-    public Annotation FreeTextOnPage(int page, PageFrame frame, RectD displayRect, string text, FontFamily family = FontFamily.Sans, bool bold = false, bool italic = false,
-        double size = 12, Rgb? textColor = null, TextAlign align = TextAlign.Left, bool typewriter = false, double borderWidth = 0, Rgb? borderColor = null, Rgb? fill = null)
-    {
-        return FreeText(page, frame.ToUser(displayRect), text, family, bold, italic, size, textColor, align, typewriter, borderWidth, borderColor, fill, frame.RotateDegrees);
     }
 
     /// <summary>The box grown, never shrunk, so that its text fits (free-text 3.3). It grows down in the displayed page, whatever the page's rotation.</summary>
@@ -333,24 +318,24 @@ public sealed class MarkupFactory(string author, TimeProvider? time = null, Func
         return Base(MarkupKind.Stamp, page, rect, StampCatalog.RgbOf(name), new StampPayload(name, turns)) with { Opacity = Math.Clamp(opacity, MarkupDefaults.MinOpacity, 1), Subject = name };
     }
 
-    /// <summary>
-    /// A built-in stamp placed on the displayed page: fitted into 200 x 100 points (or into the dragged box) as it is displayed, with the user's quarter
-    /// turns, then turned into user space through the page's geometry (stamps 3.4, 3.5).
-    /// </summary>
-    public Annotation StampOnPage(int page, PageFrame frame, string name, PointD displayTopLeft, RectD? displayDrag = null, int userTurns = 0, double opacity = 1)
+    /// <summary>A built-in stamp in a user-space rectangle (the enclosing rectangle of its turned form; stamps 3.5), with the user's quarter turns.</summary>
+    public Annotation StampAt(int page, string name, PdfRect rect, int userTurns = 0, double opacity = 1)
     {
         if (!StampCatalog.IsStandard(name))
         {
             throw new ArgumentException("Not a standard stamp name.", nameof(name));
         }
 
-        var (w, h) = StampArtwork.NativeSize(name);
         var turns = ((userTurns % 4) + 4) % 4;
-        var (nw, nh) = turns % 2 == 0 ? (w, h) : (h, w);
-        var fit = StampFit(nw, nh, displayDrag?.Width ?? 200, displayDrag?.Height ?? 100);
-        var origin = displayDrag is { } drag ? new PointD(drag.X, drag.Y) : displayTopLeft;
-        var rect = frame.ToUser(new RectD(origin.X, origin.Y, fit.Width, fit.Height));
         return Base(MarkupKind.Stamp, page, rect, StampCatalog.RgbOf(name), new StampPayload(name, turns)) with { Opacity = Math.Clamp(opacity, MarkupDefaults.MinOpacity, 1), Subject = name };
+    }
+
+    /// <summary>The size a stamp takes as displayed when it is fitted into a box (200 x 100 points at a click): its native size, turned by the user's quarters, scaled down to fit.</summary>
+    public static (double Width, double Height) StampSizeFor(string name, int userTurns, double boxWidth = 200, double boxHeight = 100)
+    {
+        var (w, h) = StampArtwork.NativeSize(name);
+        var (nw, nh) = ((userTurns % 4) + 4) % 2 == 0 ? (w, h) : (h, w);
+        return StampFit(nw, nh, boxWidth, boxHeight);
     }
 
     /// <summary>The size a native stamp takes in a box: scaled down (never up) to fit with its proportions kept.</summary>

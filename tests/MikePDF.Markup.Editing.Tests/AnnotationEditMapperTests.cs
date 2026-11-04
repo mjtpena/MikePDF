@@ -3,7 +3,8 @@
 using MikePDF.Core.Editing;
 using MikePDF.Protocol.Edits;
 
-namespace MikePDF.Core.Tests;
+
+namespace MikePDF.Markup.Editing.Tests;
 
 /// <summary>SP-09 (save-pipeline 14): the pending commands become the net edits of stage 4.</summary>
 public sealed class AnnotationEditMapperTests

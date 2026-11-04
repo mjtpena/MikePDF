@@ -1,6 +1,5 @@
-using MikePDF.Core.Geometry;
 
-namespace MikePDF.Markup;
+namespace MikePDF.Markup.Editing;
 
 public enum HandleKind
 {

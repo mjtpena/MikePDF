@@ -1,4 +1,4 @@
-namespace MikePDF.Markup;
+namespace MikePDF.Markup.Editing;
 
 /// <summary>
 /// The annotations of a document, as the edit model holds them (annotation-core 3.1): per page, in <c>/Annots</c> order, which is the stacking order

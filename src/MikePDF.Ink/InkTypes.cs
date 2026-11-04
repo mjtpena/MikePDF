@@ -12,8 +12,18 @@ public enum InkTool
     /// <summary>Variable width by pressure.</summary>
     Pen = 0,
 
-    /// <summary>Constant width, translucent, flat highlighter.</summary>
+    /// <summary>Constant width, translucent highlighter with flat (butt) ends.</summary>
     Highlighter = 1,
+}
+
+/// <summary>How the two ends of a stroke outline are finished (ink-pen.md 3.8).</summary>
+public enum InkEnds
+{
+    /// <summary>A half circle of the end width (the pen).</summary>
+    Round = 0,
+
+    /// <summary>Straight across at the end point, so the stroke stops exactly there (the highlighter).</summary>
+    Flat = 1,
 }
 
 /// <summary>How pressure is turned into width (ink-pen.md 3.1).</summary>

@@ -4,7 +4,8 @@ using MikePDF.Core.Editing;
 using MikePDF.Ink;
 using MikePDF.Protocol.Edits;
 
-namespace MikePDF.Core.Tests;
+
+namespace MikePDF.Markup.Editing.Tests;
 
 /// <summary>SP-09 for the kinds and commands the annotation work package added: every field is read, strokes are folded, a restyle becomes a Replace, a composite is expanded.</summary>
 public sealed class AnnotationEditMapperKindsTests

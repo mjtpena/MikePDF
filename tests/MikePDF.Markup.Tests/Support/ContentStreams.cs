@@ -1,5 +1,4 @@
 using System.Globalization;
-using MikePDF.Core.Geometry;
 
 namespace MikePDF.Markup.Tests.Support;
 

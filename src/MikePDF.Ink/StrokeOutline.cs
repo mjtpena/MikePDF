@@ -11,11 +11,12 @@ public static class StrokeOutline
     /// Builds the outline polygon. <paramref name="xy"/> holds x,y pairs and <paramref name="widths"/> one width per point, in points.
     /// Consecutive duplicate points are skipped, a point whose disc lies inside its neighbour's disc is merged into it, and a stroke
     /// that reduces to one disc gives a circle polygon of that width. Widths are clamped to 0..1000.
+    /// <paramref name="ends"/> picks round caps (the pen) or flat butt caps (the highlighter); a stroke that is one disc is a circle either way, so a tap still leaves a mark.
     /// Throws <see cref="ArgumentException"/> for mismatched lengths, no points, non-finite or out-of-range values.
     /// </summary>
-    public static IReadOnlyList<(double X, double Y)> Polygon(ReadOnlySpan<float> xy, ReadOnlySpan<float> widths)
+    public static IReadOnlyList<(double X, double Y)> Polygon(ReadOnlySpan<float> xy, ReadOnlySpan<float> widths, InkEnds ends = InkEnds.Round)
     {
-        var geometry = OutlineBuilder.Build(xy, widths);
+        var geometry = OutlineBuilder.Build(xy, widths, ends);
         return geometry.Polygon;
     }
 
@@ -24,14 +25,14 @@ public static class StrokeOutline
     /// directions (curve to polygon and polygon to curve): Schneider least-squares fitting with corner detection, splitting at the
     /// worst point. A single dot gives four cubics approximating a circle. Coordinates are rounded to 3 decimals.
     /// </summary>
-    public static InkPath Fit(ReadOnlySpan<float> xy, ReadOnlySpan<float> widths, double maxDeviation = InkConstants.DefaultFitDeviation)
+    public static InkPath Fit(ReadOnlySpan<float> xy, ReadOnlySpan<float> widths, double maxDeviation = InkConstants.DefaultFitDeviation, InkEnds ends = InkEnds.Round)
     {
         if (!double.IsFinite(maxDeviation) || maxDeviation <= 0)
         {
             throw new ArgumentException("The deviation must be positive and finite.", nameof(maxDeviation));
         }
 
-        var geometry = OutlineBuilder.Build(xy, widths);
+        var geometry = OutlineBuilder.Build(xy, widths, ends);
         if (geometry.IsDisc)
         {
             return new InkPath(BezierFitter.Circle(geometry.DiscX, geometry.DiscY, geometry.DiscRadius));

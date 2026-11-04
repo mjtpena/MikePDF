@@ -1,9 +1,9 @@
 #pragma warning disable CA1861 // test data: arrays written inline are the point of these cases
 
-using MikePDF.Core.Geometry;
 using MikePDF.Markup.Tests.Support;
 
-namespace MikePDF.Markup.Tests;
+
+namespace MikePDF.Markup.Editing.Tests;
 
 /// <summary>SH-03: the arithmetic of the shape tools.</summary>
 public sealed class GestureTests

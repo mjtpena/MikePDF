@@ -14,9 +14,10 @@ public static class InkAppearance
     /// <summary>
     /// Fits every stroke outline and joins them into one content stream. <c>Left..Top</c> is the exact union of the outline bounds
     /// (no padding). Throws <see cref="ArgumentException"/> for no strokes, a stroke without points, mismatched or non-finite data or a
-    /// stroke above 20,000 points, and <see cref="InkLimitException"/> when the content exceeds 2 MiB.
+    /// stroke above 20,000 points, and <see cref="InkLimitException"/> when the content exceeds 2 MiB. <paramref name="ends"/> is
+    /// <see cref="InkEnds.Flat"/> for the highlighter (butt caps, as a marker pen is cut) and <see cref="InkEnds.Round"/> for the pen.
     /// </summary>
-    public static InkAppearanceResult Build(IReadOnlyList<SimplifiedStroke> strokes)
+    public static InkAppearanceResult Build(IReadOnlyList<SimplifiedStroke> strokes, InkEnds ends = InkEnds.Round)
     {
         ArgumentNullException.ThrowIfNull(strokes);
         if (strokes.Count == 0)
@@ -48,7 +49,7 @@ public static class InkAppearance
                 throw new ArgumentException($"Stroke {i} has more than {StrokeLimits.MaxSamplesPerStroke} points.", nameof(strokes));
             }
 
-            var path = StrokeOutline.Fit(stroke.Xy, stroke.Widths);
+            var path = StrokeOutline.Fit(stroke.Xy, stroke.Widths, InkConstants.DefaultFitDeviation, ends);
             paths.Add(path);
             if (i > 0)
             {

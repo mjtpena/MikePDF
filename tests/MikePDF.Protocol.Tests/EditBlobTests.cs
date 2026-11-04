@@ -540,4 +540,47 @@ public sealed class EditBlobTests
         Assert.True(EditBlobCodec.TryDecode(bytes, out var blob, out _));
         Assert.Equal("root", blob.Edits[0].ParentName);
     }
+
+    // ---- versions: a blob of another version is refused with a reason, never an exception ----
+
+    [Fact]
+    public void AVersionOneBlobIsRefusedAsAnUnsupportedVersionSoRecoveryCanSaySo()
+    {
+        // The first version: sixteen fields to an edit. Nothing shipped with it, so this build does not read it; from v1.0 on each version reads the ones before.
+        var v1 = Raw(EditBlobLimits.Magic, 1u, 2u, new object?[]
+        {
+            new object?[] { (ushort)1, 0u, (ushort)1, new[] { 10f, 20f, 110f, 40f }, new[] { 1f, 0.9f, 0f }, 0.5f, 1f, "note", "Mike", "name-1", 0u, new[] { 10f, 40f, 110f, 40f, 10f, 20f, 110f, 20f }, null, 0u, null, null },
+        });
+
+        var result = EditBlobCodec.Decode(v1);
+
+        Assert.False(result.IsOk);
+        Assert.Equal((EditBlobFailure.UnsupportedVersion, 1u), (result.Failure, result.Version));
+        Assert.Null(result.Blob);
+        Assert.Contains("version 1", result.Message, StringComparison.Ordinal);
+        Assert.False(Decodes(v1));
+    }
+
+    [Fact]
+    public void ABlobOfAFutureVersionIsRefusedTheSameWay()
+    {
+        var result = EditBlobCodec.Decode(Blob(EditBlobLimits.Magic, 3u, 2u, ValidAdd()));
+
+        Assert.Equal((EditBlobFailure.UnsupportedVersion, 3u), (result.Failure, result.Version));
+    }
+
+    [Fact]
+    public void EveryOtherRefusalHasItsOwnTypedReason()
+    {
+        Assert.Equal(EditBlobFailure.None, EditBlobCodec.Decode(ValidBlob()).Failure);
+        Assert.Equal(EditBlobFailure.NotAnEditBlob, EditBlobCodec.Decode(Blob("not-mikepdf", 2u, 2u, ValidAdd())).Failure);
+        Assert.Equal(EditBlobFailure.Malformed, EditBlobCodec.Decode(Blob(EditBlobLimits.Magic, 2u, 2u, With(ValidAdd(), 5, 0f))).Failure);
+        Assert.Equal(EditBlobFailure.Malformed, EditBlobCodec.Decode(new byte[] { 1, 2, 3 }).Failure);
+        Assert.Equal(EditBlobFailure.Malformed, EditBlobCodec.Decode(ReadOnlyMemory<byte>.Empty).Failure);
+        Assert.Equal(EditBlobFailure.TooLarge, EditBlobCodec.Decode(new byte[EditBlobLimits.MaxBytes + 1]).Failure);
+        foreach (var length in new[] { 0, 1, 5, 20 })
+        {
+            Assert.False(EditBlobCodec.Decode(EditBlobCodec.Encode(Sample()).AsMemory(0, length)).IsOk); // nothing here throws either
+        }
+    }
 }

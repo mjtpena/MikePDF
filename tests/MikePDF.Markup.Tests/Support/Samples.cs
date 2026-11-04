@@ -1,5 +1,3 @@
-using MikePDF.Core.Editing;
-using MikePDF.Core.Geometry;
 using MikePDF.Ink;
 
 namespace MikePDF.Markup.Tests.Support;
@@ -30,8 +28,8 @@ internal sealed class ManualTime(DateTimeOffset start) : TimeProvider
     public override long TimestampFrequency => TimeSpan.TicksPerSecond;
 }
 
-/// <summary>Annotations of every kind, made the way the tools make them, and a session to put them in.</summary>
-internal sealed class Samples
+/// <summary>Annotations of every kind, made the way the tools make them. (The editing tests add a session and a page frame in <c>Samples.Editing.cs</c>.)</summary>
+internal sealed partial class Samples
 {
     private int _next;
 
@@ -39,24 +37,11 @@ internal sealed class Samples
     {
         Time = new ManualTime();
         Factory = new MarkupFactory("Mike", Time, () => AnnotationIds.Prefix + (++_next).ToString("x32", System.Globalization.CultureInfo.InvariantCulture));
-        Model = new EditModel();
-        Session = new MarkupSession(Model, Factory, Time);
     }
 
     public ManualTime Time { get; }
 
     public MarkupFactory Factory { get; }
-
-    public EditModel Model { get; }
-
-    public MarkupSession Session { get; }
-
-    public static PageFrame Frame(int rotate = 0, double[]? crop = null, double[]? media = null)
-    {
-        var m = media ?? [0, 0, 612, 792];
-        var c = crop is null ? (PdfRect?)null : new PdfRect(crop[0], crop[1], crop[2], crop[3]);
-        return new PageFrame(new PageGeometry(new PdfRect(m[0], m[1], m[2], m[3]), c, rotate));
-    }
 
     public Annotation Highlight(int page = 0, string contents = "") =>
         Factory.TextMarkup(MarkupKind.Highlight, page, [Quad.FromRect(new PdfRect(72, 700, 272, 716)), Quad.FromRect(new PdfRect(72, 684, 172, 700))], opacity: 0.8, contents: contents);
@@ -67,7 +52,9 @@ internal sealed class Samples
 
     public Annotation Squiggly(int page = 0) => Factory.TextMarkup(MarkupKind.Squiggly, page, [Quad.FromRect(new PdfRect(72, 560, 272, 576))], thickness: 1);
 
-    public Annotation Note(int page = 0, string contents = "A note") => Factory.Note(page, Frame(), new PointD(300, 100), contents, NoteIcon.Key);
+    // An icon whose top-left corner is at (300, 100) of an unturned Letter page, with its popup beside it.
+    public Annotation Note(int page = 0, string contents = "A note") =>
+        Factory.NoteAt(page, new PdfRect(300, 672, 320, 692), new PdfRect(324, 592, 504, 692), 0, contents, NoteIcon.Key);
 
     public Annotation FreeText(int page = 0) => Factory.FreeText(page, new PdfRect(300, 500, 480, 540), "Hello\nWorld, a rather long line that has to wrap", FontFamily.Serif, bold: true, size: 14,
         textColor: new Rgb(0, 0, 0.5), align: TextAlign.Center, borderWidth: 1.5, borderColor: Rgb.Red, fill: new Rgb(1, 1, 0.85));

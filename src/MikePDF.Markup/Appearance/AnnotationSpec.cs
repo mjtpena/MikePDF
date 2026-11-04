@@ -1,4 +1,3 @@
-using MikePDF.Core.Geometry;
 using MikePDF.Markup.Fonts;
 
 namespace MikePDF.Markup;

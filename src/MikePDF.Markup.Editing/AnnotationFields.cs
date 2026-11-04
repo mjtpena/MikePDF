@@ -1,7 +1,6 @@
 using System.Text.Json;
-using MikePDF.Core.Geometry;
 
-namespace MikePDF.Markup;
+namespace MikePDF.Markup.Editing;
 
 /// <summary>
 /// The fields of an annotation as the journal stores them and the edit mapper reads them: one flat JSON object (the save core's convention, which the
@@ -28,10 +27,10 @@ public static class AnnotationFields
         _ => kind.ToString(),
     };
 
-    public static Dictionary<string, object?> ToFields(Annotation a)
+    public static CommandFields ToFields(Annotation a)
     {
         ArgumentNullException.ThrowIfNull(a);
-        var f = new Dictionary<string, object?>(StringComparer.Ordinal)
+        var f = new CommandFields
         {
             ["page"] = a.Page,
             ["kind"] = WireKind(a.Kind),
@@ -259,7 +258,7 @@ public static class AnnotationFields
             return a is null && b is null;
         }
 
-        return a.Origin == b.Origin && JsonSerializer.Serialize(ToFields(a)) == JsonSerializer.Serialize(ToFields(b));
+        return a.Origin == b.Origin && ToFields(a).ToJson() == ToFields(b).ToJson();
     }
 
     private static IReadOnlyList<Quad> Quads(double[] numbers) =>

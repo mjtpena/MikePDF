@@ -1,12 +1,12 @@
 using System.Globalization;
 using System.Text;
 using MikePDF.Core.Editing;
-using MikePDF.Core.Geometry;
 using MikePDF.PdfWriter;
 using MikePDF.PdfWriter.Editing;
 using MikePDF.Protocol.Edits;
 
-namespace MikePDF.Markup.Tests.Support;
+
+namespace MikePDF.Markup.Editing.Tests.Support;
 
 /// <summary>A page of a test document: its boxes and /Rotate.</summary>
 internal sealed record PageSpec(double[] MediaBox, double[]? CropBox = null, int Rotate = 0, string? Content = null)

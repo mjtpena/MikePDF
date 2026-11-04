@@ -6,6 +6,30 @@ namespace MikePDF.Protocol.Edits;
 /// <summary>An edit blob that breaks a limit or a rule, on write or on read.</summary>
 public sealed class EditBlobException(string message) : Exception(message);
 
+/// <summary>Why a blob was not read (<see cref="EditBlobCodec.Decode"/>).</summary>
+public enum EditBlobFailure
+{
+    None = 0,
+
+    /// <summary>Over the size limit.</summary>
+    TooLarge,
+
+    /// <summary>Does not start with the magic: not one of ours.</summary>
+    NotAnEditBlob,
+
+    /// <summary>One of ours, of a version this build does not read. Until v1.0 ships an older version is refused; from v1.0 on every later version reads the earlier blobs.</summary>
+    UnsupportedVersion,
+
+    /// <summary>The right version, broken or over a limit.</summary>
+    Malformed,
+}
+
+/// <summary>The outcome of <see cref="EditBlobCodec.Decode"/>: the blob, or why not (and the version the blob claimed, when it got that far).</summary>
+public sealed record EditBlobDecodeResult(EditBlob? Blob, EditBlobFailure Failure, string Message, uint Version)
+{
+    public bool IsOk => Failure == EditBlobFailure.None;
+}
+
 /// <summary>The limits of the edit blob (save-pipeline 11.3). Both the writer and the reader enforce all of them.</summary>
 public static class EditBlobLimits
 {
@@ -148,12 +172,25 @@ public static class EditBlobCodec
     }
 
     /// <summary>Reads a blob. Never throws for bad content: the reason is in <paramref name="error"/>.</summary>
-    public static bool TryDecode(ReadOnlyMemory<byte> data, out EditBlob blob, out string error)
+    public static bool TryDecode(ReadOnlyMemory<byte> data, out EditBlob blob, out string error) => TryDecode(data, out blob, out error, out _, out _);
+
+    /// <summary>
+    /// Reads a blob and says why it was refused, as a value a caller can act on (recovery tells the person that a blob from an older build is not readable,
+    /// rather than that "something is malformed"). Never throws for bad content.
+    /// </summary>
+    public static EditBlobDecodeResult Decode(ReadOnlyMemory<byte> data) =>
+        TryDecode(data, out var blob, out var error, out var failure, out var version) ? new EditBlobDecodeResult(blob, EditBlobFailure.None, string.Empty, version) : new EditBlobDecodeResult(null, failure, error, version);
+
+    /// <summary>The same, with the reason as a value. <paramref name="version"/> is the version the blob says it is, when it got that far (0 before).</summary>
+    public static bool TryDecode(ReadOnlyMemory<byte> data, out EditBlob blob, out string error, out EditBlobFailure failure, out uint version)
     {
         blob = null!;
+        failure = EditBlobFailure.Malformed;
+        version = 0;
         if (data.Length > EditBlobLimits.MaxBytes)
         {
             error = "The edit blob is over its size limit.";
+            failure = EditBlobFailure.TooLarge;
             return false;
         }
 
@@ -164,12 +201,15 @@ public static class EditBlobCodec
             if (StrictReader.ReadString(ref reader, 64) != EditBlobLimits.Magic)
             {
                 error = "Not an edit blob.";
+                failure = EditBlobFailure.NotAnEditBlob;
                 return false;
             }
 
-            if (StrictReader.ReadU32(ref reader, EditBlobLimits.Version, EditBlobLimits.Version) != EditBlobLimits.Version)
+            version = StrictReader.ReadU32(ref reader, 0, uint.MaxValue);
+            if (version != EditBlobLimits.Version)
             {
-                error = "Unsupported edit blob version.";
+                error = $"Edit blob version {version} is not one this build reads.";
+                failure = EditBlobFailure.UnsupportedVersion;
                 return false;
             }
 

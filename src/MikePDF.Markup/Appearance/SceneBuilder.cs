@@ -1,4 +1,3 @@
-using MikePDF.Core.Geometry;
 using MikePDF.Ink;
 using MikePDF.Markup.Fonts;
 
@@ -209,7 +208,7 @@ public static class SceneBuilder
 
     private static Scene Ink(Annotation a, InkPayload ink)
     {
-        var result = InkAppearance.Build([.. ink.Strokes.Select(static s => new SimplifiedStroke(s.Xy, s.Widths))]);
+        var result = InkAppearance.Build([.. ink.Strokes.Select(static s => new SimplifiedStroke(s.Xy, s.Widths))], ink.Highlighter ? InkEnds.Flat : InkEnds.Round);
         var items = result.Paths.Select(p => (SceneItem)new ScenePath(p.Segments, PaintMode.Fill, a.Color, null, 0)).ToList();
         return new Scene(items, a.Rect, Scene.Identity, a.Opacity, ink.Highlighter, false);
     }

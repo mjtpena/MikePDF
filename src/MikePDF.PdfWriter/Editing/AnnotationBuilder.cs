@@ -1,6 +1,5 @@
 using System.Globalization;
 using System.Text;
-using MikePDF.Core.Geometry;
 using MikePDF.Markup;
 
 namespace MikePDF.PdfWriter.Editing;

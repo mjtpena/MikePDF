@@ -13,7 +13,7 @@ public sealed record FontResource(string ResourceName, string BaseFont);
 /// is a transparency group).
 /// </summary>
 public sealed record AppearanceForm(
-    Core.Geometry.PdfRect BBox,
+    PdfRect BBox,
     IReadOnlyList<double> Matrix,
     string Content,
     IReadOnlyList<FontResource> Fonts,
