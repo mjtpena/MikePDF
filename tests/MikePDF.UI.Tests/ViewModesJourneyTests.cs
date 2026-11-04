@@ -430,7 +430,7 @@ public sealed class ViewModesJourneyTests : IDisposable
         var layoutBefore = Layout(app);
         var pageBefore = app.CurrentPage;
 
-        app.PressWithControl(VirtualKeyShort.KEY_L);
+        app.StartPresentation();
         app.WaitFor("the presentation", () => app.Exists("PresentationSurface"));
         var screenWidth = GetSystemMetrics(0);
         var screenHeight = GetSystemMetrics(1);
@@ -495,7 +495,7 @@ public sealed class ViewModesJourneyTests : IDisposable
         app.FocusPages();
         var heard = new List<(string Text, string Activity)>();
         using var listening = app.ListenForNotifications(heard);
-        app.PressWithControl(VirtualKeyShort.KEY_L);
+        app.StartPresentation();
         WaitForSlide(app, 1, 9);
         Assert.Single(Heard(heard, "Presentation mode. Page 1 of 9. Press Escape to exit."));
 
@@ -567,7 +567,7 @@ public sealed class ViewModesJourneyTests : IDisposable
         using var app = MikePDFApp.Launch(pdf);
         app.WaitForDocument(4);
         app.FocusPages();
-        app.PressWithControl(VirtualKeyShort.KEY_L);
+        app.StartPresentation();
         WaitForSlide(app, 1, 4);
         var link = app.ScreenBoxOf(NamedDestinationPdf.AlphaLine);
         app.WaitFor("the link text", () => (link = app.ScreenBoxOf(NamedDestinationPdf.AlphaLine)) is not null);
@@ -595,7 +595,7 @@ public sealed class ViewModesJourneyTests : IDisposable
     {
         using var app = Open("exit.pdf", 3);
         MoveMouseTo(Centre(app.Require("PageSurface"))); // away from where the bar will be
-        app.PressWithControl(VirtualKeyShort.KEY_L);
+        app.StartPresentation();
         WaitForSlide(app, 1, 3);
         app.WaitFor("the bar with Exit, at the start", () => app.Exists("PresentationExit"));
         app.WaitFor("the bar gone again", () => !app.Exists("PresentationExit"), TimeSpan.FromSeconds(10));
@@ -689,7 +689,7 @@ public sealed class ViewModesJourneyTests : IDisposable
         app.FocusPages();
         app.Press(VirtualKeyShort.F11);
         app.WaitFor("full screen", () => !app.Exists("OpenButton"));
-        app.PressWithControl(VirtualKeyShort.KEY_L);
+        app.StartPresentation();
         WaitForSlide(app, 1, 3);
         app.Press(VirtualKeyShort.F11); // F11 leaves the presentation, not the full screen it came from
         app.WaitFor("back to the full-screen reading", () => !app.Exists("PresentationSurface") && app.Exists("PageSurface"));
@@ -703,7 +703,7 @@ public sealed class ViewModesJourneyTests : IDisposable
         app.Chord(VirtualKeyShort.ALT, VirtualKeyShort.KEY_1);
         app.WaitForDocument(3);
         app.FocusPages();
-        app.PressWithControl(VirtualKeyShort.KEY_L);
+        app.StartPresentation();
         WaitForSlide(app, 1, 3);
         app.Chord(VirtualKeyShort.ALT, VirtualKeyShort.KEY_2);
         app.WaitFor("tab b shown and the presentation over", () => !app.Exists("PresentationSurface") && app.Exists("OpenButton"));

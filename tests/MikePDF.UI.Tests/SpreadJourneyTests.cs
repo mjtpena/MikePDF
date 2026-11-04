@@ -212,7 +212,7 @@ public sealed class SpreadJourneyTests : IDisposable
         Assert.True(two.Left > one.Right, "page 2 is still right of page 1");
 
         // The bar of the presentation sits at the other corner.
-        app.PressWithControl(VirtualKeyShort.KEY_L);
+        app.StartPresentation();
         app.WaitFor("the presentation bar", () => app.Exists("PresentationHint"));
         var bar = app.Require("PresentationHint").BoundingRectangle;
         var surface = Centre(app.Require("PresentationSurface"));
@@ -271,7 +271,7 @@ public sealed class SpreadJourneyTests : IDisposable
         var path = Path.Combine(AppData.PrivateFolder() ?? throw new InvalidOperationException("no private folder"), dump);
         app.Press(VirtualKeyShort.HOME); // the position of the last run was remembered: start at the first page
         app.WaitFor("the first page", () => app.CurrentPage == 1);
-        app.PressWithControl(VirtualKeyShort.KEY_L);
+        app.StartPresentation();
         app.WaitFor("the presentation", () => app.Exists("PresentationSurface"));
         Thread.Sleep(2500); // the first page sharp, the pages beside it drawn (or not)
         var lines = new List<string>();

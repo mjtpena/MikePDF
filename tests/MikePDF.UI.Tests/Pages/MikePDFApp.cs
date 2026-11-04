@@ -251,6 +251,30 @@ public sealed class MikePDFApp : IDisposable
     }
 
     /// <summary>
+    /// Starts the presentation with Ctrl+L and waits for it. A key sent right after the window was set up was lost once on a hosted ARM64 runner (the screenshot showed the reading view, no
+    /// presentation), so when nothing has started after a few seconds the pages are focused and the key is sent again, up to three times. Ctrl+L is only sent while no presentation is up.
+    /// </summary>
+    public void StartPresentation()
+    {
+        for (var attempt = 1; attempt <= 3; attempt++)
+        {
+            PressWithControl(VirtualKeyShort.KEY_L);
+            var until = DateTime.UtcNow + TimeSpan.FromSeconds(4);
+            while (DateTime.UtcNow < until)
+            {
+                if (Find("PresentationSurface") is not null)
+                {
+                    return;
+                }
+
+                Thread.Sleep(150);
+            }
+
+            FocusPages();
+        }
+    }
+
+    /// <summary>
     /// Opens the flyout of a command bar button and waits for <paramref name="itemId"/> in it. A flyout closes when the window loses focus for a moment (it did, on a hosted ARM64 runner, whatever took the
     /// focus), so if the item is not there after a few seconds the button is pressed again, up to three times, instead of failing the journey on one lost flyout.
     /// </summary>
