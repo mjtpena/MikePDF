@@ -42,6 +42,7 @@ public static class Commands
           --profile ci   --runner-id <id>   --out <dir>   --budgets <file>   --reference-tier R1|R2|R3
           --baseline-dir <dir>   stored baselines, shown as a trend (never gates)   --base-label <text> --head-label <text>
           --only <id,id,...>   just these metrics   --work-dir <dir>   generated PDFs   --appcontainer-prefix <name>
+          --base-package <file.msix> --head-package <file.msix>   a built package per side, for package.install_size (a side without one has no number)
           --plant-head 0.18      TEST ONLY: slow every time in the head by this fraction, to prove the gate catches it
         calibrate options: --dir <directory searched for perf-ab*.json>
         report options:   --results <file> [--out <file.md>]

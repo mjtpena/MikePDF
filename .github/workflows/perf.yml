@@ -176,6 +176,13 @@ jobs:
         shell: pwsh
         run: Copy-Item -Recurse "$env:RUNNER_TEMP/perf/head" "$env:RUNNER_TEMP/perf/base"
 
+      # package.install_size (master prompt 11, 60 MB) is read from a built package of the head. The hard gate is the store-release workflow's package job; this puts the number
+      # in the perf results and the trend. The base side has no package, so its metric is "not measured on the base" and is never compared. Not in the nightly A/A run.
+      - name: Build the head package (for the install-size metric)
+        if: github.event_name != 'schedule'
+        shell: pwsh
+        run: ./build/package.ps1 -Arch ${{ matrix.arch }} -OutDir "$env:RUNNER_TEMP/perf/package"
+
       - name: Measure the base and the head against each other
         shell: pwsh
         env:
@@ -195,6 +202,8 @@ jobs:
             '--budgets', 'docs/perf/budgets.json', '--baseline-dir', 'docs/perf/baselines', '--out', 'perf-results'
           )
           if ($plant -gt 0) { $arguments += @('--plant-head', $plant.ToString([cultureinfo]::InvariantCulture)) }
+          $package = Get-ChildItem "$env:RUNNER_TEMP/perf/package/MikePDF_*_${{ matrix.arch }}.msix" -ErrorAction SilentlyContinue | Select-Object -First 1
+          if ($package) { $arguments += @('--head-package', $package.FullName) }
           # Exit codes: 0 passed, 1 regression, 2 bad usage, 3 a metric could not be measured.
           & "$env:RUNNER_TEMP/perf/head/harness/MikePDF.Perf.exe" @arguments
           exit $LASTEXITCODE

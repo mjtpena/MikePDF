@@ -76,7 +76,7 @@ All headless metrics are wall-clock, from `Stopwatch` timestamps around broker c
 | `recovery.supervisor_restore` | none | The supervisor's own `Restored.Elapsed` | |
 | `render.tile_latency.text20` | none | All 120 tiles of the 20-page file one at a time; the iteration's value is the median of its 120 tiles; `details` has the pooled p95 and max | |
 | `render.tile_throughput.text20` | none | The same 120 tiles, three in flight, tiles per second | |
-| `package.install_size` | Install size ≤ 60 MB | Sum of the file lengths inside a built single-architecture `.msix` (a zip). **Skipped, with the reason, when there is no package** (`build/out/package/MikePDF_<version>_<arch>.msix` or `--package`) | Optional AI models (there are none yet) |
+| `package.install_size` | Install size ≤ 60 MB | Sum of the file lengths inside a built single-architecture `.msix` (a zip). **Skipped, with the reason, when there is no package** (`build/out/package/MikePDF_<version>_<arch>.msix`, `--package`, or `--base-package` / `--head-package` for `ab`, which the perf workflow gives the head). The hard gate is the package job in `store-release.yml` (`build/store/check-package-size.ps1`). Measurements and choices: [install-size.md](install-size.md) | Optional AI models (there are none yet) |
 | `package.msix_file_size` | none | Size of the `.msix` file | |
 
 Not measured by this harness, and why:
