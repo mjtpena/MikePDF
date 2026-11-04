@@ -1,5 +1,7 @@
 #include "mikepdf/pdfium/document.h"
 
+#include "document_internal.h"
+
 #include <algorithm>
 #include <array>
 #include <cmath>
@@ -27,6 +29,7 @@ namespace mikepdf::pdfium {
 
 using protocol::Result;
 using protocol::Status;
+using namespace detail;
 
 namespace {
 
@@ -34,7 +37,6 @@ constexpr std::uint32_t kMaxPages = 10'000'000;      // schema limit of pageCoun
 constexpr float kMinPageSide = 1.0f;
 constexpr float kMaxPageSide = 14400.0f;              // schema limit of GetPageSizesReply
 constexpr std::size_t kMaxMetaStringBytes = 1024;     // schema limit of the info strings
-constexpr unsigned long kMaxMetaRawBytes = 64 * 1024;  // refuse to copy a larger raw string out of PDFium
 constexpr std::size_t kMaxDateBytes = 64;             // schema limit of the two dates in GetDocumentDetailsReply
 constexpr std::size_t kMaxFonts = 64;
 constexpr std::size_t kMaxFontNameBytes = 128;
@@ -54,7 +56,6 @@ constexpr std::size_t kMaxUriBytes = 2048;
 constexpr std::uint32_t kMaxPageChars = 200'000;        // GetPageTextReply.total
 constexpr std::size_t kMaxSearchMatches = 2048;
 constexpr std::uint32_t kSearchPollEvery = 64;
-constexpr double kMaxCoordinate = 1'000'000.0;          // the schema's range for every coordinate
 
 // The kinds of a destination (GetOutlineReply.kinds).
 constexpr std::uint16_t kDestNone = 0;
@@ -63,11 +64,6 @@ constexpr std::uint16_t kDestPageY = 2;
 constexpr std::uint16_t kDestPageXY = 3;
 constexpr std::uint16_t kDestExternal = 4;
 constexpr std::uint16_t kDestOther = 5;
-
-template <class T>
-Result<T> failure(Status status, const char* detail) {
-    return {status, T{}, detail};
-}
 
 // PDFium reports both "no password" and "wrong password" as FPDF_ERR_PASSWORD.
 Status status_from_load_error(unsigned long error, bool password_given) {
@@ -83,48 +79,6 @@ Status status_from_load_error(unsigned long error, bool password_given) {
         default:
             return Status::Damaged;
     }
-}
-
-void append_utf8(std::string& out, char32_t cp) {
-    if (cp < 0x80) {
-        out += static_cast<char>(cp);
-    } else if (cp < 0x800) {
-        out += static_cast<char>(0xC0 | (cp >> 6));
-        out += static_cast<char>(0x80 | (cp & 0x3F));
-    } else if (cp < 0x10000) {
-        out += static_cast<char>(0xE0 | (cp >> 12));
-        out += static_cast<char>(0x80 | ((cp >> 6) & 0x3F));
-        out += static_cast<char>(0x80 | (cp & 0x3F));
-    } else {
-        out += static_cast<char>(0xF0 | (cp >> 18));
-        out += static_cast<char>(0x80 | ((cp >> 12) & 0x3F));
-        out += static_cast<char>(0x80 | ((cp >> 6) & 0x3F));
-        out += static_cast<char>(0x80 | (cp & 0x3F));
-    }
-}
-
-std::size_t utf8_length(char32_t cp) { return cp < 0x80 ? 1 : cp < 0x800 ? 2 : cp < 0x10000 ? 3 : 4; }
-
-// UTF-16LE to strict UTF-8: stops at the first NUL, replaces unpaired surrogates with U+FFFD, and stops before a code
-// point that would not fit in `max_bytes`, so the result always satisfies the schema's text rule.
-std::string utf16_to_utf8(const std::vector<char16_t>& units, std::size_t max_bytes) {
-    std::string out;
-    for (std::size_t i = 0; i < units.size();) {
-        char32_t cp = units[i++];
-        if (cp == 0) {
-            break;
-        }
-        if (cp >= 0xD800 && cp <= 0xDBFF && i < units.size() && units[i] >= 0xDC00 && units[i] <= 0xDFFF) {
-            cp = 0x10000 + ((cp - 0xD800) << 10) + (units[i++] - 0xDC00);
-        } else if (cp >= 0xD800 && cp <= 0xDFFF) {
-            cp = 0xFFFD;
-        }
-        if (out.size() + utf8_length(cp) > max_bytes) {
-            break;
-        }
-        append_utf8(out, cp);
-    }
-    return out;
 }
 
 std::string meta_text(FPDF_DOCUMENT doc, const char* tag, std::size_t max_bytes = kMaxMetaStringBytes) {
@@ -145,18 +99,6 @@ float clamp_page_side(float value) {
     }
     return std::min(value, kMaxPageSide);
 }
-
-struct PageHandle {
-    FPDF_PAGE page{nullptr};
-    PageHandle(FPDF_DOCUMENT doc, int index) : page(FPDF_LoadPage(doc, index)) {}
-    ~PageHandle() {
-        if (page != nullptr) {
-            FPDF_ClosePage(page);
-        }
-    }
-    PageHandle(const PageHandle&) = delete;
-    PageHandle& operator=(const PageHandle&) = delete;
-};
 
 struct BitmapHandle {
     FPDF_BITMAP bitmap{nullptr};
@@ -285,51 +227,7 @@ bool collect_fonts(FPDF_PAGE page, FPDF_PAGEOBJECT form, int depth, std::uint32_
 
 }  // namespace
 
-struct Document::PageCache {
-    std::uint32_t index{};
-    FPDF_PAGE page{nullptr};
-    FPDF_TEXTPAGE text{nullptr};
-    bool text_failed{false};
-
-    PageCache() = default;
-    PageCache(const PageCache&) = delete;
-    PageCache& operator=(const PageCache&) = delete;
-    // The text page must go before the page it was made from, and both before the document.
-    ~PageCache() {
-        if (text != nullptr) {
-            FPDFText_ClosePage(text);
-        }
-        if (page != nullptr) {
-            FPDF_ClosePage(page);
-        }
-    }
-
-    FPDF_TEXTPAGE text_page() {
-        if (text == nullptr && !text_failed) {
-            text = FPDFText_LoadPage(page);
-            text_failed = text == nullptr;
-        }
-        return text;
-    }
-};
-
 void Document::PageCacheDeleter::operator()(PageCache* cache) const noexcept { delete cache; }
-
-// PDFium's form-fill environment for one document. The info struct is read by PDFium for as long as the environment lives, so it is kept here; every callback in it is
-// null, which is what makes the environment headless: no scripting (no JavaScript platform), no timers, no alerts, no network or file access, no clipboard.
-struct Document::FormFill {
-    FPDF_FORMFILLINFO info{};
-    FPDF_FORMHANDLE handle{nullptr};
-
-    FormFill() = default;
-    FormFill(const FormFill&) = delete;
-    FormFill& operator=(const FormFill&) = delete;
-    ~FormFill() {
-        if (handle != nullptr) {
-            FPDFDOC_ExitFormFillEnvironment(handle);
-        }
-    }
-};
 
 void Document::FormFillDeleter::operator()(FormFill* form) const noexcept { delete form; }
 
@@ -339,7 +237,12 @@ Document::Document(Document&& other) noexcept
     : handle_(std::exchange(other.handle_, nullptr)),
       page_count_(std::exchange(other.page_count_, 0)),
       cache_(std::move(other.cache_)),
-      form_(std::move(other.form_)) {}
+      form_(std::move(other.form_)),
+      mirror_(std::move(other.mirror_)),
+      widgets_(std::move(other.widgets_)),
+      widgets_scanned_pages_(std::exchange(other.widgets_scanned_pages_, 0)),
+      widgets_ready_(std::exchange(other.widgets_ready_, false)),
+      quads_(std::move(other.quads_)) {}
 
 Document& Document::operator=(Document&& other) noexcept {
     if (this != &other) {
@@ -348,6 +251,11 @@ Document& Document::operator=(Document&& other) noexcept {
         page_count_ = std::exchange(other.page_count_, 0);
         cache_ = std::move(other.cache_);
         form_ = std::move(other.form_);
+        mirror_ = std::move(other.mirror_);
+        widgets_ = std::move(other.widgets_);
+        widgets_scanned_pages_ = std::exchange(other.widgets_scanned_pages_, 0);
+        widgets_ready_ = std::exchange(other.widgets_ready_, false);
+        quads_ = std::move(other.quads_);
     }
     return *this;
 }
@@ -497,7 +405,7 @@ bool Document::has_skewed_image(FPDF_PAGE page, std::uint32_t index) {
     return skew_value_;
 }
 
-Status Document::render_window(FPDF_PAGE page, std::uint32_t index, int x, int y, int width, int height, int size_x, int size_y, int rotate, bool with_forms,
+Status Document::render_window(FPDF_PAGE page, std::uint32_t index, int x, int y, int width, int height, int size_x, int size_y, int rotate, FormDraw forms,
                                int flags, std::uint8_t* destination, std::uint32_t stride, const InterruptCheck& interrupt) {
     const bool away_from_corner = x > 0 || y > 0;
     if (away_from_corner) {
@@ -518,7 +426,7 @@ Status Document::render_window(FPDF_PAGE page, std::uint32_t index, int x, int y
                     return Status::InvalidArgument;
                 }
                 FPDFBitmap_FillRect(bitmap.bitmap, 0, 0, static_cast<int>(scratch_width), static_cast<int>(scratch_height), 0xFFFFFFFFu);
-                const Status status = render_page(bitmap.bitmap, page, -origin_x, -origin_y, size_x, size_y, rotate, with_forms, flags, interrupt);
+                const Status status = render_page(bitmap.bitmap, page, -origin_x, -origin_y, size_x, size_y, rotate, forms, flags, interrupt);
                 if (status == Status::Ok || status == Status::PartiallyRendered) {
                     const std::uint8_t* from = scratch.get() + (static_cast<std::uint64_t>(y - origin_y) * scratch_width + static_cast<std::uint64_t>(x - origin_x)) * 4;
                     for (int row = 0; row < height; ++row) {
@@ -536,7 +444,7 @@ Status Document::render_window(FPDF_PAGE page, std::uint32_t index, int x, int y
         return Status::InvalidArgument;
     }
     FPDFBitmap_FillRect(bitmap.bitmap, 0, 0, width, height, 0xFFFFFFFFu);
-    return render_page(bitmap.bitmap, page, -x, -y, size_x, size_y, rotate, with_forms, flags, interrupt);
+    return render_page(bitmap.bitmap, page, -x, -y, size_x, size_y, rotate, forms, flags, interrupt);
 }
 
 namespace {
@@ -705,10 +613,10 @@ Document::FormFill* Document::form_fill() {
 // Draws the page and, when asked, its widgets. A widget is drawn only by FPDF_FFLDraw, which always draws every widget (the FPDF_ANNOT flag only decides about the
 // other interactive annotations, which a still image has no use for); it has to follow the page's own drawing and uses the same transform, so the widgets land on
 // the pixels the page content does, in every tile and every band. FFLDraw cannot be paused, so it runs only for a page that was drawn to the end.
-Status Document::render_page(FPDF_BITMAP bitmap, FPDF_PAGE page, int start_x, int start_y, int size_x, int size_y, int rotate, bool with_forms, int flags,
+Status Document::render_page(FPDF_BITMAP bitmap, FPDF_PAGE page, int start_x, int start_y, int size_x, int size_y, int rotate, FormDraw forms, int flags,
                              const InterruptCheck& interrupt) {
     FormFill* form = nullptr;
-    if (with_forms) {
+    if (forms != FormDraw::None) {
         form = form_fill();
         if (form == nullptr) {
             return Status::Unsupported;
@@ -718,7 +626,15 @@ Status Document::render_page(FPDF_BITMAP bitmap, FPDF_PAGE page, int start_x, in
     const Status status = render_progressive(bitmap, page, start_x, start_y, size_x, size_y, rotate, flags, interrupt);
     if (form != nullptr) {
         if (status == Status::Ok || status == Status::PartiallyRendered) {
+            if (forms == FormDraw::Highlighted) {
+                // PDFium's own tint over the fillable widgets: a light blue, translucent. It is switched on for this draw only, so no other render of the document ever shows it.
+                FPDF_SetFormFieldHighlightColor(form->handle, FPDF_FORMFIELD_UNKNOWN, 0x00A8C8FFul);
+                FPDF_SetFormFieldHighlightAlpha(form->handle, 100);
+            }
             FPDF_FFLDraw(form->handle, bitmap, page, start_x, start_y, size_x, size_y, rotate, flags);
+            if (forms == FormDraw::Highlighted) {
+                FPDF_RemoveFormFieldHighlight(form->handle);
+            }
         }
         FORM_OnBeforeClosePage(page, form->handle);  // before the caller closes the page
     }
@@ -729,7 +645,9 @@ Status Document::render_tile(const TileRequest& request, std::span<std::uint8_t>
                              const InterruptCheck& interrupt) {
     if (handle_ == nullptr || request.page >= page_count_ || !std::isfinite(request.scale) || request.scale <= 0.0f ||
         request.rotation > 3 || request.tile_width == 0 || request.tile_width > kMaxTileSide || request.tile_height == 0 ||
-        request.tile_height > kMaxTileSide || (request.flags & ~(kRenderAnnotations | kRenderFormFields | kRenderDarkPage)) != 0) {
+        request.tile_height > kMaxTileSide ||
+        (request.flags & ~(kRenderAnnotations | kRenderFormFields | kRenderDarkPage | kRenderFieldHighlight)) != 0 ||
+        ((request.flags & kRenderFieldHighlight) != 0 && (request.flags & kRenderFormFields) == 0)) {
         return Status::InvalidArgument;
     }
     const std::uint64_t row_bytes = std::uint64_t{request.tile_width} * 4;
@@ -754,9 +672,10 @@ Status Document::render_tile(const TileRequest& request, std::span<std::uint8_t>
     }
 
     const int flags = (request.flags & kRenderAnnotations) != 0 ? FPDF_ANNOT : 0;
+    const FormDraw forms = (request.flags & kRenderFormFields) == 0 ? FormDraw::None : (request.flags & kRenderFieldHighlight) != 0 ? FormDraw::Highlighted : FormDraw::Fields;
     const Status status = render_window(page.page, request.page, request.tile_x, request.tile_y, static_cast<int>(request.tile_width),
                                         static_cast<int>(request.tile_height), static_cast<int>(device_width), static_cast<int>(device_height), request.rotation,
-                                        (request.flags & kRenderFormFields) != 0, flags, destination.data(), stride, interrupt);
+                                        forms, flags, destination.data(), stride, interrupt);
     if ((request.flags & kRenderDarkPage) != 0 && (status == Status::Ok || status == Status::PartiallyRendered)) {
         // The photographs' rectangles in the device pixels of the whole page, from the same transform the page was drawn with.
         std::vector<std::array<int, 4>> keep;
@@ -808,7 +727,8 @@ Status Document::render_band(const BandRequest& request, std::span<std::uint8_t>
         flags |= FPDF_PRINTING;
     }
     return render_window(page.page, request.page, 0, static_cast<int>(request.band_top), static_cast<int>(request.page_width_px), static_cast<int>(request.band_height),
-                         static_cast<int>(request.page_width_px), static_cast<int>(request.page_height_px), request.rotation, (request.flags & kRenderFormFields) != 0, flags,
+                         static_cast<int>(request.page_width_px), static_cast<int>(request.page_height_px), request.rotation,
+                         (request.flags & kRenderFormFields) != 0 ? FormDraw::Fields : FormDraw::None, flags,
                          destination.data(), stride, interrupt);
 }
 
@@ -868,13 +788,6 @@ Result<protocol::GetViewerPreferencesReply> Document::viewer_preferences() {
 // ---- reading services (WP-S2) ----------------------------------------------------------------------------------------------
 
 namespace {
-
-float clamp_coordinate(double value) {
-    if (!std::isfinite(value)) {
-        return 0.0f;
-    }
-    return static_cast<float>(std::clamp(value, -kMaxCoordinate, kMaxCoordinate));
-}
 
 struct Destination {
     std::uint16_t kind{kDestNone};
@@ -980,41 +893,6 @@ std::string bookmark_title(FPDF_BOOKMARK bookmark) {
         return {};
     }
     return utf16_to_utf8(buffer, kMaxOutlineTitleBytes);
-}
-
-// The input has passed protocol::is_valid_text, so it is well-formed UTF-8.
-std::u16string utf8_to_utf16(std::string_view text) {
-    std::u16string out;
-    out.reserve(text.size());
-    for (std::size_t i = 0; i < text.size();) {
-        const auto lead = static_cast<unsigned char>(text[i]);
-        char32_t cp = 0;
-        std::size_t extra = 0;
-        if (lead < 0x80) {
-            cp = lead;
-        } else if (lead < 0xE0) {
-            cp = lead & 0x1Fu;
-            extra = 1;
-        } else if (lead < 0xF0) {
-            cp = lead & 0x0Fu;
-            extra = 2;
-        } else {
-            cp = lead & 0x07u;
-            extra = 3;
-        }
-        ++i;
-        for (std::size_t k = 0; k < extra && i < text.size(); ++k, ++i) {
-            cp = (cp << 6) | (static_cast<unsigned char>(text[i]) & 0x3Fu);
-        }
-        if (cp >= 0x10000) {
-            cp -= 0x10000;
-            out += static_cast<char16_t>(0xD800 + (cp >> 10));
-            out += static_cast<char16_t>(0xDC00 + (cp & 0x3FF));
-        } else {
-            out += static_cast<char16_t>(cp);
-        }
-    }
-    return out;
 }
 
 bool has_control_character(std::string_view text) {

@@ -9,6 +9,7 @@
 #include <atomic>
 #include <chrono>
 #include <cstdint>
+#include <functional>
 #include <memory>
 #include <mutex>
 #include <optional>
@@ -70,7 +71,9 @@ public:
     [[nodiscard]] Reply attach_slot_ring(const protocol::AttachSlotRing& request);
 
     /// OpenDocument, CloseDocument, GetDocumentInfo, GetPageSizes, RenderTile, RenderBand and the reading services (GetOutline, GetPageLinks,
-    /// GetLinkUri, GetPageBoxes, GetPageText, SearchPage), GetDocumentDetails and GetViewerPreferences. Anything else is InvalidArgument.
+    /// GetLinkUri, GetPageBoxes, GetPageText, SearchPage), GetDocumentDetails and GetViewerPreferences; and, from schema 7, GetTextQuads, the annotation read side
+    /// (ListAnnotations, GetAnnotation, GetInkStroke, SetAnnotationHidden, CountAnnotations), the form messages (GetFormFields, GetFormFieldDetail, SetFormFieldValue,
+    /// FormAction) and SaveDocument. Anything else is InvalidArgument.
     /// `deadline` is when the request's budget runs out (time_point::max() for none). The OpenDocument password is wiped
     /// from `request` once it has been used.
     [[nodiscard]] Reply execute(protocol::RequestEnvelope& request, Clock::time_point deadline);
@@ -98,6 +101,7 @@ private:
 
     [[nodiscard]] Reply open_document(protocol::OpenDocument& request, Clock::time_point deadline);
     [[nodiscard]] Reply close_document(std::uint32_t id);
+    [[nodiscard]] Reply save_document(std::uint32_t document_id, const protocol::SaveDocument& request, Clock::time_point deadline);
     [[nodiscard]] Reply get_info(Entry& entry);
     [[nodiscard]] Reply get_details(Entry& entry, Clock::time_point deadline);
     [[nodiscard]] Reply get_page_sizes(Entry& entry, const protocol::GetPageSizes& request);

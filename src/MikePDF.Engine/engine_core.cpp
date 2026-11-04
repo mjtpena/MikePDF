@@ -1,5 +1,6 @@
 #include "engine_core.h"
 
+#include "handle_guard.h"
 #include "slot_section.h"
 
 #include <Windows.h>
@@ -93,13 +94,18 @@ Reply EngineCore::execute(protocol::RequestEnvelope& request, Clock::time_point 
     } end_tick{*this};
     tick();
     if (kind_ == EngineKind::Shell && !is_served_by_shell_kind(request.message_type)) {
-        return status_only(Status::Unsupported);  // none of these carries a handle, so there is nothing to consume
+        if (request.message_type == protocol::MessageType::SaveDocument) {
+            MappedFile::discard_handle(std::get<protocol::SaveDocument>(request.payload).output_handle);  // the one refused message that carries a handle
+        }
+        return status_only(Status::Unsupported);
     }
     switch (request.message_type) {
         case protocol::MessageType::OpenDocument:
             return open_document(std::get<protocol::OpenDocument>(request.payload), deadline);
         case protocol::MessageType::CloseDocument:
             return close_document(request.document_id);
+        case protocol::MessageType::SaveDocument:
+            return save_document(request.document_id, std::get<protocol::SaveDocument>(request.payload), deadline);
         case protocol::MessageType::GetDocumentInfo:
         case protocol::MessageType::GetPageSizes:
         case protocol::MessageType::GetOutline:
@@ -110,6 +116,16 @@ Reply EngineCore::execute(protocol::RequestEnvelope& request, Clock::time_point 
         case protocol::MessageType::SearchPage:
         case protocol::MessageType::GetDocumentDetails:
         case protocol::MessageType::GetViewerPreferences:
+        case protocol::MessageType::GetTextQuads:
+        case protocol::MessageType::ListAnnotations:
+        case protocol::MessageType::GetAnnotation:
+        case protocol::MessageType::GetInkStroke:
+        case protocol::MessageType::SetAnnotationHidden:
+        case protocol::MessageType::CountAnnotations:
+        case protocol::MessageType::GetFormFields:
+        case protocol::MessageType::GetFormFieldDetail:
+        case protocol::MessageType::SetFormFieldValue:
+        case protocol::MessageType::FormAction:
         case protocol::MessageType::RenderBand:
         case protocol::MessageType::RenderTile: {
             if (Clock::now() >= deadline) {
@@ -187,6 +203,58 @@ Reply EngineCore::open_document(protocol::OpenDocument& request, Clock::time_poi
     return ok_with(reply);
 }
 
+// SaveDocument (schema 7): PDFium's own save of the in-memory document into a file handle the broker duplicated into this process. The handle is consumed (closed) on every path. The save
+// itself cannot be interrupted, so the deadline is looked at before it starts and the broker's watchdog is what ends one that does not finish.
+Reply EngineCore::save_document(std::uint32_t document_id, const protocol::SaveDocument& request, Clock::time_point deadline) {
+    HANDLE file = reinterpret_cast<HANDLE>(static_cast<std::uintptr_t>(request.output_handle));
+    struct Closer {
+        HANDLE handle;
+        ~Closer() {
+            if (handle != nullptr && handle != INVALID_HANDLE_VALUE) {
+                close_if_handle(handle);
+            }
+        }
+    } closer{file};
+    if (Clock::now() >= deadline) {
+        return status_only(Status::Timeout);
+    }
+    Entry* entry = find(document_id);
+    if (entry == nullptr) {
+        return status_only(Status::InvalidArgument);
+    }
+    if (request.mode == 2) {
+        return status_only(Status::Unsupported);  // the flattened copy is made by the writer host (ADR-0008 amendment A2)
+    }
+    if (request.flags != 0 || file == nullptr || file == INVALID_HANDLE_VALUE || file_type_or_unknown(file) != FILE_TYPE_DISK) {
+        return status_only(Status::InvalidArgument);
+    }
+
+    DWORD last_error = 0;
+    const auto sink = [&](const void* data, unsigned long size) {
+        const auto* bytes = static_cast<const std::uint8_t*>(data);
+        while (size > 0) {
+            DWORD written = 0;
+            if (!WriteFile(file, bytes, size, &written, nullptr) || written == 0) {
+                last_error = GetLastError();
+                return false;
+            }
+            bytes += written;
+            size -= written;
+            tick();  // a long save is progress, not a stall
+        }
+        return true;
+    };
+    std::uint64_t bytes_written = 0;
+    const Status status = entry->document.save(request.mode == 0, sink, bytes_written);
+    if (status != Status::Ok) {
+        return status_only(last_error == ERROR_ACCESS_DENIED ? Status::PermissionDenied : status);
+    }
+    protocol::SaveDocumentReply reply;
+    reply.bytes_written = bytes_written;
+    reply.page_count = entry->document.page_count();
+    return ok_with(reply);
+}
+
 void EngineCore::close_all() {
     std::unordered_map<std::uint32_t, std::unique_ptr<Entry>> doomed;
     {
@@ -242,6 +310,11 @@ Reply EngineCore::get_page_sizes(Entry& entry, const protocol::GetPageSizes& req
 
 // The reading services: every one answers with a typed status and, on success, a reply that obeys the schema limits (the encoder checks).
 Reply EngineCore::read_page_data(Entry& entry, protocol::RequestEnvelope& request, Clock::time_point deadline) {
+    // Polled between pages by the services that walk many of them: it is the deadline, and it counts as progress for the broker's hang detection.
+    const std::function<bool()> expired = [this, deadline] {
+        tick();
+        return Clock::now() >= deadline;
+    };
     switch (request.message_type) {
         case protocol::MessageType::GetOutline: {
             const auto& r = std::get<protocol::GetOutline>(request.payload);
@@ -273,6 +346,56 @@ Reply EngineCore::read_page_data(Entry& entry, protocol::RequestEnvelope& reques
                 tick();
                 return Clock::now() >= deadline;
             });
+            return result.ok() ? ok_with(std::move(result.value)) : status_only(result.status);
+        }
+        // Schema 7. The ones that can run long poll the deadline between pages (and so move the progress counter); the rest are one page's worth of work.
+        case protocol::MessageType::GetTextQuads: {
+            const auto& r = std::get<protocol::GetTextQuads>(request.payload);
+            auto result = entry.document.text_quads(r.page, r.start, r.count, r.first_quad);
+            return result.ok() ? ok_with(std::move(result.value)) : status_only(result.status);
+        }
+        case protocol::MessageType::ListAnnotations: {
+            const auto& r = std::get<protocol::ListAnnotations>(request.payload);
+            auto result = entry.document.list_annotations(r.page, r.first, r.count);
+            return result.ok() ? ok_with(std::move(result.value)) : status_only(result.status);
+        }
+        case protocol::MessageType::GetAnnotation: {
+            const auto& r = std::get<protocol::GetAnnotation>(request.payload);
+            auto result = entry.document.annotation(r.page, r.index);
+            return result.ok() ? ok_with(std::move(result.value)) : status_only(result.status);
+        }
+        case protocol::MessageType::GetInkStroke: {
+            const auto& r = std::get<protocol::GetInkStroke>(request.payload);
+            auto result = entry.document.ink_stroke(r.page, r.index, r.stroke, r.first, r.count);
+            return result.ok() ? ok_with(std::move(result.value)) : status_only(result.status);
+        }
+        case protocol::MessageType::SetAnnotationHidden: {
+            const auto& r = std::get<protocol::SetAnnotationHidden>(request.payload);
+            const Status status = entry.document.set_annotation_hidden(r.page, r.index, r.hidden);
+            return status == Status::Ok ? ok_with(protocol::SetAnnotationHiddenReply{}) : status_only(status);
+        }
+        case protocol::MessageType::CountAnnotations: {
+            const auto& r = std::get<protocol::CountAnnotations>(request.payload);
+            auto result = entry.document.count_annotations(r.first_page, r.count, expired);
+            return result.ok() ? ok_with(std::move(result.value)) : status_only(result.status);
+        }
+        case protocol::MessageType::GetFormFields: {
+            const auto& r = std::get<protocol::GetFormFields>(request.payload);
+            auto result = entry.document.form_fields(r.first, r.count, expired);
+            return result.ok() ? ok_with(std::move(result.value)) : status_only(result.status);
+        }
+        case protocol::MessageType::GetFormFieldDetail: {
+            const auto& r = std::get<protocol::GetFormFieldDetail>(request.payload);
+            auto result = entry.document.form_field_detail(r.field_id, r.first_option, expired);
+            return result.ok() ? ok_with(std::move(result.value)) : status_only(result.status);
+        }
+        case protocol::MessageType::SetFormFieldValue: {
+            auto result = entry.document.set_form_field_value(std::get<protocol::SetFormFieldValue>(request.payload), expired);
+            return result.ok() ? ok_with(std::move(result.value)) : status_only(result.status);
+        }
+        case protocol::MessageType::FormAction: {
+            const auto& r = std::get<protocol::FormAction>(request.payload);
+            auto result = entry.document.form_action(r.field_id, r.action, expired);
             return result.ok() ? ok_with(std::move(result.value)) : status_only(result.status);
         }
         default:
