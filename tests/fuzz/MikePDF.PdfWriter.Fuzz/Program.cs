@@ -6,7 +6,7 @@ internal static class Program
 {
     private delegate void Target(ReadOnlySpan<byte> input);
 
-    // Targets: parse, append (the parser and the incremental writer), edit (stage 4 and the copies on arbitrary files), journal (the edit journal's reader and the
+    // Targets: parse, append (the parser and the incremental writer), edit (stage 4 and the copies on arbitrary files), assemble (the page assembler on arbitrary files), journal (the edit journal's reader and the
     // recovery code behind it), editblob (the edit blob's reader and the appender on what it decodes). `<journal|editblob> --seeds-out <dir>` writes their seeds.
     // MikePDF.Fuzz.Shared and the targets below are also run by tests/fuzz/MikePDF.Fuzz.Tests on every build.
     // MikePDF.PdfWriter.Fuzz <parse|append> --libfuzzer                                               coverage-guided child mode for libfuzzer_dotnet.exe (ADR-0017)
@@ -21,6 +21,7 @@ internal static class Program
             "parse" => FuzzTargets.ParseAndValidate,
             "append" => FuzzTargets.AppendRoundTrip,
             "edit" => SaveFuzzTargets.EditPdf,
+            "assemble" => AssembleFuzzTargets.Assemble,
             "journal" => SaveFuzzTargets.JournalParse,
             "editblob" => SaveFuzzTargets.EditBlobDecode,
             _ => null,
@@ -28,7 +29,7 @@ internal static class Program
 
         if (target is null)
         {
-            Console.Error.WriteLine("usage: MikePDF.PdfWriter.Fuzz <parse|append|edit|journal|editblob> --libfuzzer | <target> --replay <file> | <target> --mutate <seconds> ...");
+            Console.Error.WriteLine("usage: MikePDF.PdfWriter.Fuzz <parse|append|edit|assemble|journal|editblob> --libfuzzer | <target> --replay <file> | <target> --mutate <seconds> ...");
             return 2;
         }
 
@@ -45,6 +46,7 @@ internal static class Program
                 "parse" => FuzzTargets.ParseOutcome,
                 "append" => FuzzTargets.AppendOutcome,
                 "edit" => SaveFuzzTargets.EditOutcome,
+                "assemble" => AssembleFuzzTargets.AssembleOutcome,
                 "journal" => SaveFuzzTargets.JournalOutcome,
                 _ => SaveFuzzTargets.EditBlobOutcome,
             },
