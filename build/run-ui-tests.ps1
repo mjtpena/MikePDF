@@ -18,6 +18,9 @@ param(
     [switch] $KeepInstalled,
     # A package layout made by build/package.ps1 (its stage-<arch> folder) to test instead of the build output: the shipped, published app.
     [string] $PackageLayout,
+    # For the GitHub-hosted runner (.github/workflows/ui-journeys.yml): turns Developer Mode on (an HKLM write, so it refuses to run anywhere else), and
+    # writes a TRX report to build/out/ui-results. The registered manifest and the shell-handler check are the same as locally.
+    [switch] $Ci,
     [string] ${Filter-method}
 )
 $ErrorActionPreference = 'Stop'
@@ -38,6 +41,14 @@ function Stop-MikePDF {
     }
 }
 Set-Location $root
+
+if ($Ci) {
+    # Developer Mode is what lets Add-AppxPackage -Register take an unsigned layout. It is a machine setting (HKLM), so only a disposable hosted runner may have it set by a script.
+    if ($env:GITHUB_ACTIONS -ne 'true' -or $env:RUNNER_ENVIRONMENT -ne 'github-hosted') { throw '-Ci changes a machine setting and runs only on a GitHub-hosted runner.' }
+    $unlock = 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\AppModelUnlock'
+    New-Item -Path $unlock -Force | Out-Null
+    Set-ItemProperty -Path $unlock -Name AllowDevelopmentWithoutDevLicense -Value 1 -Type DWord
+}
 
 if (-not $SkipBuild -and -not $SkipNativeBuild) {
     & (Join-Path $root 'build.ps1') -Arch $Arch -SkipManaged
@@ -77,6 +88,18 @@ $left = Test-ShellEntries $manifest
 if ($left.Count -gt 0) { throw "The manifest copy still has shell handler entries ($($left -join ', ')); refusing to register it." }
 Write-Host "Shell handlers (thumbnail provider, preview handler, their COM servers) were REMOVED from the manifest this run registers; the rest, including the .pdf association, is unchanged. Layout: $layout" -ForegroundColor Yellow
 $identity = ([xml](Get-Content $manifest -Raw)).Package.Identity.Name
+if ($Ci) {
+    # A fresh hosted runner has no Windows App SDK framework package, which the package depends on (a developer machine has it from the store or an earlier install).
+    # It is the pinned NuGet package's own MSIX, the same one build/store/install-test.ps1 installs.
+    $pin = [regex]::Match((Get-Content (Join-Path $root 'Directory.Packages.props') -Raw), 'Include="Microsoft.WindowsAppSDK" Version="([^"]+)"').Groups[1].Value
+    $packages = if ($env:NUGET_PACKAGES) { $env:NUGET_PACKAGES } else { Join-Path $env:USERPROFILE '.nuget\packages' }
+    $framework = Join-Path $packages "microsoft.windowsappsdk.runtime\$pin\tools\MSIX\win10-$Arch\Microsoft.WindowsAppRuntime.2.msix"
+    if (-not (Test-Path $framework)) { throw "Windows App SDK framework package not found: $framework" }
+    # The arm64 image already has a newer one (2.6.4), which satisfies the manifest and cannot be replaced by the older pin: install only when none at or above the pin is there.
+    $have = Get-AppxPackage -Name Microsoft.WindowsAppRuntime.2 | Where-Object { $_.Architecture -eq $Arch -and [version]$_.Version -ge [version]$pin }
+    if ($have) { Write-Host "Windows App SDK framework already installed: $(@($have)[0].PackageFullName)" }
+    else { Add-AppxPackage -Path $framework -ForceApplicationShutdown -ErrorAction Stop }
+}
 $previous = Get-AppxPackage -Name $identity
 if ($previous) { Remove-AppxPackage $previous.PackageFullName }
 Add-AppxPackage -Register $manifest
@@ -90,14 +113,42 @@ $shots = Join-Path $root 'build/out/shots'
 New-Item -ItemType Directory -Force $shots | Out-Null
 try {
     $env:MIKEPDF_UI_TESTS = '1'
+    if ($Ci) { $env:MIKEPDF_UI_CI = '1'; $env:MIKEPDF_UI_ARCH = $Arch }
     $env:MIKEPDF_SHOTS_DIR = $shots
     $arguments = @('test', '--project', (Join-Path $root 'tests/MikePDF.UI.Tests'), '-c', 'Release', '--no-build')
+    if ($Ci) {
+        $results = Join-Path $root 'build/out/ui-results'
+        New-Item -ItemType Directory -Force $results | Out-Null
+        $arguments += @('--results-directory', $results, '--report-xunit-trx', '--report-xunit-trx-filename', "ui-journeys-$Arch.trx")
+    }
     if (${Filter-method}) { $arguments += @('--filter-method', ${Filter-method}) }
     dotnet @arguments
     $code = $LASTEXITCODE
+    if ($Ci -and $code -ne 0) {
+        # A hosted runner loses an occasional key or flyout (docs/testing.md, "Flakes"). Run only the journeys that failed once more, each with a fresh app: one that passes the second time is
+        # reported as a flake by name (in the job summary and in flaky-<arch>.txt, uploaded with the TRX), one that fails twice fails the job. A run with many failures is broken, not flaky: no rerun.
+        $trx = Join-Path $root "build/out/ui-results/ui-journeys-$Arch.trx"
+        $failed = @()
+        if (Test-Path $trx) {
+            $failed = @(([xml](Get-Content $trx -Raw)).TestRun.Results.UnitTestResult | Where-Object { $_.outcome -eq 'Failed' } | ForEach-Object { ($_.testName -split '\.')[-1] } | Sort-Object -Unique)
+        }
+        if ($failed.Count -gt 0 -and $failed.Count -le 10) {
+            Write-Host "Rerunning $($failed.Count) failed journey(s) once: $($failed -join ', ')" -ForegroundColor Yellow
+            $rerun = @('test', '--project', (Join-Path $root 'tests/MikePDF.UI.Tests'), '-c', 'Release', '--no-build', '--results-directory', (Join-Path $root 'build/out/ui-results'), '--report-xunit-trx', '--report-xunit-trx-filename', "ui-journeys-$Arch-rerun.trx")
+            foreach ($name in $failed) { $rerun += @('--filter-method', "*$name") }
+            dotnet @rerun
+            $rerunCode = $LASTEXITCODE
+            $verdict = if ($rerunCode -eq 0) { 'passed on the rerun (flaky)' } else { 'FAILED AGAIN on the rerun' }
+            $lines = @("UI journeys ($Arch): $($failed.Count) failed on the first run, $verdict.") + ($failed | ForEach-Object { "- $_" })
+            $lines | Set-Content (Join-Path $root "build/out/ui-results/flaky-$Arch.txt")
+            if ($env:GITHUB_STEP_SUMMARY) { $lines | Add-Content $env:GITHUB_STEP_SUMMARY }
+            $lines | ForEach-Object { Write-Host $_ -ForegroundColor Yellow }
+            $code = $rerunCode
+        }
+    }
 }
 finally {
-    Remove-Item Env:MIKEPDF_UI_TESTS, Env:MIKEPDF_SHOTS_DIR -ErrorAction SilentlyContinue
+    Remove-Item Env:MIKEPDF_UI_TESTS, Env:MIKEPDF_UI_CI, Env:MIKEPDF_UI_ARCH, Env:MIKEPDF_SHOTS_DIR -ErrorAction SilentlyContinue
     Stop-MikePDF
     if (-not $KeepInstalled) { Get-AppxPackage -Name $identity | Remove-AppxPackage }
 }

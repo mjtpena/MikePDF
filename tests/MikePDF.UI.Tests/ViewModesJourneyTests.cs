@@ -15,9 +15,16 @@ public sealed class ViewModesJourneyTests : IDisposable
 {
     private readonly string _work = Path.Combine(Path.GetTempPath(), "mikepdf-ui-" + Guid.NewGuid().ToString("N")[..8]);
 
+    public ViewModesJourneyTests()
+    {
+        MikePDFApp.KillAll();
+        AppData.ResetSettings(); // each journey starts from the defaults, whatever an earlier one left (the dark-pages journey leaves page colour dark)
+    }
+
     public void Dispose()
     {
         MikePDFApp.KillAll();
+        AppData.ResetSettings();
         try
         {
             if (Directory.Exists(_work))
@@ -144,7 +151,7 @@ public sealed class ViewModesJourneyTests : IDisposable
     public void PV01_TheViewMenuHoldsTheModesAsARadioGroupAndAToggleAndNamesThem()
     {
         using var app = Open("menu.pdf", 6);
-        app.Click("ViewButton");
+        app.OpenMenu("ViewButton", "LayoutSingle");
         Assert.Equal("Single page", app.Require("LayoutSingle").Name);
         Assert.Equal("Two pages", app.Require("LayoutTwo").Name);
         Assert.Equal("Two pages with cover", app.Require("LayoutTwoCover").Name);
@@ -158,7 +165,7 @@ public sealed class ViewModesJourneyTests : IDisposable
         app.Click("LayoutTwo");
         WaitForLayout(app, "Two pages, continuous");
 
-        app.Click("ViewButton");
+        app.OpenMenu("ViewButton", "LayoutSingle");
         Assert.True(IsChecked(app.Require("LayoutTwo")));
         Assert.False(IsChecked(app.Require("LayoutSingle")));
         Assert.True(app.Require("LayoutCoverPage").IsEnabled);
@@ -166,7 +173,7 @@ public sealed class ViewModesJourneyTests : IDisposable
         WaitForLayout(app, "Two pages with cover, continuous");
         WaitForPages(app, 1, 1);
 
-        app.Click("ViewButton");
+        app.OpenMenu("ViewButton", "LayoutSingle");
         Assert.True(IsChecked(app.Require("LayoutTwoCover")));
         Assert.True(IsChecked(app.Require("LayoutCoverPage")));
         app.Click("LayoutContinuous");
@@ -179,7 +186,7 @@ public sealed class ViewModesJourneyTests : IDisposable
 
     // ---- one page at a time -----------------------------------------------------------------------------------------------------------------------------
 
-    [UiFact]
+    [UiFact(ciQuarantine: "the mouse-wheel notch does not reach the app on the hosted runners (the first notch never turned the page in 4 of 5 runs, with the pointer over the page and the app idle); keys, clicks and drags work. Roadmap: CI UI journeys")]
     public void PV08_PV20_InThePagedFlowTheKeysTurnPagesAndTheWheelNeedsOneNotchMore()
     {
         using var app = Open("paged.pdf", 6);
@@ -273,12 +280,12 @@ public sealed class ViewModesJourneyTests : IDisposable
         var two = Box(app, "2");
         Assert.True(two.Right < one.Left, $"page 2 ({two}) is left of page 1 ({one}) for a right-to-left binding");
 
-        app.Click("ViewButton");
+        app.OpenMenu("ViewButton", "LayoutSingle");
         app.Click("DirectionMenu");
         app.Click("DirectionLtr");
         app.WaitFor("left to right", () => Box(app, "1").Left < Box(app, "2").Left);
 
-        app.Click("ViewButton");
+        app.OpenMenu("ViewButton", "LayoutSingle");
         app.Click("DirectionMenu");
         app.Click("DirectionAuto");
         app.WaitFor("the document's own direction again", () => Box(app, "1").Left > Box(app, "2").Left);
@@ -423,7 +430,7 @@ public sealed class ViewModesJourneyTests : IDisposable
         var layoutBefore = Layout(app);
         var pageBefore = app.CurrentPage;
 
-        app.PressWithControl(VirtualKeyShort.KEY_L);
+        app.StartPresentation();
         app.WaitFor("the presentation", () => app.Exists("PresentationSurface"));
         var screenWidth = GetSystemMetrics(0);
         var screenHeight = GetSystemMetrics(1);
@@ -488,7 +495,7 @@ public sealed class ViewModesJourneyTests : IDisposable
         app.FocusPages();
         var heard = new List<(string Text, string Activity)>();
         using var listening = app.ListenForNotifications(heard);
-        app.PressWithControl(VirtualKeyShort.KEY_L);
+        app.StartPresentation();
         WaitForSlide(app, 1, 9);
         Assert.Single(Heard(heard, "Presentation mode. Page 1 of 9. Press Escape to exit."));
 
@@ -560,7 +567,7 @@ public sealed class ViewModesJourneyTests : IDisposable
         using var app = MikePDFApp.Launch(pdf);
         app.WaitForDocument(4);
         app.FocusPages();
-        app.PressWithControl(VirtualKeyShort.KEY_L);
+        app.StartPresentation();
         WaitForSlide(app, 1, 4);
         var link = app.ScreenBoxOf(NamedDestinationPdf.AlphaLine);
         app.WaitFor("the link text", () => (link = app.ScreenBoxOf(NamedDestinationPdf.AlphaLine)) is not null);
@@ -588,7 +595,7 @@ public sealed class ViewModesJourneyTests : IDisposable
     {
         using var app = Open("exit.pdf", 3);
         MoveMouseTo(Centre(app.Require("PageSurface"))); // away from where the bar will be
-        app.PressWithControl(VirtualKeyShort.KEY_L);
+        app.StartPresentation();
         WaitForSlide(app, 1, 3);
         app.WaitFor("the bar with Exit, at the start", () => app.Exists("PresentationExit"));
         app.WaitFor("the bar gone again", () => !app.Exists("PresentationExit"), TimeSpan.FromSeconds(10));
@@ -682,7 +689,7 @@ public sealed class ViewModesJourneyTests : IDisposable
         app.FocusPages();
         app.Press(VirtualKeyShort.F11);
         app.WaitFor("full screen", () => !app.Exists("OpenButton"));
-        app.PressWithControl(VirtualKeyShort.KEY_L);
+        app.StartPresentation();
         WaitForSlide(app, 1, 3);
         app.Press(VirtualKeyShort.F11); // F11 leaves the presentation, not the full screen it came from
         app.WaitFor("back to the full-screen reading", () => !app.Exists("PresentationSurface") && app.Exists("PageSurface"));
@@ -696,7 +703,7 @@ public sealed class ViewModesJourneyTests : IDisposable
         app.Chord(VirtualKeyShort.ALT, VirtualKeyShort.KEY_1);
         app.WaitForDocument(3);
         app.FocusPages();
-        app.PressWithControl(VirtualKeyShort.KEY_L);
+        app.StartPresentation();
         WaitForSlide(app, 1, 3);
         app.Chord(VirtualKeyShort.ALT, VirtualKeyShort.KEY_2);
         app.WaitFor("tab b shown and the presentation over", () => !app.Exists("PresentationSurface") && app.Exists("OpenButton"));

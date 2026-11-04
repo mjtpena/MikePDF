@@ -1,0 +1,171 @@
+name: UI journeys
+
+# The FlaUI journeys (tests/MikePDF.UI.Tests, ADR-0009) on a GitHub-hosted Windows runner, so that they no longer take over a developer's mouse and keyboard.
+# build/run-ui-tests.ps1 does the work, with -Ci: it builds, registers a COPY of the package whose manifest has the Explorer thumbnail and preview handlers and the
+# windows.comServer extension removed (and throws if any remain, before or after registering), and drives the real app through UI Automation. Developer Mode is switched on
+# by the script, which refuses to do that anywhere but a GitHub-hosted runner. Nothing is registered with the shell.
+# docs/testing.md ("UI journeys in CI") says what the runners give the journeys and which journeys are quarantined.
+on:
+  workflow_dispatch:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  # A manual run has a group of its own, so that several can be started side by side (to repeat a flaky check) and none cancels another.
+  group: ui-journeys-${{ github.ref }}-${{ github.event_name == 'workflow_dispatch' && github.run_id || 'auto' }}
+  # A newer push to a branch supersedes the older run; main's runs are each kept.
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+jobs:
+  journeys:
+    name: ui-journeys-${{ matrix.arch }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Runner labels are pinned explicitly, never *-latest (ADR-0001).
+          - arch: x64
+            runner: windows-2025-vs2026
+          - arch: arm64
+            runner: windows-11-vs2026-arm
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 60
+    env:
+      CI: 'true'
+      DOTNET_NOLOGO: 'true'
+      DOTNET_CLI_TELEMETRY_OPTOUT: 'true'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          dotnet-version: '10.0.4xx' # ADR-0001 pin (10.0.403); global.json rolls forward to it
+      - name: What this runner gives a UI test (session, screen, clipboard)
+        shell: pwsh
+        run: |
+          Add-Type -AssemblyName System.Windows.Forms, System.Drawing
+          $session = (Get-Process -Id $PID).SessionId
+          $screen = [System.Windows.Forms.Screen]::PrimaryScreen
+          Write-Host "OS: $([System.Environment]::OSVersion.VersionString), arch $($env:PROCESSOR_ARCHITECTURE), user $env:USERNAME, session id $session, interactive $([System.Environment]::UserInteractive)"
+          Write-Host "Primary screen: $($screen.Bounds.Width)x$($screen.Bounds.Height), working area $($screen.WorkingArea.Width)x$($screen.WorkingArea.Height)"
+          Write-Host "Explorer running: $([bool](Get-Process explorer -ErrorAction SilentlyContinue))"
+          # Clipboard access needs an STA thread: a child PowerShell started with -STA has one.
+          $text = pwsh -NoProfile -STA -Command "Add-Type -AssemblyName System.Windows.Forms; try { [System.Windows.Forms.Clipboard]::SetText('mikepdf-probe'); [System.Windows.Forms.Clipboard]::GetText() } catch { 'ERROR: ' + `$_ }"
+          Write-Host "Clipboard round trip: $text"
+      - name: Prepare the desktop (resolution, first-sign-in page)
+        # Two things on a fresh hosted runner stop the journeys, so this step removes them first. The desktop is 1024x768, where the command bar folds buttons into its overflow
+        # menu (FullScreenButton, PageColourButton, PropertiesButton are then not in the UIA tree) and a window cannot be smaller than the monitor: the display adapter offers
+        # 1920x1080 and this selects it. And the ARM64 image shows "Choose privacy settings for your device" (Windows' first-sign-in page, class Shell_OOBEProxy, a WebView
+        # that exposes no UIA tree) full screen over everything, on top of the app, until someone clicks through it: Next, Accept. It has the same layout at 1920x1080 every time.
+        shell: pwsh
+        run: |
+          Add-Type -AssemblyName System.Windows.Forms, System.Drawing, UIAutomationClient, UIAutomationTypes
+          Add-Type -TypeDefinition @'
+          using System; using System.Collections.Generic; using System.Runtime.InteropServices;
+          public static class Desktop {
+            [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Ansi)]
+            public struct DEVMODE {
+              [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 32)] public string dmDeviceName;
+              public short dmSpecVersion, dmDriverVersion, dmSize, dmDriverExtra;
+              public int dmFields, dmPositionX, dmPositionY, dmDisplayOrientation, dmDisplayFixedOutput;
+              public short dmColor, dmDuplex, dmYResolution, dmTTOption, dmCollate;
+              [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 32)] public string dmFormName;
+              public short dmLogPixels;
+              public int dmBitsPerPel, dmPelsWidth, dmPelsHeight, dmDisplayFlags, dmDisplayFrequency, dmICMMethod, dmICMIntent, dmMediaType, dmDitherType, dmReserved1, dmReserved2, dmPanningWidth, dmPanningHeight;
+            }
+            [DllImport("user32.dll", CharSet = CharSet.Ansi)] static extern bool EnumDisplaySettings(string device, int mode, ref DEVMODE dm);
+            [DllImport("user32.dll", CharSet = CharSet.Ansi)] static extern int ChangeDisplaySettings(ref DEVMODE dm, int flags);
+            [DllImport("user32.dll")] static extern bool SetCursorPos(int x, int y);
+            [DllImport("user32.dll")] static extern void mouse_event(uint flags, uint dx, uint dy, uint data, UIntPtr extra);
+            static DEVMODE Fresh() { var dm = new DEVMODE(); dm.dmDeviceName = ""; dm.dmFormName = ""; dm.dmSize = (short)Marshal.SizeOf(typeof(DEVMODE)); return dm; }
+            public static string Modes() {
+              var seen = new SortedSet<string>();
+              for (int i = 0; ; i++) { var dm = Fresh(); if (!EnumDisplaySettings(null, i, ref dm)) break; seen.Add(dm.dmPelsWidth + "x" + dm.dmPelsHeight); }
+              return string.Join(" ", seen);
+            }
+            public static int SetMode(int w, int h) { var dm = Fresh(); EnumDisplaySettings(null, -1, ref dm); dm.dmPelsWidth = w; dm.dmPelsHeight = h; dm.dmFields = 0x80000 | 0x100000; return ChangeDisplaySettings(ref dm, 0); }
+            public static void Click(int x, int y) { SetCursorPos(x, y); System.Threading.Thread.Sleep(300); mouse_event(2, 0, 0, 0, UIntPtr.Zero); mouse_event(4, 0, 0, 0, UIntPtr.Zero); }
+          }
+          '@
+          function Shot($name) {
+            New-Item -ItemType Directory -Force build/out/shots | Out-Null
+            $b = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds
+            $bm = [System.Drawing.Bitmap]::new($b.Width, $b.Height)
+            [System.Drawing.Graphics]::FromImage($bm).CopyFromScreen($b.Location, [System.Drawing.Point]::Empty, $b.Size)
+            $bm.Save((Join-Path $PWD "build/out/shots/$name.png"))
+          }
+          function Test-FirstSignIn {
+            $root = [System.Windows.Automation.AutomationElement]::RootElement
+            $e = $root.FindFirst([System.Windows.Automation.TreeScope]::Children, [System.Windows.Automation.PropertyCondition]::new([System.Windows.Automation.AutomationElement]::ClassNameProperty, 'Shell_OOBEProxy'))
+            return ($null -ne $e -and -not $e.Current.IsOffscreen)
+          }
+          Write-Host "Modes offered: $([Desktop]::Modes())"
+          $result = [Desktop]::SetMode(1920, 1080)
+          Write-Host "ChangeDisplaySettings 1920x1080: $result (0 is success)"
+          if ($result -ne 0) { throw 'The runner would not switch to 1920x1080.' }
+          Start-Sleep -Seconds 3
+          $screen = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds
+          Write-Host "Primary screen: $($screen.Width)x$($screen.Height)"
+          if ($screen.Width -ne 1920) { throw 'The screen is not 1920x1080.' }
+          Shot 'desktop-before-journeys-0'
+          for ($i = 1; $i -le 5 -and (Test-FirstSignIn); $i++) {
+            Write-Host "First-sign-in page is up; clicking its button ($i)"
+            [Desktop]::Click(1443, 849)
+            Start-Sleep -Seconds 4
+          }
+          Write-Host "First-sign-in page still up: $(Test-FirstSignIn)"
+          # After it, the ARM64 image leaves the Start menu open (it takes the keyboard from the app), and a console of wsl.exe ("Press any key to install Windows Subsystem for
+          # Linux", also a window that takes keys) behind it. End the console and close the menu.
+          # The console comes back later in the run (inside Windows Terminal on the ARM64 image) and takes the keyboard from the app in the middle of a journey, so a hidden watcher
+          # keeps ending it for the rest of the job. It touches only wsl, wslhost, the Widgets processes (their news badge and flyouts can take the focus) and a terminal window titled for wsl.exe.
+          # On x64 the runner agent itself runs in a Windows Terminal (titled for hosted-compute-agent), so there only a terminal titled for wsl is ended; on ARM64 the agent has a console of its own, and
+          # any Windows Terminal is the wsl one. What it ends is logged to build/out/shots/watcher.log, which is uploaded with the screenshots.
+          New-Item -ItemType Directory -Force build/out/shots | Out-Null
+          $log = Join-Path $PWD 'build/out/shots/watcher.log'
+          $watcher = @"
+          `$log = '$log'
+          `$arm = [bool](`$env:PROCESSOR_ARCHITECTURE -eq 'ARM64')
+          while (`$true) {
+            foreach (`$p in @(Get-Process wsl, wslhost, Widgets, WidgetService -ErrorAction SilentlyContinue)) { Add-Content `$log "`$(Get-Date -Format o) ending `$(`$p.ProcessName) `$(`$p.Id)"; Stop-Process -Id `$p.Id -Force -ErrorAction SilentlyContinue }
+            foreach (`$p in @(Get-Process WindowsTerminal -ErrorAction SilentlyContinue | Where-Object { `$arm -or `$_.MainWindowTitle -match 'wsl' })) { Add-Content `$log "`$(Get-Date -Format o) ending WindowsTerminal `$(`$p.Id) '`$(`$p.MainWindowTitle)'"; Stop-Process -Id `$p.Id -Force -ErrorAction SilentlyContinue }
+            Start-Sleep -Seconds 1
+          }
+          "@
+          # Start-Process does not quote a script for a child, so it goes as an encoded command.
+          $encoded = [Convert]::ToBase64String([System.Text.Encoding]::Unicode.GetBytes($watcher))
+          Start-Process pwsh -WindowStyle Hidden -ArgumentList '-NoProfile', '-EncodedCommand', $encoded
+          Add-Content $log "$(Get-Date -Format o) watcher started"
+          Start-Sleep -Seconds 3
+          [System.Windows.Forms.SendKeys]::SendWait('{ESC}')
+          Start-Sleep -Seconds 2
+          Shot 'desktop-before-journeys'
+      - name: Build, register a handler-free copy of the package, run the journeys
+        shell: pwsh
+        run: ./build/run-ui-tests.ps1 -Arch ${{ matrix.arch }} -Ci
+      - name: Screenshot of the desktop after a failure
+        if: failure()
+        shell: pwsh
+        run: |
+          Add-Type -AssemblyName System.Windows.Forms, System.Drawing
+          New-Item -ItemType Directory -Force build/out/shots | Out-Null
+          $bounds = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds
+          $bitmap = [System.Drawing.Bitmap]::new($bounds.Width, $bounds.Height)
+          [System.Drawing.Graphics]::FromImage($bitmap).CopyFromScreen($bounds.Location, [System.Drawing.Point]::Empty, $bounds.Size)
+          $bitmap.Save((Join-Path $PWD 'build/out/shots/desktop-after-failure.png'))
+      - name: Upload the TRX report
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: ui-journeys-trx-${{ matrix.arch }}
+          path: build/out/ui-results/**
+          if-no-files-found: warn
+      - name: Upload the screenshots
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: ui-journeys-shots-${{ matrix.arch }}
+          path: build/out/shots/**
+          if-no-files-found: warn

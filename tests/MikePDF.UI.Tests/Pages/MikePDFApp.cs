@@ -142,6 +142,21 @@ public sealed class MikePDFApp : IDisposable
         var automation = new UIA3Automation();
         var application = Application.Attach(process);
         var window = Retry.WhileNull(() => application.GetMainWindow(automation), Patience).Result ?? throw new TimeoutException("No main window.");
+        // A key sent as soon as the window exists was lost on the hosted ARM64 runner (Ctrl+L, Ctrl+comma: nothing happened, the window was not yet where keyboard input goes). Make the window the foreground
+        // window and wait until the keyboard focus is inside this process before the journey sends anything. If it never gets there the journey goes on and fails with its own message.
+        window.SetForeground();
+        var processId = application.ProcessId;
+        Retry.WhileFalse(() =>
+        {
+            try
+            {
+                return automation.FocusedElement()?.Properties.ProcessId.ValueOrDefault == processId;
+            }
+            catch (System.Runtime.InteropServices.COMException)
+            {
+                return false;
+            }
+        }, TimeSpan.FromSeconds(10), TimeSpan.FromMilliseconds(200));
         return new MikePDFApp(automation, application, window);
     }
 
@@ -238,8 +253,69 @@ public sealed class MikePDFApp : IDisposable
         }
     }
 
-    public AutomationElement Require(string automationId) =>
-        Retry.WhileNull(() => Find(automationId), Patience, TimeSpan.FromMilliseconds(150)).Result ?? throw new InvalidOperationException("No element with automation id " + automationId);
+    public AutomationElement Require(string automationId)
+    {
+        var found = Retry.WhileNull(() => Find(automationId), Patience, TimeSpan.FromMilliseconds(150)).Result;
+        if (found is null)
+        {
+            TryCapture("missing-" + new string(automationId.Where(char.IsLetterOrDigit).Take(40).ToArray()));
+            throw new InvalidOperationException("No element with automation id " + automationId);
+        }
+
+        return found;
+    }
+
+    /// <summary>
+    /// Starts the presentation with Ctrl+L and waits for it. A key sent right after the window was set up was lost once on a hosted ARM64 runner (the screenshot showed the reading view, no
+    /// presentation), so when nothing has started after a few seconds the pages are focused and the key is sent again, up to three times. Ctrl+L is only sent while no presentation is up.
+    /// </summary>
+    public void StartPresentation()
+    {
+        for (var attempt = 1; attempt <= 3; attempt++)
+        {
+            PressWithControl(VirtualKeyShort.KEY_L);
+            var until = DateTime.UtcNow + TimeSpan.FromSeconds(4);
+            while (DateTime.UtcNow < until)
+            {
+                if (Find("PresentationSurface") is not null)
+                {
+                    return;
+                }
+
+                Thread.Sleep(150);
+            }
+
+            FocusPages();
+        }
+    }
+
+    /// <summary>
+    /// Opens the flyout of a command bar button and waits for <paramref name="itemId"/> in it. A flyout closes when the window loses focus for a moment (it did, on a hosted ARM64 runner, whatever took the
+    /// focus), so if the item is not there after a few seconds the button is pressed again, up to three times, instead of failing the journey on one lost flyout.
+    /// </summary>
+    public void OpenMenu(string buttonId, string itemId)
+    {
+        for (var attempt = 1; ; attempt++)
+        {
+            Click(buttonId);
+            var until = DateTime.UtcNow + TimeSpan.FromSeconds(4);
+            while (DateTime.UtcNow < until)
+            {
+                if (Find(itemId) is not null)
+                {
+                    return;
+                }
+
+                Thread.Sleep(150);
+            }
+
+            if (attempt == 3)
+            {
+                Require(itemId); // fails with the picture
+                return;
+            }
+        }
+    }
 
     public bool Exists(string automationId) => Find(automationId) is not null;
 
@@ -579,6 +655,9 @@ public sealed class MikePDFApp : IDisposable
     {
         try
         {
+            var directory = Environment.GetEnvironmentVariable("MIKEPDF_SHOTS_DIR") ?? Path.Combine(AppContext.BaseDirectory, "shots");
+            Directory.CreateDirectory(directory);
+            File.WriteAllText(Path.Combine(directory, label + ".foreground.txt"), ForegroundWindow.Describe()); // before the capture, which brings the app forward
             Capture(label);
         }
         catch (Exception e)
@@ -610,16 +689,25 @@ public sealed class MikePDFApp : IDisposable
     }
 }
 
-/// <summary>A test that needs the installed package and an interactive desktop. Skipped unless MIKEPDF_UI_TESTS=1 (set by build/run-ui-tests.ps1).</summary>
+/// <summary>
+/// A test that needs the installed package and an interactive desktop. Skipped unless MIKEPDF_UI_TESTS=1 (set by build/run-ui-tests.ps1).
+/// <c>ciQuarantine</c> names a reason the journey is skipped on the GitHub-hosted runner (build/run-ui-tests.ps1 -Ci sets MIKEPDF_UI_CI=1 and MIKEPDF_UI_ARCH),
+/// for <c>ciArch</c> only when that is given. Every quarantine has a row in docs/milestones/production-roadmap.md; local runs are not affected.
+/// </summary>
 [AttributeUsage(AttributeTargets.Method)]
 public sealed class UiFactAttribute : FactAttribute
 {
-    public UiFactAttribute([System.Runtime.CompilerServices.CallerFilePath] string? sourceFilePath = null, [System.Runtime.CompilerServices.CallerLineNumber] int sourceLineNumber = -1)
+    public UiFactAttribute(string? ciQuarantine = null, string? ciArch = null, [System.Runtime.CompilerServices.CallerFilePath] string? sourceFilePath = null, [System.Runtime.CompilerServices.CallerLineNumber] int sourceLineNumber = -1)
         : base(sourceFilePath, sourceLineNumber)
     {
         if (Environment.GetEnvironmentVariable("MIKEPDF_UI_TESTS") != "1")
         {
             Skip = "UI tests need an interactive desktop and the installed package: run build/run-ui-tests.ps1";
+        }
+        else if (ciQuarantine is not null && Environment.GetEnvironmentVariable("MIKEPDF_UI_CI") == "1"
+            && (ciArch is null || string.Equals(ciArch, Environment.GetEnvironmentVariable("MIKEPDF_UI_ARCH"), StringComparison.OrdinalIgnoreCase)))
+        {
+            Skip = "Quarantined on the GitHub-hosted runner: " + ciQuarantine;
         }
     }
 }
