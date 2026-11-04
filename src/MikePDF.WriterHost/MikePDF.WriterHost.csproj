@@ -5,6 +5,15 @@
     <Description>Sandboxed host for MikePDF.PdfWriter. Receives handles only, never paths (ADR-0008).</Description>
     <RuntimeIdentifier>$(MikePDFRuntimeIdentifier)</RuntimeIdentifier>
     <SelfContained>true</SelfContained>
+    <!-- Native AOT (the precedent is ShellHost, ADR-0018): the host ships as one executable of about 10 MB instead of a 103 MB self-contained runtime, which a package with a 60 MB budget cannot carry, and
+         it needs no JIT. The analyzers run on every build, the compiler on publish. The Native AOT toolchain's version is the SDK's, so, as for ShellHost, this project has no lock file. -->
+    <PublishAot>true</PublishAot>
+    <IsAotCompatible>true</IsAotCompatible>
+    <RestorePackagesWithLockFile>false</RestorePackagesWithLockFile>
+    <RestoreLockedMode>false</RestoreLockedMode>
+    <!-- NuGet audit reports Microsoft.DotNet.ILCompiler 10.0.8 (the SDK's own Native AOT compiler, matching the SDK we build with) as having an advisory (NU1903, GHSA-p3jp-9v83-76w9). It is the toolchain, not
+         code that ships, and its version is the SDK's to move; the warning stays visible but does not fail the restore. Revisit when the SDK ships the fixed ILCompiler. -->
+    <WarningsNotAsErrors>$(WarningsNotAsErrors);NU1903</WarningsNotAsErrors>
     <InvariantGlobalization>true</InvariantGlobalization>
     <!-- LibraryImport (source-generated P/Invoke) emits unsafe code. -->
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>

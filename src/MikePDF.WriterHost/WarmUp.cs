@@ -1,4 +1,3 @@
-using System.Reflection;
 using System.Text;
 using Microsoft.Win32.SafeHandles;
 using MikePDF.Protocol;
@@ -14,7 +13,7 @@ internal static class WarmUp
 {
     public static void Run()
     {
-        LoadReferencedAssemblies(Assembly.GetExecutingAssembly(), []);
+        LoadReferencedAssemblies();
 
         // The codec, both directions, with a payload of every shape the host handles.
         var request = ProtocolCodec.EncodeRequestFrame(1, 0, 1000, new ValidateStructure { Handle = 1 });
@@ -94,21 +93,34 @@ internal static class WarmUp
         _ = ProtocolCodec.EncodeResponseFrame(5, Status.Ok, MessageType.VerifyAnnotations, new VerifyAnnotationsReply { Ok = true, Mismatches = [] });
     }
 
-    private static void LoadReferencedAssemblies(Assembly assembly, HashSet<string> seen)
+    /// <summary>
+    /// One type from every assembly the host's own code references (MikePDF.PdfWriter and MikePDF.Protocol reference the same set, and MessagePack): naming the type loads the assembly, now, before the
+    /// signature policy is applied. This replaces a walk over <c>GetReferencedAssemblies()</c>, which reflection-trimming and Native AOT cannot keep safe (IL2026). A new reference needs a new line here; the
+    /// paths exercised below load most of them anyway, and a test starts the published host and sends it every request, which would fail on an assembly that loads too late.
+    /// </summary>
+    private static readonly Type[] AssemblyAnchors =
+    [
+        typeof(List<>), // System.Collections
+        typeof(Enumerable), // System.Linq
+        typeof(System.IO.MemoryMappedFiles.MemoryMappedFile), // System.IO.MemoryMappedFiles
+        typeof(System.IO.Pipes.NamedPipeClientStream), // System.IO.Pipes
+        typeof(System.Threading.Channels.Channel), // System.Threading.Channels
+        typeof(System.Collections.Immutable.ImmutableArray), // System.Collections.Immutable
+        typeof(System.IO.Compression.ZLibStream), // System.IO.Compression
+        typeof(System.Security.Cryptography.SHA256), // System.Security.Cryptography
+        typeof(System.Buffers.ArrayPool<>), // System.Memory
+        typeof(System.Runtime.InteropServices.Marshal), // System.Runtime.InteropServices
+        typeof(Encoding), // System.Text.Encoding.Extensions
+        typeof(MessagePack.MessagePackReader), // MessagePack
+        typeof(MikePDF.PdfWriter.StrictDocument), // MikePDF.PdfWriter
+        typeof(ProtocolCodec), // MikePDF.Protocol
+    ];
+
+    private static void LoadReferencedAssemblies()
     {
-        foreach (var name in assembly.GetReferencedAssemblies())
+        foreach (var anchor in AssemblyAnchors)
         {
-            if (name.FullName is { } full && seen.Add(full))
-            {
-                try
-                {
-                    LoadReferencedAssemblies(Assembly.Load(name), seen);
-                }
-                catch (Exception e) when (e is FileNotFoundException or FileLoadException or BadImageFormatException)
-                {
-                    // Referenced but never needed on any path the host takes.
-                }
-            }
+            _ = anchor.Assembly;
         }
     }
 

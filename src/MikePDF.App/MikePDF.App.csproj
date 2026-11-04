@@ -65,8 +65,9 @@
 
   <!--
     The writer host (ADR-0008) rides along beside the app, in WriterHost\, and runs in place from there like the engine. It is a self-contained executable, and the SDK refuses a project reference to one
-    (NETSDK1151), so it is built explicitly first (as the integration tests do) and its output is copied next to the app. The development layout that build/run-ui-tests.ps1 registers is this output folder;
-    build/package.ps1 lays out the shipped one from a publish of its own (a Copy task, not a Content item, so `dotnet publish` of the app does not carry it).
+    (NETSDK1151), so it is built explicitly first (as the integration tests do) and its output is copied next to the app. The development layout that build/run-ui-tests.ps1 registers is this output folder
+    (the ordinary build of the host, with its runtime beside it); build/package.ps1 lays out the shipped one from a Native AOT publish of its own, a single 3 MB executable (a Copy task, not a Content item, so
+    `dotnet publish` of the app does not carry this one). `run-ui-tests.ps1 -PackageLayout` tests the shipped form.
   -->
   <Target Name="BuildWriterHost" BeforeTargets="BeforeBuild">
     <MSBuild Projects="..\MikePDF.WriterHost\MikePDF.WriterHost.csproj" Targets="Build" Properties="Configuration=$(Configuration);MikePDFArch=$(MikePDFArch)" />

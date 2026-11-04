@@ -6,7 +6,7 @@
     1. builds the sandboxed engine with CMake (./build.ps1 -SkipManaged), unless -SkipNativeBuild
     2. publishes MikePDF.App: self-contained .NET, ReadyToRun, framework-dependent Windows App SDK (not Native AOT yet: see MikePDF.App.csproj)
     3. lays out the package: app, Engine\ (MikePDF.Engine.exe + pdfium.dll; the engine runs in place from the package), ShellExt\ (the Explorer thumbnail provider and preview
-       handler DLL, from the native build), ShellHost\ (MikePDF.ShellHost.exe, Native AOT, published here: ADR-0018), Licenses\, Assets
+       handler DLL, from the native build), ShellHost\ (MikePDF.ShellHost.exe, Native AOT, published here: ADR-0018), WriterHost\ (MikePDF.WriterHost.exe, Native AOT, published here: ADR-0008), Licenses\, Assets
     4. writes AppxManifest.xml from the build's manifest with the identity from build/store/identity.json (parameters override), the version,
        the architecture and MaxVersionTested 10.0.26300.0
     5. packs with makeappx into MikePDF_<version>_<arch>.msix, and the PDBs into MikePDF_<version>_<arch>.appxsym
@@ -189,13 +189,13 @@ if (-not $SkipPublish) {
 }
 if (-not (Test-Path (Join-Path $shellHostPublish 'MikePDF.ShellHost.exe'))) { throw "No MikePDF.ShellHost.exe in $shellHostPublish" }
 
-# MikePDF.WriterHost (ADR-0008) is the sandboxed process that parses and writes PDF structure for a save. It needs the JIT, so it is a self-contained .NET executable (not AOT, not trimmed: its warm-up walks
-# assemblies by reflection), published beside the app and run in place from the package like the engine. Its size is an open question of the save work package: see docs/features/save-pipeline.md section 15.
+# MikePDF.WriterHost (ADR-0008) is the sandboxed process that parses and writes PDF structure for a save. Like ShellHost it is a Native AOT executable (about 3 MB; a self-contained JIT build was 103 MB and
+# could not fit the package budget), published beside the app and run in place from the package like the engine. The AOT compiler finds the MSVC linker through vswhere (PATH set above).
 $writerHostPublish = Join-Path $OutDir "publish-writerhost-$Arch$suffix"
 if (-not $SkipPublish) {
-    Step "Publish MikePDF.WriterHost ($Arch, self-contained)"
+    Step "Publish MikePDF.WriterHost ($Arch, Native AOT)"
     if (Test-Path $writerHostPublish) { Remove-Item -Recurse -Force $writerHostPublish }
-    dotnet publish (Join-Path $root 'src/MikePDF.WriterHost/MikePDF.WriterHost.csproj') -c Release -r "win-$Arch" --self-contained true "-p:MikePDFArch=$Arch" "-p:Version=$Version" -o $writerHostPublish -nologo -v q
+    dotnet publish (Join-Path $root 'src/MikePDF.WriterHost/MikePDF.WriterHost.csproj') -c Release -r "win-$Arch" "-p:MikePDFArch=$Arch" "-p:Version=$Version" -o $writerHostPublish -nologo -v q
     if ($LASTEXITCODE -ne 0) { throw 'dotnet publish of MikePDF.WriterHost failed' }
 }
 if (-not (Test-Path (Join-Path $writerHostPublish 'MikePDF.WriterHost.exe'))) { throw "No MikePDF.WriterHost.exe in $writerHostPublish" }
@@ -219,11 +219,10 @@ New-Item -ItemType Directory $shellExtDir, $shellHostDir | Out-Null
 Copy-Item (Join-Path $cmakeBin 'MikePDF.ShellExt.dll') $shellExtDir
 Copy-Item (Join-Path $shellHostPublish 'MikePDF.ShellHost.exe') $shellHostDir
 
-# The writer host with its own runtime, in WriterHost\ (the sandbox profile reads the package directory, so nothing is copied out of it at run time). Symbols go to the .appxsym.
+# The writer host, the AOT executable alone (symbols and documentation XML stay in the publish folder; the PDBs go to the .appxsym).
 $writerHostDir = Join-Path $stage 'WriterHost'
 New-Item -ItemType Directory $writerHostDir | Out-Null
-Get-ChildItem $writerHostPublish -Force | ForEach-Object { Copy-Item $_.FullName $writerHostDir -Recurse -Force }
-Get-ChildItem $writerHostDir -Recurse -File | Where-Object { $_.Extension -in '.pdb', '.xml' } | Remove-Item -Force
+Copy-Item (Join-Path $writerHostPublish 'MikePDF.WriterHost.exe') $writerHostDir
 
 if ($TestBuild) {
     $probeDir = Join-Path $stage 'Probe'
@@ -281,6 +280,7 @@ foreach ($required in 'MikePDF.exe', 'AppxManifest.xml', 'resources.pri', 'Engin
 # The handlers are registered by the manifest and laid out where it says; ShellHost is the AOT executable alone (a managed apphost beside a DLL would need a .NET runtime nobody installs for it).
 if ($text -notmatch 'desktop2:ThumbnailHandler' -or $text -notmatch 'desktop2:DesktopPreviewHandler' -or $text -notmatch 'com:SurrogateServer') { throw 'The manifest lost the thumbnail and preview handler registrations.' }
 if (@(Get-ChildItem $shellHostDir -File).Count -ne 1) { throw "ShellHost\ must hold MikePDF.ShellHost.exe alone: $((Get-ChildItem $shellHostDir -File).Name -join ', ')" }
+if (@(Get-ChildItem $writerHostDir -File).Count -ne 1) { throw "WriterHost\ must hold MikePDF.WriterHost.exe alone: $((Get-ChildItem $writerHostDir -File).Name -join ', ')" }
 if (@(Get-ChildItem $shellExtDir -File).Count -ne 1) { throw "ShellExt\ must hold MikePDF.ShellExt.dll alone: $((Get-ChildItem $shellExtDir -File).Name -join ', ')" }
 # MikePDF.App must not carry PDFium itself or its own copy of the engine: only Engine\ has them.
 $strays = Get-ChildItem $stage -Recurse -Filter pdfium.dll | Where-Object { $_.DirectoryName -ne $engineDir }

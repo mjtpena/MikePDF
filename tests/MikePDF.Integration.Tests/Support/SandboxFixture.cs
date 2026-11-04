@@ -100,7 +100,13 @@ public sealed class SandboxFixture : IDisposable
 
     private string FindWriterHostDirectory()
     {
-        // The newest self-contained build output of MikePDF.WriterHost (it is built before this test project runs).
+        // MIKEPDF_WRITERHOST_DIR names the folder of a published writer host (the Native AOT executable that build/package.ps1 lays out), so the same tests can run against the form that ships.
+        if (Environment.GetEnvironmentVariable("MIKEPDF_WRITERHOST_DIR") is { Length: > 0 } published)
+        {
+            return File.Exists(Path.Combine(published, "MikePDF.WriterHost.exe")) ? published : throw new FileNotFoundException("MikePDF.WriterHost.exe not found in MIKEPDF_WRITERHOST_DIR: " + published);
+        }
+
+        // The newest build output of MikePDF.WriterHost (it is built before this test project runs).
         var found = Configurations
             .Select(configuration => Path.Combine(RepositoryRoot, "src", "MikePDF.WriterHost", "bin", configuration))
             .Where(Directory.Exists)
