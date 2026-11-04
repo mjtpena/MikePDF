@@ -37,6 +37,30 @@ The first runs of the job failed for these reasons, and each is why a step exist
 
 `ReaderGapsJourneyTests` and `ViewModesJourneyTests` did not reset the app's settings the way the other classes do (`AppData.ResetSettings()`), so the page colour the dark-pages journeys leave behind decided whether `C5_C6_C7_PageColoursChange…` saw normal paper. They passed or failed with the test order. Both classes now reset settings before and after each journey.
 
+### Waiting on state, not on luck
+
+Every journey waits on state (`app.WaitFor(...)`), not a fixed sleep. A hosted runner also loses an occasional key or flyout, so the page object has three helpers that repeat the action only while its effect is missing: `app.OpenMenu(button, item)` (a flyout closed by a focus change is opened again, up to three times), `app.StartPresentation()` (Ctrl+L again if no presentation started), and `MikePDFApp.Launch`, which makes the window the foreground window and waits for the keyboard focus to be inside MikePDF before a journey sends anything. `PRINT21` waits for focus to land after Tab, and `TAB09` activates the window and drags again if it did not move. When a wait expires or a control is missing, the journey saves `timeout-*.png` / `missing-*.png` and a `*.foreground.txt` next to it naming the window that had the keyboard; that note is what showed the `wsl.exe` console on ARM64.
+
+### Flakes: one rerun, by name
+
+Even so, a few journeys fail once in a while on a hosted runner and pass when run again (the cause is a lost key or flyout, not an app defect that a person would hit). With `-Ci`, `build/run-ui-tests.ps1` reruns **only the journeys that failed**, once, each with a fresh app (`ui-journeys-<arch>-rerun.trx`). One that passes the second time is a **flake**: it is named in the job summary and in `flaky-<arch>.txt` (both in the artifacts) and the job is green. One that fails twice fails the job. More than ten failures in a run is a broken run, not flakiness, and gets no rerun. A journey that shows up as a flake twice gets a roadmap row and a fix, or a quarantine.
+
+### Reliability evidence
+
+Five runs in a row, on both runners, green, on the final harness (the five differ only by merges of `main` and empty commits). `ui-journeys-x64` / `ui-journeys-arm64`:
+
+| Run | x64 | ARM64 |
+|---|---|---|
+| [41757634126](https://github.com/mjtpena/MikePDF/actions/runs/41757634126) | 109 passed | 108 passed |
+| [41759844608](https://github.com/mjtpena/MikePDF/actions/runs/41759844608) | 109 passed | 108 passed |
+| [41762734967](https://github.com/mjtpena/MikePDF/actions/runs/41762734967) | flake: `PV23_APseudoRtlWindow…`, passed on rerun | flake: `CMD05_AReaderShortcutDoesNotRunWhileATextBoxHasFocus…`, passed on rerun |
+| [41765394106](https://github.com/mjtpena/MikePDF/actions/runs/41765394106) | 109 passed | 108 passed |
+| [41767430470](https://github.com/mjtpena/MikePDF/actions/runs/41767430470) | flake: `TAB11_ClosingAWindowWithThreeUnsavedTabs…`, passed on rerun | flake: `PV18_ARightToLeftDocument…`, passed on rerun |
+
+Of the 10 job runs, 6 had no failure at all and 4 had exactly one flake. The x64 job runs about 15 minutes, ARM64 about 20 to 25. Counts: 111 journeys, 2 skipped on x64 (the sample-writer and the wheel quarantine) and 3 on ARM64 (those and TAB10).
+
+The two journeys the 2026-11-02 local run saw fail: `C5_C6_C7_PageColoursChange…` passed in all five runs (it failed on x64 before the settings reset, and the reset fixed it); `TAB10_ClosingATabWithUnsavedEdits…` passes on x64 in all five runs and fails on ARM64 every time, so it is quarantined there (below).
+
 ### Quarantine
 
 A journey that fails on a hosted runner and passes on a person's desktop is skipped there with `[UiFact(ciQuarantine: "reason", ciArch: "arm64")]` (`ciArch` is optional). The attribute skips only when `-Ci` is set (`MIKEPDF_UI_CI=1`), so a local run still runs it, and the skip shows in the TRX with its reason. Every quarantine has a row in the [roadmap](milestones/production-roadmap.md); remove the attribute when the row is closed.
@@ -44,7 +68,7 @@ A journey that fails on a hosted runner and passes on a person's desktop is skip
 | Journey | Where | Reason |
 |---|---|---|
 | `ViewModesJourneyTests.PV08_PV20_InThePagedFlowTheKeysTurnPagesAndTheWheelNeedsOneNotchMore` | x64 and ARM64 | The mouse-wheel notch (`Mouse.Scroll`) did not turn the page on the hosted runners in 4 of 5 runs, with the pointer over the page and the app idle (the screenshot shows page 1, no dialog). Keys, clicks and drags work. Cause not found; a retry with a pause did not help. |
-| `TabsWindowsJourneyTests.TAB10_ClosingATabWithUnsavedEditsAsksAndCancelKeepsItAndDontSaveClosesIt` | ARM64 | After Cancel on the close question, the second Ctrl+W shows no question: the screenshot shows keyboard focus on the first tab header, not the page. It passes on x64. It may be a real focus-restoration problem in the app after the dialog closes; see the roadmap row. |
+| `TabsWindowsJourneyTests.TAB10_ClosingATabWithUnsavedEditsAsksAndCancelKeepsItAndDontSaveClosesIt` | ARM64 | After Cancel on the close question, the second Ctrl+W shows no question: the screenshot shows keyboard focus on the first tab header, not the page. It failed in 3 of 3 ARM64 runs, even with the `wsl.exe` console and the Start menu kept away, and passed in every x64 run. It may be a real focus-restoration problem in the app after the dialog closes; see the roadmap row. |
 
 ### Reading a failure
 
