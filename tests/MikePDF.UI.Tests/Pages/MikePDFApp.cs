@@ -655,6 +655,9 @@ public sealed class MikePDFApp : IDisposable
     {
         try
         {
+            var directory = Environment.GetEnvironmentVariable("MIKEPDF_SHOTS_DIR") ?? Path.Combine(AppContext.BaseDirectory, "shots");
+            Directory.CreateDirectory(directory);
+            File.WriteAllText(Path.Combine(directory, label + ".foreground.txt"), ForegroundWindow.Describe()); // before the capture, which brings the app forward
             Capture(label);
         }
         catch (Exception e)
