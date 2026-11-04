@@ -4,6 +4,9 @@ file.open
 file.reload
 file.properties
 file.print
+file.save
+file.saveAs
+file.saveFlattenedCopy
 file.printCurrentPage
 print.cancel
 nav.back

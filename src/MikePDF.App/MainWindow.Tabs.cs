@@ -157,6 +157,11 @@ public sealed partial class MainWindow
 
     private static string GlyphFor(TabEntry entry)
     {
+        if (entry.Model.IsDirty && !entry.Missing && entry.PlaceholderKey is null && !entry.Opening && entry.Session?.EngineState != DocumentEngineState.Resuming)
+        {
+            return ""; // the modified dot (design 01 "Edited"); the name says "unsaved changes" too, so the dot is never the only sign
+        }
+
         if (entry.Missing || entry.PlaceholderKey is not null)
         {
             return ""; // warning
@@ -555,6 +560,8 @@ public sealed partial class MainWindow
 
         UpdateChrome();
         RefreshTabs();
+        ShowSaveStripFor(entry);
+        CheckExternalChange(entry);
         _app.RequestSessionWrite();
     }
 
@@ -836,11 +843,6 @@ public sealed partial class MainWindow
                     }
 
                     entry.PinIfNeeded();
-                    if (FakeDirty)
-                    {
-                        entry.Model.IsDirty = true;
-                    }
-
                     if (ReferenceEquals(entry, _active))
                     {
                         _session = session;
@@ -849,6 +851,8 @@ public sealed partial class MainWindow
                         ApplyRestoredSidebar();
                     }
 
+                    // The edits of the tab (a journal found for the file is asked about first); the document is on screen by now, so the question has something behind it.
+                    await AttachEditsAsync(entry, path);
                     RefreshTabs();
                     if (!restored || !string.Equals(path, entry.Model.Path, StringComparison.Ordinal))
                     {
@@ -1023,6 +1027,10 @@ public sealed partial class MainWindow
         entry.ShownLease?.Dispose();
         entry.ShownLease = null;
         entry.SetSession(null);
+        entry.SaveRun?.Dispose();
+        entry.SaveRun = null;
+        // Saved, or "Don't save": either way the journal has nothing to keep. Only when Windows ends the session is it left, with the edits in it.
+        entry.ReleaseEdits(discard: !(_app.EndingSession && tab.IsDirty));
         entry.Owner = null;
         RefreshTabs();
         _app.RequestSessionWrite();

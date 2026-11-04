@@ -15,6 +15,7 @@ public sealed class TestSeamGateTests
         TestSeamGate.PseudoRtl => "1",
         TestSeamGate.NoPrefetch => "1",
         TestSeamGate.PrintOutput => "out",
+        TestSeamGate.SaveAsPath => "copy.pdf",
         "SOMETHING_ELSE" => "yes",
         _ => null,
     };
@@ -28,6 +29,7 @@ public sealed class TestSeamGateTests
     [InlineData(TestSeamGate.PseudoRtl)]
     [InlineData(TestSeamGate.NoPrefetch)]
     [InlineData(TestSeamGate.PrintOutput)]
+    [InlineData(TestSeamGate.SaveAsPath)]
     public void ASeamIsReadWhenThePackageIsNotStoreSigned(string name) => Assert.NotNull(TestSeamGate.Read(name, Env, storeSigned: false));
 
     [Theory]
@@ -39,6 +41,7 @@ public sealed class TestSeamGateTests
     [InlineData(TestSeamGate.PseudoRtl)]
     [InlineData(TestSeamGate.NoPrefetch)]
     [InlineData(TestSeamGate.PrintOutput)]
+    [InlineData(TestSeamGate.SaveAsPath)]
     public void EverySeamIsIgnoredWhenThePackageIsStoreSignedWhateverTheEnvironmentSays(string name) => Assert.Null(TestSeamGate.Read(name, Env, storeSigned: true));
 
     [Fact]

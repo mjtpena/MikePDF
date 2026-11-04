@@ -393,6 +393,14 @@ public static class SessionPolicy
             _ => !session.CleanExit ? RestoreAction.AskThenRestore : session.DocumentCount > 1 ? RestoreAction.Restore : RestoreAction.StartFresh,
         };
     }
+
+    /// <summary>
+    /// After a crash with both unsaved changes and a session to ask about, there is one dialog, not two (docs/features/save-pipeline.md section 16): the recovery dialog carries the session question as a
+    /// check box. <paramref name="answeredInRecoveryDialog"/> is its answer, or null when that dialog was not shown (no journal) or did not carry the question. Answered yes: restore without asking again;
+    /// answered no: start fresh; not answered: what <see cref="Decide"/> said.
+    /// </summary>
+    public static RestoreAction AfterRecovery(RestoreAction decided, bool? answeredInRecoveryDialog) =>
+        decided == RestoreAction.AskThenRestore && answeredInRecoveryDialog is { } answer ? (answer ? RestoreAction.Restore : RestoreAction.StartFresh) : decided;
 }
 
 /// <summary>Writes the session file when the setting allows it. With <see cref="RestoreMode.Never"/> nothing is written, and a file left from before is removed.</summary>

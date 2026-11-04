@@ -75,8 +75,11 @@ public sealed class PrivacyTests
     public void TheAppDoesNotReferenceTheWriterHostOrPdfium()
     {
         var project = File.ReadAllText(Path.Combine(RepoRoot(), "src", "MikePDF.App", "MikePDF.App.csproj"));
-        Assert.DoesNotContain("MikePDF.WriterHost", project, StringComparison.Ordinal);
+        // The UI process never loads the writer host's code or the PDF writer (ADR-0008 decision 2): no reference to either. Since the save was wired into the app, the project *builds* the writer host and copies its
+        // output beside the app (WriterHost\, run in place in its own sandboxed process like the engine); that is a Target, not a reference, and it is the only mention.
+        Assert.DoesNotMatch(@"<(ProjectReference|PackageReference|Reference)[^>]*MikePDF\.(WriterHost|PdfWriter)", project);
         Assert.DoesNotContain("MikePDF.PdfWriter", project, StringComparison.Ordinal);
+        Assert.Matches(@"<Target Name=""BuildWriterHost""", project); // and the one mention is the explicit build of the separate process
         foreach (var file in Sources("MikePDF.App"))
         {
             // PDFium is only ever reached through the sandboxed engine: no P/Invoke to it from the UI process (A.5).

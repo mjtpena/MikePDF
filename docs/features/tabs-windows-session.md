@@ -299,7 +299,7 @@ Decisions taken where the spec was silent or in conflict (all can be overridden)
 - **Settings is a singleton tab** per window (design 13). Closing it goes back to the tab it was opened from.
 - **A window with one tab:** that tab is part of the title bar (not draggable out); dragging it moves the window. With two or more tabs, dragging out creates a window (TabView tear-out), and letting go over another window's strip merges the tab into it.
 - **Closing the last tab** leaves an empty tab (design 3.1.4); Ctrl+W on a lone empty tab does nothing.
-- **Dirty prompts** exist and are tested with a fake flag (`TabModel.IsDirty`; the journeys set it with the test seam `MIKEPDF_TEST_FAKE_DIRTY`). The Save button is disabled until the save pipeline sets `AppHost.SaveHandler`.
+- **Dirty prompts** exist; `TabModel.IsDirty` follows the tab's edit model (work package W3-save-app), the Save button of the prompt saves for real through `AppHost.SaveHandler`, and "Don't save" deletes the journal. The journeys make a document dirty with the test seam `MIKEPDF_TEST_FAKE_DIRTY`, which applies one real highlight edit.
 
 Measured facts about WinUI's `TabView` in Windows App SDK 2.5.1 (answers to OQ-TAB-7 / spike S13):
 
@@ -312,15 +312,16 @@ Not done, or not verified: see the completion note.
 
 ## 16. Test seams
 
-The journeys steer the app through seven environment variables. **Every one is read through `TestSeamGate` (`MikePDF.Core`) and `TestSeams` (the app), and none is read when the app runs from a Store-signed package** (`Package.Current.SignatureKind == PackageSignatureKind.Store`; if the kind cannot be read the app counts as shipped and ignores them). `TestSeamGateTests` checks the gate with an injectable signature kind, that no other code reads a `MIKEPDF_TEST_` variable, and that this list is the whole list.
+The journeys steer the app through nine environment variables. **Every one is read through `TestSeamGate` (`MikePDF.Core`) and `TestSeams` (the app), and none is read when the app runs from a Store-signed package** (`Package.Current.SignatureKind == PackageSignatureKind.Store`; if the kind cannot be read the app counts as shipped and ignores them). `TestSeamGateTests` checks the gate with an injectable signature kind, that no other code reads a `MIKEPDF_TEST_` variable, and that this list is the whole list.
 
 | Variable | What it does |
 |---|---|
 | `MIKEPDF_TEST_POLICY_KEY` | Names a throwaway key under `HKCU\Software\MikePDF.Tests`, read as more user-level policy (which can only tighten). |
 | `MIKEPDF_TEST_RESTORE` | Overrides the `startup.restore` setting (`Always`, `Ask`, `Never`). The harness passes `Never` unless a journey is about the session. |
-| `MIKEPDF_TEST_FAKE_DIRTY` | `1` marks every opened document as having unsaved edits, so the close prompts can be driven before the save pipeline exists. |
+| `MIKEPDF_TEST_FAKE_DIRTY` | `1` makes every opened document dirty by applying one real highlight edit (`AddAnnotation`, page 1, a small rectangle) through its edit model once it is open, so the close prompts, Save, Save as and the journal can be driven before any tool creates edits. (Until the save pipeline was wired it only set a flag.) |
 | `MIKEPDF_TEST_JUMPLIST_DUMP` | A file name in the private folder; the app writes the Jump List items it saved there. |
 | `MIKEPDF_TEST_PSEUDO_RTL` | `1` lays the whole window out right to left (a pseudo-RTL build, PV-23), so a journey can check that the menus, the command bar and the presentation bar mirror and that the pages do not. |
 | `MIKEPDF_TEST_PRESENT_DUMP` | A file name in the private folder; the app appends `awake` when presentation mode asks Windows to keep the display awake and `asleep` when it lets go (docs/features/page-view-modes.md, PV-14), and `turn <ms to the first frame> <ms to a frame with every tile sharp>` for each page turned in a presentation (PV-17). |
 | `MIKEPDF_TEST_NO_PREFETCH` | `1` turns off the drawing-ahead of the pages beside the one presented, so a journey can measure the turn with and without it. |
 | `MIKEPDF_TEST_PRINT_OUTPUT` | A folder. A job for the printer Microsoft Print to PDF is written there as `print-<n>.pdf` (the job's output file, which the queue otherwise asks for with a Save dialog), so a journey can print without a dialog and check the file (docs/features/print.md, PRINT-13). Other printers are not affected. |
+| `MIKEPDF_TEST_SAVE_AS_PATH` | A full path. Save as and Save a flattened copy use it instead of showing the file picker, so a journey can save a copy without driving a common dialog (docs/features/save-pipeline.md SP-25). |

@@ -890,4 +890,103 @@
   <data name="Print_Close_Body" xml:space="preserve"><value>Closing this window stops the print job.</value></data>
   <data name="Print_Close_Stop" xml:space="preserve"><value>Stop printing and close</value></data>
   <data name="Print_Close_Keep" xml:space="preserve"><value>Keep printing</value></data>
+  <!-- save: docs/features/save-pipeline.md section 12, design 14 sections 2.7 to 2.9 -->
+  <data name="Cmd_file_save_Name" xml:space="preserve"><value>Save</value></data>
+  <data name="Cmd_file_save_Keywords" xml:space="preserve"><value>write keep store changes edits</value></data>
+  <data name="Cmd_file_saveAs_Name" xml:space="preserve"><value>Save as...</value></data>
+  <data name="Cmd_file_saveAs_Label" xml:space="preserve"><value>Save as</value></data>
+  <data name="Cmd_file_saveAs_Keywords" xml:space="preserve"><value>copy rename new file duplicate</value></data>
+  <data name="Cmd_file_saveFlattenedCopy_Name" xml:space="preserve"><value>Save a flattened copy...</value></data>
+  <data name="Cmd_file_saveFlattenedCopy_Label" xml:space="preserve"><value>Save a flattened copy</value></data>
+  <data name="Cmd_file_saveFlattenedCopy_Keywords" xml:space="preserve"><value>flatten merge comments markup form fields uneditable copy</value></data>
+  <data name="Reason_NoEdits" xml:space="preserve"><value>There are no unsaved changes</value></data>
+  <data name="Reason_SaveBusy" xml:space="preserve"><value>A save is already running</value></data>
+  <data name="Save_Progress_Name" xml:space="preserve"><value>Saving {0}</value></data>
+  <data name="Save_Stage_Saving" xml:space="preserve"><value>Saving...</value></data>
+  <data name="Save_Stage_Checking" xml:space="preserve"><value>Checking the saved file...</value></data>
+  <data name="Save_Stage_Finishing" xml:space="preserve"><value>Finishing...</value></data>
+  <data name="Save_Cancel" xml:space="preserve"><value>Cancel</value></data>
+  <data name="Save_Done_Announce" xml:space="preserve"><value>Saved {0}</value></data>
+  <data name="Save_Copy_Done" xml:space="preserve"><value>Saved a copy as {0}</value></data>
+  <data name="Save_FlatCopy_Done" xml:space="preserve"><value>Saved a flattened copy as {0}. The copy can't be edited. Your open document stays as it is.</value></data>
+  <data name="Save_Failed_Title" xml:space="preserve"><value>MikePDF couldn't save safely</value></data>
+  <data name="Save_Failed_Body" xml:space="preserve"><value>Your changes are still here. Nothing in your file was changed.</value></data>
+  <data name="Save_Refused_Title" xml:space="preserve"><value>{0} wasn't saved</value></data>
+  <data name="Save_Failed_Details" xml:space="preserve"><value>Details</value></data>
+  <data name="Save_Details_Code" xml:space="preserve"><value>Reason: {0}</value></data>
+  <data name="Save_Try_Again" xml:space="preserve"><value>Try again</value></data>
+  <data name="Save_Action_SaveAs" xml:space="preserve"><value>Save a copy...</value></data>
+  <data name="Save_Action_Overwrite" xml:space="preserve"><value>Overwrite</value></data>
+  <data name="Save_Action_ShowOriginal" xml:space="preserve"><value>Show the original file</value></data>
+  <data name="Save_NoSpace" xml:space="preserve"><value>There isn't enough space to save. Free some space or save to another drive. Your changes are still here.</value></data>
+  <data name="Save_InUse" xml:space="preserve"><value>{0} is in use by another program. Save a copy instead. Your changes are still here.</value></data>
+  <data name="Save_ChangedOnDisk" xml:space="preserve"><value>{0} was changed by another program since you opened it.</value></data>
+  <data name="Save_Changed_Title" xml:space="preserve"><value>File changed</value></data>
+  <data name="Save_Overwrite" xml:space="preserve"><value>Overwrite</value></data>
+  <data name="Save_SaveAs" xml:space="preserve"><value>Save a copy</value></data>
+  <data name="Save_ReadOnly" xml:space="preserve"><value>{0} can't be changed here. Save a copy instead. Your changes are still here.</value></data>
+  <data name="Save_HardLinks" xml:space="preserve"><value>{0} is also reachable under another name; saving would leave that name with the old content. Save a copy instead. Your changes are still here.</value></data>
+  <data name="Save_Efs" xml:space="preserve"><value>{0} is encrypted by Windows (EFS), and the saved copy could not carry that. Save a copy instead. Your changes are still here.</value></data>
+  <data name="Save_Encrypted" xml:space="preserve"><value>This document is password protected. MikePDF can't save changes into it yet. Your changes are still here; close the tab and choose Don't save to drop them.</value></data>
+  <data name="Save_Encrypted_Copy" xml:space="preserve"><value>The copy won't be password protected.</value></data>
+  <data name="Save_TooLarge" xml:space="preserve"><value>This file is too large to save changes into.</value></data>
+  <data name="Save_Structure" xml:space="preserve"><value>This file's structure can't be edited safely. You can still read it.</value></data>
+  <data name="Save_NoFolderAccess" xml:space="preserve"><value>MikePDF can't write in this folder. Save a copy somewhere else. Your changes are still here.</value></data>
+  <data name="Save_TargetGone" xml:space="preserve"><value>{0} was moved or deleted. Save a copy instead. Your changes are still here.</value></data>
+  <data name="Save_Unsupported" xml:space="preserve"><value>Some of your changes (form fields or page changes) can't be saved by this version of MikePDF yet. They are kept, and nothing in your file was changed.</value></data>
+  <data name="Save_Cancelled" xml:space="preserve"><value>Saving was cancelled. Your changes are still here, and nothing in your file was changed.</value></data>
+  <data name="Save_RestorePending_Title" xml:space="preserve"><value>MikePDF couldn't finish saving</value></data>
+  <data name="Save_RestorePending" xml:space="preserve"><value>MikePDF couldn't put your original file back after the save failed. Your original is safe at {0}. MikePDF puts it back the next time it starts.</value></data>
+  <data name="Save_Signed_Break_Title" xml:space="preserve"><value>This will make the signature invalid</value></data>
+  <data name="Save_Signed_Break_Body" xml:space="preserve"><value>Saving this way rewrites the whole file. Readers will report that the signature is no longer valid.</value></data>
+  <data name="Save_Signed_Continue" xml:space="preserve"><value>Save the copy</value></data>
+  <data name="Save_AsDialog_Title" xml:space="preserve"><value>Save a copy</value></data>
+  <data name="Save_RewriteWhole" xml:space="preserve"><value>Rewrite the whole file (smaller, removes edit history, invalidates signatures)</value></data>
+  <data name="Save_FlattenedTitle" xml:space="preserve"><value>Save a flattened copy</value></data>
+  <data name="Save_Flatten_Hint" xml:space="preserve"><value>The copy can't be edited. Your open document stays as it is.</value></data>
+  <data name="Save_FileType_Pdf" xml:space="preserve"><value>PDF document</value></data>
+  <data name="Save_SuggestedName" xml:space="preserve"><value>{0} (edited)</value></data>
+  <data name="Save_SuggestedFlatName" xml:space="preserve"><value>{0} (flattened)</value></data>
+  <data name="Save_AlreadyOpen" xml:space="preserve"><value>{0} is open in another tab. Close that tab or choose another name.</value></data>
+  <data name="Save_FlatSameFile" xml:space="preserve"><value>A flattened copy can't replace the file that is open. Choose another name.</value></data>
+  <data name="Save_Revert_Confirm" xml:space="preserve"><value>Discard all changes and reload {0} from disk?</value></data>
+  <data name="Save_Revert_Title" xml:space="preserve"><value>Reload from disk?</value></data>
+  <data name="Save_Revert_Button" xml:space="preserve"><value>Discard changes and reload</value></data>
+  <data name="Save_BackupFailed" xml:space="preserve"><value>Changes can't be backed up right now. Save to keep them safe.</value></data>
+  <data name="Save_Dirty_Suffix" xml:space="preserve"><value>, unsaved changes</value></data>
+  <data name="Window_Title_Modified" xml:space="preserve"><value>{0}, unsaved changes - MikePDF</value></data>
+  <data name="ExternalChange_Changed" xml:space="preserve"><value>{0} changed on disk.</value></data>
+  <data name="ExternalChange_Gone" xml:space="preserve"><value>{0} was moved or deleted.</value></data>
+  <data name="ExternalChange_Reload" xml:space="preserve"><value>Reload</value></data>
+  <data name="ExternalChange_Keep" xml:space="preserve"><value>Keep what I have</value></data>
+  <data name="ExternalChange_Edits" xml:space="preserve"><value>Reloading drops your unsaved changes.</value></data>
+  <data name="Recover_Title" xml:space="preserve"><value>Restore unsaved changes?</value></data>
+  <data name="Recover_Body" xml:space="preserve"><value>MikePDF closed before {0} was saved.</value></data>
+  <data name="Recover_Summary" xml:space="preserve"><value>{0}. Last change {1}.</value></data>
+  <data name="Recover_Restore" xml:space="preserve"><value>Restore</value></data>
+  <data name="Recover_Discard" xml:space="preserve"><value>Discard</value></data>
+  <data name="Recover_NotNow" xml:space="preserve"><value>Not now</value></data>
+  <data name="Recover_Partial" xml:space="preserve"><value>{0} of {1} changes were restored.</value></data>
+  <data name="Recover_FileChanged" xml:space="preserve"><value>{0} changed after you made these edits. Some changes may not fit.</value></data>
+  <data name="Recover_Unreadable" xml:space="preserve"><value>Your saved changes for {0} couldn't be read.</value></data>
+  <data name="Recover_Damaged" xml:space="preserve"><value>Some of your changes couldn't be recovered.</value></data>
+  <data name="Recover_List_One" xml:space="preserve"><value>Unsaved changes found for 1 document</value></data>
+  <data name="Recover_List_Other" xml:space="preserve"><value>Unsaved changes found for {0} documents</value></data>
+  <data name="Recover_Multi_Title" xml:space="preserve"><value>Restore your unsaved changes?</value></data>
+  <data name="Recover_Multi_Body" xml:space="preserve"><value>MikePDF closed unexpectedly. These documents had changes that weren't saved:</value></data>
+  <data name="Recover_Multi_Footer" xml:space="preserve"><value>MikePDF kept only what you added, not the documents.</value></data>
+  <data name="Recover_Moved" xml:space="preserve"><value>file not found</value></data>
+  <data name="Recover_Unnamed" xml:space="preserve"><value>A document</value></data>
+  <data name="Recover_DiscardConfirm" xml:space="preserve"><value>Discard these changes? This can't be undone.</value></data>
+  <data name="Recover_Item_Automation" xml:space="preserve"><value>Open {0}: {1}</value></data>
+  <data name="Recover_Session_One" xml:space="preserve"><value>Also reopen the document that was open last time</value></data>
+  <data name="Recover_Session_Other" xml:space="preserve"><value>Also reopen the {0} documents that were open last time</value></data>
+  <data name="Recover_Open" xml:space="preserve"><value>Open</value></data>
+  <data name="Recover_Join" xml:space="preserve"><value>, </value></data>
+  <data name="Recover_Part_Markup_One" xml:space="preserve"><value>1 markup change</value></data>
+  <data name="Recover_Part_Markup_Other" xml:space="preserve"><value>{0} markup changes</value></data>
+  <data name="Recover_Part_Form_One" xml:space="preserve"><value>1 form change</value></data>
+  <data name="Recover_Part_Form_Other" xml:space="preserve"><value>{0} form changes</value></data>
+  <data name="Recover_Part_Pages_One" xml:space="preserve"><value>1 page change</value></data>
+  <data name="Recover_Part_Pages_Other" xml:space="preserve"><value>{0} page changes</value></data>
 </root>

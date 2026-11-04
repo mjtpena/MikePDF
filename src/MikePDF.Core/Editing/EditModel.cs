@@ -86,6 +86,12 @@ public sealed class EditModel
 
     public EditModel(IEditJournal? journal = null) => _journal = journal ?? new NullEditJournal();
 
+    /// <summary>
+    /// Raised after anything that can change <see cref="IsDirty"/>, <see cref="IsSaving"/>, <see cref="CanUndo"/> or <see cref="CanRedo"/>: a command, an undo, a redo, the start of a save and its end.
+    /// The shell hangs the tab's modified marker, the title and the Save command's state on it. It runs on the thread that changed the model (the model has one owner).
+    /// </summary>
+    public event Action? Changed;
+
     /// <summary>Commands are waiting to be written: the dot on the tab.</summary>
     public bool IsDirty => _pending.Count > 0;
 
@@ -120,6 +126,7 @@ public sealed class EditModel
         GuardNotSaving();
         var seq = _journal.Command(command);
         Take(seq, command, inverse);
+        Changed?.Invoke();
         return seq;
     }
 
@@ -139,6 +146,7 @@ public sealed class EditModel
             _done.RemoveAt(_done.Count - 1);
             _pending.RemoveAll(p => ReferenceEquals(p.Owner, top));
             _undone.Push(top);
+            Changed?.Invoke();
             return UndoOutcome.Done;
         }
 
@@ -152,6 +160,7 @@ public sealed class EditModel
         _done.RemoveAt(_done.Count - 1);
         _pending.Add((null, top.Inverse));
         _undone.Push(top);
+        Changed?.Invoke();
         return UndoOutcome.Done;
     }
 
@@ -188,6 +197,7 @@ public sealed class EditModel
 
         _undone.Pop();
         _done.Add(entry);
+        Changed?.Invoke();
         return UndoOutcome.Done;
     }
 
@@ -204,7 +214,9 @@ public sealed class EditModel
 
         _snapshotSeq = _lastSeq;
         var commands = _pending.Select(static p => p.Command).ToList();
-        return new EditSnapshot(_snapshotSeq, commands, commands.Aggregate(EditKinds.None, static (k, c) => k | c.Kind));
+        var snapshot = new EditSnapshot(_snapshotSeq, commands, commands.Aggregate(EditKinds.None, static (k, c) => k | c.Kind));
+        Changed?.Invoke();
+        return snapshot;
     }
 
     /// <summary>The save succeeded: everything in the snapshot is in the file. The undo stack is kept; the pending list is emptied.</summary>
@@ -229,10 +241,19 @@ public sealed class EditModel
 
         _pending.Clear();
         _snapshotSeq = -1;
+        Changed?.Invoke();
     }
 
     /// <summary>The save failed or was cancelled: the pending commands stay, and editing is allowed again.</summary>
-    public void AbortSave() => _snapshotSeq = -1;
+    public void AbortSave()
+    {
+        var wasSaving = IsSaving;
+        _snapshotSeq = -1;
+        if (wasSaving)
+        {
+            Changed?.Invoke();
+        }
+    }
 
     /// <summary>Applies a command read back from a journal, with the sequence number it had there. Nothing is written.</summary>
     internal void ReplayCommand(long seq, EditCommand command) => Take(seq, command, inverse: null);

@@ -68,6 +68,7 @@ public sealed partial class MainWindow : Window
         AppWindow.Changed += OnAppWindowChanged;
         InitializeReaderGaps();
         InitializeCommands();
+        InitializeSave();
         InitializeViews();
         InitializeTabs();
         RefreshRecent();
@@ -131,6 +132,7 @@ public sealed partial class MainWindow : Window
         if (args.WindowActivationState != WindowActivationState.Deactivated)
         {
             _app.OnWindowActivated(this);
+            CheckExternalChange(_active); // the file may have changed while another program had the focus (never on a timer)
         }
     }
 
@@ -183,6 +185,9 @@ public sealed partial class MainWindow : Window
             entry.Owner = null;
             entry.ShownLease?.Dispose();
             entry.ShownLease = null;
+            entry.SaveRun?.Dispose();
+            entry.SaveRun = null;
+            entry.ReleaseEdits(discard: !(_app.EndingSession && entry.Model.IsDirty)); // closing the window was decided (saved or "Don't save") unless Windows is ending the session
             if (entry.Session is { } session)
             {
                 entry.SetSession(null);
@@ -276,6 +281,7 @@ public sealed partial class MainWindow : Window
                 Strings.Format("Recent_Automation", System.IO.Path.GetFileName(r.Path), System.IO.Path.GetDirectoryName(r.Path) ?? string.Empty)))
             .ToList();
         RecentList.ItemsSource = items;
+        RefreshRecoverPanel();
         _hasRecent = items.Count > 0;
         RecentList.Visibility = items.Count == 0 ? Visibility.Collapsed : Visibility.Visible;
         NoRecentText.Visibility = items.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
@@ -288,6 +294,7 @@ public sealed partial class MainWindow : Window
         var session = _session;
         var open = session is { IsOpen: true };
         RefreshCommands();
+        UpdateSaveChrome();
         if (!open)
         {
             PageIndicator.Content = Strings.Get("PageIndicator_None");
@@ -317,7 +324,7 @@ public sealed partial class MainWindow : Window
         ((AppBarButton)ZoomButton).Label = percent + "%";
         AutomationProperties.SetName(ZoomButton, Strings.Format("Zoom_Automation", percent));
         AutomationProperties.SetItemStatus(Pages, controller.ViewTurns == 0 ? Strings.Get("Surface_NotRotated") : Strings.Format("Surface_Rotated", controller.ViewTurns * 90));
-        var title = Strings.Format("Window_Title", session.Title);
+        var title = Strings.Format(ActiveHasEdits ? "Window_Title_Modified" : "Window_Title", session.Title);
         Title = title;
         SyncViewChrome(session);
     }

@@ -59,6 +59,19 @@ public enum SaveReason
     RestorePending,
 }
 
+/// <summary>Where a save is, for the progress strip (save-pipeline 3.2: "Saving...", "Checking the saved file..."). After <see cref="Replacing"/> there is no cancel.</summary>
+public enum SaveProgressStage
+{
+    /// <summary>Preflight and the writer host's work.</summary>
+    Saving,
+
+    /// <summary>Stage 5: the structure walk, the prefix check, the fresh engine.</summary>
+    Checking,
+
+    /// <summary>Stage 6 has begun: the cancel point has passed.</summary>
+    Replacing,
+}
+
 /// <summary>The result of a save. <c>Detail</c> is a short, non-sensitive reason code for the Details button, never a path or document text.</summary>
 public sealed record SaveResult(SaveOutcome Outcome, SaveReason Reason, string? Detail = null, string? TargetPath = null, ReplaceOutcome? Replace = null, string? OutputSha256 = null, long OutputLength = 0)
 {
@@ -94,6 +107,15 @@ public sealed record SaveRequest
 
     /// <summary>Flattened copy: draw comments and markup into the pages.</summary>
     public bool FlattenComments { get; init; } = true;
+
+    /// <summary>
+    /// Save only: the person chose Overwrite after being told the path now names another file (save-pipeline 3.6 item 3). The edits are written onto the bytes the broker holds, over whatever is at the
+    /// path now; the file-identity check is skipped. Nothing else about the save changes.
+    /// </summary>
+    public bool OverwriteChangedFile { get; init; }
+
+    /// <summary>Told where the save is. The shell shows a strip when a save takes long (and disables Cancel from <see cref="SaveProgressStage.Replacing"/>).</summary>
+    public IProgress<SaveProgressStage>? Progress { get; init; }
 }
 
 /// <summary>
@@ -114,7 +136,9 @@ public sealed class SaveCoordinator(ISaveHost host, ISaveEngineCheck engineCheck
     private readonly FileReplacer _replacer = replacer ?? new FileReplacer();
 
     /// <summary>Saves the pending edits of a session: edits are blocked while it runs, and the clean point moves only when the file was replaced.</summary>
-    public async Task<SaveResult> SaveSessionAsync(EditSession session, string documentPath, string targetPath, SaveMode mode, int pageCount, SafeFileHandle? held, bool rewriteWholeFile = false, CancellationToken cancellationToken = default)
+    // switchesToTarget (Save As only): the tab switches to the new file (save-pipeline 3.2), so the edits are in the file it shows. On success the model's clean point moves and the session's journal is keyed by
+    // the new path. False leaves the pending edits where they are (a second copy made from the same session, a test).
+    public async Task<SaveResult> SaveSessionAsync(EditSession session, string documentPath, string targetPath, SaveMode mode, int pageCount, SafeFileHandle? held, bool rewriteWholeFile = false, bool overwriteChangedFile = false, IProgress<SaveProgressStage>? progress = null, bool switchesToTarget = false, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(session);
         var snapshot = session.Model.BeginSave();
@@ -122,7 +146,7 @@ public sealed class SaveCoordinator(ISaveHost host, ISaveEngineCheck engineCheck
         try
         {
             result = await SaveAsync(
-                new SaveRequest { DocumentPath = documentPath, TargetPath = targetPath, Mode = mode, Snapshot = snapshot, PageCount = pageCount, HeldOriginal = held, RewriteWholeFile = rewriteWholeFile },
+                new SaveRequest { DocumentPath = documentPath, TargetPath = targetPath, Mode = mode, Snapshot = snapshot, PageCount = pageCount, HeldOriginal = held, RewriteWholeFile = rewriteWholeFile, OverwriteChangedFile = overwriteChangedFile, Progress = progress },
                 new JournalSaveSink(session),
                 cancellationToken).ConfigureAwait(false);
         }
@@ -132,9 +156,13 @@ public sealed class SaveCoordinator(ISaveHost host, ISaveEngineCheck engineCheck
             throw;
         }
 
-        if (result.IsSaved && mode == SaveMode.Save)
+        if (result.IsSaved && (mode == SaveMode.Save || (mode == SaveMode.SaveAs && switchesToTarget)))
         {
             session.Model.MarkSaved(snapshot);
+            if (mode == SaveMode.SaveAs)
+            {
+                session.Rekey(targetPath);
+            }
         }
         else
         {
@@ -179,7 +207,7 @@ public sealed class SaveCoordinator(ISaveHost host, ISaveEngineCheck engineCheck
                 return Refuse(target.Problem switch { TargetProblem.ReadOnly => SaveReason.ReadOnly, TargetProblem.HardLinks => SaveReason.HardLinks, _ => SaveReason.EncryptedFile }, target.Problem.ToString());
             }
 
-            FileIdentity? expected = request.Mode == SaveMode.Save && request.HeldOriginal is { } held ? FileReplacer.IdentityOf(held) : null;
+            FileIdentity? expected = request.Mode == SaveMode.Save && !request.OverwriteChangedFile && request.HeldOriginal is { } held ? FileReplacer.IdentityOf(held) : null;
             if (request.Mode == SaveMode.Save)
             {
                 if (!target.Exists)
@@ -263,6 +291,7 @@ public sealed class SaveCoordinator(ISaveHost host, ISaveEngineCheck engineCheck
             // ---- stage 4 and the copies ----
             var blob = request.Snapshot.IsEmpty ? null : AnnotationEditMapper.ToBlob(request.Snapshot.Pending, request.PageCount);
             var deadline = SaveDeadlines.ForSize(baseLength);
+            request.Progress?.Report(SaveProgressStage.Saving);
             var produced = await ProduceAsync(request, blob, original, baseLength, temp, deadline, ct).ConfigureAwait(false);
             if (produced is not null)
             {
@@ -280,6 +309,7 @@ public sealed class SaveCoordinator(ISaveHost host, ISaveEngineCheck engineCheck
             faults?.Reach(SaveStep.BeginWritten);
 
             // ---- stage 5: validation ----
+            request.Progress?.Report(SaveProgressStage.Checking);
             var incremental = request.Mode != SaveMode.FlattenedCopy && !request.RewriteWholeFile && blob is not null;
             var invalid = await ValidateAsync(request, blob, original, baseLength, tempPath, length, incremental, sha, deadline, ct).ConfigureAwait(false);
             if (invalid is not null)
@@ -289,6 +319,7 @@ public sealed class SaveCoordinator(ISaveHost host, ISaveEngineCheck engineCheck
 
             faults?.Reach(SaveStep.Validated);
             ct.ThrowIfCancellationRequested(); // after this there is no cancel
+            request.Progress?.Report(SaveProgressStage.Replacing);
 
             // ---- stage 6: replace ----
             tempOwned = false;

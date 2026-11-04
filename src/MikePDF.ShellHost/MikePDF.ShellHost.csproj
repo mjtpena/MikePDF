@@ -15,6 +15,9 @@
          locked projects that reference it (the integration tests, the fuzz harness) still pin. -->
     <RestorePackagesWithLockFile>false</RestorePackagesWithLockFile>
     <RestoreLockedMode>false</RestoreLockedMode>
+    <!-- NuGet audit reports Microsoft.DotNet.ILCompiler 10.0.8 (the SDK's own Native AOT compiler, matching the SDK we build with) as having an advisory (NU1903, GHSA-p3jp-9v83-76w9). It is the toolchain, not
+         code that ships, and its version is the SDK's to move; the warning stays visible but does not fail the restore. Revisit when the SDK ships the fixed ILCompiler. -->
+    <WarningsNotAsErrors>$(WarningsNotAsErrors);NU1903</WarningsNotAsErrors>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <UseSystemResourceKeys>true</UseSystemResourceKeys>
     <!-- Stack traces and exception messages are for the log file only; nothing here is shown to a person. -->

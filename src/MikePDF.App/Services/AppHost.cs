@@ -1,5 +1,6 @@
 using Microsoft.UI.Dispatching;
 using MikePDF.Core;
+using MikePDF.Core.Editing.Recovery;
 using MikePDF.Core.Persistence;
 using MikePDF.Core.Windowing;
 using DispatcherQueueTimer = Microsoft.UI.Dispatching.DispatcherQueueTimer;
@@ -37,6 +38,8 @@ internal sealed class AppHost
         var cap = services.Settings.Value<int>("engines.maxLiveTabs");
         var memoryLimit = services.Policy.Current.EngineMemoryLimitMb;
         Host = Task.Run(() => EngineHost.Create(cap, memoryLimit));
+        Saves = new SaveService(Host);
+        SaveHandler = SaveForCloseAsync;
         services.PdfiumVersion = PdfiumVersionAsync;
         _activations = new ActivationRelay<ActivationRequest>(HandleActivationAsync);
         _sessionStore = new SessionStore(AppPaths.SessionPath);
@@ -55,8 +58,60 @@ internal sealed class AppHost
 
     public static AppHost? Current { get; private set; }
 
-    /// <summary>Saves the documents of the tabs about to close. The save pipeline (M4) sets it; until it does there is nothing that can be saved, nothing is ever dirty outside a test, and the dialog's Save button stays off.</summary>
+    /// <summary>Saves the documents of the tabs about to close (the Save button of the close prompt). True when every one was saved; false when one was not, and then nothing closes.</summary>
     public static Func<IReadOnlyList<TabModel>, Task<bool>>? SaveHandler { get; set; }
+
+    /// <summary>The writer host and the pipeline over it, shared by every window.</summary>
+    public SaveService Saves { get; }
+
+    /// <summary>The system is ending the session (shutdown, sign-out): windows that close now keep their journals, because nobody was asked and nothing was decided.</summary>
+    public bool EndingSession => _endingSession;
+
+    // ---- recovery bookkeeping (docs/features/save-pipeline.md 3.5) ------------------------------------------------------------------------
+
+    private readonly Dictionary<string, RecoveryCandidate> _restores = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, RecoveryRow> _deferred = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>Documents whose journal the person chose to keep for later ("Not now") this run: opening them does not ask again; the empty window lists them.</summary>
+    public IReadOnlyCollection<RecoveryRow> Deferred => _deferred.Values;
+
+    public bool IsDeferred(string path) => _deferred.ContainsKey(path);
+
+    public void Defer(RecoveryRow row)
+    {
+        if (row.Candidate.DocumentPath is { } path)
+        {
+            _deferred[path] = row;
+        }
+    }
+
+    public void Undefer(string path) => _deferred.Remove(path);
+
+    /// <summary>The person chose Restore for this document: the tab that opens it applies the journal.</summary>
+    public void QueueRestore(RecoveryCandidate candidate)
+    {
+        if (candidate.DocumentPath is { } path)
+        {
+            _restores[path] = candidate;
+            _deferred.Remove(path);
+        }
+    }
+
+    /// <summary>The journal to apply to the document being opened, if the person chose to restore it. Taken once.</summary>
+    public RecoveryCandidate? TakeRestore(string path) => _restores.Remove(path, out var candidate) ? candidate : null;
+
+    private async Task<bool> SaveForCloseAsync(IReadOnlyList<TabModel> tabs)
+    {
+        foreach (var tab in tabs)
+        {
+            if (WindowOfTab(tab.Id) is not { } window || window.TabEntryOf(tab.Id) is not { } entry || !await window.SaveForCloseAsync(entry))
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
 
     public AppServices Services { get; }
 

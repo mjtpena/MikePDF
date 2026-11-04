@@ -54,7 +54,7 @@ public sealed class SaveCoordinatorTests
         public SaveCoordinator Coordinator { get; }
 
         public Task<SaveResult> SaveAsync(SaveMode mode = SaveMode.Save, string? target = null, bool rewrite = false, CancellationToken cancellationToken = default) =>
-            Coordinator.SaveSessionAsync(Session, Doc, target ?? Doc, mode, PageCount, Held, rewrite, cancellationToken);
+            Coordinator.SaveSessionAsync(Session, Doc, target ?? Doc, mode, PageCount, Held, rewrite, cancellationToken: cancellationToken);
 
         public static int PagesOf(byte[] bytes)
         {

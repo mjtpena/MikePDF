@@ -1,4 +1,6 @@
 using MikePDF.Core.Commands;
+using MikePDF.Core.Editing.Journal;
+using MikePDF.Core.Editing.Recovery;
 using MikePDF.Core.Layout;
 using MikePDF.Core.Persistence;
 using MikePDF.Core.Settings;
@@ -12,6 +14,9 @@ namespace MikePDF.App.Services;
 internal sealed class AppServices : IDisposable
 {
     private readonly KeybindingSync _sync;
+    private JournalStore? _journals;
+    private RecoveryService? _recovery;
+    private bool _journalsTried;
 
     public AppServices(DocumentStore documents, SettingsStore settings, CommandRegistry commands, CommandHistory history)
     {
@@ -34,6 +39,35 @@ internal sealed class AppServices : IDisposable
     public ChordDispatcher Dispatcher { get; }
 
     public CommandHistory History { get; }
+
+    /// <summary>
+    /// The edit journals (private\journals), made when first asked for. Null when the folder cannot be made or written: edits then go on without a backup, and the chip says so
+    /// (docs/features/save-pipeline.md OQ-SP-1, "degraded").
+    /// </summary>
+    public JournalStore? Journals
+    {
+        get
+        {
+            if (!_journalsTried)
+            {
+                _journalsTried = true;
+                try
+                {
+                    MikePDF.Broker.PrivateDirectory.Ensure(AppPaths.PrivateDirectory);
+                    _journals = new JournalStore(AppPaths.JournalsDirectory);
+                }
+                catch (Exception e) when (e is IOException or UnauthorizedAccessException or System.ComponentModel.Win32Exception or ArgumentException)
+                {
+                    System.Diagnostics.Debug.WriteLine("Journals unavailable: " + e.GetType().Name);
+                }
+            }
+
+            return _journals;
+        }
+    }
+
+    /// <summary>Looks at the journals when the app starts or a document opens: finishes an interrupted save, and says what is to be offered (docs/features/save-pipeline.md 3.5).</summary>
+    public RecoveryService? Recovery => _recovery ??= Journals is { } journals ? new RecoveryService(journals) : null;
 
     /// <summary>Asks for the PDFium version of the engine (set by the host); null before there is a host.</summary>
     public Func<Task<string?>>? PdfiumVersion { get; set; }

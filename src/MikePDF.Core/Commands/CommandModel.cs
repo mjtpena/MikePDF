@@ -64,6 +64,8 @@ public static class Reasons
     public const string OwnerNoPrint = "OwnerNoPrint";
     public const string PrintBusy = "PrintBusy";
     public const string NotPrinting = "NotPrinting";
+    public const string NoEdits = "NoEdits";
+    public const string SaveBusy = "SaveBusy";
 
     public static string ResourceKey(string reason) => "Reason_" + reason;
 }
@@ -151,6 +153,12 @@ public sealed record CommandContext
 
     /// <summary>A print job started from this window is running (Cancel printing can act; a second Print waits).</summary>
     public bool PrintJobRunning { get; init; }
+
+    /// <summary>The shown document has edits that are not in its file (Save can act; the modified marker is on).</summary>
+    public bool HasEdits { get; init; }
+
+    /// <summary>A save of the shown document is running: the document is read-only until it ends, and a second save waits (save-pipeline 3.2).</summary>
+    public bool SaveRunning { get; init; }
 }
 
 /// <summary>

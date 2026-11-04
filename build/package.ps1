@@ -6,7 +6,7 @@
     1. builds the sandboxed engine with CMake (./build.ps1 -SkipManaged), unless -SkipNativeBuild
     2. publishes MikePDF.App: self-contained .NET, ReadyToRun, framework-dependent Windows App SDK (not Native AOT yet: see MikePDF.App.csproj)
     3. lays out the package: app, Engine\ (MikePDF.Engine.exe + pdfium.dll; the engine runs in place from the package), ShellExt\ (the Explorer thumbnail provider and preview
-       handler DLL, from the native build), ShellHost\ (MikePDF.ShellHost.exe, Native AOT, published here: ADR-0018), Licenses\, Assets
+       handler DLL, from the native build), ShellHost\ (MikePDF.ShellHost.exe, Native AOT, published here: ADR-0018), WriterHost\ (MikePDF.WriterHost.exe, Native AOT, published here: ADR-0008), Licenses\, Assets
     4. writes AppxManifest.xml from the build's manifest with the identity from build/store/identity.json (parameters override), the version,
        the architecture and MaxVersionTested 10.0.26300.0
     5. packs with makeappx into MikePDF_<version>_<arch>.msix, and the PDBs into MikePDF_<version>_<arch>.appxsym
@@ -167,7 +167,7 @@ if (-not $SkipPublish) {
     if (Test-Path $publish) { Remove-Item -Recurse -Force $publish }
     $publishArgs = @(
         'publish', (Join-Path $root 'src/MikePDF.App/MikePDF.App.csproj'), '-c', 'Release', '-r', "win-$Arch", '--self-contained', 'true',
-        '-p:PublishReadyToRun=true', "-p:MikePDFArch=$Arch", "-p:Version=$Version", '-o', $publish, '-nologo', '-v', 'q',
+        '-p:PublishReadyToRun=true', '-p:MikePDFSkipWriterHostBuild=true', "-p:MikePDFArch=$Arch", "-p:Version=$Version", '-o', $publish, '-nologo', '-v', 'q',
         # resources.pri must carry the package's name, not the development manifest's (the certification kit's "App resources" test).
         "-p:ProjectPriIndexName=$($identity.Name)")
     if ($TestBuild) { $publishArgs += '-p:MikePDFSelfTest=true' }
@@ -189,6 +189,17 @@ if (-not $SkipPublish) {
 }
 if (-not (Test-Path (Join-Path $shellHostPublish 'MikePDF.ShellHost.exe'))) { throw "No MikePDF.ShellHost.exe in $shellHostPublish" }
 
+# MikePDF.WriterHost (ADR-0008) is the sandboxed process that parses and writes PDF structure for a save. Like ShellHost it is a Native AOT executable (about 3 MB; a self-contained JIT build was 103 MB and
+# could not fit the package budget), published beside the app and run in place from the package like the engine. The AOT compiler finds the MSVC linker through vswhere (PATH set above).
+$writerHostPublish = Join-Path $OutDir "publish-writerhost-$Arch$suffix"
+if (-not $SkipPublish) {
+    Step "Publish MikePDF.WriterHost ($Arch, Native AOT)"
+    if (Test-Path $writerHostPublish) { Remove-Item -Recurse -Force $writerHostPublish }
+    dotnet publish (Join-Path $root 'src/MikePDF.WriterHost/MikePDF.WriterHost.csproj') -c Release -r "win-$Arch" "-p:MikePDFArch=$Arch" "-p:Version=$Version" -o $writerHostPublish -nologo -v q
+    if ($LASTEXITCODE -ne 0) { throw 'dotnet publish of MikePDF.WriterHost failed' }
+}
+if (-not (Test-Path (Join-Path $writerHostPublish 'MikePDF.WriterHost.exe'))) { throw "No MikePDF.WriterHost.exe in $writerHostPublish" }
+
 Step 'Lay out the package'
 if (Test-Path $stage) { Remove-Item -Recurse -Force $stage }
 New-Item -ItemType Directory $stage | Out-Null
@@ -207,6 +218,11 @@ $shellHostDir = Join-Path $stage 'ShellHost'
 New-Item -ItemType Directory $shellExtDir, $shellHostDir | Out-Null
 Copy-Item (Join-Path $cmakeBin 'MikePDF.ShellExt.dll') $shellExtDir
 Copy-Item (Join-Path $shellHostPublish 'MikePDF.ShellHost.exe') $shellHostDir
+
+# The writer host, the AOT executable alone (symbols and documentation XML stay in the publish folder; the PDBs go to the .appxsym).
+$writerHostDir = Join-Path $stage 'WriterHost'
+New-Item -ItemType Directory $writerHostDir | Out-Null
+Copy-Item (Join-Path $writerHostPublish 'MikePDF.WriterHost.exe') $writerHostDir
 
 if ($TestBuild) {
     $probeDir = Join-Path $stage 'Probe'
@@ -244,8 +260,8 @@ if (-not (Test-Path (Join-Path $stage 'resources.pri'))) {
 
 Step 'Release checks'
 $offenders = @()
-# Never in any package: the WriterHost (no save feature in this build) and the CI package probe.
-foreach ($name in 'MikePDF.WriterHost.exe', 'MikePDF.PackageProbe.exe') { $offenders += Get-ChildItem $stage -Recurse -Filter $name -ErrorAction SilentlyContinue }
+# Never in any package: the CI package probe.
+foreach ($name in 'MikePDF.PackageProbe.exe') { $offenders += Get-ChildItem $stage -Recurse -Filter $name -ErrorAction SilentlyContinue }
 # Test builds only: the sandbox probe and the unsigned DLL it uses.
 if (-not $TestBuild) {
     foreach ($name in 'MikePDF.Engine.SandboxProbe.exe', 'rogue-copy.dll', 'rogue-marker.dll') { $offenders += Get-ChildItem $stage -Recurse -Filter $name -ErrorAction SilentlyContinue }
@@ -256,14 +272,15 @@ $appDll = Join-Path $stage 'MikePDF.dll'
 $bytes = [System.IO.File]::ReadAllBytes($appDll)
 $hasSelfTest = [System.Text.Encoding]::ASCII.GetString($bytes).Contains('SelfTest')
 if ($hasSelfTest -and -not $TestBuild) { $offenders += Get-Item $appDll }
-if (@($offenders).Count -gt 0) { throw "A release package must not contain the sandbox probe, the self-test or the WriterHost. Found: $($offenders.FullName -join ', ')" }
+if (@($offenders).Count -gt 0) { throw "A release package must not contain the sandbox probe or the self-test. Found: $($offenders.FullName -join ', ')" }
 if (-not $hasSelfTest -and $TestBuild) { throw '-TestBuild was asked for but the self-test is not in MikePDF.dll.' }
-foreach ($required in 'MikePDF.exe', 'AppxManifest.xml', 'resources.pri', 'Engine/MikePDF.Engine.exe', 'Engine/pdfium.dll', 'ShellExt/MikePDF.ShellExt.dll', 'ShellHost/MikePDF.ShellHost.exe', 'Licenses/LICENSE.txt', 'Licenses/NOTICE.txt', 'Licenses/THIRD-PARTY-NOTICES.md', 'Licenses/PDFium/pdfium.txt') {
+foreach ($required in 'MikePDF.exe', 'AppxManifest.xml', 'resources.pri', 'Engine/MikePDF.Engine.exe', 'Engine/pdfium.dll', 'ShellExt/MikePDF.ShellExt.dll', 'ShellHost/MikePDF.ShellHost.exe', 'WriterHost/MikePDF.WriterHost.exe', 'Licenses/LICENSE.txt', 'Licenses/NOTICE.txt', 'Licenses/THIRD-PARTY-NOTICES.md', 'Licenses/PDFium/pdfium.txt') {
     if (-not (Test-Path (Join-Path $stage $required))) { throw "Package content is incomplete: $required" }
 }
 # The handlers are registered by the manifest and laid out where it says; ShellHost is the AOT executable alone (a managed apphost beside a DLL would need a .NET runtime nobody installs for it).
 if ($text -notmatch 'desktop2:ThumbnailHandler' -or $text -notmatch 'desktop2:DesktopPreviewHandler' -or $text -notmatch 'com:SurrogateServer') { throw 'The manifest lost the thumbnail and preview handler registrations.' }
 if (@(Get-ChildItem $shellHostDir -File).Count -ne 1) { throw "ShellHost\ must hold MikePDF.ShellHost.exe alone: $((Get-ChildItem $shellHostDir -File).Name -join ', ')" }
+if (@(Get-ChildItem $writerHostDir -File).Count -ne 1) { throw "WriterHost\ must hold MikePDF.WriterHost.exe alone: $((Get-ChildItem $writerHostDir -File).Name -join ', ')" }
 if (@(Get-ChildItem $shellExtDir -File).Count -ne 1) { throw "ShellExt\ must hold MikePDF.ShellExt.dll alone: $((Get-ChildItem $shellExtDir -File).Name -join ', ')" }
 # MikePDF.App must not carry PDFium itself or its own copy of the engine: only Engine\ has them.
 $strays = Get-ChildItem $stage -Recurse -Filter pdfium.dll | Where-Object { $_.DirectoryName -ne $engineDir }
@@ -276,7 +293,7 @@ if (Test-Path $msixPath) { Remove-Item $msixPath }
 if ($LASTEXITCODE -ne 0) { throw 'makeappx pack failed' }
 
 # Symbols: the app's PDBs and the engine's, for crash analysis of Store builds. Not shipped to users.
-$symbolFiles = @(Get-ChildItem $publish -Recurse -Filter *.pdb) + @(Get-ChildItem $cmakeBin -Filter MikePDF.Engine.pdb) + @(Get-ChildItem $cmakeBin -Filter MikePDF.ShellExt.pdb) + @(Get-ChildItem $shellHostPublish -Filter MikePDF.ShellHost.pdb)
+$symbolFiles = @(Get-ChildItem $publish -Recurse -Filter *.pdb) + @(Get-ChildItem $cmakeBin -Filter MikePDF.Engine.pdb) + @(Get-ChildItem $cmakeBin -Filter MikePDF.ShellExt.pdb) + @(Get-ChildItem $shellHostPublish -Filter MikePDF.ShellHost.pdb) + @(Get-ChildItem $writerHostPublish -Filter *.pdb)
 if (Test-Path $symbolsPath) { Remove-Item $symbolsPath }
 $symbolZip = "$symbolsPath.zip"
 if ($symbolFiles.Count -gt 0) {
