@@ -14,6 +14,8 @@
     <ProjectReference Include="..\..\..\src\MikePDF.Core\MikePDF.Core.csproj" />
     <ProjectReference Include="..\..\..\src\MikePDF.Protocol\MikePDF.Protocol.csproj" />
     <PackageReference Include="SharpFuzz" />
+    <!-- The one conversion from a decoded edit to the writer's terms (the host is an executable and cannot be referenced). -->
+    <Compile Include="..\..\..\src\MikePDF.WriterHost\EditConversion.cs" Link="Shared\EditConversion.cs" />
     <Compile Include="..\Shared\MutationalFuzzer.cs" Link="Shared\MutationalFuzzer.cs" />
     <Compile Include="..\Shared\LibFuzzerEntry.cs" Link="Shared\LibFuzzerEntry.cs" />
     <InternalsVisibleTo Include="MikePDF.Fuzz.Tests" />

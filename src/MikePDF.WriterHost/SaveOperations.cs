@@ -166,25 +166,7 @@ internal static class SaveOperations
         return (Status.Ok, new VerifyAnnotationsReply { Ok = true, Mismatches = [.. mismatches] });
     }
 
-    internal static AnnotationChange ToChange(AnnotationEdit edit) => new()
-    {
-        Kind = (AnnotationEditKind)(int)edit.Operation,
-        Page = (int)edit.Page,
-        Annotation = (NewAnnotationKind)(int)edit.Kind,
-        Rect = edit.Rect,
-        Color = edit.Color,
-        Opacity = edit.Opacity,
-        Width = edit.Width,
-        Contents = edit.Contents,
-        Author = edit.Author,
-        Name = edit.Name,
-        Flags = edit.Flags,
-        QuadPoints = edit.QuadPoints,
-        Strokes = edit.Strokes,
-        TargetObject = (int)edit.TargetObject,
-        ExpectSubtype = edit.ExpectSubtype,
-        ExpectRect = edit.ExpectRect,
-    };
+    internal static AnnotationChange ToChange(AnnotationEdit edit) => EditConversion.ToChange(edit);
 
     private static AppendAnnotationsReply RefusedAppend(PdfError error) =>
         new() { Ok = false, IssueCodes = [(uint)error.Code], IssueMessages = [Validation.Bounded("error: " + error.Message)] };

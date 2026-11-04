@@ -10,6 +10,12 @@ public enum NewAnnotationKind
     Ink = 5,
     Square = 6,
     Circle = 7,
+    Squiggly = 8,
+    FreeText = 9,
+    Line = 10,
+    PolyLine = 11,
+    Polygon = 12,
+    Stamp = 13,
 }
 
 public enum AnnotationEditKind
@@ -17,6 +23,9 @@ public enum AnnotationEditKind
     Add = 1,
     Delete = 2,
     Update = 3,
+
+    /// <summary>Rebuild a loaded annotation, dictionary and appearance, in place (a restyle, a vertex edit, an erase).</summary>
+    Replace = 4,
 }
 
 /// <summary>
@@ -57,6 +66,52 @@ public sealed record AnnotationChange
     public string? ExpectSubtype { get; init; }
 
     public float[]? ExpectRect { get; init; }
+
+    public float[]? InteriorColor { get; init; }
+
+    public string? Subject { get; init; }
+
+    /// <summary>PDF date strings. Null <see cref="Modified"/>: the options' time.</summary>
+    public string? Created { get; init; }
+
+    public string? Modified { get; init; }
+
+    /// <summary>0 solid, 1 dashed, 2 dotted.</summary>
+    public int Dash { get; init; }
+
+    public float[]? Vertices { get; init; }
+
+    /// <summary>Line endings, 0 to 5 (None, OpenArrow, ClosedArrow, Square, Circle, Diamond).</summary>
+    public int LineStart { get; init; }
+
+    public int LineEnd { get; init; }
+
+    /// <summary>A note's icon or a stamp's standard name.</summary>
+    public string? StandardName { get; init; }
+
+    /// <summary>Bit 0 typewriter, bit 1 highlighter (ink), bits 2 and 3 the stamp's quarter turns.</summary>
+    public uint Traits { get; init; }
+
+    public int FontId { get; init; }
+
+    public float FontSize { get; init; }
+
+    public float[]? TextColor { get; init; }
+
+    public int Align { get; init; }
+
+    public IReadOnlyList<float[]>? InkWidths { get; init; }
+
+    /// <summary>The <c>/NM</c> of the annotation a reply or a review state answers.</summary>
+    public string? ParentName { get; init; }
+
+    /// <summary>0 an ordinary annotation, 1 a reply, 2 a review state.</summary>
+    public int ReplyKind { get; init; }
+
+    /// <summary>0 None, 1 Accepted, 2 Rejected, 3 Cancelled, 4 Completed.</summary>
+    public int State { get; init; }
+
+    public float[]? PopupRect { get; init; }
 }
 
 public sealed record AppendOptions

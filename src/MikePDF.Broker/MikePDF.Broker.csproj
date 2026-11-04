@@ -12,6 +12,8 @@
     <PackageReference Include="Microsoft.NET.ILLink.Tasks" VersionOverride="10.0.14" PrivateAssets="all" />
     <ProjectReference Include="..\MikePDF.Core\MikePDF.Core.csproj" />
     <ProjectReference Include="..\MikePDF.Protocol\MikePDF.Protocol.csproj" />
+    <!-- The save coordinator turns the pending annotation commands into the edit blob with the mapper that lives there. -->
+    <ProjectReference Include="..\MikePDF.Markup.Editing\MikePDF.Markup.Editing.csproj" />
   </ItemGroup>
   <ItemGroup>
     <!-- The integration tests drive internals (the engine instance, the slot ring's child handle) that no product caller should touch. -->

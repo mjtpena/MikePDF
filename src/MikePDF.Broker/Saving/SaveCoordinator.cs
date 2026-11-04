@@ -3,6 +3,7 @@ using Microsoft.Win32.SafeHandles;
 using MikePDF.Core.Editing;
 using MikePDF.Core.Editing.Journal;
 using MikePDF.Core.Editing.Recovery;
+using MikePDF.Markup.Editing;
 using MikePDF.Protocol.Edits;
 
 namespace MikePDF.Broker.Saving;

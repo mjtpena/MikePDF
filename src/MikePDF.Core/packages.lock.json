@@ -23,6 +23,9 @@
         "resolved": "17.11.4",
         "contentHash": "mudqUHhNpeqIdJoUx2YDWZO/I9uEDYVowan89R6wsomfnUJQk6HteoQTlNjZDixhT2B4IXMkMtgZtoceIjLRmA=="
       },
+      "mikepdf.ink": {
+        "type": "Project"
+      },
       "mikepdf.protocol": {
         "type": "Project",
         "dependencies": {

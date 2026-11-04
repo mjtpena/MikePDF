@@ -3,7 +3,8 @@
 using MikePDF.Core.Editing;
 using MikePDF.Protocol.Edits;
 
-namespace MikePDF.Core.Tests;
+
+namespace MikePDF.Markup.Editing.Tests;
 
 /// <summary>SP-09 (save-pipeline 14): the pending commands become the net edits of stage 4.</summary>
 public sealed class AnnotationEditMapperTests
@@ -122,9 +123,9 @@ public sealed class AnnotationEditMapperTests
     }
 
     [Fact]
-    public void AKindNobodyWritesYetIsRefused()
+    public void AKindThatDoesNotExistIsRefused()
     {
-        var add = EditCommand.Create("AddAnnotation", new { page = 0, kind = "Stamp", name = "a", rect = new[] { 1f, 2f, 3f, 4f }, color = new[] { 1f, 0f, 0f } });
+        var add = EditCommand.Create("AddAnnotation", new { page = 0, kind = "Hologram", name = "a", rect = new[] { 1f, 2f, 3f, 4f }, color = new[] { 1f, 0f, 0f } });
 
         Assert.Throws<UnsupportedEditException>(() => AnnotationEditMapper.ToBlob([add], 1));
     }

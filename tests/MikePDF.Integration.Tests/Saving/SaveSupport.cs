@@ -215,25 +215,7 @@ internal sealed class InProcessSaveHost : ISaveHost
 
     private static HostResult Refused(PdfError error) => new(false, WriterErrorCodes.NameOf((uint)error.Code));
 
-    private static AnnotationChange ToChange(AnnotationEdit edit) => new()
-    {
-        Kind = (AnnotationEditKind)(int)edit.Operation,
-        Page = (int)edit.Page,
-        Annotation = (NewAnnotationKind)(int)edit.Kind,
-        Rect = edit.Rect,
-        Color = edit.Color,
-        Opacity = edit.Opacity,
-        Width = edit.Width,
-        Contents = edit.Contents,
-        Author = edit.Author,
-        Name = edit.Name,
-        Flags = edit.Flags,
-        QuadPoints = edit.QuadPoints,
-        Strokes = edit.Strokes,
-        TargetObject = (int)edit.TargetObject,
-        ExpectSubtype = edit.ExpectSubtype,
-        ExpectRect = edit.ExpectRect,
-    };
+    private static AnnotationChange ToChange(AnnotationEdit edit) => MikePDF.WriterHost.EditConversion.ToChange(edit);
 
     internal static byte[] ReadAll(SafeFileHandle file)
     {

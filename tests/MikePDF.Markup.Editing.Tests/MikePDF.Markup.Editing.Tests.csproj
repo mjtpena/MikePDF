@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\MikePDF.Markup.Editing\MikePDF.Markup.Editing.csproj" />
+    <ProjectReference Include="..\..\src\MikePDF.Markup\MikePDF.Markup.csproj" />
+    <ProjectReference Include="..\..\src\MikePDF.Ink\MikePDF.Ink.csproj" />
+    <ProjectReference Include="..\..\src\MikePDF.Core\MikePDF.Core.csproj" />
+    <ProjectReference Include="..\..\src\MikePDF.Protocol\MikePDF.Protocol.csproj" />
+    <!-- The tests run stage 4 on the documents they build, in this process. -->
+    <ProjectReference Include="..\..\src\MikePDF.PdfWriter\MikePDF.PdfWriter.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- The one conversion from a decoded edit to the writer's terms (the host is an executable and cannot be referenced). -->
+    <Compile Include="..\..\src\MikePDF.WriterHost\EditConversion.cs" Link="Support\Linked\EditConversion.cs" />
+    <!-- The sample annotations and the content stream reader of the Markup tests (one definition). -->
+    <Compile Include="..\MikePDF.Markup.Tests\Support\Samples.cs" Link="Support\Linked\Samples.cs" />
+    <Compile Include="..\MikePDF.Markup.Tests\Support\ContentStreams.cs" Link="Support\Linked\ContentStreams.cs" />
+  </ItemGroup>
+</Project>

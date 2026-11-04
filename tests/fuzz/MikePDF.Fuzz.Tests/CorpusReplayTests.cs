@@ -95,6 +95,26 @@ public class CorpusReplayTests
     }
 
     [Fact]
+    public void The_edit_blob_seeds_cover_every_annotation_kind_and_one_of_them_is_written_in_full_by_stage_four()
+    {
+        var blobs = FuzzAssets.Files(FuzzAssets.Directory("seeds", "editblob"), "*.bin")
+            .Select(file => MikePDF.Protocol.Edits.EditBlobCodec.TryDecode(File.ReadAllBytes(file), out var blob, out _) ? blob : null).ToList();
+
+        var kinds = blobs.SelectMany(static b => b!.Edits).Select(static e => e.Kind).Where(static k => k != 0).Distinct().Order().ToList();
+        Assert.Equal(Enum.GetValues<MikePDF.Protocol.Edits.AnnotationKind>().Order(), kinds);
+        Assert.Contains(blobs, static b => b!.Edits.Any(static e => e.Operation == MikePDF.Protocol.Edits.EditOperation.Replace));
+        Assert.Contains(blobs, static b => b!.Edits.Any(static e => e.ReplyKind != 0));
+
+        // The seed that holds every kind is written in full by stage 4 on the built-in document, and the result validates.
+        var every = blobs.Single(static b => b!.Edits.Count >= 9 && b.Edits.All(static e => e.Operation == MikePDF.Protocol.Edits.EditOperation.Add));
+        var opened = MikePDF.PdfWriter.StrictDocument.Open(MikePDF.PdfWriter.Fuzz.SaveFuzzTargets.TinyPdf);
+        var appended = MikePDF.PdfWriter.Editing.AnnotationAppender.Append(opened.Value, (int)every!.PageCount, [.. every.Edits.Select(MikePDF.PdfWriter.Fuzz.SaveFuzzTargets.ToChange)]);
+        Assert.True(appended.IsSuccess, appended.TryGetError(out var error) ? error.Message : string.Empty);
+        Assert.Equal(every.Edits.Count, appended.Value.AnnotationsAdded);
+        Assert.True(MikePDF.PdfWriter.StructureValidator.Validate(appended.Value.Output).Issues.All(static i => i.Severity != MikePDF.PdfWriter.ValidationSeverity.Error));
+    }
+
+    [Fact]
     public void The_pdf_seeds_and_corpus_pass_stage_four_and_the_copies()
     {
         foreach (var file in FuzzAssets.Pdfs)

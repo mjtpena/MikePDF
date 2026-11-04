@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <!-- Trim and AOT analysers on every build: the writer host that uses this library is Native AOT. -->
+    <IsAotCompatible>true</IsAotCompatible>
+    <Description>Annotation model, geometry, appearance and dictionary generation, font metrics and text layout, shared by the overlay and the writer (annotation-core 3.3). No UI, no IPC, no PDF parsing, and no dependency on MikePDF.Core: the sandboxed writer host references it.</Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <!-- MIT, build tool, pinned so that an SDK update does not change the lock files: see MikePDF.App.csproj. -->
+    <PackageReference Include="Microsoft.NET.ILLink.Tasks" VersionOverride="10.0.14" PrivateAssets="all" />
+    <ProjectReference Include="..\MikePDF.Ink\MikePDF.Ink.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="MikePDF.Markup.Tests" />
+  </ItemGroup>
+</Project>

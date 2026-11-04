@@ -1,0 +1,7 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <!-- The library under test and the one it uses. Nothing else: the writer host references Markup, so Markup's tests may not lean on Core. -->
+    <ProjectReference Include="..\..\src\MikePDF.Markup\MikePDF.Markup.csproj" />
+    <ProjectReference Include="..\..\src\MikePDF.Ink\MikePDF.Ink.csproj" />
+  </ItemGroup>
+</Project>
