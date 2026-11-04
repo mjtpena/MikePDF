@@ -9,7 +9,7 @@ using MikePDF.Core.Reading;
 namespace MikePDF.App;
 
 /// <summary>One page in the thumbnail pane. Its picture arrives later; until then the item is a white page of the right shape.</summary>
-public sealed class ThumbnailItem(int page, double width, double height) : INotifyPropertyChanged
+public sealed partial class ThumbnailItem(int page, double width, double height) : INotifyPropertyChanged
 {
     private double _width = width;
     private double _height = height;
@@ -61,7 +61,7 @@ public sealed class ThumbnailItem(int page, double width, double height) : INoti
 /// The items of the thumbnail pane: one per page, made when the list asks for them (it asks only for the few that are on screen, so a
 /// document of 100,000 pages costs the same as one of ten). A read-only list, as far as the list view is concerned.
 /// </summary>
-internal sealed class ThumbnailPages : IList
+internal sealed partial class ThumbnailPages : IList
 {
     private const int MaxKept = 400;
 

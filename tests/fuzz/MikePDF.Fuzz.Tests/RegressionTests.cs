@@ -37,6 +37,8 @@ public class RegressionTests
             Assert.True(parse is null, $"{Path.GetFileName(file)} still breaks the parser or validator: {parse}");
             var append = Record.Exception(() => MikePDF.PdfWriter.Fuzz.FuzzTargets.AppendOutcome(bytes));
             Assert.True(append is null, $"{Path.GetFileName(file)} still breaks the incremental writer: {append}");
+            var assemble = Record.Exception(() => MikePDF.PdfWriter.Fuzz.AssembleFuzzTargets.AssembleOutcome(bytes));
+            Assert.True(assemble is null, $"{Path.GetFileName(file)} still breaks the page assembler: {assemble}");
         }
     }
 
