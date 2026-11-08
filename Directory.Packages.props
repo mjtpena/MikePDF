@@ -6,7 +6,7 @@
   </PropertyGroup>
   <ItemGroup>
     <!-- MIT --><PackageVersion Include="MessagePack" Version="3.1.12" />
-    <!-- MIT --><PackageVersion Include="Microsoft.Windows.CsWin32" Version="0.3.367" />
+    <!-- MIT --><PackageVersion Include="Microsoft.Windows.CsWin32" Version="0.3.369" />
     <!-- MIT --><PackageVersion Include="SharpFuzz" Version="2.3.0" />    <!-- MikePDF.App only. Windows App SDK: Microsoft Software License Terms; the files its NuGet package binplaces are redistributable (licence section 3a). -->
     <PackageVersion Include="Microsoft.WindowsAppSDK" Version="2.5.1" />
     <!-- MIT -->
